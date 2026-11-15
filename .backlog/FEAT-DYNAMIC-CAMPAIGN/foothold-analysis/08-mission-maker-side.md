@@ -1,32 +1,32 @@
-# 08 — The mission-maker and server-admin side (Foothold v6.5.3)
+# 08 — Côté créateur de mission et administrateur de serveur (Foothold v6.5.3)
 
-Sources, with the short names used in citations: `manual` = `Common Scripts/Foothold Manual v2.7.pdf` (63 pages, cited as `manual p.N`), `Config` = `Common Scripts/Foothold Config.lua`, `ConfigWW2` = `Common Scripts/Foothold Config WW2.lua`, `setup` = `Setup files/MA_Setup_CAv2.lua`, `kola` = `Setup files/kola_setup.lua`, `zc2` = `Common Scripts/zoneCommanderv2.lua`, `mission` = the `mission` file inside `Missions/Foothold_CA_6.5.2_Coldwar-Modern-Vietnam.miz`, `FCM-README` / `FCM-CHANGELOG` / `gui.json` = the three files read under `tools/FootholdConfigManager/`, `README` = the repository `README.md`.
-This note is about what a person does to author, configure and run a Foothold map; the engine mechanisms themselves are in the sibling notes `01-zones-capture-map.md` to `07-ctld-warehouse-logistics.md` and are only linked from here.
-Counts given as "measured" come from scripts run on the files (regex counts, Lua-table walks), not from reading.
+Sources, avec les noms courts utilisés dans les citations : `manual` = `Common Scripts/Foothold Manual v2.7.pdf` (63 pages, cité `manual p.N`), `Config` = `Common Scripts/Foothold Config.lua`, `ConfigWW2` = `Common Scripts/Foothold Config WW2.lua`, `setup` = `Setup files/MA_Setup_CAv2.lua`, `kola` = `Setup files/kola_setup.lua`, `zc2` = `Common Scripts/zoneCommanderv2.lua`, `mission` = le fichier `mission` à l'intérieur de `Missions/Foothold_CA_6.5.2_Coldwar-Modern-Vietnam.miz`, `FCM-README` / `FCM-CHANGELOG` / `gui.json` = les trois fichiers lus sous `tools/FootholdConfigManager/`, `README` = le `README.md` du dépôt.
+Cette note porte sur ce que fait une personne pour écrire, configurer et exploiter une carte Foothold ; les mécanismes du moteur eux-mêmes sont dans les notes sœurs `01-zones-capture-map.md` à `07-ctld-warehouse-logistics.md` et ne sont que référencés ici.
+Les comptes donnés comme « mesurés » viennent de scripts exécutés sur les fichiers (comptages par regex, parcours de tables Lua), pas d'une lecture.
 
-## Feature list
+## Liste des fonctionnalités
 
-| # | Feature | One-line description | Main location |
+| # | Fonctionnalité | Description en une ligne | Emplacement principal |
 |---|---|---|---|
-| 1 | The manual | 63-page PDF, 14 chapters; half of it is a reference of the Config Manager screens. | `manual p.1-63` |
-| 2 | `Foothold Config.lua` | 202 top-level settings (135 scalars, 67 tables) in 22 sections, annotated with `@gui` comments read by the Config Manager. | `Config:186-3526` |
-| 3 | External config override | A copy in `Saved Games\<profile>\Missions\Saves` replaces the one in the `.miz`; missing settings fall back to the internal default with an on-screen warning. | `Config:1-186`, `Config:3517-3526` |
-| 4 | `Foothold Config WW2.lua` | Reduced config (104 settings) for Normandy, with its own aircraft lists. | `ConfigWW2:1-999` |
-| 5 | Per-map setup file | One Lua file per map (5 000 to 10 000 lines) declaring zones, garrisons, connections, sorties, shop, missions, events. | `setup:1-10014` |
-| 6 | `.miz` conventions | Trigger zones, late-activated template groups, statics, dynamic-spawn airbases, warehouses, 4 triggers. | `mission` |
-| 7 | Foothold Config Manager | Windows tool: config editor, mission updater/downloader, weather/time profiles, desanitise helper, multi-instance. | `FCM-README`, `FCM-CHANGELOG`, `manual p.4-29` |
-| 8 | Server operation | Desanitised `MissionScripting.lua`, save folder, reset, update paths, supported maps/eras, PvE/PvP, localisation. | `README`, `manual p.4-5, 25-29, 56, 61-63` |
-| 9 | Admin commands | Marker words, renamable through the Config, with no identity check. | `Config:3468-3514`, `manual p.61-62` |
-| 10 | Authoring cost of one map | Measured sizes a map author maintains by hand. | last section |
+| 1 | Le manuel | PDF de 63 pages, 14 chapitres ; la moitié est une référence des écrans du Config Manager. | `manual p.1-63` |
+| 2 | `Foothold Config.lua` | 202 réglages de premier niveau (135 scalaires, 67 tables) en 22 sections, annotés par des commentaires `@gui` lus par le Config Manager. | `Config:186-3526` |
+| 3 | Surcharge externe de la config | Une copie dans `Saved Games\<profile>\Missions\Saves` remplace celle du `.miz` ; les réglages manquants retombent sur la valeur interne par défaut avec un avertissement à l'écran. | `Config:1-186`, `Config:3517-3526` |
+| 4 | `Foothold Config WW2.lua` | Config réduite (104 réglages) pour la Normandie, avec ses propres listes d'avions. | `ConfigWW2:1-999` |
+| 5 | Fichier de setup par carte | Un fichier Lua par carte (5 000 à 10 000 lignes) qui déclare zones, garnisons, connexions, sorties, boutique, missions, événements. | `setup:1-10014` |
+| 6 | Conventions du `.miz` | Trigger zones, groupes template en late activation, statics, aérodromes à spawn dynamique, entrepôts, 4 triggers. | `mission` |
+| 7 | Foothold Config Manager | Outil Windows : éditeur de config, mise à jour/téléchargement de mission, profils météo/heure, aide à la désanitisation, multi-instance. | `FCM-README`, `FCM-CHANGELOG`, `manual p.4-29` |
+| 8 | Exploitation du serveur | `MissionScripting.lua` désanitisé, dossier de sauvegarde, remise à zéro, chemins de mise à jour, cartes/époques prises en charge, PvE/PvP, localisation. | `README`, `manual p.4-5, 25-29, 56, 61-63` |
+| 9 | Commandes d'administration | Mots-clés de marqueur, renommables via la Config, sans contrôle d'identité. | `Config:3468-3514`, `manual p.61-62` |
+| 10 | Coût d'écriture d'une carte | Tailles mesurées que l'auteur d'une carte entretient à la main. | dernière section |
 
-## 1. The manual (`Foothold Manual v2.7.pdf`)
+## 1. Le manuel (`Foothold Manual v2.7.pdf`)
 
-The PDF has 63 pages and was read in full from a `pdftotext -layout` extraction (the Read tool could not render it on this machine: no `pdftoppm`); the screenshots were therefore not seen, only their captions.
-About 25 of the 63 pages (p.5-29) are a field-by-field reference of the Config Manager; the gameplay chapters are short.
+Le PDF compte 63 pages et a été lu en entier à partir d'une extraction `pdftotext -layout` (l'outil Read n'a pas pu l'afficher sur cette machine : pas de `pdftoppm`) ; les captures d'écran n'ont donc pas été vues, seulement leurs légendes.
+Environ 25 des 63 pages (p.5-29) sont une référence champ par champ du Config Manager ; les chapitres de gameplay sont courts.
 
-### Table of contents (as printed p.2-3)
+### Table des matières (telle qu'imprimée p.2-3)
 
-| Chapter | Title | Pages |
+| Chapitre | Titre | Pages |
 |---|---|---|
 | 1 | Introduction and How to Start | 4 |
 | 2 | Mission Options and Config (2.1 Config file location, 2.2 Cold War / Modern era, 2.3 Era, aircraft and weapon settings, 2.4 Config Manager and options reference with 18 sub-sections, 2.5 Ranking system, 2.6 RED reactive counterpressure, 2.7 Mods support, 2.8 Updating the Manager and missions) | 5-29 |
@@ -43,407 +43,407 @@ About 25 of the 63 pages (p.5-29) are a field-by-field reference of the Config M
 | 13 | Admin Commands | 61-62 |
 | 14 | End Game, Discord and Support | 63 |
 
-### Features documented, with the page
+### Fonctionnalités documentées, avec la page
 
-"Sibling" names the note whose feature table already has it; "not in sibling tables" means a grep of notes 01-07 for the feature's keywords found nothing or a passing mention only (note 07 was still short, 171 lines, when this was checked).
+« Sibling » désigne la note dont le tableau des fonctionnalités contient déjà l'élément ; « not in sibling tables » signifie qu'un grep des notes 01-07 sur les mots-clés de la fonctionnalité n'a rien trouvé, ou seulement une mention en passant (la note 07 était encore courte, 171 lignes, au moment de la vérification).
 
-| Page | Audience | Feature as the manual states it | Sibling |
+| Page | Public | Fonctionnalité telle que l'énonce le manuel | Sibling |
 |---|---|---|---|
-| 4 | player | Credits are earned personally and banked for the whole coalition by landing at a friendly base. | 05 #3 |
-| 4 | admin | `MissionScripting.lua` must be desanitised, redone after every DCS update; the Config Manager has a panel that applies and checks it. | 02 (load order/saves); panel: this note §5 |
-| 4 | admin | "Disable Tacview" as a performance tip. | not in sibling tables |
-| 4 | admin | Mission must be run as a multiplayer server even solo, because of dynamic spawn. | 02 (slot control) |
-| 5 | admin | First-run wizard installs `Foothold Config.lua` in `Saved Games\<profile>\Missions\Saves`; never unzip the `.miz` by hand. | 02 (external config) |
-| 5-6 | mission maker | Era switch requires the Mission Editor warehouses to be "limited" for aircraft; ships (CVN-72/73/74/59, Tarawa) must be edited one by one, never "copy to all". | not in sibling tables |
-| 7 | admin | Era list: Modern, Coldwar, Gulfwar, Vietnam; Active/Inactive aircraft and weapon lists; the mission date cannot be set by script (1989 recommended for Cold War, 1975 for Vietnam). | 02 (era switch) |
-| 8 | admin | Presets: up to three named config snapshots per instance and config type. | this note §5 |
-| 9 | admin | "Update Config > Update from MIZ" merges a new release's defaults into the existing config, with a timestamped backup (five kept). | this note §5 |
-| 10 | admin | Ground units: max groups per zone, RED SAM template check-list, disable MANTIS, static ground targets, hide SAM on MFD, night air-defence reaction time, harder to detect at night. | 01 #2, 03 #11 |
-| 10-11 | admin | AI flight template check-lists (12 lists), chance AI attacks helicopters. | 03 #1 |
-| 11 | admin | Start Normal (reverse the campaign direction on 4 maps), Start From Incirlik, Remove Southern Syria. | not in sibling tables (Syria-only switches) |
-| 11 | admin | Auto Restart, PVE Only, Allow Mods, credit and rank loss on death, Splash Damage, Show Kills, Store Limit, Ranking System, friendly-fire penalty, Invisible A-10, carrier rank requirement, Tarawa marker commands. | 02, 05 #7, 06 #10 |
-| 12 | admin | Difficulty profiles (easy/medium/hard per role), AI spawn speed scaling per side, AI skills, Hunter, Director intelligence switches, RED reactive difficulty. | 04 #15, 03 #8 |
-| 12 | admin | Stage tables: player threshold to amount, last row not above the counted players wins; ignore lists of aircraft types that do not count as players. | 04 #15 |
-| 12-13 | admin | Message of the Day: one server text 10 s after start, then every interval. | 02 (one mention) |
-| 13 | admin | Callsign families per aircraft with four LotATC IFF codes each. | 06 #11 |
-| 13 | admin | Escort table: per player aircraft type, enabled and which BLUE CAP template escorts it; ground take-off option. | 06 #12 |
-| 13-14 | admin | Warehouse Logistics switch, neutral capture time (120 s), supply capacities (normal 1, `[WH]` 6, CTLD FARP 1), supply and repair speed scaling per side, extra RED repair time with few players. | 01 #7 (capture time); production/repair timings: not in sibling tables |
-| 14 | admin | Player pickups consume stock, C-130/Chinook native loaders, AI helicopters carry real cargo, AI delivery amount (20), auto-fill (5 every 15 min), disable or radio-pause BLUE AI supplies, take-off warning when empty, strict smart-weapon inventory. | 03 #9 (helicopter cargo); the rest not in sibling tables |
-| 14-15 | admin | Shop: advance-capture threshold, prices, rank requirements, reward contribution table (15 keys), refuel reward, AI attack take-off from ground, admin buy, scripted supplies, night bonus. | 05 #5, #13 |
-| 15-18 | admin | CTLD: cost switch, red CTLD, engineer capture, max saved FARPs, IRIS merge rule, price/rank table, "Max at spawn" restore limits, per-aircraft capability table. | 07 |
-| 18-19 | admin + player | CSAR: allowed aircraft and seats, spawn chance without credits, max at once and at restart, pilot weight, hover distance/height/seconds, guidance distance, hostile infantry chance; self-recovery within 3 NM; credits of the downed pilot go to the rescuer. | 06 #4 |
-| 19 | admin | Flight-time reward (per minute after 5 min) and its per-type table. | 05 #3.3 |
-| 19-20 | admin | Tanker default speeds; in-game speed menu 220/286/300/320/340 kt saved over restarts. | 06 #6 |
-| 20-21 | admin + player | EWRS: 22 defaults; one of them (update interval) is documented as having no effect ("the automatic scheduler is fixed at 20 seconds"), and Friendly Picture has no menu command. | 06 #13 |
-| 21-22 | admin | AIEN switches and three cadence timers. | 03 #10 |
-| 22 | admin | Aircraft/weapon lists per era; "Forbidden Weapons All Eras" (default: the RN-24 and RN-28 nuclear bombs). | 07 (warehouse) |
-| 22-23 | admin | F10 connection display (arrows or lines, dynamic or white); AWACS, tanker and carrier radio tables. | 01 #13, 06 #6-#10 |
-| 23 | admin | Settings locked while PvP is on (list of nine groups). | 03 #14, 04 #14 |
-| 23-24 | player | Rank ladder: 20 titles from Recruit (0) to General of the Air Force (540 000), stored in `Foothold_Ranks.lua`, never reset, shared by every Foothold mission. | 05 #7 |
-| 24 | player | RED reactive counterpressure: soft (faster supply and CAP) and hard (forced attack groups). | 04 #12 |
-| 24 | mission maker | Mods: warehouse EQP column filled with 10 000 and copied to all airfields; never tick A/C or neutral bases become dynamic-spawn enabled. | not in sibling tables |
-| 25-29 | admin | Mission update flows (files-only, full download, warehouse copy, server-list registration). | this note §5 |
-| 29-31 | player | Warehouse logistics: `[WH]` logistics centre with unlimited stock, zone supplies vs warehouse items, low-stock label abbreviations (A/A, A/G, RKT, TNK, G-B, U-B), `[SUP]`/`[Supplies] n/m` labels with a five-cell progress bar, Building/Repairing/Training jobs (two at once), `[WH destroyed]` and a 30-min paid repair. | 07 (partly); label grammar and job timings not in sibling tables |
-| 32-34 | player | Loading zone supplies through the DCS rearming "Cargo" panel only, never the CTLD load command; unload inside the zone. | 07 |
-| 34-36 | player | C-130J-30: up to 4 zone supplies (4 = capture/upgrade plus 40 of every item), airdrop with parachutes, CTLD cargo auto-builds about 30 s after an airdrop if all parts land within 2 000 m and not on a house. | not in sibling tables (airdrop auto-build) |
-| 36 | player | Production and recovery timings: 20 min per supply (10 min in a `[WH]` zone), BLUE repair base 15 min (5 min `[WH]`) + 2 min per unit or 3 min per radar, RED 1 min per unit, cap 20 min. | not in sibling tables |
-| 36 | player | Legacy supplies when `WarehouseLogistics = false`: Load/Unload Supplies menu, one supply = one group. | 07 (estimation) |
-| 37 | player | Welcome message with ATIS and runway (BRC on carriers), automatic callsign and IFF. | 06 #11 |
-| 37-38 | player | Zone label `Name (waypoint) built/total`; hostile zones hide the count; RED zone tint red / light red (no air defence left) / purple (statics only); timed neutral capture with progress in the label. | 01 #4, #7, #12 |
-| 39 | player | Main missions: Attack (plus a third "dynamic operation area"), Supply, Capture, CAS, CAP, Recon (10 min of intel), Bomb Runway, SEAD. | 05 #11 |
-| 39-40 | player | Joint missions: up to four players, full reward each, 120 s to accept. | 05 #10 |
-| 40-41 | player | Side missions: Strike (250-1 000), intercept airstrike / bomber / cargo plane, helicopter escort of a ground convoy (1 000 credits, a FARP at about 70 % of the route, convoy menu: stop/move, smoke, bearing). | 05 #11, 04 #16; the ground-escort convoy has one mention in 05 |
-| 42 | player | Tankers: one-time unlock, control menu, racetrack by two markers (`arcohere1/2`, `texacohere1/2`), rank 3 by default. | 06 #6 |
-| 43 | player | Carrier navigation: "Sail to <area>" menu, 5-min and 1-min turn warnings, Tarawa marker commands. | 06 #10 |
-| 43 | player | Dynamic AI scales with player count; A-10, C-130 and helicopters are not counted; Hunt; patrolling ground units; BLUE defence response (ground counter-attack on breach); quiet zones suspended. | 03, 04 #9, 01 #9 |
-| 44 | player | MANTIS network (EWR-driven, backup mode when all EWR are dead, shoot-and-scoot); EWRS settings menu. | 03 #11, 06 #13 |
-| 45 | player | Shop categories: AI Attack, Zone Upgrades, JTAC & Intel, Combined Arms, Capture & resources, Other Support. | 05 #4, #5 |
-| 45 | player | MQ-9 JTAC, laser 1688, six menu entries. | 06 #1 |
-| 46-47 | player | AI attack groups with "Push now / Push on command" for SEAD and Decoy; CAP control menu and `caphere1/2` markers; CAP racetracks avoid known SAM coverage. | 05 #5, 06 #8 |
-| 47 | player | Extra upgrade slot: two purchased upgrades per zone, a third after a coalition unlock (Normandy: one, then two). | 05 (shop catalogue) |
-| 47 | player | Normandy train-route repair (2 000 credits). | not in sibling tables (one mention in 01 and 04) |
-| 48 | player | Deploy FARP: marker outside zones, at least 10 NM from an enemy zone, friendly airbase within 100 NM, delivered by helicopter. | 05, 06 |
-| 49 | player | Marker purchases `buy` and `buy:<itemID>`. | 05 #4 |
-| 49-50 | player | CTLD special teams: Zone Spy (60 min of intel) and Demolition Team (destroys structures, shares targets between teams). | 07 (one mention each) |
-| 50-51 | player | L118 fires on JTAC targets within 7 NM, HIMARS between 9 and 29 NM; SAM add-ons merge within 400 m; pack / pack and load / pack and remove with refund. | 07 |
-| 51 | player | FARP and FARP with ZELL (F-100D zero-length launch point), 30 of most weapons and 90 rockets at build. | 07 |
-| 52 | player | Red CTLD; PvP-only Pantsir (Blue) and Tor M2 (Red); same-type spacing of 8 NM for CTLD-built Pantsir/Tor/SA-8. | 07 (Pantsir mentioned), spacing rule not in sibling tables |
-| 52-53 | player | CSAR menu, hover and landing pickup, enemy-pilot capture with a 50 % chance of 30 min of intel and 20 % chance of revealing Director plans. | 06 #4 |
-| 54 | player | Private escort for A-10, C-130J-30, F-15E: two F/A-18 10 000 ft above, 40 NM protection distance, flight-sweep mode. | 06 #12 |
-| 55 | player | Stats menu (My Stats, All Stats, Top 5), same-aircraft bonus, budget overview. | 05 #8 |
-| 56 | admin | PvP: Caucasus, Syria and Persian Gulf only; starting territory 20/30/40/50 % per side; start-up funds 1 000 per side; separate save names; victory when the opponent owns none of the main victory zones. | 01 #18, 02; starting-territory share not in sibling tables |
-| 56-57 | admin | PvP AI: shared fixed-wing AI group limit reduced by own player planes (0 = balance the player counts), automatic supplies switch, escorts switch, separate aircraft lists. | 03 #14, 04 #14 |
-| 57 | player | PvP industrial strike objectives (300 per building, cap 1 000, friendly territory within 100 NM) and fixed EWR objectives (50 NM). | not in sibling tables |
-| 58 | player | PvP: two AWACS slots per side, replaceable one at a time; destroyable tankers. | 06 #7 |
-| 59-60 | admin | PvP shop tables: national upgrade tiers and the list of items not offered in PvP. | 05 #5 |
-| 61-62 | admin | Admin commands: 11 renamable marker words, exact and case-sensitive, no name or password check. | 01 #17, 02 (marker commands) |
-| 63 | admin | Victory: restart menu or automatic restart; mission and CTLD saves are deleted. | 01 #18, 02 |
+| 4 | joueur | Les crédits se gagnent individuellement et sont mis en banque pour toute la coalition en se posant sur une base amie. | 05 #3 |
+| 4 | admin | `MissionScripting.lua` doit être désanitisé, à refaire après chaque mise à jour de DCS ; le Config Manager a un panneau qui l'applique et le vérifie. | 02 (load order/saves) ; panneau : cette note §5 |
+| 4 | admin | « Disable Tacview » comme conseil de performance. | not in sibling tables |
+| 4 | admin | La mission doit être lancée comme serveur multijoueur même en solo, à cause du spawn dynamique. | 02 (slot control) |
+| 5 | admin | L'assistant du premier lancement installe `Foothold Config.lua` dans `Saved Games\<profile>\Missions\Saves` ; ne jamais dézipper le `.miz` à la main. | 02 (external config) |
+| 5-6 | créateur de mission | Le changement d'époque exige que les entrepôts du Mission Editor soient « limited » pour les avions ; les navires (CVN-72/73/74/59, Tarawa) doivent être édités un par un, jamais en « copy to all ». | not in sibling tables |
+| 7 | admin | Liste des époques : Modern, Coldwar, Gulfwar, Vietnam ; listes Active/Inactive d'avions et d'armes ; la date de la mission ne peut pas être fixée par script (1989 recommandé pour la Guerre froide, 1975 pour le Vietnam). | 02 (era switch) |
+| 8 | admin | Presets : jusqu'à trois instantanés de config nommés par instance et par type de config. | cette note §5 |
+| 9 | admin | « Update Config > Update from MIZ » fusionne les valeurs par défaut d'une nouvelle version dans la config existante, avec une sauvegarde horodatée (cinq conservées). | cette note §5 |
+| 10 | admin | Unités terrestres : nombre max de groupes par zone, liste de contrôle des templates SAM RED, désactiver MANTIS, cibles terrestres statiques, masquer les SAM sur le MFD, temps de réaction de la défense aérienne la nuit, plus difficile à détecter la nuit. | 01 #2, 03 #11 |
+| 10-11 | admin | Listes de contrôle des templates de vols IA (12 listes), probabilité que l'IA attaque les hélicoptères. | 03 #1 |
+| 11 | admin | Start Normal (inverser le sens de la campagne sur 4 cartes), Start From Incirlik, Remove Southern Syria. | not in sibling tables (interrupteurs propres à la Syrie) |
+| 11 | admin | Auto Restart, PVE Only, Allow Mods, perte de crédits et de rang à la mort, Splash Damage, Show Kills, Store Limit, Ranking System, pénalité de tir ami, Invisible A-10, rang requis pour le porte-avions, commandes de marqueur Tarawa. | 02, 05 #7, 06 #10 |
+| 12 | admin | Profils de difficulté (easy/medium/hard par rôle), échelle de vitesse de spawn IA par camp, compétences IA, Hunter, interrupteurs d'intel du Director, difficulté réactive RED. | 04 #15, 03 #8 |
+| 12 | admin | Tables d'étapes : seuil de joueurs vers quantité, la dernière ligne non supérieure au nombre de joueurs comptés l'emporte ; listes d'ignorés de types d'avions qui ne comptent pas comme joueurs. | 04 #15 |
+| 12-13 | admin | Message of the Day : un texte serveur 10 s après le démarrage, puis à chaque intervalle. | 02 (une mention) |
+| 13 | admin | Familles d'indicatifs par avion avec quatre codes IFF LotATC chacune. | 06 #11 |
+| 13 | admin | Table d'escorte : par type d'avion joueur, activée ou non, et quel template de CAP BLUE l'escorte ; option de décollage depuis le sol. | 06 #12 |
+| 13-14 | admin | Interrupteur Warehouse Logistics, temps de capture neutre (120 s), capacités de supply (normal 1, `[WH]` 6, FARP CTLD 1), échelle de vitesse de supply et de réparation par camp, temps de réparation RED supplémentaire quand il y a peu de joueurs. | 01 #7 (temps de capture) ; durées de production/réparation : not in sibling tables |
+| 14 | admin | Les prélèvements des joueurs consomment le stock, chargeurs natifs C-130/Chinook, hélicoptères IA qui transportent un vrai cargo, quantité de livraison IA (20), remplissage automatique (5 toutes les 15 min), désactiver ou mettre en pause par radio les supplies IA BLUE, avertissement au décollage quand c'est vide, inventaire strict des armes intelligentes. | 03 #9 (cargo d'hélicoptère) ; le reste not in sibling tables |
+| 14-15 | admin | Boutique : seuil d'advance capture, prix, rangs requis, table des contributions de récompense (15 clés), récompense de ravitaillement, décollage des groupes d'attaque IA depuis le sol, achat admin, supplies scriptés, bonus de nuit. | 05 #5, #13 |
+| 15-18 | admin | CTLD : interrupteur de coût, CTLD rouge, capture par ingénieur, nombre max de FARP sauvegardés, règle de fusion IRIS, table prix/rang, limites de restauration « Max at spawn », table de capacités par avion. | 07 |
+| 18-19 | admin + joueur | CSAR : avions et sièges autorisés, chance de spawn sans crédits, max simultané et au redémarrage, poids du pilote, distance/hauteur/secondes de vol stationnaire, distance de guidage, probabilité d'infanterie hostile ; auto-récupération à moins de 3 NM ; les crédits du pilote abattu vont à son sauveteur. | 06 #4 |
+| 19 | admin | Récompense de temps de vol (par minute après 5 min) et sa table par type. | 05 #3.3 |
+| 19-20 | admin | Vitesses par défaut des ravitailleurs ; menu de vitesse en jeu 220/286/300/320/340 kt conservé d'un redémarrage à l'autre. | 06 #6 |
+| 20-21 | admin + joueur | EWRS : 22 valeurs par défaut ; l'une d'elles (intervalle de mise à jour) est documentée comme sans effet (« the automatic scheduler is fixed at 20 seconds »), et Friendly Picture n'a pas de commande de menu. | 06 #13 |
+| 21-22 | admin | Interrupteurs AIEN et trois timers de cadence. | 03 #10 |
+| 22 | admin | Listes d'avions/d'armes par époque ; « Forbidden Weapons All Eras » (par défaut : les bombes nucléaires RN-24 et RN-28). | 07 (entrepôt) |
+| 22-23 | admin | Affichage des connexions sur la carte F10 (flèches ou lignes, dynamiques ou blanches) ; tables radio AWACS, ravitailleur et porte-avions. | 01 #13, 06 #6-#10 |
+| 23 | admin | Réglages verrouillés tant que le PvP est actif (liste de neuf groupes). | 03 #14, 04 #14 |
+| 23-24 | joueur | Échelle de rangs : 20 titres de Recruit (0) à General of the Air Force (540 000), stockés dans `Foothold_Ranks.lua`, jamais remis à zéro, partagés par toutes les missions Foothold. | 05 #7 |
+| 24 | joueur | Contre-pression réactive RED : douce (supply et CAP plus rapides) et dure (groupes d'attaque forcés). | 04 #12 |
+| 24 | créateur de mission | Mods : la colonne EQP de l'entrepôt remplie avec 10 000 et copiée sur tous les aérodromes ; ne jamais cocher A/C ou les bases neutres deviennent à spawn dynamique. | not in sibling tables |
+| 25-29 | admin | Flux de mise à jour de mission (fichiers seuls, téléchargement complet, copie d'entrepôt, enregistrement dans la liste des serveurs). | cette note §5 |
+| 29-31 | joueur | Warehouse logistics : centre logistique `[WH]` au stock illimité, zone supplies contre warehouse items, abréviations des étiquettes de stock bas (A/A, A/G, RKT, TNK, G-B, U-B), étiquettes `[SUP]`/`[Supplies] n/m` avec une barre de progression à cinq cases, jobs Building/Repairing/Training (deux à la fois), `[WH destroyed]` et une réparation payante de 30 min. | 07 (en partie) ; grammaire des étiquettes et durées des jobs : not in sibling tables |
+| 32-34 | joueur | Chargement des zone supplies uniquement par le panneau de réarmement « Cargo » de DCS, jamais par la commande de chargement CTLD ; décharger dans la zone. | 07 |
+| 34-36 | joueur | C-130J-30 : jusqu'à 4 zone supplies (4 = capture/upgrade plus 40 de chaque article), largage avec parachutes, le cargo CTLD se construit automatiquement environ 30 s après un largage si toutes les pièces atterrissent à moins de 2 000 m et pas sur une maison. | not in sibling tables (construction automatique après largage) |
+| 36 | joueur | Durées de production et de récupération : 20 min par supply (10 min dans une zone `[WH]`), base de réparation BLUE 15 min (5 min `[WH]`) + 2 min par unité ou 3 min par radar, RED 1 min par unité, plafond 20 min. | not in sibling tables |
+| 36 | joueur | Supplies legacy quand `WarehouseLogistics = false` : menu Load/Unload Supplies, un supply = un groupe. | 07 (estimation) |
+| 37 | joueur | Message de bienvenue avec ATIS et piste (BRC sur les porte-avions), indicatif et IFF automatiques. | 06 #11 |
+| 37-38 | joueur | Étiquette de zone `Name (waypoint) built/total` ; les zones hostiles masquent le compte ; teinte de zone RED rouge / rouge clair (plus de défense aérienne) / violet (statics seulement) ; capture neutre temporisée avec progression dans l'étiquette. | 01 #4, #7, #12 |
+| 39 | joueur | Missions principales : Attack (plus une troisième « dynamic operation area »), Supply, Capture, CAS, CAP, Recon (10 min d'intel), Bomb Runway, SEAD. | 05 #11 |
+| 39-40 | joueur | Missions conjointes : jusqu'à quatre joueurs, récompense complète chacun, 120 s pour accepter. | 05 #10 |
+| 40-41 | joueur | Missions secondaires : Strike (250-1 000), interception de frappe aérienne / bombardier / avion cargo, escorte en hélicoptère d'un convoi terrestre (1 000 crédits, un FARP à environ 70 % de l'itinéraire, menu du convoi : arrêt/marche, fumigène, relèvement). | 05 #11, 04 #16 ; l'escorte de convoi terrestre a une mention dans 05 |
+| 42 | joueur | Ravitailleurs : déblocage unique, menu de contrôle, racetrack par deux marqueurs (`arcohere1/2`, `texacohere1/2`), rang 3 par défaut. | 06 #6 |
+| 43 | joueur | Navigation des porte-avions : menu « Sail to <area> », avertissements de virage à 5 min et 1 min, commandes de marqueur Tarawa. | 06 #10 |
+| 43 | joueur | L'IA dynamique s'adapte au nombre de joueurs ; A-10, C-130 et hélicoptères ne sont pas comptés ; Hunt ; unités terrestres en patrouille ; réponse défensive BLUE (contre-attaque terrestre en cas de brèche) ; zones calmes suspendues. | 03, 04 #9, 01 #9 |
+| 44 | joueur | Réseau MANTIS (piloté par les EWR, mode de secours quand tous les EWR sont morts, shoot-and-scoot) ; menu de réglages EWRS. | 03 #11, 06 #13 |
+| 45 | joueur | Catégories de la boutique : AI Attack, Zone Upgrades, JTAC & Intel, Combined Arms, Capture & resources, Other Support. | 05 #4, #5 |
+| 45 | joueur | JTAC MQ-9, laser 1688, six entrées de menu. | 06 #1 |
+| 46-47 | joueur | Groupes d'attaque IA avec « Push now / Push on command » pour SEAD et Decoy ; menu de contrôle des CAP et marqueurs `caphere1/2` ; les racetracks de CAP évitent la couverture SAM connue. | 05 #5, 06 #8 |
+| 47 | joueur | Emplacement d'upgrade supplémentaire : deux upgrades achetés par zone, un troisième après un déblocage de coalition (Normandie : un, puis deux). | 05 (catalogue de la boutique) |
+| 47 | joueur | Réparation de la voie ferrée en Normandie (2 000 crédits). | not in sibling tables (une mention dans 01 et 04) |
+| 48 | joueur | Deploy FARP : marqueur hors des zones, à au moins 10 NM d'une zone ennemie, base amie à moins de 100 NM, livré par hélicoptère. | 05, 06 |
+| 49 | joueur | Achats par marqueur `buy` et `buy:<itemID>`. | 05 #4 |
+| 49-50 | joueur | Équipes spéciales CTLD : Zone Spy (60 min d'intel) et Demolition Team (détruit les structures, partage les cibles entre équipes). | 07 (une mention chacune) |
+| 50-51 | joueur | Le L118 tire sur les cibles JTAC à moins de 7 NM, le HIMARS entre 9 et 29 NM ; les ajouts SAM fusionnent à moins de 400 m ; pack / pack and load / pack and remove avec remboursement. | 07 |
+| 51 | joueur | FARP et FARP avec ZELL (point de décollage à longueur nulle pour F-100D), 30 de la plupart des armes et 90 roquettes à la construction. | 07 |
+| 52 | joueur | CTLD rouge ; Pantsir (Blue) et Tor M2 (Red) réservés au PvP ; espacement de 8 NM entre unités du même type pour les Pantsir/Tor/SA-8 construits par CTLD. | 07 (Pantsir mentionné), règle d'espacement not in sibling tables |
+| 52-53 | joueur | Menu CSAR, récupération en vol stationnaire et à l'atterrissage, capture de pilote ennemi avec 50 % de chance d'obtenir 30 min d'intel et 20 % de chance de révéler les plans du Director. | 06 #4 |
+| 54 | joueur | Escorte privée pour A-10, C-130J-30, F-15E : deux F/A-18 10 000 ft au-dessus, distance de protection 40 NM, mode flight-sweep. | 06 #12 |
+| 55 | joueur | Menu de statistiques (My Stats, All Stats, Top 5), bonus de même avion, aperçu du budget. | 05 #8 |
+| 56 | admin | PvP : Caucase, Syrie et golfe Persique seulement ; territoire de départ 20/30/40/50 % par camp ; fonds de démarrage 1 000 par camp ; noms de sauvegarde séparés ; victoire quand l'adversaire ne possède aucune des zones de victoire principales. | 01 #18, 02 ; part du territoire de départ not in sibling tables |
+| 56-57 | admin | IA PvP : limite partagée de groupes IA à voilure fixe réduite par les avions joueurs du camp (0 = équilibrer le nombre de joueurs), interrupteur de supplies automatiques, interrupteur d'escortes, listes d'avions séparées. | 03 #14, 04 #14 |
+| 57 | joueur | Objectifs de frappe industrielle PvP (300 par bâtiment, plafond 1 000, territoire ami à moins de 100 NM) et objectifs EWR fixes (50 NM). | not in sibling tables |
+| 58 | joueur | PvP : deux slots AWACS par camp, remplaçables un à la fois ; ravitailleurs destructibles. | 06 #7 |
+| 59-60 | admin | Tables de boutique PvP : paliers nationaux d'upgrade et liste des articles non proposés en PvP. | 05 #5 |
+| 61-62 | admin | Commandes d'administration : 11 mots de marqueur renommables, exacts et sensibles à la casse, sans contrôle de nom ni de mot de passe. | 01 #17, 02 (marker commands) |
+| 63 | admin | Victoire : menu de redémarrage ou redémarrage automatique ; les sauvegardes de mission et de CTLD sont supprimées. | 01 #18, 02 |
 
-### Statements of the manual worth keeping for a re-implementation
+### Affirmations du manuel à retenir pour une réimplémentation
 
-The manual says the Config Manager, not the mission, is the supported way to touch configuration: "Do not open the miz as a ZIP or manually move Foothold Config.lua" (`manual p.4`).
-It states that `MessageUpdateInterval` of EWRS is exposed but not honoured by the runtime (`manual p.20`), and that "Allow Friendly Picture" has no menu entry (`manual p.20`).
-It states that "Warehouse Weapon Caps" is misnamed: membership of the list halves each refill, there is no numeric cap (`manual p.14`).
-It states that admin marker commands have no administrator-name or password check and must be protected by choosing secret words (`manual p.62`).
-It states that the mission date cannot be changed by script and must be set in the Mission Editor per era (`manual p.7`).
-It states that PvP exists on three maps only and that enabling PvP does not convert a running PvE save (`manual p.56`), which matches `Config:3525` forcing `PvP = false` on any other theatre.
+Le manuel dit que le Config Manager, et non la mission, est le moyen pris en charge pour toucher à la configuration : « Do not open the miz as a ZIP or manually move Foothold Config.lua » (`manual p.4`).
+Il indique que `MessageUpdateInterval` d'EWRS est exposé mais non honoré par le runtime (`manual p.20`), et que « Allow Friendly Picture » n'a pas d'entrée de menu (`manual p.20`).
+Il indique que « Warehouse Weapon Caps » est mal nommé : l'appartenance à la liste divise par deux chaque réapprovisionnement, il n'y a pas de plafond numérique (`manual p.14`).
+Il indique que les commandes de marqueur d'administration n'ont aucun contrôle de nom d'administrateur ni de mot de passe et doivent être protégées par le choix de mots secrets (`manual p.62`).
+Il indique que la date de la mission ne peut pas être changée par script et doit être fixée dans le Mission Editor pour chaque époque (`manual p.7`).
+Il indique que le PvP n'existe que sur trois cartes et que l'activer ne convertit pas une sauvegarde PvE en cours (`manual p.56`), ce qui concorde avec `Config:3525` qui force `PvP = false` sur tout autre théâtre.
 
 ## 2. `Foothold Config.lua`
 
-### File structure
+### Structure du fichier
 
-Lines 1-186 are loader code marked "do not touch": the file looks for a copy of itself in `lfs.writedir() .. "Missions\\Saves"` and, when found, runs that copy on top of the internal defaults (`Config:1-7`, `Config:153-186`).
-Two lists, `FootholdConfigTrackedTableNames` (62 names) and `FootholdConfigTrackedScalarNames` (18 names), name the settings whose absence from the external copy must be reported (`Config:9-92`).
-The external chunk is run in an environment whose `__newindex` records every assigned name; a tracked table still equal to the internal default, or a tracked scalar never assigned, is listed in an `env.warning` and in an on-screen message repeated 12 times at 10 s intervals (`Config:94-135`).
-A syntax error in the external copy is reported on screen every 30 s as "FOOTHOLD CONFIG ERROR" (`Config:137-146`).
-On Normandy the same loader reads `Foothold Config WW2.lua` from the `.miz` (`l10n/DEFAULT/`) and then from the Saves folder (`Config:2-6`, `Config:163-181`).
-The last lines force `PvP = false` unless the theatre is Caucasus, Syria or PersianGulf and set `FootholdConfigLoadedOk` (`Config:3525-3526`).
-Mechanism details of the override are in `02-persistence-lifecycle-plumbing.md` ("External config override").
+Les lignes 1-186 sont du code de chargement marqué « do not touch » : le fichier cherche une copie de lui-même dans `lfs.writedir() .. "Missions\\Saves"` et, s'il la trouve, l'exécute par-dessus les valeurs internes par défaut (`Config:1-7`, `Config:153-186`).
+Deux listes, `FootholdConfigTrackedTableNames` (62 noms) et `FootholdConfigTrackedScalarNames` (18 noms), nomment les réglages dont l'absence de la copie externe doit être signalée (`Config:9-92`).
+Le chunk externe est exécuté dans un environnement dont le `__newindex` enregistre chaque nom assigné ; une table suivie encore égale à la valeur interne par défaut, ou un scalaire suivi jamais assigné, est listé dans un `env.warning` et dans un message à l'écran répété 12 fois à intervalles de 10 s (`Config:94-135`).
+Une erreur de syntaxe dans la copie externe est signalée à l'écran toutes les 30 s par « FOOTHOLD CONFIG ERROR » (`Config:137-146`).
+En Normandie, le même chargeur lit `Foothold Config WW2.lua` dans le `.miz` (`l10n/DEFAULT/`) puis dans le dossier Saves (`Config:2-6`, `Config:163-181`).
+Les dernières lignes forcent `PvP = false` sauf si le théâtre est Caucasus, Syria ou PersianGulf, et posent `FootholdConfigLoadedOk` (`Config:3525-3526`).
+Le détail du mécanisme de surcharge est dans `02-persistence-lifecycle-plumbing.md` (« External config override »).
 
-Settings carry `-- @gui ...` comment annotations that Lua ignores and the Config Manager reads: `label`, `editor` (`checkboxTable`, `linkedTable`, `fieldTable`, `sideMultiplier`, `bucket`), `validValues`, `visibleWhen` / `disabledWhen` conditions on other settings, `installPolicy` (`mergeRows`, `replaceTable`, `keepTable`) used when merging a new release, `requiredValues` / `requiredSet` linking AI templates to the aircraft types that must stay in the warehouse lists (`Config:246-247`, `Config:552-556`, `Config:1607`, `Config:2393-2417`).
-Row comments of the form `-- eras=Modern|Coldwar; label` tag each template row with the eras it belongs to, which the Manager uses to tick rows when the era changes (`Config:249-262`).
-So the Lua file is at the same time the runtime configuration and the schema of the editing tool.
+Les réglages portent des annotations en commentaires `-- @gui ...` que Lua ignore et que le Config Manager lit : `label`, `editor` (`checkboxTable`, `linkedTable`, `fieldTable`, `sideMultiplier`, `bucket`), `validValues`, conditions `visibleWhen` / `disabledWhen` portant sur d'autres réglages, `installPolicy` (`mergeRows`, `replaceTable`, `keepTable`) utilisé lors de la fusion d'une nouvelle version, `requiredValues` / `requiredSet` qui relient les templates IA aux types d'avions devant rester dans les listes de l'entrepôt (`Config:246-247`, `Config:552-556`, `Config:1607`, `Config:2393-2417`).
+Les commentaires de ligne de la forme `-- eras=Modern|Coldwar; label` étiquettent chaque ligne de template avec les époques auxquelles elle appartient, ce que le Manager utilise pour cocher les lignes quand l'époque change (`Config:249-262`).
+Le fichier Lua est donc à la fois la configuration d'exécution et le schéma de l'outil d'édition.
 
-### Count
+### Compte
 
-Measured with a script walking top-level assignments from line 186: 135 scalar settings and 67 table settings, 202 in total (the script's raw 139 scalars include `GlobalSettings = GlobalSettings or {}`, `AIEN = AIEN or {}`, `AIEN.config = ...` and `FootholdConfigLoadedOk`, which are not settings).
-One of the 67 tables, `WarehouseWeaponLocationAirbases`, is a catalogue of warehouse names per map for the Manager's picker, not a behaviour setting (`Config:1436-1571`).
-The tables hold 1 181 active first-level rows and 408 commented-out rows that the Manager shows as "inactive" choices (sum of the per-table counts of the same script).
+Mesuré avec un script qui parcourt les affectations de premier niveau à partir de la ligne 186 : 135 réglages scalaires et 67 réglages tables, soit 202 au total (les 139 scalaires bruts du script incluent `GlobalSettings = GlobalSettings or {}`, `AIEN = AIEN or {}`, `AIEN.config = ...` et `FootholdConfigLoadedOk`, qui ne sont pas des réglages).
+L'une des 67 tables, `WarehouseWeaponLocationAirbases`, est un catalogue de noms d'entrepôts par carte pour le sélecteur du Manager, et non un réglage de comportement (`Config:1436-1571`).
+Les tables contiennent 1 181 lignes actives de premier niveau et 408 lignes commentées que le Manager présente comme des choix « inactifs » (somme des comptes par table du même script).
 
-### Inventory by section
+### Inventaire par section
 
-Defaults are the values in the file; "rows" is the number of active entries at the first level of the table.
+Les valeurs par défaut sont celles du fichier ; « lignes » est le nombre d'entrées actives au premier niveau de la table.
 
-**Mission options** (`Config:193-299`, 20 settings)
+**Options de mission** (`Config:193-299`, 20 réglages)
 
-| Setting | Default | Meaning |
+| Réglage | Défaut | Signification |
 |---|---|---|
-| `Era` | `"Modern"` | `Modern`, `Coldwar`, `Gulfwar` (Iraq name of Coldwar) or `Vietnam`; selects templates, lists and save name (`Config:196-198`). |
-| `PvP` | `false` | Symmetric mode; only Caucasus, Syria, Persian Gulf (`Config:200-202`, `Config:3525`). |
-| `FootholdLocale` | `"EN"` | Language of global messages; 10 values EN, DE, FR, ES, RU, PT-BR, TR, IT, zh-CN, zh-TW (`Config:204-220`). |
-| `StartNormal` | `true` | `false` starts from the other end of the map and disables the carrier zone; Caucasus, Persian Gulf, Syria, Afghanistan only (`Config:225-227`). |
-| `StartFromIncirlik` | `false` | Syria, PvE: start from Incirlik instead of Akrotiri (`Config:229-233`). |
-| `RemoveSouthSyria` | `false` | Syria: drop the southern zones, progress kept (`Config:235-240`). |
-| `AutoRestart` | `false` | Automatic reset and restart on victory, else a menu (`Config:242-244`). |
-| `PVE_Only` | `false` | Players on Red cannot spawn in red zones (`Config:246-251`). |
-| `AllowMods` | `false` | Warehouse logistics also restocks mod weapons; Modern only (`Config:253-258`). |
-| `CreditLosewhenKilled`, `CreditLosewhenKilledAmount` | `false`, `100` | Coalition credits lost per player death (`Config:260-264`). |
-| `RankLoseWhenKilled`, `RankLoseWhenKilledAmount` | `true`, `100` | Rank credits lost per player death (`Config:266-270`). |
-| `SplashDamage` | `false` | Load the splash-damage script (`Config:272-273`). |
-| `ShowKills` | `false` | Foothold kill messages (`Config:275`). |
-| `StoreLimit` | `false` | Earned-credit gates on expensive items (>250 needs 100 earned, >1000 needs 1000, >2000 needs 2000, >3000 needs 3000) (`Config:277-282`). |
-| `RankingSystem` | `true` | Ranks and rank gates (`Config:284-285`). |
-| `FriendlyFireRankPenalty` | `500` | Rank credits removed per friendly-fire event (`Config:287-288`). |
-| `CarrierRankRequirement` | `5` | Rank needed to move the carrier (`Config:290-292`). |
-| `AllowTarawaToMoveFreely` | `false` | Tarawa marker commands (`Config:294-299`). |
+| `Era` | `"Modern"` | `Modern`, `Coldwar`, `Gulfwar` (nom irakien de Coldwar) ou `Vietnam` ; sélectionne les templates, les listes et le nom de sauvegarde (`Config:196-198`). |
+| `PvP` | `false` | Mode symétrique ; seulement Caucase, Syrie, golfe Persique (`Config:200-202`, `Config:3525`). |
+| `FootholdLocale` | `"EN"` | Langue des messages globaux ; 10 valeurs EN, DE, FR, ES, RU, PT-BR, TR, IT, zh-CN, zh-TW (`Config:204-220`). |
+| `StartNormal` | `true` | `false` démarre par l'autre bout de la carte et désactive la zone du porte-avions ; Caucase, golfe Persique, Syrie, Afghanistan seulement (`Config:225-227`). |
+| `StartFromIncirlik` | `false` | Syrie, PvE : démarrer depuis Incirlik au lieu d'Akrotiri (`Config:229-233`). |
+| `RemoveSouthSyria` | `false` | Syrie : retirer les zones du sud, la progression est conservée (`Config:235-240`). |
+| `AutoRestart` | `false` | Remise à zéro et redémarrage automatiques à la victoire, sinon un menu (`Config:242-244`). |
+| `PVE_Only` | `false` | Les joueurs Red ne peuvent pas apparaître dans les zones rouges (`Config:246-251`). |
+| `AllowMods` | `false` | La warehouse logistics réapprovisionne aussi les armes de mods ; Modern seulement (`Config:253-258`). |
+| `CreditLosewhenKilled`, `CreditLosewhenKilledAmount` | `false`, `100` | Crédits de la coalition perdus à chaque mort d'un joueur (`Config:260-264`). |
+| `RankLoseWhenKilled`, `RankLoseWhenKilledAmount` | `true`, `100` | Crédits de rang perdus à chaque mort d'un joueur (`Config:266-270`). |
+| `SplashDamage` | `false` | Charger le script de splash damage (`Config:272-273`). |
+| `ShowKills` | `false` | Messages de kill de Foothold (`Config:275`). |
+| `StoreLimit` | `false` | Seuils de crédits gagnés pour les articles chers (>250 exige 100 gagnés, >1000 exige 1000, >2000 exige 2000, >3000 exige 3000) (`Config:277-282`). |
+| `RankingSystem` | `true` | Rangs et seuils de rang (`Config:284-285`). |
+| `FriendlyFireRankPenalty` | `500` | Crédits de rang retirés à chaque tir ami (`Config:287-288`). |
+| `CarrierRankRequirement` | `5` | Rang nécessaire pour déplacer le porte-avions (`Config:290-292`). |
+| `AllowTarawaToMoveFreely` | `false` | Commandes de marqueur du Tarawa (`Config:294-299`). |
 
-**PvP settings** (`Config:302-337`, 6 settings)
+**Réglages PvP** (`Config:302-337`, 6 réglages)
 
-| Setting | Default | Meaning |
+| Réglage | Défaut | Signification |
 |---|---|---|
-| `StartupFunds` | `{[1]=1000,[2]=1000}` | Credits per side at a new or reset PvP round (`Config:304-311`). |
-| `PvPStartingTerritoryPercent` | `50` | Share of eligible zones given to each side at start: 20, 30, 40 or 50 (`Config:313-318`). |
-| `pvp_supplies` | `true` | Automatic AI supplies for both sides, else only when bought (`Config:320-322`). |
-| `PvPEscorts` | `false` | Free two-ship escort offer in PvP (`Config:324-327`). |
-| `PvPDisableCombatAI` | `false` | No ordinary automatic combat flights (`Config:329-331`). |
-| `PvPCombatAIGroupLimit` | `10` | Automatic fixed-wing combat groups per side minus own player planes; 0 = balance player counts (`Config:333-337`). |
+| `StartupFunds` | `{[1]=1000,[2]=1000}` | Crédits par camp au début d'une manche PvP, neuve ou remise à zéro (`Config:304-311`). |
+| `PvPStartingTerritoryPercent` | `50` | Part des zones éligibles donnée à chaque camp au départ : 20, 30, 40 ou 50 (`Config:313-318`). |
+| `pvp_supplies` | `true` | Supplies IA automatiques pour les deux camps, sinon seulement quand ils sont achetés (`Config:320-322`). |
+| `PvPEscorts` | `false` | Offre d'escorte gratuite de deux appareils en PvP (`Config:324-327`). |
+| `PvPDisableCombatAI` | `false` | Pas de vols de combat automatiques ordinaires (`Config:329-331`). |
+| `PvPCombatAIGroupLimit` | `10` | Groupes de combat IA à voilure fixe automatiques par camp moins les avions joueurs du camp ; 0 = équilibrer le nombre de joueurs (`Config:333-337`). |
 
-**Frequencies** (`Config:340-397`, 5 tables)
+**Fréquences** (`Config:340-397`, 5 tables)
 
-| Setting | Default | Meaning |
+| Réglage | Défaut | Signification |
 |---|---|---|
-| `AWACSRadioFrequencies` | 4 rows: Blue 251 / 251.5, Red 252 / 252.5 MHz AM | Red rows apply in PvP only (`Config:343-354`). |
-| `TankerRadioSettings` | 5 rows: Blue Arco 260 / TACAN 101Y, Blue Texaco 266 / 102Y, Shell 253 / 103Y, Red Arco 260 / 104Y, Red Texaco 266 / 105Y | Frequency and TACAN per tanker (`Config:356-370`). |
-| `CarrierNavigationRadios` | 3 rows: CVN-72 TACAN 72X ATC 272, CVN-74 74X 274, Tarawa 1X 271.5 | (`Config:372-383`). |
-| `CarrierNavigationICLS` | CVN-72 = 12, CVN-74 = 14 | ICLS channel, 0 = off (`Config:385-390`). |
-| `CarrierNavigationLink4` | CVN-72 = 372, CVN-74 = 374 | Link 4 MHz, 0 = off (`Config:392-397`). |
+| `AWACSRadioFrequencies` | 4 lignes : Blue 251 / 251.5, Red 252 / 252.5 MHz AM | Les lignes Red ne s'appliquent qu'en PvP (`Config:343-354`). |
+| `TankerRadioSettings` | 5 lignes : Blue Arco 260 / TACAN 101Y, Blue Texaco 266 / 102Y, Shell 253 / 103Y, Red Arco 260 / 104Y, Red Texaco 266 / 105Y | Fréquence et TACAN par ravitailleur (`Config:356-370`). |
+| `CarrierNavigationRadios` | 3 lignes : CVN-72 TACAN 72X ATC 272, CVN-74 74X 274, Tarawa 1X 271.5 | (`Config:372-383`). |
+| `CarrierNavigationICLS` | CVN-72 = 12, CVN-74 = 14 | Canal ICLS, 0 = désactivé (`Config:385-390`). |
+| `CarrierNavigationLink4` | CVN-72 = 372, CVN-74 = 374 | Link 4 en MHz, 0 = désactivé (`Config:392-397`). |
 
-**F10 Map** (`Config:400-411`, 2 settings): `ConnectionMapStyle = "line"` (`"arrow"` or `"line"`) and `ConnectionMapColor = "dynamic"` (`"dynamic"` or `"white"`).
+**Carte F10** (`Config:400-411`, 2 réglages) : `ConnectionMapStyle = "line"` (`"arrow"` ou `"line"`) et `ConnectionMapColor = "dynamic"` (`"dynamic"` ou `"white"`).
 
-**Difficulty** (`Config:414-438`, 4 settings)
+**Difficulté** (`Config:414-438`, 4 réglages)
 
-| Setting | Default | Meaning |
+| Réglage | Défaut | Signification |
 |---|---|---|
-| `GlobalSettings.difficultyScaling` | `{[1]=1.0,[2]=1.0}` | Multiplier of non-supply AI timers per side, 0.10 to 5.00 (`Config:417-423`). |
-| `GlobalSettings.directorBattlefieldIntelligenceEnabled` | `true` | Director remembers sortie and supply outcomes (`Config:425-431`). |
-| `GlobalSettings.directorAirCombatIntelligenceEnabled` | `true` | Director uses recent air-combat results to redirect CAP (`Config:433-436`). |
-| `RedReactiveDifficulty` | `"medium"` | Profile of the reactive counterpressure (`Config:438`). |
+| `GlobalSettings.difficultyScaling` | `{[1]=1.0,[2]=1.0}` | Multiplicateur des timers IA hors supply, par camp, de 0,10 à 5,00 (`Config:417-423`). |
+| `GlobalSettings.directorBattlefieldIntelligenceEnabled` | `true` | Le Director se souvient des résultats des sorties et des supplies (`Config:425-431`). |
+| `GlobalSettings.directorAirCombatIntelligenceEnabled` | `true` | Le Director utilise les résultats récents de combat aérien pour rediriger les CAP (`Config:433-436`). |
+| `RedReactiveDifficulty` | `"medium"` | Profil de la contre-pression réactive (`Config:438`). |
 
-**Ground Units** (`Config:443-544`, 12 settings)
+**Unités terrestres** (`Config:443-544`, 12 réglages)
 
-| Setting | Default | Meaning |
+| Réglage | Défaut | Signification |
 |---|---|---|
-| `MaxRedGroundGroupsPerZone` | `12` | Cap of generated Red groups per zone in a fresh PvE campaign, 5 to 12; per-map maxima listed in the comment (Caucasus 10) (`Config:445-463`). |
-| `MaxBlueGroundGroupsPerZone` | `4` | Same for the randomised Blue garrison, 1 to 4 (`Config:465-481`). |
-| `DisableZonePatrol` | `false` | No roaming of ground groups inside zones (`Config:483-486`). |
-| `RedTemplateEnabled` | 14 rows, all `true` | SA-2, SA-3, SA-5, SA-6, SA-8, SA-9, SA-13, SA-15, SA-19, SA-10, SA-11, Tor M2, Pantsir S1, MANPAD, each tagged with its eras (`Config:488-507`). |
-| `DisableMantis` | `false` | Turn off the coordinated air defence (`Config:509-511`). |
-| `UseStatics` | `true` | Static ground targets in zones (`Config:513-515`). |
-| `HideSAMOnMFD` | `"random"` | `false`, `true` or `"random"` (50 % per spawn) (`Config:517-522`). |
-| `RevealSamOnMfdAfterDetection` | `false` | PvE: reveal a SAM at its next spawn once it radiated or was identified by Intel (`Config:524-527`). |
-| `NightMantisInterval` | `30` | Seconds between air-defence decisions at night (15 by day), 0 = off (`Config:529-533`). |
-| `NightRadarBlur` | `true` | Low-flying players harder to detect at night (`Config:535-538`). |
-| `RedAiGroundSkill`, `BlueAiGroundSkill` | `"Excellent"` | DCS skill of zone ground defenders (`Config:540-544`). |
+| `MaxRedGroundGroupsPerZone` | `12` | Plafond de groupes Red générés par zone dans une campagne PvE neuve, de 5 à 12 ; maxima par carte listés dans le commentaire (Caucase 10) (`Config:445-463`). |
+| `MaxBlueGroundGroupsPerZone` | `4` | Idem pour la garnison Blue aléatoire, de 1 à 4 (`Config:465-481`). |
+| `DisableZonePatrol` | `false` | Pas de déplacement des groupes terrestres à l'intérieur des zones (`Config:483-486`). |
+| `RedTemplateEnabled` | 14 lignes, toutes `true` | SA-2, SA-3, SA-5, SA-6, SA-8, SA-9, SA-13, SA-15, SA-19, SA-10, SA-11, Tor M2, Pantsir S1, MANPAD, chacune étiquetée avec ses époques (`Config:488-507`). |
+| `DisableMantis` | `false` | Désactiver la défense aérienne coordonnée (`Config:509-511`). |
+| `UseStatics` | `true` | Cibles terrestres statics dans les zones (`Config:513-515`). |
+| `HideSAMOnMFD` | `"random"` | `false`, `true` ou `"random"` (50 % par spawn) (`Config:517-522`). |
+| `RevealSamOnMfdAfterDetection` | `false` | PvE : révéler un SAM à son prochain spawn une fois qu'il a émis ou a été identifié par l'Intel (`Config:524-527`). |
+| `NightMantisInterval` | `30` | Secondes entre deux décisions de la défense aérienne la nuit (15 de jour), 0 = désactivé (`Config:529-533`). |
+| `NightRadarBlur` | `true` | Les joueurs volant bas sont plus difficiles à détecter la nuit (`Config:535-538`). |
+| `RedAiGroundSkill`, `BlueAiGroundSkill` | `"Excellent"` | Niveau de compétence DCS des défenseurs terrestres des zones (`Config:540-544`). |
 
-**AI Flights** (`Config:547-882`, 24 settings)
+**Vols IA** (`Config:547-882`, 24 réglages)
 
-| Setting | Default | Meaning |
+| Réglage | Défaut | Signification |
 |---|---|---|
-| `RedCapPlaneEnabled` | 18 rows | Check-list of `.miz` template names such as `RED_MIG29S_CAP_R77x3_R27ET_R73x2`, each tagged with eras and the aircraft type it requires (`Config:550-590`). |
-| `BlueCapPlaneEnabled` | 16 rows | (`Config:593-629`). |
-| `RedCasPlaneEnabled` | 30 rows | (`Config:632-692`). |
-| `BlueCasPlaneEnabled` | 13 rows | (`Config:695-722`). |
-| `RedSeadPlaneEnabled` | 12 rows | (`Config:725-742`). |
-| `BlueSeadPlaneEnabled` | 5 rows | (`Config:745-756`). |
-| `RedRunwayStrikePlaneEnabled` | 4 rows | (`Config:759-767`). |
-| `RedEnemyStrikePlaneEnabled` | 2 rows | (`Config:770-773`). |
-| `RedCasHeloEnabled` | 14 rows | (`Config:776-799`). |
-| `BlueCasHeloEnabled` | 11 rows | (`Config:802-824`). |
-| `RedSupplyHeloEnabled`, `BlueSupplyHeloEnabled` | 2 rows each | (`Config:827-840`). |
-| `PvPChanceAiAttackHelo` | `0` | Percent chance that AI air missions also target helicopters, PvP (`Config:845`). |
-| `InvisibleA10` | `false` | A-10 excluded from Red fighter targets (`Config:848`). |
-| `ChanceAiAttackHelo` | `0` | Same chance in PvE (`Config:854`). |
-| `EnableHunter` | `true` | Hunter two-ship after a kill streak (`Config:858`). |
-| `AiPlaneSkill` | `"Random"` | Skill of Red aircraft (`Config:861`). |
-| `CapDifficulty`, `CasDifficulty`, `SeadDifficulty`, `RunwayStrikeDifficulty` | `"medium"` | Which column of the Red stage tables applies (`Config:866-874`). |
-| `FriendlyCapSupport`, `FriendlyCasSupport`, `FriendlySeadSupport` | `"medium"` | Which column of the Blue support stage tables applies (`Config:877-882`). |
+| `RedCapPlaneEnabled` | 18 lignes | Liste de contrôle de noms de templates du `.miz` tels que `RED_MIG29S_CAP_R77x3_R27ET_R73x2`, chacun étiqueté avec ses époques et le type d'avion qu'il exige (`Config:550-590`). |
+| `BlueCapPlaneEnabled` | 16 lignes | (`Config:593-629`). |
+| `RedCasPlaneEnabled` | 30 lignes | (`Config:632-692`). |
+| `BlueCasPlaneEnabled` | 13 lignes | (`Config:695-722`). |
+| `RedSeadPlaneEnabled` | 12 lignes | (`Config:725-742`). |
+| `BlueSeadPlaneEnabled` | 5 lignes | (`Config:745-756`). |
+| `RedRunwayStrikePlaneEnabled` | 4 lignes | (`Config:759-767`). |
+| `RedEnemyStrikePlaneEnabled` | 2 lignes | (`Config:770-773`). |
+| `RedCasHeloEnabled` | 14 lignes | (`Config:776-799`). |
+| `BlueCasHeloEnabled` | 11 lignes | (`Config:802-824`). |
+| `RedSupplyHeloEnabled`, `BlueSupplyHeloEnabled` | 2 lignes chacune | (`Config:827-840`). |
+| `PvPChanceAiAttackHelo` | `0` | Pourcentage de chances que les missions aériennes IA ciblent aussi les hélicoptères, PvP (`Config:845`). |
+| `InvisibleA10` | `false` | A-10 exclu des cibles des chasseurs Red (`Config:848`). |
+| `ChanceAiAttackHelo` | `0` | Même probabilité en PvE (`Config:854`). |
+| `EnableHunter` | `true` | Hunter, patrouille de deux appareils après une série de kills (`Config:858`). |
+| `AiPlaneSkill` | `"Random"` | Compétence des avions Red (`Config:861`). |
+| `CapDifficulty`, `CasDifficulty`, `SeadDifficulty`, `RunwayStrikeDifficulty` | `"medium"` | Quelle colonne des tables d'étapes Red s'applique (`Config:866-874`). |
+| `FriendlyCapSupport`, `FriendlyCasSupport`, `FriendlySeadSupport` | `"medium"` | Quelle colonne des tables d'étapes de soutien Blue s'applique (`Config:877-882`). |
 
-The twelve `*Enabled` tables total 129 template names; each named template must exist as a late-activated group in the `.miz` ("a check box cannot create a missing aircraft", `manual p.10`).
+Les douze tables `*Enabled` totalisent 129 noms de templates ; chaque template nommé doit exister comme groupe en late activation dans le `.miz` (« a check box cannot create a missing aircraft », `manual p.10`).
 
-**Difficulty advanced** (`Config:885-1145`, 10 tables)
+**Difficulté avancée** (`Config:885-1145`, 10 tables)
 
-| Setting | Shape | Meaning |
+| Réglage | Forme | Signification |
 |---|---|---|
-| `CapLimitStages` | `easy` / `medium` / `hard`, each a list of `{ player = n, amount = m }` | Red CAP amount by counted players; one amount = one patrol + one attack group (`Config:888-927`). |
-| `RedCasLimitStages`, `RedSeadLimitStages`, `RedRunwayStrikeLimitStages` | same shape | Simultaneous Red flights of each role (`Config:936-1044`). |
-| `BlueCapSupportStages`, `BlueCasSupportStages`, `BlueSeadSupportStages` | same shape | Automatic Blue support, larger with fewer players (`Config:1053-1111`). |
-| `CapCountIgnoreTypes` | 7 rows | Aircraft types not counted as players for CAP scaling (`Config:1113-1131`). |
-| `RedCasCountIgnoreTypes`, `BlueCasCountIgnoreTypes` | 3 rows each | Same for CAS/SEAD/runway scaling (`Config:1134-1145`). |
+| `CapLimitStages` | `easy` / `medium` / `hard`, chacun une liste de `{ player = n, amount = m }` | Quantité de CAP Red selon les joueurs comptés ; une quantité = une patrouille + un groupe d'attaque (`Config:888-927`). |
+| `RedCasLimitStages`, `RedSeadLimitStages`, `RedRunwayStrikeLimitStages` | même forme | Vols Red simultanés de chaque rôle (`Config:936-1044`). |
+| `BlueCapSupportStages`, `BlueCasSupportStages`, `BlueSeadSupportStages` | même forme | Soutien Blue automatique, plus important quand il y a moins de joueurs (`Config:1053-1111`). |
+| `CapCountIgnoreTypes` | 7 lignes | Types d'avions non comptés comme joueurs pour l'échelle de CAP (`Config:1113-1131`). |
+| `RedCasCountIgnoreTypes`, `BlueCasCountIgnoreTypes` | 3 lignes chacune | Idem pour l'échelle de CAS/SEAD/frappe de piste (`Config:1134-1145`). |
 
-**Message Of The Day** (`Config:1148-1162`, 1 table): `MessageOfTheDay = { enabled = false, durationSec = 15, intervalSec = 1800, text = [[...]] }`.
+**Message of the Day** (`Config:1148-1162`, 1 table) : `MessageOfTheDay = { enabled = false, durationSec = 15, intervalSec = 1800, text = [[...]] }`.
 
-**Callsigns** (`Config:1164-1234`, 1 table): `CallsignOverrides`, 17 aircraft-family keys (each key is a prefix looked up by `applyCallsignOverrides`, `WelcomeMessage.lua:540-545`, e.g. `"F.A.18"`, `"F.16CM"`), each with one to five callsign families and four IFF codes per family (`Config:1166-1180`).
+**Indicatifs** (`Config:1164-1234`, 1 table) : `CallsignOverrides`, 17 clés de familles d'avions (chaque clé est un préfixe recherché par `applyCallsignOverrides`, `WelcomeMessage.lua:540-545`, par ex. `"F.A.18"`, `"F.16CM"`), chacune avec une à cinq familles d'indicatifs et quatre codes IFF par famille (`Config:1166-1180`).
 
-**Escort** (`Config:1238-1270`, 2 settings): `EscortTypeByPlayerType`, 16 rows `["<DCS type>"] = { enabled, "<BLUE CAP template>", "<RED CAP template>" }` (`Config:1241-1266`), and `EscortTakeoffFromGround = true` (`Config:1270`).
+**Escorte** (`Config:1238-1270`, 2 réglages) : `EscortTypeByPlayerType`, 16 lignes `["<DCS type>"] = { enabled, "<BLUE CAP template>", "<RED CAP template>" }` (`Config:1241-1266`), et `EscortTakeoffFromGround = true` (`Config:1270`).
 
-**Logistics / Warehouse** (`Config:1273-1571`, 23 settings)
+**Logistique / Entrepôt** (`Config:1273-1571`, 23 réglages)
 
-| Setting | Default | Meaning |
+| Réglage | Défaut | Signification |
 |---|---|---|
-| `WarehouseLogistics` | `true` | Warehouse and zone-supply system; `false` = legacy supplies (`Config:1279`). |
-| `ZoneCaptureBuildSeconds` | `120` | Neutral capture timer, 0 = immediate (`Config:1284`). |
-| `NormalSupplyCapacity` | `1` | Automatic ready-supply target of a normal zone, 1 to 3 (`Config:1289`). |
-| `WarehouseSupplyCapacity` | `6` | Same for a `[WH]` zone, 3 to 6 (`Config:1294`). |
-| `CTLDSupplyCapacity` | `1` | Starting supplies of a CTLD FARP (`Config:1299`). |
-| `GlobalSettings.supplyDifficultyScaling` | `{[1]=1.0,[2]=1.0}` | Multiplier of AI supply timers and supply production per side (`Config:1301-1310`). |
-| `GlobalSettings.repairDifficultyScaling` | `{[1]=1,[2]=1}` | Multiplier of repair/build time per side; base times are in the comment (`Config:1312-1325`). |
-| `ExtraRedRepairTimeLowPlayerCountPercent` | `0` | Extra Red repair time when fewer than 2 Blue CAS players, 0 to 50 (`Config:1327-1332`). |
-| `PlayerZoneSuppliesConsumeStock` | `true` | A player pickup removes one ready supply (`Config:1337`). |
-| `UseC130LoadAndUnload` | `true` | Native C-130/CH-47 cargo systems tracked (`Config:1340`). |
-| `SuppliesCargoTransport` | `true` | AI supply helicopters carry a real sling load (`Config:1344`). |
-| `AIDeliveryamount` | `20` | Warehouse items added per type by an AI helicopter delivery (`Config:1347`). |
-| `AutoFillResources` | `5` | Items added to every active Blue airbase every 15 min, 0 = off (`Config:1350`). |
-| `NoAIBlueSupplies` | `false` | Stop regular Blue AI supplies (`Config:1352-1354`). |
-| `NoAIBlueCapture` | `false` | Stop automatic Blue capture dispatches to neutral zones (`Config:1356-1359`). |
-| `RadioMenuStopSupplies` | `false` | Players may pause Blue AI supplies from the menu (`Config:1361-1363`). |
-| `AllowedToCarrySupplies` | 18 rows | Legacy per-type permission, ignored when `WarehouseLogistics` is on (`Config:1365-1386`). |
-| `WarningNoSupplies` | `true` | Warn a supply-capable aircraft that takes off empty (`Config:1389`). |
-| `ZoneSupplyTakeoffWarningTypes` | 21 rows | Types concerned by that warning (`Config:1396-1418`). |
-| `StrictSmartWeaponsInventory` | `false` | Halve refills of the weapons listed below (`Config:1420-1422`). |
-| `WarehouseWeaponCaps` | empty | The list of weapon ids concerned (`Config:1424-1427`). |
-| `WarehouseWeaponsAllowedAtAirbases` | empty | PvE: per map, stock a given weapon only at named warehouses, e.g. AIM-54C only on the carriers (`Config:1429-1434`). |
-| `WarehouseWeaponLocationAirbases` | 10 maps, 59 names for Caucasus | Picker catalogue of warehouse names (`Config:1436-1571`, Caucasus `Config:1450-1466`). |
+| `WarehouseLogistics` | `true` | Système d'entrepôt et de zone supplies ; `false` = supplies legacy (`Config:1279`). |
+| `ZoneCaptureBuildSeconds` | `120` | Timer de capture neutre, 0 = immédiat (`Config:1284`). |
+| `NormalSupplyCapacity` | `1` | Cible automatique de supplies prêts d'une zone normale, de 1 à 3 (`Config:1289`). |
+| `WarehouseSupplyCapacity` | `6` | Idem pour une zone `[WH]`, de 3 à 6 (`Config:1294`). |
+| `CTLDSupplyCapacity` | `1` | Supplies de départ d'un FARP CTLD (`Config:1299`). |
+| `GlobalSettings.supplyDifficultyScaling` | `{[1]=1.0,[2]=1.0}` | Multiplicateur des timers de supply IA et de la production de supplies, par camp (`Config:1301-1310`). |
+| `GlobalSettings.repairDifficultyScaling` | `{[1]=1,[2]=1}` | Multiplicateur du temps de réparation/construction par camp ; les temps de base sont dans le commentaire (`Config:1312-1325`). |
+| `ExtraRedRepairTimeLowPlayerCountPercent` | `0` | Temps de réparation Red supplémentaire quand il y a moins de 2 joueurs CAS Blue, de 0 à 50 (`Config:1327-1332`). |
+| `PlayerZoneSuppliesConsumeStock` | `true` | Un prélèvement par un joueur retire un supply prêt (`Config:1337`). |
+| `UseC130LoadAndUnload` | `true` | Systèmes de cargo natifs du C-130/CH-47 suivis (`Config:1340`). |
+| `SuppliesCargoTransport` | `true` | Les hélicoptères de supply IA emportent une vraie charge sling load (`Config:1344`). |
+| `AIDeliveryamount` | `20` | Articles d'entrepôt ajoutés par type lors d'une livraison par hélicoptère IA (`Config:1347`). |
+| `AutoFillResources` | `5` | Articles ajoutés à chaque aérodrome Blue actif toutes les 15 min, 0 = désactivé (`Config:1350`). |
+| `NoAIBlueSupplies` | `false` | Arrêter les supplies IA Blue réguliers (`Config:1352-1354`). |
+| `NoAIBlueCapture` | `false` | Arrêter les envois de capture automatiques Blue vers les zones neutres (`Config:1356-1359`). |
+| `RadioMenuStopSupplies` | `false` | Les joueurs peuvent mettre en pause les supplies IA Blue depuis le menu (`Config:1361-1363`). |
+| `AllowedToCarrySupplies` | 18 lignes | Autorisation legacy par type, ignorée quand `WarehouseLogistics` est actif (`Config:1365-1386`). |
+| `WarningNoSupplies` | `true` | Avertir un avion capable de supply qui décolle à vide (`Config:1389`). |
+| `ZoneSupplyTakeoffWarningTypes` | 21 lignes | Types concernés par cet avertissement (`Config:1396-1418`). |
+| `StrictSmartWeaponsInventory` | `false` | Diviser par deux les réapprovisionnements des armes listées ci-dessous (`Config:1420-1422`). |
+| `WarehouseWeaponCaps` | vide | La liste des ids d'armes concernées (`Config:1424-1427`). |
+| `WarehouseWeaponsAllowedAtAirbases` | vide | PvE : par carte, ne stocker une arme donnée que dans des entrepôts nommés, par ex. l'AIM-54C seulement sur les porte-avions (`Config:1429-1434`). |
+| `WarehouseWeaponLocationAirbases` | 10 cartes, 59 noms pour le Caucase | Catalogue du sélecteur de noms d'entrepôts (`Config:1436-1571`, Caucase `Config:1450-1466`). |
 
-**Shop / Rewards** (`Config:1574-1952`, 14 settings)
+**Boutique / Récompenses** (`Config:1574-1952`, 14 réglages)
 
-| Setting | Default | Meaning |
+| Réglage | Défaut | Signification |
 |---|---|---|
-| `AllowCapAutoBuyAfterLoss`, `MaxCapAutoBuys` | `false`, `1` | Automatic re-purchase of a lost CAP flight (`Config:1577-1584`). |
-| `TurnaroundRewardPercent` | `10` | Same-aircraft bonus, 0 to 50 (`Config:1586-1589`). |
-| `NightRewardPercent` | `10` | Night take-off bonus, 0 to 50 (`Config:1591-1594`). |
-| `AdvanceCaptureRemainingThreshold` | `50` | Percent of enemy upgrade groups left at which Advance Capture appears, 20 to 60 (`Config:1598-1602`). |
-| `AvailableShopItems` | 70 rows | Shop item id to boolean, each row with visibility conditions on PvP and era (`Config:1604-1767`). |
-| `ShopPrices` | 48 rows | Item id to credits, e.g. `smoke = 20`, `dynamiccap = 500`, `dynamicarco = 1000` (`Config:1771-1842`). |
-| `ShopRankRequirements` | 47 rows | Item id to minimum rank (`Config:1846-1916`). |
-| `RewardContribution` | 15 rows | infantry 10, ground 10, ctldGround 10, ctldAir 20, sam 30, airplane 50, ship 200, helicopter 50, crate 100, rescue 200, enemyPilotCapture 200, structure 100, Zone upgrade 100, Zone capture 200, Warehouse delivery 150 (`Config:1918-1936`). |
-| `RefuelReward` | `2` | Credits per 100 lb received (`Config:1938-1939`). |
-| `AIAttackTakeoffFromGround`, `AIAttackTakeoffFromGroundExtraNM` | `true`, `40` | Purchased flights start from an airbase, with extra stand-off (`Config:1941-1944`). |
-| `AllowAdminBuy` | `true` | `adminbuy:<id>` marker bypassing the rank filter (`Config:1946-1948`). |
-| `AllowScriptedSupplies` | `false` | Purchased supplies applied at once instead of flown in (`Config:1950-1952`). |
+| `AllowCapAutoBuyAfterLoss`, `MaxCapAutoBuys` | `false`, `1` | Rachat automatique d'un vol de CAP perdu (`Config:1577-1584`). |
+| `TurnaroundRewardPercent` | `10` | Bonus de même avion, de 0 à 50 (`Config:1586-1589`). |
+| `NightRewardPercent` | `10` | Bonus de décollage de nuit, de 0 à 50 (`Config:1591-1594`). |
+| `AdvanceCaptureRemainingThreshold` | `50` | Pourcentage de groupes d'upgrade ennemis restants à partir duquel Advance Capture apparaît, de 20 à 60 (`Config:1598-1602`). |
+| `AvailableShopItems` | 70 lignes | Id d'article de boutique vers booléen, chaque ligne avec des conditions de visibilité sur le PvP et l'époque (`Config:1604-1767`). |
+| `ShopPrices` | 48 lignes | Id d'article vers crédits, par ex. `smoke = 20`, `dynamiccap = 500`, `dynamicarco = 1000` (`Config:1771-1842`). |
+| `ShopRankRequirements` | 47 lignes | Id d'article vers rang minimal (`Config:1846-1916`). |
+| `RewardContribution` | 15 lignes | infantry 10, ground 10, ctldGround 10, ctldAir 20, sam 30, airplane 50, ship 200, helicopter 50, crate 100, rescue 200, enemyPilotCapture 200, structure 100, Zone upgrade 100, Zone capture 200, Warehouse delivery 150 (`Config:1918-1936`). |
+| `RefuelReward` | `2` | Crédits par 100 lb reçues (`Config:1938-1939`). |
+| `AIAttackTakeoffFromGround`, `AIAttackTakeoffFromGroundExtraNM` | `true`, `40` | Les vols achetés partent d'un aérodrome, avec une distance de sécurité supplémentaire (`Config:1941-1944`). |
+| `AllowAdminBuy` | `true` | Marqueur `adminbuy:<id>` qui contourne le filtre de rang (`Config:1946-1948`). |
+| `AllowScriptedSupplies` | `false` | Les supplies achetés sont appliqués d'un coup au lieu d'être acheminés en vol (`Config:1950-1952`). |
 
-**CTLD** (`Config:1955-2195`, 10 settings)
+**CTLD** (`Config:1955-2195`, 10 réglages)
 
-| Setting | Default | Meaning |
+| Réglage | Défaut | Signification |
 |---|---|---|
-| `CTLDCost` | `true` | CTLD items cost credits and need a rank (`Config:1958-1959`). |
-| `Allow_Red_CTLD` | `false` | Red CTLD in PvE (`Config:1961-1963`). |
-| `MaxTroopsRunDistanceTowardZone` | `5000` | Metres dropped troops will run to a zone, 2 000 to 15 000 (`Config:1965-1967`). |
-| `CTLDCargoTrackingInterval` | `3` | Seconds between cargo checks, 3 to 6 (`Config:1969-1971`). |
-| `CTLDPrices` | 49 rows | Item name to `{ available, price, reqRank }` (`Config:1973-2059`). |
-| `MAX_AT_SPAWN` | 48 rows | Item name to number of saved copies restored at restart (`Config:2061-2146`). |
-| `CaptureZoneWithEngineer` | `false` | Engineers count as capture troops (`Config:2148-2150`). |
-| `MAX_SAVED_FARPS` | `3` | Player FARPs restored from the save (`Config:2153-2155`). |
-| `IRIS_RESTORE_UNIT_HEALTH_ON_MERGE` | `false` | IRIS-T add-on merge rebuilds from the full template (`Config:2157-2161`). |
-| `CTLDUnitCapabilities` | 18 rows | Type to `{ crates?, troops?, crate limit, troop limit, length m, max cargo kg }`, with the comment "changing values will mostly have negative impact on the CTLD code" (`Config:2163-2195`). |
+| `CTLDCost` | `true` | Les articles CTLD coûtent des crédits et exigent un rang (`Config:1958-1959`). |
+| `Allow_Red_CTLD` | `false` | CTLD rouge en PvE (`Config:1961-1963`). |
+| `MaxTroopsRunDistanceTowardZone` | `5000` | Mètres que parcourront en courant les troupes déposées vers une zone, de 2 000 à 15 000 (`Config:1965-1967`). |
+| `CTLDCargoTrackingInterval` | `3` | Secondes entre deux vérifications de cargo, de 3 à 6 (`Config:1969-1971`). |
+| `CTLDPrices` | 49 lignes | Nom d'article vers `{ available, price, reqRank }` (`Config:1973-2059`). |
+| `MAX_AT_SPAWN` | 48 lignes | Nom d'article vers nombre d'exemplaires sauvegardés restaurés au redémarrage (`Config:2061-2146`). |
+| `CaptureZoneWithEngineer` | `false` | Les ingénieurs comptent comme troupes de capture (`Config:2148-2150`). |
+| `MAX_SAVED_FARPS` | `3` | FARP de joueurs restaurés depuis la sauvegarde (`Config:2153-2155`). |
+| `IRIS_RESTORE_UNIT_HEALTH_ON_MERGE` | `false` | La fusion d'un ajout IRIS-T reconstruit à partir du template complet (`Config:2157-2161`). |
+| `CTLDUnitCapabilities` | 18 lignes | Type vers `{ crates?, troops?, crate limit, troop limit, length m, max cargo kg }`, avec le commentaire « changing values will mostly have negative impact on the CTLD code » (`Config:2163-2195`). |
 
-**CSAR** (`Config:2198-2257`, 10 settings): `AllowedCsar` (21 rows, type to seats, 0 = no menu), `CsarPilotSpawnWithoutCreditsChance = 50`, `Max_CSAR_At_Once = 10`, `Max_CSAR_AT_Mission_Restart = 10`, `PilotWeight = 80`, `CsarHoverDistance = 20`, `CsarGuidanceDistance = 70`, `CsarHoverHeight = 60`, `CsarHoverSeconds = 10`, `CsarHostileInfantryChance = 25` (`Config:2205-2257`).
+**CSAR** (`Config:2198-2257`, 10 réglages) : `AllowedCsar` (21 lignes, type vers nombre de sièges, 0 = pas de menu), `CsarPilotSpawnWithoutCreditsChance = 50`, `Max_CSAR_At_Once = 10`, `Max_CSAR_AT_Mission_Restart = 10`, `PilotWeight = 80`, `CsarHoverDistance = 20`, `CsarGuidanceDistance = 70`, `CsarHoverHeight = 60`, `CsarHoverSeconds = 10`, `CsarHostileInfantryChance = 25` (`Config:2205-2257`).
 
-**Flight Time** (`Config:2259-2303`, 4 settings): `RewardFlightTime = true`, `FlightTimeRewardPerMinute = 2`, `RewardAllAircraft = false`, `AllowedFlightTimeReward` (25 rows, only `C-130J-30`, `CH-47Fbl1`, `Hercules` enabled per `manual p.19`).
+**Temps de vol** (`Config:2259-2303`, 4 réglages) : `RewardFlightTime = true`, `FlightTimeRewardPerMinute = 2`, `RewardAllAircraft = false`, `AllowedFlightTimeReward` (25 lignes, seuls `C-130J-30`, `CH-47Fbl1`, `Hercules` activés d'après `manual p.19`).
 
-**Tankers** (`Config:2306-2311`, 2 settings): `TexacoSpeed = 286`, `ArcoSpeed = 286` knots, with the comment that the orbit speed is hard-coded at 280.
+**Ravitailleurs** (`Config:2306-2311`, 2 réglages) : `TexacoSpeed = 286`, `ArcoSpeed = 286` nœuds, avec le commentaire que la vitesse d'orbite est codée en dur à 280.
 
-**EWRS** (`Config:2314-2360`, 23 settings): `ewrs_enabled = true`, `ewrs_defaultReportStyle = 2`, `ewrs_maxRangeKm = 150`, `ewrs_maxRangeNm = 100`, `ewrs_defaultAircraftRangeLimit = 60`, `ewrs_defaultHelicopterRangeLimit = 20`, `ewrs_messageUpdateInterval = 20`, `ewrs_messageDisplayTime = 15`, `ewrs_restrictToOneReference = false`, `ewrs_defaultReference = "self"`, `ewrs_defaultMeasurements = "imperial"`, `ewrs_defaultShowTankers = false`, `ewrs_enableRedTeam = true`, `ewrs_enableBlueTeam = true`, `ewrs_disableMessageWhenNoThreats = true`, `ewrs_onDemand = false`, `ewrs_maxThreatDisplay = 5`, `ewrs_allowBogeyDope = true`, `ewrs_allowFriendlyPicture = true`, `ewrs_maxFriendlyDisplay = 3`, `ewrs_showType = true`, `ewrs_mergedRangeNm = 5`, and the table `ewrs_specialPlaneTypes` (4 rows).
+**EWRS** (`Config:2314-2360`, 23 réglages) : `ewrs_enabled = true`, `ewrs_defaultReportStyle = 2`, `ewrs_maxRangeKm = 150`, `ewrs_maxRangeNm = 100`, `ewrs_defaultAircraftRangeLimit = 60`, `ewrs_defaultHelicopterRangeLimit = 20`, `ewrs_messageUpdateInterval = 20`, `ewrs_messageDisplayTime = 15`, `ewrs_restrictToOneReference = false`, `ewrs_defaultReference = "self"`, `ewrs_defaultMeasurements = "imperial"`, `ewrs_defaultShowTankers = false`, `ewrs_enableRedTeam = true`, `ewrs_enableBlueTeam = true`, `ewrs_disableMessageWhenNoThreats = true`, `ewrs_onDemand = false`, `ewrs_maxThreatDisplay = 5`, `ewrs_allowBogeyDope = true`, `ewrs_allowFriendlyPicture = true`, `ewrs_maxFriendlyDisplay = 3`, `ewrs_showType = true`, `ewrs_mergedRangeNm = 5`, et la table `ewrs_specialPlaneTypes` (4 lignes).
 
-**AIEN** (`Config:2363-2382`, 9 settings): `AIEN.config.dontInitialize = false`, `.blueAI = true`, `.redAI = true`, `.dismount = true`, `.message_feed = true`, `.initiative = true`, and the globals `phaseCycleTimerMin = 0.2`, `phaseCycleTimerActive = 0.08`, `phaseCycleTimerIdle = 0.5`.
+**AIEN** (`Config:2363-2382`, 9 réglages) : `AIEN.config.dontInitialize = false`, `.blueAI = true`, `.redAI = true`, `.dismount = true`, `.message_feed = true`, `.initiative = true`, et les globales `phaseCycleTimerMin = 0.2`, `phaseCycleTimerActive = 0.08`, `phaseCycleTimerIdle = 0.5`.
 
-**Aircraft / Weapons** (`Config:2385-3458`, 17 settings)
+**Avions / Armes** (`Config:2385-3458`, 17 réglages)
 
-| Setting | Active rows (commented rows) | Meaning |
+| Réglage | Lignes actives (lignes commentées) | Signification |
 |---|---|---|
-| `PvPSeparateAircraftLists` | `false` | One warehouse aircraft list per coalition in PvP (`Config:2388-2391`). |
-| `allowedPlanesModern`, `allowedPlanesRedModern` | 18 (76), 17 (77) | Modern PvP lists when separate lists are on (`Config:2419-2617`). |
-| `allowedPlanes` | 54 (3) | Blue warehouse aircraft in Coldwar/Gulfwar (`Config:2622-2680`). |
-| `allowedPlanesSharedColdwarPvP`, `allowedPlanesBlueColdwarPvP` | 56 (9), 55 (3) | Coldwar PvP shared / Blue lists (`Config:2686-2817`). |
-| `allowedPlanesRed`, `allowedPlanesRedColdwarPvP` | 53 (5), 53 (10) | Red/neutral warehouses in Coldwar (`Config:2822-2951`). |
-| `allowedPlanesVietnam`, `allowedPlanesSharedVietnamPvP`, `allowedPlanesBlueVietnamPvP` | 16 (10), 22 (21), 16 (17) | Vietnam Blue / shared lists (`Config:2956-3073`). |
-| `allowedPlanesRedVietnam`, `allowedPlanesRedVietnamPvP` | 6 (14), 8 (26) | Vietnam Red lists (`Config:3078-3140`). |
-| `restockAircraft` | 35 | Mod aircraft restocked when `AllowMods` and Modern (`Config:3141-3180`). |
-| `restrictedWeapons` | 83 (10) | DCS weapon ids removed from Coldwar/Gulfwar warehouses, e.g. `weapons.missiles.F16V_GBU39` (`Config:3182-3279`). |
-| `restrictedWeaponsVietnam` | 45 (25) | Same for Vietnam (`Config:3284-3360`). |
-| `ForbiddWeaponsInAllEra` | 2 (90) | Hard ban in every era (`Config:3365-3458`). |
+| `PvPSeparateAircraftLists` | `false` | Une liste d'avions d'entrepôt par coalition en PvP (`Config:2388-2391`). |
+| `allowedPlanesModern`, `allowedPlanesRedModern` | 18 (76), 17 (77) | Listes PvP Modern quand les listes séparées sont activées (`Config:2419-2617`). |
+| `allowedPlanes` | 54 (3) | Avions d'entrepôt Blue en Coldwar/Gulfwar (`Config:2622-2680`). |
+| `allowedPlanesSharedColdwarPvP`, `allowedPlanesBlueColdwarPvP` | 56 (9), 55 (3) | Listes PvP Coldwar partagée / Blue (`Config:2686-2817`). |
+| `allowedPlanesRed`, `allowedPlanesRedColdwarPvP` | 53 (5), 53 (10) | Entrepôts Red/neutres en Coldwar (`Config:2822-2951`). |
+| `allowedPlanesVietnam`, `allowedPlanesSharedVietnamPvP`, `allowedPlanesBlueVietnamPvP` | 16 (10), 22 (21), 16 (17) | Listes Vietnam Blue / partagée (`Config:2956-3073`). |
+| `allowedPlanesRedVietnam`, `allowedPlanesRedVietnamPvP` | 6 (14), 8 (26) | Listes Vietnam Red (`Config:3078-3140`). |
+| `restockAircraft` | 35 | Avions de mods réapprovisionnés quand `AllowMods` est actif et l'époque Modern (`Config:3141-3180`). |
+| `restrictedWeapons` | 83 (10) | Ids d'armes DCS retirés des entrepôts Coldwar/Gulfwar, par ex. `weapons.missiles.F16V_GBU39` (`Config:3182-3279`). |
+| `restrictedWeaponsVietnam` | 45 (25) | Idem pour le Vietnam (`Config:3284-3360`). |
+| `ForbiddWeaponsInAllEra` | 2 (90) | Interdiction ferme dans toutes les époques (`Config:3365-3458`). |
 
-Twenty-two `-- @gui requiredSet=...` comment lines link the AI template tables and shop items to the aircraft types that must stay in these lists, e.g. `F-4E-45MC` is required while `dynamiccas` is purchasable and flights take off from the ground (`Config:2393-2417`).
+Vingt-deux lignes de commentaire `-- @gui requiredSet=...` relient les tables de templates IA et les articles de la boutique aux types d'avions qui doivent rester dans ces listes, par ex. `F-4E-45MC` est requis tant que `dynamiccas` est achetable et que les vols décollent du sol (`Config:2393-2417`).
 
-**Testing** (`Config:3461-3465`, 1 setting): `Testing = false`.
+**Testing** (`Config:3461-3465`, 1 réglage) : `Testing = false`.
 
-**Admin Commands** (`Config:3468-3514`, 2 settings): `AdminCommands = false`, and `AdminCommandAliases` with 12 empty string fields: `addBlueFunds`, `addRedFunds`, `addZoneItems`, `buyWithoutRank`, `createFarp`, `captureNeutralBlue`, `captureNeutralRed`, `clearZone`, `upgradeZone`, `fullyUpgradeZone`, `restartMission` (raises flag 181), `endMission` (`Config:3477-3514`).
-The manual's table lists 11 of the 12 (`endMission` is absent from `manual p.62`).
+**Commandes d'administration** (`Config:3468-3514`, 2 réglages) : `AdminCommands = false`, et `AdminCommandAliases` avec 12 champs chaîne vides : `addBlueFunds`, `addRedFunds`, `addZoneItems`, `buyWithoutRank`, `createFarp`, `captureNeutralBlue`, `captureNeutralRed`, `clearZone`, `upgradeZone`, `fullyUpgradeZone`, `restartMission` (lève le flag 181), `endMission` (`Config:3477-3514`).
+Le tableau du manuel en liste 11 sur 12 (`endMission` est absent de `manual p.62`).
 
-### What `Foothold Config WW2.lua` changes for Normandy
+### Ce que `Foothold Config WW2.lua` change pour la Normandie
 
-The file is 999 lines against 3 530 and holds 104 settings (76 scalars, 28 tables) measured with the same script (`ConfigWW2:1-999`).
-Its loader only looks for `Foothold Config WW2.lua` in the Saves folder and tracks 24 tables and 10 scalars (`ConfigWW2:18-60`, `ConfigWW2:116-132`).
-Sections removed entirely: PvP settings, Frequencies, F10 Map, Escort, CTLD, Tankers, Testing; and from Mission options `Era`, `PvP`, `StartNormal`, `AllowMods`, carrier and Tarawa settings (`ConfigWW2:134-192`).
-Removed from other sections: all template check-lists, SEAD stage tables and difficulty, MANTIS/MFD/night settings, the warehouse-item settings (`ConfigWW2:215-260`, `ConfigWW2:527-603`).
-Changed defaults: `SplashDamage = true` (`ConfigWW2:177`), `MaxRedGroundGroupsPerZone = 6` (`ConfigWW2:220`), `ewrs_maxFriendlyDisplay = 5` (`ConfigWW2:843`), empty ignore lists (`ConfigWW2:456-463`), a shop of 20 items instead of 70 (`ConfigWW2:626-697`).
-Added: `AddWeightToPlaneRed` (4 rows) and `AddWeightToPlaneBlue` (8 rows) (`ConfigWW2:425-445`), `ewrs_altitudeDisplayMode = "wwii"` reporting Low/Medium/High instead of an altitude (`ConfigWW2:813`), and the two warehouse lists `AllowedWW2Planes` and `AllowedWW2RedPlanes` of 18 types each (`ConfigWW2:891-935`).
+Le fichier fait 999 lignes contre 3 530 et contient 104 réglages (76 scalaires, 28 tables) mesurés avec le même script (`ConfigWW2:1-999`).
+Son chargeur ne cherche `Foothold Config WW2.lua` que dans le dossier Saves et suit 24 tables et 10 scalaires (`ConfigWW2:18-60`, `ConfigWW2:116-132`).
+Sections supprimées entièrement : réglages PvP, Fréquences, Carte F10, Escorte, CTLD, Ravitailleurs, Testing ; et, dans les options de mission, `Era`, `PvP`, `StartNormal`, `AllowMods`, les réglages du porte-avions et du Tarawa (`ConfigWW2:134-192`).
+Supprimés d'autres sections : toutes les listes de contrôle de templates, les tables d'étapes SEAD et la difficulté, les réglages MANTIS/MFD/nuit, les réglages d'articles d'entrepôt (`ConfigWW2:215-260`, `ConfigWW2:527-603`).
+Valeurs par défaut modifiées : `SplashDamage = true` (`ConfigWW2:177`), `MaxRedGroundGroupsPerZone = 6` (`ConfigWW2:220`), `ewrs_maxFriendlyDisplay = 5` (`ConfigWW2:843`), listes d'ignorés vides (`ConfigWW2:456-463`), une boutique de 20 articles au lieu de 70 (`ConfigWW2:626-697`).
+Ajoutés : `AddWeightToPlaneRed` (4 lignes) et `AddWeightToPlaneBlue` (8 lignes) (`ConfigWW2:425-445`), `ewrs_altitudeDisplayMode = "wwii"` qui rapporte Low/Medium/High au lieu d'une altitude (`ConfigWW2:813`), et les deux listes d'entrepôt `AllowedWW2Planes` et `AllowedWW2RedPlanes` de 18 types chacune (`ConfigWW2:891-935`).
 
-## 3. The per-map setup file (`MA_Setup_CAv2.lua`, Caucasus)
+## 3. Le fichier de setup par carte (`MA_Setup_CAv2.lua`, Caucase)
 
-The setup file is the sixth script loaded (after Moose, localisation, Config, engine and EWRS, see §4) and is the only place where the map exists as data.
-It is one flat Lua chunk of 10 014 lines with no module structure: global tables first, then calls on the engine objects, then several thousand lines of shop actions and mission generators.
-The counts below are regex counts on the file (script `setupstats.py` in the scratchpad), so a call inside a conditional branch or inside a callback is counted like any other.
+Le fichier de setup est le sixième script chargé (après Moose, la localisation, la Config, le moteur et EWRS, voir §4) et c'est le seul endroit où la carte existe sous forme de données.
+C'est un seul chunk Lua à plat de 10 014 lignes, sans structure de module : d'abord des tables globales, puis des appels sur les objets du moteur, puis plusieurs milliers de lignes d'actions de boutique et de générateurs de missions.
+Les comptes ci-dessous sont des comptes par regex sur le fichier (script `setupstats.py` dans le scratchpad) ; un appel situé dans une branche conditionnelle ou dans un callback est donc compté comme n'importe quel autre.
 
-### Structure from top to bottom
+### Structure de haut en bas
 
-| Lines | Block | What the map author writes there |
+| Lignes | Bloc | Ce qu'y écrit l'auteur de la carte |
 |---|---|---|
-| 1-87 | Helpers | Localisation shortcuts, `BlueUpgradeTemplateMigration` (25 old group names mapped to current ones so old saves still load, `setup:20-46`), `merge`, `allExcept`, `BuildEnabledTemplateList` (`setup:73-87`). |
-| 89-294 | `upgrades` | 49 named garrison lists `{ blue = {...}, red = {...} }` of `.miz` group or static names. |
-| 296-375 | `flavor` | One localised text per zone (waypoint number, role), about 75 entries. |
-| 376-438 | `WaypointList` | 61 entries `Zone = ' (n)'`, the waypoint number shown in the map label. |
-| 440-485 | Mode and save name | PvP aircraft-list selection, `FootholdSaveBaseName` per era and mode, save path under `Missions/Saves`. |
-| 487-591 | Era swaps | `cwSwap` / `vnSwap` tables replacing Modern template names by Cold War or Vietnam ones, applied by `deepSwap` to `upgrades`. |
-| 593-751 | Random garrisons | `RandomRedPool` (46 names), `RandomBluePool` (9), `ZoneSizeExclusions`, `RandomUpgradeTemplates` (14 size profiles), `RandomUpgradeTemplatesBlue`, PvP profiles. |
-| 754-762 | Engine object | `bc = BattleCommander:new(filepath, 10, 60)` and the rank file path (`setup:754-757`). |
-| 765-1002 | `zones` | 88 `ZoneCommander:new{...}` in the table plus one PvP-only zone, then per-zone PvP and era adjustments (`industryCores`, `pvpVictoryZones`, extra pinned SAMs). |
-| 1004-1228 | AI template lists | Per-role lists of `.miz` template names (`AllCapPlaneTemplates`, `AllCasPlaneTemplates`, …) filtered by the Config check-lists, era variants of the convoy lists, altitude helpers. |
-| 1230-1288 | Airbase binding | 56 assignments `zones.<x>.airbaseName = '<DCS airbase or FARP name>'`. |
-| 1290-1839 | Sorties | 56 `zones.<x>:addGroups({...})` blocks holding 402 `DirectorCapability:new` and 7 `GroupCommander:new`. |
-| 1841-2046 | `SpawnFriendlyAssets` | The zone-change hook: wakes hidden zones, adds connections at run time, activates carriers and their navigation area. |
-| 2048-2064 | Registration | `bc:addZone(v)` for every zone, with PvP assertions on industry cores. |
-| 2067-2112 | `missions` | 4 helicopter ground-escort missions (PvE only). |
-| 2114-2269 | Connections | The static part of the 135 `bc:addConnection` and 14 `bc:addHiddenConnection` calls. |
-| 2271-2507 | Director theatre data | `TheaterInfrastructure` (9 entries), `TheaterRegions` (empty on Caucasus), `TheaterAreas` (9 areas with zone roles). |
-| 2509-2730 | Scripted zone triggers | Most of the 31 `registerTrigger` calls: counter-attacks on capture, zones disabled when lost, bonus credits. |
-| 2732-2846 | Victory | `checkMissionComplete`, reset of the save, flag 181, restart menu. |
-| 2848-2886 | Roaming | Name prefixes of the groups that patrol inside their zone, and of the ships that roam. |
-| 2889-3883 | "DYNAMIC SHOP" | Price defaults and the action code of purchasable flights (CAP, CAS, bomber…), with their zone selectors. |
-| 3886-4240 | Supply and capture shop actions | Not read (estimation from the function name `clearFriendlySupplyMenu`, `setup:3886`). |
-| 4241-4795 | JTAC | JTAC drone objects per era, 9-line JTAC zones, `CheckJtacStatus`. |
-| 4796-5404 | "Zone upgrades" | Shop items that add a garrison group to a zone, Red AI purchases (`redMassAttackAction`, `setup:4814`), extra slots. |
-| 5406-5500 | Fallback tables | `ShopPrices = ShopPrices or {...}` used when the Config did not define it (rank defaults in the same block: estimation). |
-| 5501-5751 | Shelves | 76 `bc:addShopItem(side, id, stock, order, rank, category)` calls and the seven category labels. |
-| 5753-5833 | Logistics and mission slots | `supplyZones` (34 names), `LogisticCommander:new`, `init*Missions`. |
-| 5835-5993 | Load and post-load | `bc:loadFromDisk()`, era shelf clean-up, PvP start funds, restoring `StartNormal` from the save, disabling one-shot zones, carrier activation. |
-| 5996-6129 | Service start | Reward loop, caches, frontline, warehouse persistence, carrier navigation, hunter, AWACS, suspension distances, `EventCommander`, `MissionCommander`, `DynamicHybridConfig`, the two `Director` objects, reactive counterpressure. |
-| 6131-6558 | Events | SCUD site, cargo-plane intercept, ship intercept, bomber event, airstrike. |
-| 6559-9037 | Mission generators | SEAD (`setup:7461`), recon (`setup:7646`), artillery strike, CAP, CAS (`setup:8378`), ground escort (`setup:8553`), runway (`setup:8739`); lines 6559-7458 not read. |
-| 9039-9716 | Strike events | Six high-value strike targets and seven "SAM warehouse" targets, each an `evc:addEvent` plus an `mc:trackMission`. |
-| 9718-9890 | Timers | Mission-generation timers (120 s or 300 s re-arm) and `mc:init()`. |
-| 9899-9936 | `airbaseStatics` | 35 FARPs with the names of their decor statics, read by `WelcomeMessage.lua:235-261`. |
-| 9938-10009 | Testing area | Spawns test templates in the `testing` zone when `Testing` is on. |
+| 1-87 | Helpers | Raccourcis de localisation, `BlueUpgradeTemplateMigration` (25 anciens noms de groupes associés aux noms actuels pour que les anciennes sauvegardes se chargent encore, `setup:20-46`), `merge`, `allExcept`, `BuildEnabledTemplateList` (`setup:73-87`). |
+| 89-294 | `upgrades` | 49 listes de garnison nommées `{ blue = {...}, red = {...} }` de noms de groupes ou de statics du `.miz`. |
+| 296-375 | `flavor` | Un texte localisé par zone (numéro de waypoint, rôle), environ 75 entrées. |
+| 376-438 | `WaypointList` | 61 entrées `Zone = ' (n)'`, le numéro de waypoint affiché dans l'étiquette de la carte. |
+| 440-485 | Mode et nom de sauvegarde | Sélection de la liste d'avions PvP, `FootholdSaveBaseName` par époque et par mode, chemin de sauvegarde sous `Missions/Saves`. |
+| 487-591 | Substitutions d'époque | Tables `cwSwap` / `vnSwap` qui remplacent les noms de templates Modern par ceux de la Guerre froide ou du Vietnam, appliquées par `deepSwap` à `upgrades`. |
+| 593-751 | Garnisons aléatoires | `RandomRedPool` (46 noms), `RandomBluePool` (9), `ZoneSizeExclusions`, `RandomUpgradeTemplates` (14 profils de taille), `RandomUpgradeTemplatesBlue`, profils PvP. |
+| 754-762 | Objet moteur | `bc = BattleCommander:new(filepath, 10, 60)` et le chemin du fichier de rangs (`setup:754-757`). |
+| 765-1002 | `zones` | 88 `ZoneCommander:new{...}` dans la table plus une zone réservée au PvP, puis des ajustements par zone selon le PvP et l'époque (`industryCores`, `pvpVictoryZones`, SAM épinglés supplémentaires). |
+| 1004-1228 | Listes de templates IA | Listes par rôle de noms de templates du `.miz` (`AllCapPlaneTemplates`, `AllCasPlaneTemplates`, …) filtrées par les listes de contrôle de la Config, variantes d'époque des listes de convois, helpers d'altitude. |
+| 1230-1288 | Rattachement aux aérodromes | 56 affectations `zones.<x>.airbaseName = '<DCS airbase or FARP name>'`. |
+| 1290-1839 | Sorties | 56 blocs `zones.<x>:addGroups({...})` contenant 402 `DirectorCapability:new` et 7 `GroupCommander:new`. |
+| 1841-2046 | `SpawnFriendlyAssets` | Le hook de changement de zone : réveille les zones cachées, ajoute des connexions à l'exécution, active les porte-avions et leur zone de navigation. |
+| 2048-2064 | Enregistrement | `bc:addZone(v)` pour chaque zone, avec des assertions PvP sur les cœurs industriels. |
+| 2067-2112 | `missions` | 4 missions d'escorte au sol en hélicoptère (PvE seulement). |
+| 2114-2269 | Connexions | La partie statique des 135 appels `bc:addConnection` et 14 appels `bc:addHiddenConnection`. |
+| 2271-2507 | Données de théâtre du Director | `TheaterInfrastructure` (9 entrées), `TheaterRegions` (vide sur le Caucase), `TheaterAreas` (9 zones avec rôles de zones). |
+| 2509-2730 | Triggers de zone scriptés | La plupart des 31 appels `registerTrigger` : contre-attaques à la capture, zones désactivées quand elles sont perdues, crédits bonus. |
+| 2732-2846 | Victoire | `checkMissionComplete`, remise à zéro de la sauvegarde, flag 181, menu de redémarrage. |
+| 2848-2886 | Déplacements | Préfixes de noms des groupes qui patrouillent dans leur zone, et des navires qui se déplacent. |
+| 2889-3883 | « DYNAMIC SHOP » | Prix par défaut et code d'action des vols achetables (CAP, CAS, bombardier…), avec leurs sélecteurs de zone. |
+| 3886-4240 | Actions de boutique supply et capture | Non lu dans cette note ; décrit dans la note 05 (section 5, détail des actions de supply et de capture, `setup:3886-4052`). |
+| 4241-4795 | JTAC | Objets drones JTAC par époque, zones JTAC 9-line, `CheckJtacStatus`. |
+| 4796-5404 | « Zone upgrades » | Articles de boutique qui ajoutent un groupe de garnison à une zone, achats IA Red (`redMassAttackAction`, `setup:4814`), emplacements supplémentaires. |
+| 5406-5500 | Tables de repli | `ShopPrices = ShopPrices or {...}` utilisé quand la Config ne l'a pas défini (valeurs de rang par défaut dans le même bloc : estimation). |
+| 5501-5751 | Étagères | 76 appels `bc:addShopItem(side, id, stock, order, rank, category)` et les sept libellés de catégories. |
+| 5753-5833 | Logistique et slots de missions | `supplyZones` (34 noms), `LogisticCommander:new`, `init*Missions`. |
+| 5835-5993 | Chargement et post-chargement | `bc:loadFromDisk()`, nettoyage des étagères selon l'époque, fonds de départ PvP, restauration de `StartNormal` depuis la sauvegarde, désactivation des zones à usage unique, activation du porte-avions. |
+| 5996-6129 | Démarrage des services | Boucle de récompenses, caches, front, persistance de l'entrepôt, navigation des porte-avions, hunter, AWACS, distances de suspension, `EventCommander`, `MissionCommander`, `DynamicHybridConfig`, les deux objets `Director`, contre-pression réactive. |
+| 6131-6558 | Événements | Site de SCUD, interception d'avion cargo, interception de navire, événement bombardier, frappe aérienne. |
+| 6559-9037 | Générateurs de missions | SEAD (`setup:7461`), recon (`setup:7646`), frappe d'artillerie, CAP, CAS (`setup:8378`), escorte au sol (`setup:8553`), piste (`setup:8739`) ; les lignes 6559-7458 (générateurs attack, resupply et capture) sont décrites dans la note 05, section 11. |
+| 9039-9716 | Événements de frappe | Six cibles de frappe de haute valeur et sept cibles « entrepôt de SAM », chacune un `evc:addEvent` plus un `mc:trackMission`. |
+| 9718-9890 | Timers | Timers de génération de missions (réarmement à 120 s ou 300 s) et `mc:init()`. |
+| 9899-9936 | `airbaseStatics` | 35 FARP avec les noms de leurs statics de décor, lus par `WelcomeMessage.lua:235-261`. |
+| 9938-10009 | Zone de test | Fait apparaître des templates de test dans la zone `testing` quand `Testing` est actif. |
 
-### Counts (Caucasus)
+### Comptes (Caucase)
 
-| Thing | Count |
+| Élément | Compte |
 |---|---|
-| Zones | 89 `ZoneCommander:new` (88 in the `zones` table, 1 PvP-only hidden EWR zone) |
-| Zones by `facility` | 21 `airbase`, 35 `farp`, 1 `carrier`, 32 `none` |
-| Zones by `size` | `small` 24, `mediumbig` 15, `smallmedium` 12, `sam` 12, `medium` 4, `bignosam` 4, `big` 1, `smallwithShorad` 1, `samspecial` 1, `redarmycamp3` 1, no size 14 |
-| Starting side | 76 red, 8 neutral, 1 blue, 4 depending on `StartNormal` |
-| Named garrison lists | 49 in `upgrades` |
-| Sortie declarations | 402 `DirectorCapability:new` + 7 `GroupCommander:new` in 56 `addGroups` blocks |
-| Sorties by `mission` | 247 supply, 86 attack, 76 patrol |
-| Sorties by `MissionType` | 96 CAP, 28 CAS, 18 ARTY, 4 RUNWAYSTRIKE, 1 SEAD, 262 without |
-| Sorties by `template` | `HeloSupplyTemplate` 208, `CapPlaneTemplate` 96, `PlaneSupplyTemplate` 25, `CasHeloTemplate` 21, `SupplyConvoy` 14, `ArtilleryConvoyShort` 14, `AttackConvoy` 8, `CasPlaneTemplate` 7, `ArtilleryConvoyLong` 4, `RunwayStrikePlaneTemplate` 4, `SeadPlaneTemplate` 1, own `.miz` group 7 |
-| Sorties by `type` | 362 air, 47 surface |
-| Sorties with a `condition` | 23 |
-| Connections | 135 `bc:addConnection` (a few inside run-time callbacks, e.g. `setup:1903`) + 14 `bc:addHiddenConnection` |
-| Shop items | 56 `bc:registerShopItem` calls for 45 distinct ids; 76 `bc:addShopItem` calls for 54 distinct ids (49 on the Blue shelf, 26 on the Red one) |
-| Events | 17 `evc:addEvent` |
-| Tracked missions | 44 `mc:trackMission` |
-| Zone triggers | 31 `registerTrigger` (24 `lost`, 5 `captured`, 2 `destroyed`) |
-| Director data | 9 `TheaterAreas`, 9 `TheaterInfrastructure`, 0 `TheaterRegions` |
-| Localisation calls | 699 `L10N` / `LTGet` / `LTFormat` references |
-| Mode branches | 262 references to `pvpEnabled`, 90 era tests (`Era ==`, `Era ~=`, `ColdWarTechEra`), 32 references to `StartNormal`, 63 to `CustomFlags[...]` |
-| Direct `.miz` lookups | 84 `Group.getByName`, 24 `SCENERY:FindByZoneName` |
+| Zones | 89 `ZoneCommander:new` (88 dans la table `zones`, 1 zone EWR cachée réservée au PvP) |
+| Zones par `facility` | 21 `airbase`, 35 `farp`, 1 `carrier`, 32 `none` |
+| Zones par `size` | `small` 24, `mediumbig` 15, `smallmedium` 12, `sam` 12, `medium` 4, `bignosam` 4, `big` 1, `smallwithShorad` 1, `samspecial` 1, `redarmycamp3` 1, sans size 14 |
+| Camp de départ | 76 rouges, 8 neutres, 1 bleue, 4 selon `StartNormal` |
+| Listes de garnison nommées | 49 dans `upgrades` |
+| Déclarations de sorties | 402 `DirectorCapability:new` + 7 `GroupCommander:new` dans 56 blocs `addGroups` |
+| Sorties par `mission` | 247 supply, 86 attack, 76 patrol |
+| Sorties par `MissionType` | 96 CAP, 28 CAS, 18 ARTY, 4 RUNWAYSTRIKE, 1 SEAD, 262 sans |
+| Sorties par `template` | `HeloSupplyTemplate` 208, `CapPlaneTemplate` 96, `PlaneSupplyTemplate` 25, `CasHeloTemplate` 21, `SupplyConvoy` 14, `ArtilleryConvoyShort` 14, `AttackConvoy` 8, `CasPlaneTemplate` 7, `ArtilleryConvoyLong` 4, `RunwayStrikePlaneTemplate` 4, `SeadPlaneTemplate` 1, groupe `.miz` propre 7 |
+| Sorties par `type` | 362 air, 47 surface |
+| Sorties avec une `condition` | 23 |
+| Connexions | 135 `bc:addConnection` (quelques-uns dans des callbacks d'exécution, par ex. `setup:1903`) + 14 `bc:addHiddenConnection` |
+| Articles de boutique | 56 appels `bc:registerShopItem` pour 45 ids distincts ; 76 appels `bc:addShopItem` pour 54 ids distincts (49 sur l'étagère Blue, 26 sur la Red) |
+| Événements | 17 `evc:addEvent` |
+| Missions suivies | 44 `mc:trackMission` |
+| Triggers de zone | 31 `registerTrigger` (24 `lost`, 5 `captured`, 2 `destroyed`) |
+| Données du Director | 9 `TheaterAreas`, 9 `TheaterInfrastructure`, 0 `TheaterRegions` |
+| Appels de localisation | 699 références `L10N` / `LTGet` / `LTFormat` |
+| Branches de mode | 262 références à `pvpEnabled`, 90 tests d'époque (`Era ==`, `Era ~=`, `ColdWarTechEra`), 32 références à `StartNormal`, 63 à `CustomFlags[...]` |
+| Accès directs au `.miz` | 84 `Group.getByName`, 24 `SCENERY:FindByZoneName` |
 
-### One excerpt per kind of declaration
+### Un extrait par type de déclaration
 
-Long lines are cut with `…`; the number before each line is its line number in `MA_Setup_CAv2.lua`; skipped numbers are skipped lines.
+Les lignes longues sont coupées par `…` ; le numéro devant chaque ligne est son numéro de ligne dans `MA_Setup_CAv2.lua` ; les numéros sautés correspondent à des lignes omises.
 
-Garrison lists (`upgrades`); an entry is a `.miz` group name, a static name, or `{ n = name, p = true }` for a pinned entry (field meanings in `01-zones-capture-map.md`):
+Listes de garnison (`upgrades`) ; une entrée est un nom de groupe du `.miz`, un nom de static, ou `{ n = name, p = true }` pour une entrée épinglée (sens des champs dans `01-zones-capture-map.md`) :
 
 ```lua
 89:  upgrades = {
@@ -461,7 +461,7 @@ Garrison lists (`upgrades`); an entry is a `.miz` group name, a static name, or 
 101: 	},
 ```
 
-Random garrison profiles (one line per zone size; `{a,b}` is a range, `total` the number of groups):
+Profils de garnison aléatoire (une ligne par taille de zone ; `{a,b}` est une plage, `total` le nombre de groupes) :
 
 ```lua
 698: RandomUpgradeTemplates = {
@@ -471,7 +471,7 @@ Random garrison profiles (one line per zone size; `{a,b}` is a range, `total` th
 710: 	redarmycamp = { sam = 0, shorad = 0, aaa = 0, ground = {3,5}, armor = 0, arty = {0,5}, total = {6,8} },
 ```
 
-Zone declarations:
+Déclarations de zones :
 
 ```lua
 765: zones = {
@@ -486,7 +486,7 @@ Zone declarations:
 865: 		crates={}, isHidden=true})
 ```
 
-Airbase binding (the DCS airbase or FARP static name that the zone owns):
+Rattachement aux aérodromes (le nom de l'aérodrome DCS ou du static FARP que possède la zone) :
 
 ```lua
 1231: zones.batumi.airbaseName = 'Batumi'
@@ -495,7 +495,7 @@ Airbase binding (the DCS airbase or FARP static name that the zone owns):
 1254: zones.lima.airbaseName = 'Lima'
 ```
 
-Sortie declarations (`DirectorCapability`; fields in `03-ai-groups-sorties.md` and `04-director.md`):
+Déclarations de sorties (`DirectorCapability` ; champs dans `03-ai-groups-sorties.md` et `04-director.md`) :
 
 ```lua
 1290: zones.kobuleti:addGroups({
@@ -510,7 +510,7 @@ Sortie declarations (`DirectorCapability`; fields in `03-ai-groups-sorties.md` a
 1366: 	GroupCommander:new({name='Gudauta-attack-Sukhumi-Arty', mission='attack', targetzone='Sukhumi', type='surface', FixedArty = true, SetActiveMission = true}),
 ```
 
-Connections (signature `addConnection(f, t, drawBoth, preserveDirection)` at `zc2:27025`; hidden ones at `zc2:27033`):
+Connexions (signature `addConnection(f, t, drawBoth, preserveDirection)` à `zc2:27025` ; les connexions cachées à `zc2:27033`) :
 
 ```lua
 2114: bc:addConnection("Batumi","Kobuleti")
@@ -526,7 +526,7 @@ Connections (signature `addConnection(f, t, drawBoth, preserveDirection)` at `zc
 2253: bc:addHiddenConnection("Mineralnye","Maykop")
 ```
 
-Director theatre data (infrastructure tying a destructible building to a supply route; areas with a role per zone):
+Données de théâtre du Director (infrastructure reliant un bâtiment destructible à une route de supply ; zones avec un rôle par zone) :
 
 ```lua
 2271: TheaterInfrastructure = {
@@ -551,7 +551,7 @@ Director theatre data (infrastructure tying a destructible building to a supply 
 2379: 			{ name = "India", role = "gateway" },
 ```
 
-Shop registration (the item and its action, `zc2:19322`) and shelving (side, id, stock where -1 is unlimited, menu order, rank, category, `zc2:19341`):
+Enregistrement des articles de boutique (l'article et son action, `zc2:19322`) et mise en étagère (camp, id, stock où -1 signifie illimité, ordre dans le menu, rang, catégorie, `zc2:19341`) :
 
 ```lua
 3053:     bc:registerShopItem('dynamiccap', LTGet("SYRIA_SHOP_ITEM_CAP_FLIGHT"), ShopPrices.dynamiccap, capAction, capAltAction, nil, 'CAP', { [1]=redRow, [2]=blueRow })
@@ -568,7 +568,7 @@ Shop registration (the item and its action, `zc2:19322`) and shelving (side, id,
 5749: bc:addShopItem(2, 'farphere', -1, 3, ShopRankRequirements.farphere, ShopCats.OtherSupport) -- deploy FARP
 ```
 
-Missions of the "ground escort" kind (a `.miz` convoy group, a start zone, a target zone, a user flag, a hidden zone to activate):
+Missions de type « escorte au sol » (un groupe de convoi du `.miz`, une zone de départ, une zone cible, un user flag, une zone cachée à activer) :
 
 ```lua
 2067: missions = GlobalSettings.pvpEnabled ~= true and {
@@ -585,7 +585,7 @@ Missions of the "ground escort" kind (a `.miz` convoy group, a start zone, a tar
 2078:     },
 ```
 
-An event and its tracked mission (here a strike on a map building found through a trigger zone that carries the scenery object id):
+Un événement et sa mission suivie (ici une frappe sur un bâtiment de la carte trouvé grâce à une trigger zone qui porte l'id de l'objet de décor) :
 
 ```lua
 9339: evc:addEvent({
@@ -608,7 +608,7 @@ An event and its tracked mission (here a strike on a map building found through 
 9385: 		if CustomFlags["SamDeltaWarehouse"] then return false end
 ```
 
-Carriers (group activation and the carrier-navigation areas, which are trigger zones named `CVN72_AREA_*`):
+Porte-avions (activation des groupes et zones de navigation des porte-avions, qui sont des trigger zones nommées `CVN72_AREA_*`) :
 
 ```lua
 5985: if carriersShouldBeActive then
@@ -624,7 +624,7 @@ Carriers (group activation and the carrier-navigation areas, which are trigger z
 6034: 	bc:addCarrierNavigationSuspendConnection("CVN72_AREA_NOVOROSSIYSK", "Anapa", true)
 ```
 
-Special cases (a scripted reaction registered on one zone, `registerTrigger(eventType, action, id, timesToRun, options)` at `zc2:50064`; and a hidden zone woken with a new connection when a neighbour is captured):
+Cas particuliers (une réaction scriptée enregistrée sur une zone, `registerTrigger(eventType, action, id, timesToRun, options)` à `zc2:50064` ; et une zone cachée réveillée avec une nouvelle connexion quand un voisin est capturé) :
 
 ```lua
 2701: zones.tankfactory:registerTrigger('lost', function(event, sender)
@@ -639,7 +639,7 @@ Special cases (a scripted reaction registered on one zone, `registerTrigger(even
 1904: 		bc:buildConnectionMap()
 ```
 
-Era and PvP branches (the save name, which decides which campaign file is read, and the era swap table):
+Branches d'époque et de PvP (le nom de sauvegarde, qui décide quel fichier de campagne est lu, et la table de substitution d'époque) :
 
 ```lua
 467: if Era == 'Vietnam' then
@@ -657,256 +657,256 @@ Era and PvP branches (the save name, which decides which campaign file is read, 
 490: 	['Red Armour Group 4']   						= 'Red Armor Group8',
 ```
 
-### Start-up order inside the setup file
+### Ordre de démarrage dans le fichier de setup
 
-The order of the calls is part of what a map author reproduces: zones are created (`setup:765`), sorties attached (`setup:1290`), zones registered (`setup:2063`), connections declared (`setup:2114`), shop items registered and shelved (`setup:3053`, `setup:5504`), then `lc:init()` and `bc:loadFromDisk()` (`setup:5833-5835`), then the caches and services (`setup:6000-6013`), the event and mission commanders (`setup:6073-6075`), the two Directors (`setup:6120-6123`), and finally the mission generators and `mc:init()` (`setup:9890`).
-Per-map tuning constants are set in the same pass: suspension distances `autoSuspendNmBlue = 70` and `autoSuspendNmRed = 95` in PvE, 100 and 100 with `proximityWakeNm = 50` in PvP (`setup:6062-6070`), AWACS orbit parameters (`setup:6053-6060`), `DynamicHybridConfig` with distance limits and 22 per-zone overrides (`setup:6077-6118`), `EventCommander` periods (`setup:6073`).
+L'ordre des appels fait partie de ce que reproduit un auteur de carte : les zones sont créées (`setup:765`), les sorties rattachées (`setup:1290`), les zones enregistrées (`setup:2063`), les connexions déclarées (`setup:2114`), les articles de boutique enregistrés et mis en étagère (`setup:3053`, `setup:5504`), puis `lc:init()` et `bc:loadFromDisk()` (`setup:5833-5835`), puis les caches et les services (`setup:6000-6013`), les commandants d'événements et de missions (`setup:6073-6075`), les deux Directors (`setup:6120-6123`), et enfin les générateurs de missions et `mc:init()` (`setup:9890`).
+Les constantes de réglage propres à la carte sont posées dans la même passe : distances de suspension `autoSuspendNmBlue = 70` et `autoSuspendNmRed = 95` en PvE, 100 et 100 avec `proximityWakeNm = 50` en PvP (`setup:6062-6070`), paramètres d'orbite de l'AWACS (`setup:6053-6060`), `DynamicHybridConfig` avec des limites de distance et 22 surcharges par zone (`setup:6077-6118`), périodes de `EventCommander` (`setup:6073`).
 
-### Shared boilerplate versus per-map content (comparison with `kola_setup.lua`)
+### Socle commun contre contenu propre à chaque carte (comparaison avec `kola_setup.lua`)
 
-`kola_setup.lua` is 6 867 lines with the same skeleton: `upgrades` (`kola:93-259`), `WaypointList` (`kola:627-685`), `flavor` (`kola:687-742`), save name (`kola:745`), `zones` (`kola:842-939`), `TheaterInfrastructure`, `TheaterRegions` and `TheaterAreas` (`kola:1983-2335`), `supplyZones` (`kola:2338-2387`), `airbaseStatics` (`kola:6834-6867`).
-Measured on whitespace-normalised non-blank lines, 62 % of Kola's lines (3 450 of 5 605) also exist verbatim in the Caucasus file.
-The same measure for the other setup files against Caucasus gives Iraq 74 %, Sinai North 74 %, Persian Gulf 72 %, Afghanistan 69 %, Sinai extended 69 %, Syria 69 %, Germany Cold War 65 %, South Atlantic 62 %, Normandy 35 %.
-Per 500-line slice of the Caucasus file, the share of lines also present in Kola is 2 % for lines 1501-2000 and 10 % for lines 2001-2500 (sorties, connections, theatre data), 60 to 77 % for lines 3001-5500 (shop actions and zone-upgrade items), and 27 to 59 % elsewhere.
-So the shop action code, the JTAC and mission-generator code and the service start-up are copied from map to map with small edits, while the per-map data is concentrated in roughly 2 500 lines: garrison lists, zones, airbase binding, sorties, connections, theatre areas, scripted triggers, strike targets and FARP statics.
-There is no shared include file: the copied code lives in each of the eleven setup files.
+`kola_setup.lua` fait 6 867 lignes avec le même squelette : `upgrades` (`kola:93-259`), `WaypointList` (`kola:627-685`), `flavor` (`kola:687-742`), nom de sauvegarde (`kola:745`), `zones` (`kola:842-939`), `TheaterInfrastructure`, `TheaterRegions` et `TheaterAreas` (`kola:1983-2335`), `supplyZones` (`kola:2338-2387`), `airbaseStatics` (`kola:6834-6867`).
+Mesuré sur les lignes non vides à espaces normalisés, 62 % des lignes de Kola (3 450 sur 5 605) existent aussi à l'identique dans le fichier du Caucase.
+La même mesure pour les autres fichiers de setup contre le Caucase donne Irak 74 %, Sinaï nord 74 %, golfe Persique 72 %, Afghanistan 69 %, Sinaï étendu 69 %, Syrie 69 %, Allemagne Guerre froide 65 %, Atlantique Sud 62 %, Normandie 35 %.
+Par tranche de 500 lignes du fichier du Caucase, la part de lignes aussi présentes dans Kola est de 2 % pour les lignes 1501-2000 et de 10 % pour les lignes 2001-2500 (sorties, connexions, données de théâtre), de 60 à 77 % pour les lignes 3001-5500 (actions de boutique et articles de zone upgrade), et de 27 à 59 % ailleurs.
+Le code des actions de boutique, le code JTAC et des générateurs de missions et le démarrage des services sont donc copiés d'une carte à l'autre avec de petites modifications, tandis que les données propres à chaque carte se concentrent sur environ 2 500 lignes : listes de garnison, zones, rattachement aux aérodromes, sorties, connexions, zones de théâtre, triggers scriptés, cibles de frappe et statics de FARP.
+Il n'y a pas de fichier d'inclusion partagé : le code copié vit dans chacun des onze fichiers de setup.
 
-Kola counts for comparison (same script): 81 `ZoneCommander:new`, 315 `DirectorCapability:new` + 5 `GroupCommander:new` in 55 blocks, 91 connections + 3 hidden, 45 `registerShopItem`, 52 `addShopItem`, 18 events, 31 tracked missions, 3 `registerTrigger`, 16 `TheaterRegions`, 7 `TheaterAreas`.
-Per-map differences seen in Kola: no PvP (2 references to `pvpEnabled` against 262) and no `StartNormal`; the starting side of whole countries is a variable (`sideSE`, `sideNO`, `sideFIN`, `sideFIN_SE`) set from saved flags, giving several campaign layouts (`kola:756-820`); a `DynCampaign` flag changes the save name (`kola:745`); its own size profiles (`mediumsam`, `bigsam`, `armor4`…); multi-zone `TheaterRegions` (`kola:2002-2208`).
+Comptes de Kola pour comparaison (même script) : 81 `ZoneCommander:new`, 315 `DirectorCapability:new` + 5 `GroupCommander:new` dans 55 blocs, 91 connexions + 3 cachées, 45 `registerShopItem`, 52 `addShopItem`, 18 événements, 31 missions suivies, 3 `registerTrigger`, 16 `TheaterRegions`, 7 `TheaterAreas`.
+Différences propres à la carte observées dans Kola : pas de PvP (2 références à `pvpEnabled` contre 262) et pas de `StartNormal` ; le camp de départ de pays entiers est une variable (`sideSE`, `sideNO`, `sideFIN`, `sideFIN_SE`) posée à partir de flags sauvegardés, ce qui donne plusieurs dispositions de campagne (`kola:756-820`) ; un flag `DynCampaign` change le nom de sauvegarde (`kola:745`) ; ses propres profils de taille (`mediumsam`, `bigsam`, `armor4`…) ; des `TheaterRegions` multi-zones (`kola:2002-2208`).
 
-## 4. The `.miz` conventions (Caucasus mission)
+## 4. Les conventions du `.miz` (mission du Caucase)
 
-Source: `Missions/Foothold_CA_6.5.2_Coldwar-Modern-Vietnam.miz`, already extracted by a sibling into the scratchpad folder `miz-ca-02`; the `mission`, `options`, `warehouses`, `dictionary` and `mapResource` files were parsed with a small Lua-table parser in Python (scripts `miz1.py`, `miz2.py`, `miz3.py`, kept outside the extracted folder and run with `python -I`).
-Every number in this section is measured on the parsed tables.
-The archive holds `mission` (8.2 MB), `warehouses` (12.2 MB), `options`, `theatre`, `KNEEBOARD/IMAGES/Freq.png` and `l10n/DEFAULT` with 70 files: 12 Lua scripts, 54 `.ogg`, 1 `.wav`, 1 `.jpg`, `dictionary` and `mapResource`.
+Source : `Missions/Foothold_CA_6.5.2_Coldwar-Modern-Vietnam.miz`, déjà extrait par une note sœur dans le dossier scratchpad `miz-ca-02` ; les fichiers `mission`, `options`, `warehouses`, `dictionary` et `mapResource` ont été analysés avec un petit analyseur de tables Lua en Python (scripts `miz1.py`, `miz2.py`, `miz3.py`, gardés hors du dossier extrait et exécutés avec `python -I`).
+Chaque nombre de cette section est mesuré sur les tables analysées.
+L'archive contient `mission` (8,2 Mo), `warehouses` (12,2 Mo), `options`, `theatre`, `KNEEBOARD/IMAGES/Freq.png` et `l10n/DEFAULT` avec 70 fichiers : 12 scripts Lua, 54 `.ogg`, 1 `.wav`, 1 `.jpg`, `dictionary` et `mapResource`.
 
-### Triggers and script load order
+### Triggers et ordre de chargement des scripts
 
-The mission has 7 trigger rules (`mission` table `trigrules`, with conditions and actions in `trig`).
+La mission a 7 règles de trigger (table `trigrules` de `mission`, avec les conditions et les actions dans `trig`).
 
-| # | Name | Type | Condition | Actions |
+| # | Nom | Type | Condition | Actions |
 |---|---|---|---|---|
-| 1 | Remove Trees | start | none | 12 `a_remove_scene_objects` on trigger-zone ids, masks 0 or 1 (ids not resolved to zone names) |
-| 2 | ScriptLoader 1 | start | none | `Moose_2026-10-11.lua`, `Foothold_Localization.lua`, `Foothold Config.lua` |
-| 3 | ScriptLoader 2 | start | none | `zoneCommanderv2.lua`, `EWRS.lua`, `MA_Setup_CAv2.lua`, `WelcomeMessage.lua` |
+| 1 | Remove Trees | start | aucune | 12 `a_remove_scene_objects` sur des ids de trigger zones, masques 0 ou 1 (ids non résolus en noms de zones) |
+| 2 | ScriptLoader 1 | start | aucune | `Moose_2026-10-11.lua`, `Foothold_Localization.lua`, `Foothold Config.lua` |
+| 3 | ScriptLoader 2 | start | aucune | `zoneCommanderv2.lua`, `EWRS.lua`, `MA_Setup_CAv2.lua`, `WelcomeMessage.lua` |
 | 4 | ScriptLoader 3 | once | `c_time_after(3)` | `Zeus.lua`, `Foothold CTLD.lua`, `Foothold_CTLD_Red.lua`, `Splash_Damage_3.4.1_leka.lua` |
 | 5 | AIEN | once | `c_time_after(12)` | `AIEN.lua` |
-| 6 | Sounds | once | none | 54 `a_out_sound_g` to group id 41, one per sound file |
+| 6 | Sounds | once | aucune | 54 `a_out_sound_g` vers le group id 41, un par fichier son |
 | 7 | END GAME | once | `c_flag_is_true("181")` | `a_end_mission("blue", "", 0)` |
 
-The "Sounds" rule plays every sound file to one group; its visible purpose is to make the Mission Editor keep the sound files in the archive, since the scripts play them by file name with `trigger.action.outSoundForCoalition` (e.g. `setup:1902`) (estimation on the purpose).
-Flag 181 is the only link from the scripts back to the mission triggers (`setup:2811`, `Config:3508`).
-Flag 180 is read by the setup file to mute mission sounds (`setup:6202`); where it is set was not looked up.
-The load order and its consequences are detailed in `02-persistence-lifecycle-plumbing.md`.
+La règle « Sounds » joue chaque fichier son vers un seul groupe ; son but apparent est de faire garder les fichiers son dans l'archive par le Mission Editor, puisque les scripts les jouent par nom de fichier avec `trigger.action.outSoundForCoalition` (par ex. `setup:1902`) (estimation sur le but).
+Le flag 181 est le seul lien des scripts vers les triggers de la mission (`setup:2811`, `Config:3508`).
+Le flag 180 est lu par le fichier de setup pour couper les sons de mission (`setup:6202`) ; l'endroit où il est posé n'a pas été cherché.
+L'ordre de chargement et ses conséquences sont détaillés dans `02-persistence-lifecycle-plumbing.md`.
 
 ### Trigger zones
 
-There are 1 331 trigger zones: 1 240 circles and 91 quads.
-Thirteen zones carry Mission Editor properties (`OBJECT ID`, `NAME`, `ROLE`, `VALUE`): they are the zones bound to a map building, used for strike targets (`StrikeTarget`, `StrikeTarget1`, `StrikeTarget2`, `StrikeVaziani`, `LefttHandMan`, `RightHandMan`, and the seven `Sam<X>Warehouse`).
-No zone carries any other property: every engine meaning is carried by the zone name.
+Il y a 1 331 trigger zones : 1 240 cercles et 91 quadrilatères.
+Treize zones portent des propriétés du Mission Editor (`OBJECT ID`, `NAME`, `ROLE`, `VALUE`) : ce sont les zones liées à un bâtiment de la carte, utilisées pour les cibles de frappe (`StrikeTarget`, `StrikeTarget1`, `StrikeTarget2`, `StrikeVaziani`, `LefttHandMan`, `RightHandMan`, et les sept `Sam<X>Warehouse`).
+Aucune zone ne porte d'autre propriété : toute la signification pour le moteur est portée par le nom de la zone.
 
-| Convention | Count | Example | Looked up by |
+| Convention | Nombre | Exemple | Recherchée par |
 |---|---|---|---|
-| `<Zone>` (plain name) | 120 | `Batumi`, `SAM-Alpha`, `Hidden4`, `TankFactory` | `zone='Batumi'` in `ZoneCommander:new` (`setup:768`); the zone table of the mission is indexed by name in `buildZoneByName` (`zc2:203-207`). |
-| `<Zone>-N` | 717 | `Kutaisi-1` … `Kutaisi-15` | Spawn sub-zones, enumerated from 1 until a number is missing (`zc2:27236-27244`, `zc2:10676-10680`); the parent is recovered by stripping `-%d+$` (`zc2:5778-5781`). |
-| `<Zone>-sam-N` | 60 | `Kutaisi-sam-0` | Sub-zones reserved for SAM sites, matched by the lower-case prefix `<zone>-sam-` (`zc2:4725-4734`). |
-| `<Zone>-land`, `<Zone>-land-N` | 107 | `Batumi-land-0` | Helicopter landing spots of a zone (`zc2:610`, `zc2:652`, `zc2:58355`, `zc2:66757`, `zc2:99457`). |
-| `<Zone>-land-forced-N` | 2 | `Gelendzhik-land-forced-0` | Landing spots that take priority (`zc2:273`, `zc2:633`). |
-| `<Zone>-road`, `<Zone>-road-N` | 23 | `Anapa-road-0` | Road hook points for convoys (`zc2:10989-10994`). |
-| `<Zone>-wh` | 35 | `Alpha-wh` | Position hint of the logistics-centre warehouse building (`zc2:46249-46268`). |
-| `<A>-<B>-Supply-N` | 87 | `Guso-Digora-Supply-1` | Ordered waypoints of a helicopter supply corridor between two zones, usable in both directions (`zc2:209-216`, `zc2:58128-58138`). |
-| `<A>-<B>-Supply-Landing`, `<A>-<B>-Landing` | 8 | `India-Revari-Supply-Landing` | Landing point of that corridor (`zc2:58148-58156`); the names without `-Supply` (e.g. `Hurzuk-Tyra-Landing`) do not match this lookup and no other lookup was found in `zoneCommanderv2.lua`. |
-| `Arty-<A>-<B>`, `Arty-<A>-<B>-N` | 24 | `Arty-Krymsk-Alpha-0` | Firing positions of artillery sorties from A against B, with a legacy fallback `Arty-<B>` (`zc2:10354-10361`). |
-| `Scoot-N`, `Scoot-<x>` | 78 + 9 | `Scoot-12` | Shoot-and-scoot relocation zones of MANTIS, taken by the prefix `Scoot` (`zc2:111454-111455`, `zc2:111490`). |
-| `CVN72_AREA_<X>` | 6 quads | `CVN72_AREA_SOCHI` | Carrier navigation areas (`zc2:13876-13880`, `setup:6018-6034`). |
-| `CVN72_AREA_<X>-N` | 36 | `CVN72_AREA_BATUMI-1` | Points inside an area, `-1` and `-2` being read first (`zc2:13879-13880`). |
-| `<Area>-N-Edge` | 28 | `Red Carrier-3-Edge` | Edge points of a sea area, matched by `^%d+%-edge$` after the base name (`zc2:1445-1462`); two zones are spelt `-2-Ed-ge` and `-4-E-dge` and so do not match. |
-| `Hidden`, `HiddenN`, `HiddenN-M` | 10 + 68 | `Hidden4-12` | Ordinary zones and sub-zones; their zone is declared `NeutralAtStart` or `isHidden` in the setup (`setup:852-865`). |
-| Scenery-bound quads | 13 | `SamDeltaWarehouse` | `SCENERY:FindByZoneName` in the setup (`setup:9343`). |
-| `Trees-<Zone>`, `Tree-Mezmay` | 6 | `Trees-Guso` | No script lookup found; presumably the "Remove Trees" mission trigger (estimation). |
-| `testing`, `testing air` | 2 | | Test spawn area (`setup:9940`). |
+| `<Zone>` (nom simple) | 120 | `Batumi`, `SAM-Alpha`, `Hidden4`, `TankFactory` | `zone='Batumi'` dans `ZoneCommander:new` (`setup:768`) ; la table des zones de la mission est indexée par nom dans `buildZoneByName` (`zc2:203-207`). |
+| `<Zone>-N` | 717 | `Kutaisi-1` … `Kutaisi-15` | Sous-zones de spawn, énumérées à partir de 1 jusqu'à ce qu'un numéro manque (`zc2:27236-27244`, `zc2:10676-10680`) ; le parent est retrouvé en retirant `-%d+$` (`zc2:5778-5781`). |
+| `<Zone>-sam-N` | 60 | `Kutaisi-sam-0` | Sous-zones réservées aux sites SAM, reconnues par le préfixe en minuscules `<zone>-sam-` (`zc2:4725-4734`). |
+| `<Zone>-land`, `<Zone>-land-N` | 107 | `Batumi-land-0` | Points d'atterrissage d'hélicoptère d'une zone (`zc2:610`, `zc2:652`, `zc2:58355`, `zc2:66757`, `zc2:99457`). |
+| `<Zone>-land-forced-N` | 2 | `Gelendzhik-land-forced-0` | Points d'atterrissage prioritaires (`zc2:273`, `zc2:633`). |
+| `<Zone>-road`, `<Zone>-road-N` | 23 | `Anapa-road-0` | Points d'accroche routiers pour les convois (`zc2:10989-10994`). |
+| `<Zone>-wh` | 35 | `Alpha-wh` | Indication de position du bâtiment d'entrepôt du centre logistique (`zc2:46249-46268`). |
+| `<A>-<B>-Supply-N` | 87 | `Guso-Digora-Supply-1` | Waypoints ordonnés d'un couloir de supply par hélicoptère entre deux zones, utilisable dans les deux sens (`zc2:209-216`, `zc2:58128-58138`). |
+| `<A>-<B>-Supply-Landing`, `<A>-<B>-Landing` | 8 | `India-Revari-Supply-Landing` | Point d'atterrissage de ce couloir (`zc2:58148-58156`) ; les noms sans `-Supply` (par ex. `Hurzuk-Tyra-Landing`) ne correspondent pas à cette recherche et aucune autre recherche n'a été trouvée dans `zoneCommanderv2.lua`. |
+| `Arty-<A>-<B>`, `Arty-<A>-<B>-N` | 24 | `Arty-Krymsk-Alpha-0` | Positions de tir des sorties d'artillerie de A contre B, avec un repli legacy `Arty-<B>` (`zc2:10354-10361`). |
+| `Scoot-N`, `Scoot-<x>` | 78 + 9 | `Scoot-12` | Zones de déplacement du shoot-and-scoot de MANTIS, prises par le préfixe `Scoot` (`zc2:111454-111455`, `zc2:111490`). |
+| `CVN72_AREA_<X>` | 6 quadrilatères | `CVN72_AREA_SOCHI` | Zones de navigation des porte-avions (`zc2:13876-13880`, `setup:6018-6034`). |
+| `CVN72_AREA_<X>-N` | 36 | `CVN72_AREA_BATUMI-1` | Points à l'intérieur d'une zone, `-1` et `-2` étant lus en premier (`zc2:13879-13880`). |
+| `<Area>-N-Edge` | 28 | `Red Carrier-3-Edge` | Points de bord d'une zone maritime, reconnus par `^%d+%-edge$` après le nom de base (`zc2:1445-1462`) ; deux zones sont orthographiées `-2-Ed-ge` et `-4-E-dge` et ne correspondent donc pas. |
+| `Hidden`, `HiddenN`, `HiddenN-M` | 10 + 68 | `Hidden4-12` | Zones et sous-zones ordinaires ; leur zone est déclarée `NeutralAtStart` ou `isHidden` dans le setup (`setup:852-865`). |
+| Quadrilatères liés à un décor | 13 | `SamDeltaWarehouse` | `SCENERY:FindByZoneName` dans le setup (`setup:9343`). |
+| `Trees-<Zone>`, `Tree-Mezmay` | 6 | `Trees-Guso` | Aucune recherche par script trouvée ; vraisemblablement le trigger de mission « Remove Trees » (estimation). |
+| `testing`, `testing air` | 2 | | Zone de spawn de test (`setup:9940`). |
 
-Of the 1 006 zones whose name ends in a number (corridor and carrier zones excluded), 917 have a radius under 200 m (443 under 50 m, 141 at 50-100 m, 118 at 100-150 m, 215 at 150-200 m), i.e. each one is a spot for one group.
-The 89 campaign zones therefore cost about 1 100 hand-placed helper zones.
+Parmi les 1 006 zones dont le nom se termine par un nombre (zones de couloir et de porte-avions exclues), 917 ont un rayon inférieur à 200 m (443 sous 50 m, 141 entre 50 et 100 m, 118 entre 100 et 150 m, 215 entre 150 et 200 m), c'est-à-dire que chacune est un emplacement pour un groupe.
+Les 89 zones de campagne coûtent donc environ 1 100 zones auxiliaires placées à la main.
 
-### Groups
+### Groupes
 
-The mission holds 880 groups and 1 851 units: 542 non-static groups (206 planes, 40 helicopters, 283 ground, 13 ships) and 338 statics.
-Of the 542 non-static groups, 508 are late-activated; the other 34 are the client slots.
-No group is flagged `uncontrolled`.
-By coalition: red 626 groups (Russia 445, CJTF Red 181), blue 216 (USA 158, CJTF Blue 54, Germany 4), neutral 38 statics.
-Every AI group is therefore a template that the scripts copy; nothing is alive at mission start except what the scripts spawn.
+La mission contient 880 groupes et 1 851 unités : 542 groupes non statiques (206 avions, 40 hélicoptères, 283 terrestres, 13 navires) et 338 statics.
+Sur les 542 groupes non statiques, 508 sont en late activation ; les 34 autres sont les slots clients.
+Aucun groupe n'est marqué `uncontrolled`.
+Par coalition : rouge 626 groupes (Russie 445, CJTF Red 181), bleu 216 (USA 158, CJTF Blue 54, Allemagne 4), neutre 38 statics.
+Chaque groupe IA est donc un template que les scripts copient ; rien n'est vivant au démarrage de la mission, sauf ce que les scripts font apparaître.
 
-| Family (group name) | Count | Side | Used by |
+| Famille (nom de groupe) | Nombre | Camp | Utilisée par |
 |---|---|---|---|
-| `RED_<TYPE>_<ROLE>_<LOADOUT>[_nSHIP]` | 92 | red | AI flight templates; the names are the keys of the Config check-lists (`Config:553-840`) and of the setup lists (`setup:1042-1220`); picked through the `template` set of a sortie (`zc2:60474-60490`). |
-| `BLUE_<TYPE>_<ROLE>_<LOADOUT>[_nSHIP]` | 49 | blue | Same for Blue support and purchased flights. |
-| `CAP_Template`, `DynamicCas_Template`, `DynamicSead_Template`, `DynamicBomber_Template`, `DynamicDecoy_Template`, `DynamicStructure_Template`, each with `_CW` and `_VT` variants, and `RED_*` twins | about 30 | both | Purchased flights (`zc2:105244`, `zc2:107935`, `zc2:108217`, `zc2:108673`, `zc2:109335`, `zc2:109698`, `zc2:110205-110213`; PvP twins `setup:3049`). |
-| `Red SAM …`, `Red SAM SHORAD …`, `Red SAM AAA n`, `Red Armour Group n`, `Red Mech group n`, `Red Arty n`, `Enemy ground forces`, `… Vietnam n` | about 90 | red | Garrison templates named in `upgrades` and `RandomRedPool` (`setup:89-294`, `setup:594-651`); MANTIS takes its SAMs by the prefix `Red SAM` and its radars by `Red EWR` (`zc2:111399`). |
-| names containing `Fixed` (`Red EWR Fixed 1`, `hiddenground-Fixed-n`, `Blue EWR Fixed Pvp-n`) | about 40 | both | A name containing `Fixed` takes the branch of `CustomZone:spawnGroup` that uses the group's own Mission Editor template instead of a sub-zone placement (`zc2:5220-5234`); `hidden` + `fixed` is a further class (`zc2:1011-1015`). |
-| `Blue SAM HAWK`, `Blue SAM NASAMS`, `Blue Armor Modern`, `blueInfantry`, … | about 15 | blue | Blue garrison templates (`setup:95`, `setup:668-678`). |
-| `AttackConvoy n`, `AttackConvoy CW n`, `SupplyConvoy n`, `ArtilleryConvoyShort n`, `ArtilleryConvoyLong n`, `GroundAttackConvoy n`, `InsurgentConvoy n` | about 25 | both | Surface sortie templates (`setup:1004-1040`). |
-| `<Origin>-attack-<Target>-Arty` | 9 | red | Fixed artillery groups referenced by name in `GroupCommander:new` (`setup:1366`). |
-| `CTLD_CARGO_*`, `CTLD_TROOPS_*`, `CTLD_CARGO_RED_*` | about 45 | both | CTLD cargo templates (`Foothold CTLD.lua:264-270`). |
-| `evt-*`, `RedBomberEvent`, `EscortBomber`, `Maykop-Scuds`, `Kutaisi-Sead-Attack…`, `interceptor-n` | about 25 | red | Event groups looked up by literal name in the setup (`setup:6214`, `setup:6225-6249`, `setup:2515-2529`). |
-| `<Zone>EscortGroup` | 4 | blue | Ground-escort convoys (`setup:2070`). |
-| `AWACS_RED`, `AWACS_BLUE`, `AWACS_BLUE_SECONDARY`, `…_VT`, `Arco`, `Texaco`, `Shell`, `jtacDrone1/2`, `JTAC9lineam/fm`, `Escort1_Hornet` … | about 25 | both | Support aircraft by literal name (`zc2:9332-9335`, `zc2:13660`, `setup:4242-4244`). |
-| `CVN-72`, `CVN-74`, `Tarawa`; `Molniya`, `Rezky`, `Grisha`, `Moskva`, `SpeedBoats`, `MissileBoat`, `FacLa`, `evt-shiptercept n` | 13 | both | Carriers activated by name (`setup:5986-5988`), red ships as garrison of the carrier zone (`setup:92`) and roaming prefixes (`setup:2878-2885`). |
-| `CSAR_RED_INF_1/2` | 2 | red | Hostile infantry near a downed pilot (`zc2:97724`). |
-| `Testing …` | 17 | red | Testing area (`setup:9941-9945`). |
+| `RED_<TYPE>_<ROLE>_<LOADOUT>[_nSHIP]` | 92 | rouge | Templates de vols IA ; les noms sont les clés des listes de contrôle de la Config (`Config:553-840`) et des listes du setup (`setup:1042-1220`) ; choisis par l'ensemble `template` d'une sortie (`zc2:60474-60490`). |
+| `BLUE_<TYPE>_<ROLE>_<LOADOUT>[_nSHIP]` | 49 | bleu | Idem pour le soutien Blue et les vols achetés. |
+| `CAP_Template`, `DynamicCas_Template`, `DynamicSead_Template`, `DynamicBomber_Template`, `DynamicDecoy_Template`, `DynamicStructure_Template`, chacun avec des variantes `_CW` et `_VT`, et les jumeaux `RED_*` | environ 30 | les deux | Vols achetés (`zc2:105244`, `zc2:107935`, `zc2:108217`, `zc2:108673`, `zc2:109335`, `zc2:109698`, `zc2:110205-110213` ; jumeaux PvP `setup:3049`). |
+| `Red SAM …`, `Red SAM SHORAD …`, `Red SAM AAA n`, `Red Armour Group n`, `Red Mech group n`, `Red Arty n`, `Enemy ground forces`, `… Vietnam n` | environ 90 | rouge | Templates de garnison nommés dans `upgrades` et `RandomRedPool` (`setup:89-294`, `setup:594-651`) ; MANTIS prend ses SAM par le préfixe `Red SAM` et ses radars par `Red EWR` (`zc2:111399`). |
+| noms contenant `Fixed` (`Red EWR Fixed 1`, `hiddenground-Fixed-n`, `Blue EWR Fixed Pvp-n`) | environ 40 | les deux | Un nom contenant `Fixed` prend la branche de `CustomZone:spawnGroup` qui utilise le template propre du groupe dans le Mission Editor au lieu d'un placement en sous-zone (`zc2:5220-5234`) ; `hidden` + `fixed` est une autre classe (`zc2:1011-1015`). |
+| `Blue SAM HAWK`, `Blue SAM NASAMS`, `Blue Armor Modern`, `blueInfantry`, … | environ 15 | bleu | Templates de garnison Blue (`setup:95`, `setup:668-678`). |
+| `AttackConvoy n`, `AttackConvoy CW n`, `SupplyConvoy n`, `ArtilleryConvoyShort n`, `ArtilleryConvoyLong n`, `GroundAttackConvoy n`, `InsurgentConvoy n` | environ 25 | les deux | Templates de sorties de surface (`setup:1004-1040`). |
+| `<Origin>-attack-<Target>-Arty` | 9 | rouge | Groupes d'artillerie fixes référencés par nom dans `GroupCommander:new` (`setup:1366`). |
+| `CTLD_CARGO_*`, `CTLD_TROOPS_*`, `CTLD_CARGO_RED_*` | environ 45 | les deux | Templates de cargo CTLD (`Foothold CTLD.lua:264-270`). |
+| `evt-*`, `RedBomberEvent`, `EscortBomber`, `Maykop-Scuds`, `Kutaisi-Sead-Attack…`, `interceptor-n` | environ 25 | rouge | Groupes d'événements recherchés par nom littéral dans le setup (`setup:6214`, `setup:6225-6249`, `setup:2515-2529`). |
+| `<Zone>EscortGroup` | 4 | bleu | Convois d'escorte au sol (`setup:2070`). |
+| `AWACS_RED`, `AWACS_BLUE`, `AWACS_BLUE_SECONDARY`, `…_VT`, `Arco`, `Texaco`, `Shell`, `jtacDrone1/2`, `JTAC9lineam/fm`, `Escort1_Hornet` … | environ 25 | les deux | Avions de soutien par nom littéral (`zc2:9332-9335`, `zc2:13660`, `setup:4242-4244`). |
+| `CVN-72`, `CVN-74`, `Tarawa` ; `Molniya`, `Rezky`, `Grisha`, `Moskva`, `SpeedBoats`, `MissileBoat`, `FacLa`, `evt-shiptercept n` | 13 | les deux | Porte-avions activés par nom (`setup:5986-5988`), navires rouges comme garnison de la zone du porte-avions (`setup:92`) et préfixes de déplacement (`setup:2878-2885`). |
+| `CSAR_RED_INF_1/2` | 2 | rouge | Infanterie hostile près d'un pilote abattu (`zc2:97724`). |
+| `Testing …` | 17 | rouge | Zone de test (`setup:9941-9945`). |
 
-The "about" counts come from grouping names by family in the script output, not from an exact pattern per row.
+Les comptes « environ » viennent d'un regroupement des noms par famille dans la sortie du script, pas d'un motif exact par ligne.
 
-### Static objects
+### Objets statiques
 
-There are 338 static groups: 254 red and 38 neutral fortifications, 35 red heliports, 5 red statics of the warehouses category, 4 red static helicopters, and 2 blue ones (one of them `Zone supplies UH-1H`, a cargo).
-The 35 heliports are the FARP zones: 20 of type `FARP` and 15 `SINGLE_HELIPAD`, each named exactly like its zone (`Alpha`, `Hady`, …), which is what `zones.<x>.airbaseName` points to (`setup:1254-1288`).
-Around them, `FARP Tent` (98), `Windsock` (73), `FARP Fuel Depot` (35) and `FARP Ammo Dump Coating` (35) are named `Farp<zone>ammo`, `Farp<zone>fuel`, `Farp<zone>tent1..4`, `Farp<zone>command`, `Farp<zone>wind` and listed per zone in `airbaseStatics` (`setup:9899-9936`).
-The remaining named statics are destructible objectives placed in garrison lists or industry zones: `Mineralnye HQ`, `Kobuleti Fuel Tank`, `Communication Tower`, `Tank Factory`, `MiningFacility Factory`, `SecretTechFacility HQ`, `Ammunition Storage n`, `InsurgentCamp` (`setup:102-109`, `setup:869-870`).
+Il y a 338 groupes de statics : 254 fortifications rouges et 38 neutres, 35 héliports rouges, 5 statics rouges de la catégorie entrepôts, 4 hélicoptères statiques rouges, et 2 bleus (dont un `Zone supplies UH-1H`, un cargo).
+Les 35 héliports sont les zones de FARP : 20 de type `FARP` et 15 `SINGLE_HELIPAD`, chacun nommé exactement comme sa zone (`Alpha`, `Hady`, …), ce que désigne `zones.<x>.airbaseName` (`setup:1254-1288`).
+Autour d'eux, `FARP Tent` (98), `Windsock` (73), `FARP Fuel Depot` (35) et `FARP Ammo Dump Coating` (35) sont nommés `Farp<zone>ammo`, `Farp<zone>fuel`, `Farp<zone>tent1..4`, `Farp<zone>command`, `Farp<zone>wind` et listés par zone dans `airbaseStatics` (`setup:9899-9936`).
+Les autres statics nommés sont des objectifs destructibles placés dans des listes de garnison ou des zones industrielles : `Mineralnye HQ`, `Kobuleti Fuel Tank`, `Communication Tower`, `Tank Factory`, `MiningFacility Factory`, `SecretTechFacility HQ`, `Ammunition Storage n`, `InsurgentCamp` (`setup:102-109`, `setup:869-870`).
 
-### Client slots and dynamic spawn
+### Slots clients et spawn dynamique
 
-The 34 client groups are all on the Blue side and all carry `dynSpawnTemplate = true`: one group per aircraft type or variant (25 planes, 9 helicopters), including Red-built types (`MiG-29S`, `Su-25T`, `Su-27`, `Su-33`, `MiG-29 Fulcrum`, `JF-17`, `Mi-8MT`, `Mi-24P`, `Ka-50_3`).
-There is no fixed slot per airbase: players spawn through DCS dynamic spawn, and these groups serve as per-type templates.
-The Red coalition has no client group at all in this file.
-In the `warehouses` file, all 21 airports have `dynamicSpawn = true`, `dynamicCargo = true`, `allowHotStart = true`, `unlimitedAircrafts = false`, `unlimitedMunitions = false`, `unlimitedFuel = true`; 19 are Red and 2 Blue at start.
-Of the 46 non-airport warehouses (FARPs, ships and warehouse statics), 38 have dynamic spawn enabled with the same limited-stock settings, 5 are unlimited with dynamic spawn off, and 3 are special cases.
-A warehouse lists 146 plane types and 28 helicopter types with `initialAmount = 10000`, and 800 weapon entries of which 786 are at 10 000, 9 at 100 and 5 at 0 (read on the first airport and the first warehouse only).
-So "limited" stock with very large amounts is the authoring convention, and the manual forbids "unlimited" for a Cold War mission because the era lists would otherwise not apply (`manual p.5-6`).
-Which zone a player may spawn at is decided at run time from zone ownership; see "Spawn handling and slot control" in `02-persistence-lifecycle-plumbing.md`.
+Les 34 groupes clients sont tous du côté Blue et portent tous `dynSpawnTemplate = true` : un groupe par type ou variante d'avion (25 avions, 9 hélicoptères), y compris des types de fabrication rouge (`MiG-29S`, `Su-25T`, `Su-27`, `Su-33`, `MiG-29 Fulcrum`, `JF-17`, `Mi-8MT`, `Mi-24P`, `Ka-50_3`).
+Il n'y a pas de slot fixe par aérodrome : les joueurs apparaissent par le spawn dynamique de DCS, et ces groupes servent de templates par type.
+La coalition Red n'a aucun groupe client dans ce fichier.
+Dans le fichier `warehouses`, les 21 aéroports ont tous `dynamicSpawn = true`, `dynamicCargo = true`, `allowHotStart = true`, `unlimitedAircrafts = false`, `unlimitedMunitions = false`, `unlimitedFuel = true` ; 19 sont Red et 2 Blue au départ.
+Sur les 46 entrepôts hors aéroports (FARP, navires et statics d'entrepôt), 38 ont le spawn dynamique activé avec les mêmes réglages de stock limité, 5 sont illimités avec le spawn dynamique désactivé, et 3 sont des cas particuliers.
+Un entrepôt liste 146 types d'avions et 28 types d'hélicoptères avec `initialAmount = 10000`, et 800 entrées d'armes dont 786 à 10 000, 9 à 100 et 5 à 0 (lu sur le premier aéroport et le premier entrepôt seulement).
+Un stock « limited » avec de très grandes quantités est donc la convention d'écriture, et le manuel interdit « unlimited » pour une mission Guerre froide parce que les listes d'époque ne s'appliqueraient sinon pas (`manual p.5-6`).
+La zone où un joueur peut apparaître est décidée à l'exécution d'après la possession des zones ; voir « Spawn handling and slot control » dans `02-persistence-lifecycle-plumbing.md`.
 
-### Options that matter
+### Options qui comptent
 
-`requiredModules` is empty: the mission declares no mod.
-`forcedOptions` (enforced on clients): `userMarks = true` (marker commands depend on it), `externalViews = true`, `labels = 0`, `optionsView = "optview_allies"`, `easyCommunication = false`, `radio = false`, `unrestrictedSATNAV = true`, `permitCrash = false`, `wakeTurbulence = false`, `birds = 0`, `civTraffic = ""`, `padlock = false`, `miniHUD = false`, `immortal = false`, `fuel = false`, `weapons = false`, `Supercarrier = { deck_crew = true, speakers_enabled = true }`.
-Ground-control roles: Blue has 2 artillery commanders, 2 forward observers, 2 observers and 2 instructors; Red has 2 observers and 2 instructors; `isPilotControlVehicles = true`.
-Date 31 October 2024, start time 36 000 s (10:00), cloud preset `Preset11`.
-The briefing text is the same for both sides and starts with "The goal is to capture all zones".
-Coalition composition: Blue 4 countries, Red 3, neutral 85.
+`requiredModules` est vide : la mission ne déclare aucun mod.
+`forcedOptions` (imposées aux clients) : `userMarks = true` (les commandes de marqueur en dépendent), `externalViews = true`, `labels = 0`, `optionsView = "optview_allies"`, `easyCommunication = false`, `radio = false`, `unrestrictedSATNAV = true`, `permitCrash = false`, `wakeTurbulence = false`, `birds = 0`, `civTraffic = ""`, `padlock = false`, `miniHUD = false`, `immortal = false`, `fuel = false`, `weapons = false`, `Supercarrier = { deck_crew = true, speakers_enabled = true }`.
+Rôles de contrôle au sol : Blue a 2 commandants d'artillerie, 2 observateurs avancés, 2 observateurs et 2 instructeurs ; Red a 2 observateurs et 2 instructeurs ; `isPilotControlVehicles = true`.
+Date : 31 octobre 2024, heure de départ 36 000 s (10:00), preset de nuages `Preset11`.
+Le texte du briefing est le même pour les deux camps et commence par « The goal is to capture all zones » (l'objectif est de capturer toutes les zones).
+Composition des coalitions : Blue 4 pays, Red 3, neutre 85.
 
-## 5. The Foothold Config Manager
+## 5. Le Foothold Config Manager
 
-Read: `tools/FootholdConfigManager/README.md`, `CHANGELOG.md`, `Foothold Config.gui.json`, and the manual pages that describe the tool; the C# source was not read (its file names were listed, and one text search for `.miz.orig` was run).
-It is a Windows desktop program built on .NET 8 (`FCM-README`), shipped as `Common Scripts/Foothold Config Manager 2.5.7.exe`.
-Its state (preferences, instances, presets) lives in `Saved Games/Foothold Config Manager` (`FCM-README`).
+Lus : `tools/FootholdConfigManager/README.md`, `CHANGELOG.md`, `Foothold Config.gui.json`, et les pages du manuel qui décrivent l'outil ; le source C# n'a pas été lu (la liste de ses noms de fichiers a été relevée, et une recherche textuelle de `.miz.orig` a été lancée).
+C'est un programme de bureau Windows construit sur .NET 8 (`FCM-README`), livré sous la forme `Common Scripts/Foothold Config Manager 2.5.7.exe`.
+Son état (préférences, instances, presets) vit dans `Saved Games/Foothold Config Manager` (`FCM-README`).
 
-| Function | What it does for the admin | Source |
+| Fonction | Ce qu'elle fait pour l'admin | Source |
 |---|---|---|
-| First-run wizard | Pick a `.miz`, pick a Saved Games profile, install the Normal or WW2 config into `Missions\Saves`, validate and open it; an existing config is not overwritten. | `manual p.5` |
-| Config editor | Categories on the left, typed fields, check-lists, linked grids (available + price + rank in one grid), per-field help, Lua syntax validation, Undo, Restore Defaults, a comments view. | `manual p.9-10`, `FCM-CHANGELOG` |
-| Metadata-driven UI | Labels, editors, valid values, visibility and lock conditions come from the `@gui` comments of the Config itself; `Foothold Config.gui.json` holds 15 further entries (label, help, choices) such as `FootholdLocale`, `CallsignOverrides`, `ShopPrices`. | `Config:246-247`, `gui.json` |
-| Era switch | Choosing an era offers to tick the template rows tagged for that era and refreshes the aircraft and weapon lists; aircraft required by enabled AI features are protected and explained. | `manual p.7, 22`, `FCM-CHANGELOG` (2026-10-25) |
-| Presets | Three named snapshots per instance and config type; switching validates and backs up the live config. | `manual p.8` |
-| Instances | Several DCS profiles or server instances, each with its own config; copy settings from one to another; update matching config variants across instances. | `manual p.10`, `FCM-CHANGELOG` |
-| Update Config | Merge a new release's config (from a `.miz` or a file) into the current one, choosing per changed default; timestamped backup, five kept; merge rule per table (`mergeRows`, `replaceTable`, `keepTable`). | `manual p.9`, `Config:1607` |
-| MissionScripting panel | Shows the path of `MissionScripting.lua`, applies the desanitise edit, re-checks the status. | `manual p.4` |
-| Mission download | Lists the maps of a release, downloads the full missions into a chosen instance or a remembered custom folder, with a review of every output file name. | `manual p.27-29`, `FCM-CHANGELOG` (2026-11-05) |
-| Files-only update | For missions verified compatible with the release, creates a copy with only the script files replaced, keeping the mission's own edits, warehouse and weather; several variants (day, night…) at once. | `manual p.25-26` |
-| Warehouse copy | During a full download, copies the warehouse file of an older mission of the same map, including modded stock. | `manual p.28` |
-| Weather and time profiles | Saved weather, date and time profiles applied to the created missions, with profile-based file names; settings can be read from another `.miz`. | `manual p.28`, file names `Weather*.cs` |
-| Mission options | Applies prepared mission-option settings to the downloaded missions. | `manual p.28` |
-| DCSServerBot support | Reads `.miz.orig` backups from discovered `.dcssb` folders as update sources and can save the result as a DCSServerBot original (`.miz.orig`). | `FCM-CHANGELOG` ("updating missions from DCSServerBot backups"), UI strings at `MainForm.MissionDownloads.Files.cs:904` and `MainForm.MissionDownloads.Review.cs:143` |
-| Server list | For a verified dedicated-server instance, adds the created missions to the server mission list (running or stopped); does not start or load anything. | `manual p.28-29` |
-| Self-update | Checks for a newer Manager and for mission releases separately. | `manual p.25` |
-| Admin designer and user export | A password-protected designer can export a "user" executable with selected GUI settings; a Testing unlock shows the testing settings. | `FCM-README` |
-| Command line | `--check <config>`, `--audit <config> <log>`, `--self-test-stability`, `--self-test-merge`. | `FCM-README` |
+| Assistant du premier lancement | Choisir un `.miz`, choisir un profil Saved Games, installer la config Normal ou WW2 dans `Missions\Saves`, la valider et l'ouvrir ; une config existante n'est pas écrasée. | `manual p.5` |
+| Éditeur de config | Catégories à gauche, champs typés, listes de contrôle, grilles liées (disponibilité + prix + rang dans une seule grille), aide par champ, validation de la syntaxe Lua, Undo, Restore Defaults, une vue des commentaires. | `manual p.9-10`, `FCM-CHANGELOG` |
+| Interface pilotée par métadonnées | Libellés, éditeurs, valeurs valides, conditions de visibilité et de verrouillage viennent des commentaires `@gui` de la Config elle-même ; `Foothold Config.gui.json` contient 15 entrées supplémentaires (libellé, aide, choix) comme `FootholdLocale`, `CallsignOverrides`, `ShopPrices`. | `Config:246-247`, `gui.json` |
+| Changement d'époque | Choisir une époque propose de cocher les lignes de templates étiquetées pour cette époque et rafraîchit les listes d'avions et d'armes ; les avions exigés par les fonctions IA activées sont protégés et expliqués. | `manual p.7, 22`, `FCM-CHANGELOG` (2026-10-25) |
+| Presets | Trois instantanés nommés par instance et par type de config ; le changement valide et sauvegarde la config en cours. | `manual p.8` |
+| Instances | Plusieurs profils DCS ou instances de serveur, chacun avec sa propre config ; copie des réglages de l'un vers l'autre ; mise à jour des variantes de config correspondantes sur plusieurs instances. | `manual p.10`, `FCM-CHANGELOG` |
+| Update Config | Fusionner la config d'une nouvelle version (depuis un `.miz` ou un fichier) dans la config actuelle, en choisissant pour chaque valeur par défaut modifiée ; sauvegarde horodatée, cinq conservées ; règle de fusion par table (`mergeRows`, `replaceTable`, `keepTable`). | `manual p.9`, `Config:1607` |
+| Panneau MissionScripting | Affiche le chemin de `MissionScripting.lua`, applique la modification de désanitisation, revérifie l'état. | `manual p.4` |
+| Téléchargement de mission | Liste les cartes d'une version, télécharge les missions complètes dans une instance choisie ou un dossier personnalisé mémorisé, avec une revue de chaque nom de fichier de sortie. | `manual p.27-29`, `FCM-CHANGELOG` (2026-11-05) |
+| Mise à jour de fichiers seulement | Pour les missions vérifiées compatibles avec la version, crée une copie où seuls les fichiers de scripts sont remplacés, en gardant les modifications propres à la mission, l'entrepôt et la météo ; plusieurs variantes (jour, nuit…) à la fois. | `manual p.25-26` |
+| Copie d'entrepôt | Pendant un téléchargement complet, copie le fichier d'entrepôt d'une ancienne mission de la même carte, y compris le stock modé. | `manual p.28` |
+| Profils météo et heure | Profils enregistrés de météo, de date et d'heure appliqués aux missions créées, avec des noms de fichiers fondés sur le profil ; les réglages peuvent être lus depuis un autre `.miz`. | `manual p.28`, noms de fichiers `Weather*.cs` |
+| Options de mission | Applique des réglages d'options de mission préparés aux missions téléchargées. | `manual p.28` |
+| Prise en charge de DCSServerBot | Lit les sauvegardes `.miz.orig` des dossiers `.dcssb` découverts comme sources de mise à jour et peut enregistrer le résultat comme original DCSServerBot (`.miz.orig`). | `FCM-CHANGELOG` ("updating missions from DCSServerBot backups"), chaînes d'interface à `MainForm.MissionDownloads.Files.cs:904` et `MainForm.MissionDownloads.Review.cs:143` |
+| Liste des serveurs | Pour une instance de serveur dédié vérifiée, ajoute les missions créées à la liste des missions du serveur (en marche ou arrêté) ; ne démarre ni ne charge rien. | `manual p.28-29` |
+| Auto-mise à jour | Vérifie séparément la présence d'un Manager plus récent et de versions de missions. | `manual p.25` |
+| Concepteur admin et export utilisateur | Un concepteur protégé par mot de passe peut exporter un exécutable « utilisateur » avec une sélection de réglages de l'interface ; un déverrouillage Testing affiche les réglages de test. | `FCM-README` |
+| Ligne de commande | `--check <config>`, `--audit <config> <log>`, `--self-test-stability`, `--self-test-merge`. | `FCM-README` |
 
-The manual tells admins to use this tool and not to edit the `.miz` or move the config by hand (`manual p.4`).
+Le manuel dit aux admins d'utiliser cet outil et de ne pas modifier le `.miz` ni déplacer la config à la main (`manual p.4`).
 
-## 6. Operating Foothold on a server
+## 6. Exploiter Foothold sur un serveur
 
-### What the server needs
+### Ce dont le serveur a besoin
 
-`MissionScripting.lua` must be desanitised so that `io` and `lfs` are available, and this must be redone after every DCS update (`manual p.4`).
-Without `io` the engine prints `PERSISTENCE_SAVE_DISABLED` for 600 s and stops trying to save (`zc2:7136-7140`); without `lfs` it prints `PERSISTENCE_SAVE_DESANITIZE` and loads nothing (`zc2:7252-7258`).
-The Config loader also uses `lfs.writedir()` and `loadfile` to find the external config (`Config:1`, `Config:153-155`).
-The engine source has 4 `io.open`, 8 `lfs.` references and no `os.remove` (regex counts on `zoneCommanderv2.lua`), and a campaign reset is done by writing an empty table, not by deleting a file (`setup:2805-2806`).
-The mission must be hosted as a multiplayer server even for one player, because slots are dynamic spawn (`manual p.4`).
-No mod is required (`requiredModules` empty in `mission`); mods are an option handled by `AllowMods` and a warehouse edit (`manual p.24`).
-The manual recommends disabling Tacview on the server for performance (`manual p.4`).
+`MissionScripting.lua` doit être désanitisé pour que `io` et `lfs` soient disponibles, et cela doit être refait après chaque mise à jour de DCS (`manual p.4`).
+Sans `io`, le moteur affiche `PERSISTENCE_SAVE_DISABLED` pendant 600 s et cesse d'essayer de sauvegarder (`zc2:7136-7140`) ; sans `lfs`, il affiche `PERSISTENCE_SAVE_DESANITIZE` et ne charge rien (`zc2:7252-7258`).
+Le chargeur de la Config utilise aussi `lfs.writedir()` et `loadfile` pour trouver la config externe (`Config:1`, `Config:153-155`).
+Le source du moteur contient 4 `io.open`, 8 références à `lfs.` et aucun `os.remove` (comptes par regex sur `zoneCommanderv2.lua`), et la remise à zéro d'une campagne se fait en écrivant une table vide, pas en supprimant un fichier (`setup:2805-2806`).
+La mission doit être hébergée comme serveur multijoueur même pour un seul joueur, parce que les slots sont en spawn dynamique (`manual p.4`).
+Aucun mod n'est requis (`requiredModules` vide dans `mission`) ; les mods sont une option gérée par `AllowMods` et une modification d'entrepôt (`manual p.24`).
+Le manuel recommande de désactiver Tacview sur le serveur pour les performances (`manual p.4`).
 
-### Files on the server
+### Fichiers sur le serveur
 
-Everything is under `Saved Games\<profile>\Missions\Saves`: `Foothold Config.lua` (and `Foothold Config WW2.lua`), the campaign save `<FootholdSaveBaseName>.lua`, the rank file `Foothold_Ranks.lua` shared by all campaigns (`setup:756`), and the CTLD, warehouse and other saves listed in "Save folder inventory" of `02-persistence-lifecycle-plumbing.md`.
-One campaign save exists per map, era and mode: on Caucasus `FootHold_CA_v0.3`, `FootHold_CA_v0.3_Coldwar`, `FootHold_CA_v0.3_Vietnam`, each with a `Pvp` suffix in PvP (`setup:467-477`).
-The save name does not contain the mission version (the mission is 6.5.2, the save name says `v0.3`), so a new release of the mission picks up the existing campaign.
+Tout se trouve sous `Saved Games\<profile>\Missions\Saves` : `Foothold Config.lua` (et `Foothold Config WW2.lua`), la sauvegarde de campagne `<FootholdSaveBaseName>.lua`, le fichier de rangs `Foothold_Ranks.lua` partagé par toutes les campagnes (`setup:756`), et les sauvegardes CTLD, d'entrepôt et autres listées dans « Save folder inventory » de `02-persistence-lifecycle-plumbing.md`.
+Il existe une sauvegarde de campagne par carte, par époque et par mode : sur le Caucase `FootHold_CA_v0.3`, `FootHold_CA_v0.3_Coldwar`, `FootHold_CA_v0.3_Vietnam`, chacune avec un suffixe `Pvp` en PvP (`setup:467-477`).
+Le nom de sauvegarde ne contient pas la version de la mission (la mission est en 6.5.2, le nom de sauvegarde dit `v0.3`), de sorte qu'une nouvelle version de la mission reprend la campagne existante.
 
-### Reset and restart
+### Remise à zéro et redémarrage
 
-On victory or defeat with `AutoRestart`, the setup writes an empty `zonePersistance` table, calls `resetSaveFileAndFarp`, and raises flag 181 five seconds later, which fires the `a_end_mission` trigger (`setup:2803-2812`, `mission` rule 7).
-With `AutoRestart = false`, Blue gets a "restart and reset" menu with Yes and No instead (`setup:2813-2828`).
-An admin can force the same with the `restartMission` and `endMission` marker words (`Config:3508-3513`).
-What the server loads next is the server's own mission-list business: "Restart requests the mission restart flag; it does not itself choose a different MIZ" (`manual p.62`).
-The rank file is never reset (`manual p.23`).
+À la victoire ou à la défaite avec `AutoRestart`, le setup écrit une table `zonePersistance` vide, appelle `resetSaveFileAndFarp`, et lève le flag 181 cinq secondes plus tard, ce qui déclenche le trigger `a_end_mission` (`setup:2803-2812`, règle 7 de `mission`).
+Avec `AutoRestart = false`, Blue obtient à la place un menu « restart and reset » avec Yes et No (`setup:2813-2828`).
+Un admin peut forcer la même chose avec les mots de marqueur `restartMission` et `endMission` (`Config:3508-3513`).
+Ce que le serveur charge ensuite relève de sa propre liste de missions : « Restart requests the mission restart flag; it does not itself choose a different MIZ » (`manual p.62`).
+Le fichier de rangs n'est jamais remis à zéro (`manual p.23`).
 
-### Updating without losing progress
+### Mettre à jour sans perdre la progression
 
-Progress survives an update because it lives outside the `.miz`, under save names that do not change between releases.
-Three update paths exist, all through the Config Manager (§5): files-only update of the admin's own `.miz` (keeps edits, warehouse, weather), full download with optional warehouse copy, and config merge ("Update from MIZ").
-An external config that lacks settings added by a new release still loads: the missing ones take the internal defaults and a warning is shown 12 times (`Config:94-135`).
-Garrison templates renamed between releases are mapped by `BlueUpgradeTemplateMigration` (`setup:20-50`).
+La progression survit à une mise à jour parce qu'elle vit hors du `.miz`, sous des noms de sauvegarde qui ne changent pas d'une version à l'autre.
+Il existe trois voies de mise à jour, toutes par le Config Manager (§5) : mise à jour de fichiers seulement du `.miz` propre à l'admin (conserve les modifications, l'entrepôt, la météo), téléchargement complet avec copie d'entrepôt facultative, et fusion de config (« Update from MIZ »).
+Une config externe qui n'a pas les réglages ajoutés par une nouvelle version se charge quand même : les réglages manquants prennent les valeurs internes par défaut et un avertissement s'affiche 12 fois (`Config:94-135`).
+Les templates de garnison renommés d'une version à l'autre sont associés par `BlueUpgradeTemplateMigration` (`setup:20-50`).
 
-### `MizBatchUpdater.exe` and `MizFileReplacer.exe`
+### `MizBatchUpdater.exe` et `MizFileReplacer.exe`
 
-Both exist only as binaries in `tools/` (199 kB and 173 kB).
-Neither the repository `README.md`, nor the manual, nor the Config Manager `README.md` and `CHANGELOG.md` mention them (0 text matches in each).
-The only mention is in `THIRD_PARTY_NOTICES.md`, which lists "the authorship, dependency notices and corresponding source" of the two executables among the items whose provenance was not established.
-From their names they replace script files inside one or several `.miz` archives, which is what the Config Manager's files-only update does (estimation; nothing was executed or disassembled).
+Tous deux n'existent que sous forme de binaires dans `tools/` (199 ko et 173 ko).
+Ni le `README.md` du dépôt, ni le manuel, ni le `README.md` et le `CHANGELOG.md` du Config Manager ne les mentionnent (0 correspondance textuelle dans chacun).
+La seule mention figure dans `THIRD_PARTY_NOTICES.md`, qui liste « the authorship, dependency notices and corresponding source » des deux exécutables parmi les éléments dont la provenance n'a pas été établie.
+D'après leurs noms, ils remplacent des fichiers de scripts à l'intérieur d'une ou plusieurs archives `.miz`, ce que fait la mise à jour de fichiers seulement du Config Manager (estimation ; rien n'a été exécuté ni désassemblé).
 
-### Supported maps, eras and modes
+### Cartes, époques et modes pris en charge
 
-The release ships 11 mission files: Afghanistan, Caucasus, Germany Cold War, Iraq, Kola, Persian Gulf, South Atlantic (version 0.83), Sinai North, Sinai extended, Syria extended, and WWII Normandy (`Missions/`).
-The `README` lists nine supported theatres (Caucasus, Persian Gulf, Sinai, Syria, Cold War Germany, Kola, Iraq, Afghanistan, WWII Normandy); South Atlantic is shipped but not in that list.
-One `.miz` per map serves every era: the file name says `Coldwar-Modern-Vietnam` (Iraq: `Gulfwar_Modern_Vietnam`) and the era is the `Era` setting, which swaps template names and warehouse lists at load (`Config:198`, `setup:487-591`).
-The mission date is the exception: it has to be changed in the Mission Editor (`manual p.7`).
-There is no separate PvP mission file: PvP is the `PvP` setting, honoured only on Caucasus, Syria and Persian Gulf (`Config:3525`, `manual p.56`), with its own save name.
-Normandy is a separate line: its own config file, a setup file with 35 % of its lines in common with Caucasus, and `zeus_Full_v2.1.lua` embedded instead of `Zeus.lua` (`THIRD_PARTY_NOTICES.md`).
+La version livre 11 fichiers de mission : Afghanistan, Caucase, Allemagne Guerre froide, Irak, Kola, golfe Persique, Atlantique Sud (version 0.83), Sinaï nord, Sinaï étendu, Syrie étendue, et Normandie WWII (`Missions/`).
+Le `README` liste neuf théâtres pris en charge (Caucase, golfe Persique, Sinaï, Syrie, Allemagne Guerre froide, Kola, Irak, Afghanistan, Normandie WWII) ; l'Atlantique Sud est livré mais ne figure pas dans cette liste.
+Un seul `.miz` par carte sert toutes les époques : le nom de fichier dit `Coldwar-Modern-Vietnam` (Irak : `Gulfwar_Modern_Vietnam`) et l'époque est le réglage `Era`, qui échange les noms de templates et les listes d'entrepôt au chargement (`Config:198`, `setup:487-591`).
+La date de la mission fait exception : elle doit être changée dans le Mission Editor (`manual p.7`).
+Il n'y a pas de fichier de mission PvP séparé : le PvP est le réglage `PvP`, honoré seulement sur le Caucase, la Syrie et le golfe Persique (`Config:3525`, `manual p.56`), avec son propre nom de sauvegarde.
+La Normandie est une lignée à part : son propre fichier de config, un fichier de setup dont 35 % des lignes sont communes avec le Caucase, et `zeus_Full_v2.1.lua` embarqué à la place de `Zeus.lua` (`THIRD_PARTY_NOTICES.md`).
 
 ### Localisation
 
-`Foothold_Localization.lua` (38 857 lines) defines ten locales: EN, DE, FR, ES, RU, PT-BR, TR, IT, zh-CN, zh-TW (`Config:204-219`).
-The server language is the `FootholdLocale` setting, applied by `FootholdLocalization:SetLocale` right after the config is read (`Config:220-223`, `Foothold_Localization.lua:20831`); an unknown value falls back to the default locale (`Foothold_Localization.lua:20823-20829`).
-It governs global on-screen messages; each player can pick another language for their own menus and messages, and that choice is saved with the campaign (`zc2:25741-25742`).
-The setup file contains no player-facing text, only keys (699 localisation call sites), so a new map also means new keys in the localisation file for every zone flavour text, mission title and event message (`setup:297-300`, `setup:6197-6199`).
-Details in "Messages and localisation" of `02-persistence-lifecycle-plumbing.md`.
+`Foothold_Localization.lua` (38 857 lignes) définit dix locales : EN, DE, FR, ES, RU, PT-BR, TR, IT, zh-CN, zh-TW (`Config:204-219`).
+La langue du serveur est le réglage `FootholdLocale`, appliqué par `FootholdLocalization:SetLocale` juste après la lecture de la config (`Config:220-223`, `Foothold_Localization.lua:20831`) ; une valeur inconnue retombe sur la locale par défaut (`Foothold_Localization.lua:20823-20829`).
+Elle régit les messages globaux à l'écran ; chaque joueur peut choisir une autre langue pour ses propres menus et messages, et ce choix est sauvegardé avec la campagne (`zc2:25741-25742`).
+Le fichier de setup ne contient aucun texte destiné au joueur, seulement des clés (699 sites d'appel de localisation), si bien qu'une nouvelle carte signifie aussi de nouvelles clés dans le fichier de localisation pour chaque texte d'ambiance de zone, titre de mission et message d'événement (`setup:297-300`, `setup:6197-6199`).
+Détails dans « Messages and localisation » de `02-persistence-lifecycle-plumbing.md`.
 
-## Authoring cost of one map
+## Coût d'écriture d'une carte
 
-Measured on Caucasus (v6.5.2 mission, v6.5.3 scripts); everything below is maintained by hand in the Mission Editor or in a text editor.
+Mesuré sur le Caucase (mission v6.5.2, scripts v6.5.3) ; tout ce qui suit est entretenu à la main dans le Mission Editor ou dans un éditeur de texte.
 
-| Item | Size |
+| Élément | Taille |
 |---|---|
-| Setup file | 10 014 lines, of which roughly 2 500 are map data and the rest is code copied from map to map (62 to 74 % of the lines of the other modern setup files are identical to Caucasus lines) |
-| Zones declared | 89 (21 airbases, 35 FARPs, 1 carrier, 32 others) |
-| Named garrison lists | 49, plus 14 random size profiles and a pool of 46 Red and 9 Blue template names |
-| Waypoint numbers and flavour texts | 61 and about 75 |
-| Airbase bindings | 56 |
-| Sortie declarations | 409 (402 `DirectorCapability` + 7 `GroupCommander`) in 56 blocks |
-| Connections | 135 visible + 14 hidden |
-| Director theatre data | 9 areas, 9 infrastructure links |
-| Shop | 45 registered item ids, 54 shelved ids, 76 shelf lines |
-| Events and tracked missions | 17 and 44 |
-| Scripted zone triggers | 31 |
-| Mode and era branches in the setup | 262 PvP references, 90 era tests |
-| Localisation call sites in the setup | 699 |
-| Trigger zones in the `.miz` | 1 331 (120 plain names, 717 spawn sub-zones, 109 landing spots, 60 SAM spots, 87 corridor waypoints, 87 scoot zones, 70 carrier-area zones, 35 warehouse hints, 24 artillery positions, 23 road hooks, 8 corridor landings) |
-| Template groups in the `.miz` | 508 late-activated groups (181 planes, 31 helicopters, 283 ground, 13 ships), among them 141 `RED_` / `BLUE_` flight loadouts |
-| Client slot templates | 34 |
-| Statics | 338 (35 FARP pads with about 240 decor statics, plus named objectives) |
-| Warehouses | 21 airports + 46 others, each with 174 aircraft rows and 800 weapon rows |
-| Sound files | 55 |
-| Mission triggers | 7 |
-| Config check-list rows naming `.miz` templates | 129 flight templates + 14 SAM families, to keep in step with the `.miz` |
+| Fichier de setup | 10 014 lignes, dont environ 2 500 sont des données de carte et le reste du code copié d'une carte à l'autre (62 à 74 % des lignes des autres fichiers de setup modernes sont identiques à des lignes du Caucase) |
+| Zones déclarées | 89 (21 aérodromes, 35 FARP, 1 porte-avions, 32 autres) |
+| Listes de garnison nommées | 49, plus 14 profils de taille aléatoires et un pool de 46 noms de templates Red et 9 Blue |
+| Numéros de waypoint et textes d'ambiance | 61 et environ 75 |
+| Rattachements aux aérodromes | 56 |
+| Déclarations de sorties | 409 (402 `DirectorCapability` + 7 `GroupCommander`) dans 56 blocs |
+| Connexions | 135 visibles + 14 cachées |
+| Données de théâtre du Director | 9 zones, 9 liens d'infrastructure |
+| Boutique | 45 ids d'articles enregistrés, 54 ids mis en étagère, 76 lignes d'étagère |
+| Événements et missions suivies | 17 et 44 |
+| Triggers de zone scriptés | 31 |
+| Branches de mode et d'époque dans le setup | 262 références PvP, 90 tests d'époque |
+| Sites d'appel de localisation dans le setup | 699 |
+| Trigger zones dans le `.miz` | 1 331 (120 noms simples, 717 sous-zones de spawn, 109 points d'atterrissage, 60 emplacements SAM, 87 waypoints de couloir, 87 zones de scoot, 70 zones de porte-avions, 35 indications d'entrepôt, 24 positions d'artillerie, 23 points d'accroche routiers, 8 points d'atterrissage de couloir) |
+| Groupes template dans le `.miz` | 508 groupes en late activation (181 avions, 31 hélicoptères, 283 terrestres, 13 navires), dont 141 chargements de vols `RED_` / `BLUE_` |
+| Templates de slots clients | 34 |
+| Statics | 338 (35 plates-formes de FARP avec environ 240 statics de décor, plus des objectifs nommés) |
+| Entrepôts | 21 aéroports + 46 autres, chacun avec 174 lignes d'avions et 800 lignes d'armes |
+| Fichiers son | 55 |
+| Triggers de mission | 7 |
+| Lignes de listes de contrôle de la Config nommant des templates du `.miz` | 129 templates de vols + 14 familles de SAM, à tenir en accord avec le `.miz` |
 
-The same mission file must also stay consistent across three eras: garrison and convoy templates exist in Modern, Cold War and Vietnam variants (`setup:487-591`, `setup:1004-1040`).
+Le même fichier de mission doit aussi rester cohérent sur trois époques : les templates de garnison et de convois existent en variantes Modern, Cold War et Vietnam (`setup:487-591`, `setup:1004-1040`).
 
-## Seen outside this theme
+## Vu hors de ce thème
 
-- `BlueUpgradeTemplateMigration`: a rename table applied to saved garrison names, i.e. a save-format migration living in the setup file (`setup:20-50`).
-- `DynamicHybridConfig` and `bc:startDynamicHybridFiller`: generation of sortie capabilities at run time from distance rules, on top of the hand-written ones (`setup:6077-6118`, `zc2:23020`).
-- `TheaterInfrastructure`: a destroyed map building cuts the Red supply route of a SAM zone (`setup:2271-2360`, `setup:1291`).
-- `bc:roamGroupsToLocalSubZone`: patrol of garrison groups between sub-zones and roaming of ships, driven by name prefixes (`setup:2848-2886`).
-- `HercCargoDropSupply.init(bc)`, `startWarehousePersistence()`, `Frontline.BuildFromZones` and seven caches are started explicitly by the setup file, not by the engine (`setup:6000-6013`).
-- Kola variant: the starting side of whole countries comes from saved flags, and a `DynCampaign` flag changes the save name (`kola:745-820`).
-- `ewrs_altitudeDisplayMode = "wwii"`: EWRS reports altitude bands on Normandy (`ConfigWW2:813`).
-- `AddWeightToPlaneRed` / `AddWeightToPlaneBlue`: extra internal cargo weight applied to WWII aircraft types (`ConfigWW2:422-445`).
+- `BlueUpgradeTemplateMigration` : une table de renommage appliquée aux noms de garnison sauvegardés, c'est-à-dire une migration de format de sauvegarde qui vit dans le fichier de setup (`setup:20-50`).
+- `DynamicHybridConfig` et `bc:startDynamicHybridFiller` : génération de capacités de sorties à l'exécution à partir de règles de distance, en plus de celles écrites à la main (`setup:6077-6118`, `zc2:23020`).
+- `TheaterInfrastructure` : un bâtiment de la carte détruit coupe la route de supply Red d'une zone SAM (`setup:2271-2360`, `setup:1291`).
+- `bc:roamGroupsToLocalSubZone` : patrouille des groupes de garnison entre sous-zones et déplacement des navires, pilotés par des préfixes de noms (`setup:2848-2886`).
+- `HercCargoDropSupply.init(bc)`, `startWarehousePersistence()`, `Frontline.BuildFromZones` et sept caches sont démarrés explicitement par le fichier de setup, pas par le moteur (`setup:6000-6013`).
+- Variante Kola : le camp de départ de pays entiers vient de flags sauvegardés, et un flag `DynCampaign` change le nom de sauvegarde (`kola:745-820`).
+- `ewrs_altitudeDisplayMode = "wwii"` : EWRS rapporte des tranches d'altitude en Normandie (`ConfigWW2:813`).
+- `AddWeightToPlaneRed` / `AddWeightToPlaneBlue` : poids de cargo interne supplémentaire appliqué aux types d'avions de la Seconde Guerre mondiale (`ConfigWW2:422-445`).

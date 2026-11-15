@@ -1,337 +1,356 @@
-# Foothold 6.5.3 — functional and technical inventory
+# Foothold 6.5.3 — inventaire fonctionnel et technique
 
-Written 2026-11-15 for [`FEAT-DYNAMIC-CAMPAIGN`](PRD.md), whose ticket 07 measures our own engine against Foothold.
-This page is the entry point: the version analysed, the catalogue of features with what VEAF already has and what each would cost, and a proposed order.
-The mechanisms themselves are in eight detailed notes under [`foothold-analysis/`](foothold-analysis/), every claim cited `file:line` in the analysed version.
-The purpose is that a later session works from these pages without reading the upstream code again.
-Nothing here is a decision: which features to integrate is David's call.
+Écrit le 2026-11-15 pour [`FEAT-DYNAMIC-CAMPAIGN`](PRD.md), dont le ticket 07 mesure notre propre moteur face à Foothold.
+En français à la demande de David (2026-11-15), par exception à la règle du dépôt.
+Cette page est le point d'entrée : la version analysée, le catalogue des fonctionnalités avec ce que VEAF a déjà et ce que chacune coûterait, et une proposition d'ordre.
+Les mécanismes eux-mêmes sont dans huit notes détaillées sous [`foothold-analysis/`](foothold-analysis/), où chaque affirmation est citée `fichier:ligne` dans la version analysée.
+Le but est qu'une session ultérieure travaille à partir de ces pages sans relire le code amont.
+Rien ici n'est une décision : le choix des fonctionnalités à intégrer revient à David.
 
-## 1. Version analysed
+## 1. Version analysée
 
 | | |
 |---|---|
-| Upstream | [`leka1986/Lekas-Foothold`](https://github.com/leka1986/Lekas-Foothold) |
-| Analysed | tag `v6.5.3`, commit `27d8cf4a6e579f3c60a5f715bbdf06782fb1d351`, 2026-11-13 (latest release on 2026-11-15) |
-| After the tag | 6 commits on `main` up to 2026-11-14, all on the Config Manager (2.5.8 to 2.6.0) and the saved-games folder; not analysed |
-| Missions in the tag | still named 6.5.2 (`Missions/Foothold_CA_6.5.2_…miz`), with 6.5.3 scripts inside |
-| What VEAF runs | 5.3.5, refreshed 2026-10-19 in the ten `VEAF-Foothold-*` repositories (`chore: update to Foothold 5.3.5`) |
-| Engine size | `zoneCommanderv2.lua`: 102 728 lines in our 5.3.5, 115 262 in 6.5.3 |
-| Local clone | `D:\dev\_dcs-other\Lekas-Foothold` (remotes `origin` = upstream, `fork` = `VEAF/Lekas-Foothold`); its `main` is at a 2025-12-29 commit, two commits ahead of nothing upstream — left untouched |
+| Amont | [`leka1986/Lekas-Foothold`](https://github.com/leka1986/Lekas-Foothold) |
+| Analysé | tag `v6.5.3`, commit `27d8cf4a6e579f3c60a5f715bbdf06782fb1d351`, 2026-11-13 (dernière release au 2026-11-15) |
+| Après le tag | 6 commits sur `main` jusqu'au 2026-11-14, tous sur le Config Manager (2.5.8 à 2.6.0) et le dossier des sauvegardes ; non analysés |
+| Missions du tag | encore nommées 6.5.2 (`Missions/Foothold_CA_6.5.2_…miz`), avec les scripts 6.5.3 dedans |
+| Ce que VEAF fait tourner | 5.3.5, rafraîchie le 2026-10-19 dans les dix dépôts `VEAF-Foothold-*` (`chore: update to Foothold 5.3.5`) |
+| Taille du moteur | `zoneCommanderv2.lua` : 102 728 lignes dans notre 5.3.5, 115 262 en 6.5.3 |
+| Clone local | `D:\dev\_dcs-other\Lekas-Foothold` (remotes `origin` = amont, `fork` = `VEAF/Lekas-Foothold`) ; son `main` local est sur un commit du 2025-12-29, laissé tel quel |
 
-Sixteen releases separate 5.3.5 from 6.5.3.
-What they added, from the release notes: PvP on Caucasus, Syria and Persian Gulf with a Red shop, Red CTLD and Red CSAR (5.4.0, 5.4.1); escort altitude choices and configurable AWACS, tanker and carrier radios (5.4.3); `NoAIBlueCapture` (5.4.4); the Director's learning and reassessment rework (5.4.5, 6.4.6); night-operation bonus and night air-defence settings, `MaxRedGroundGroupsPerZone` (6.4.6); staged autosave, queued wake-up of sleeping zones and queued menu refreshes (6.4.8 to 6.5.0); idle zones, ground-patrol switch, Blue ground-defence cap (6.5.1); PvE defeat restart, warehouse weapon locations, CAP auto-buy, SAM reveal (6.5.2); South Atlantic map (6.5.3).
+Seize releases séparent la 5.3.5 de la 6.5.3.
+Ce qu'elles ont ajouté, d'après les notes de version :
 
-### How to get the source again
+- le PvP sur Caucase, Syrie et Golfe Persique, avec boutique, CTLD et CSAR rouges (5.4.0, 5.4.1) ;
+- le choix d'altitude des escortes et les radios configurables des AWACS, ravitailleurs et porte-avions (5.4.3) ;
+- `NoAIBlueCapture` (5.4.4) ;
+- la refonte de l'apprentissage et de la réévaluation du Director (5.4.5, 6.4.6) ;
+- le bonus d'opération de nuit, les réglages de défense aérienne de nuit, `MaxRedGroundGroupsPerZone` (6.4.6) ;
+- la sauvegarde étalée, le réveil des zones en file d'attente et les rafraîchissements de menus en file (6.4.8 à 6.5.0) ;
+- les zones « idle », l'interrupteur des patrouilles au sol, le plafond des défenses bleues (6.5.1) ;
+- le redémarrage sur défaite en PvE, la localisation des armes par entrepôt, le rachat automatique de CAP, la révélation des SAM (6.5.2) ;
+- la carte South Atlantic (6.5.3).
 
-The working copy used for this analysis was a temporary extract.
-To rebuild it: `git -C D:\dev\_dcs-other\Lekas-Foothold fetch --tags origin`, then `git archive v6.5.3 | tar -x -C <empty folder>`.
-A function index (one `line:signature` per definition) is rebuilt with `grep -nE '^\s*(local\s+)?function\s+[A-Za-z_][A-Za-z0-9_.:]*\s*\(' "Common Scripts/zoneCommanderv2.lua"`; it has about 3 100 entries.
+### Retrouver le source
 
-### What is in the release
+La copie de travail de cette analyse était un extrait temporaire.
+Pour la refaire : `git -C D:\dev\_dcs-other\Lekas-Foothold fetch --tags origin`, puis `git archive v6.5.3 | tar -x -C <dossier vide>`.
+Un index des fonctions (une ligne `ligne:signature` par définition) se régénère avec `grep -nE '^\s*(local\s+)?function\s+[A-Za-z_][A-Za-z0-9_.:]*\s*\(' "Common Scripts/zoneCommanderv2.lua"` ; il compte environ 3 100 entrées.
 
-| File | Lines | Role |
+### Ce que contient la release
+
+| Fichier | Lignes | Rôle |
 |---|---|---|
-| `Common Scripts/zoneCommanderv2.lua` | 115 262 | the engine, shared by every map |
-| `Common Scripts/Moose_2026-10-11.lua` | 132 407 | bundled Moose, **modified for Foothold** (its CTLD calls Foothold functions, note 07 §1) |
-| `Common Scripts/Foothold_Localization.lua` | 38 857 | every player-facing string, 10 locales |
-| `Common Scripts/AIEN.lua` | 16 093 | ground AI reactions (Chromium18), customised |
-| `Setup files/<map>.lua` | 5 000 to 10 000 | the campaign data of one map, hand-written |
-| `Common Scripts/Foothold CTLD.lua`, `Foothold_CTLD_Red.lua` | 9 441, 2 417 | logistics on Moose CTLD |
-| `Common Scripts/Splash_Damage_3.4.1_leka.lua` | 4 932 | splash damage, customised |
-| `Common Scripts/Foothold Config.lua` | 3 530 | 202 server settings |
-| `Common Scripts/WelcomeMessage.lua`, `EWRS.lua`, `Zeus.lua` | 2 941, 1 745, 105 | callsigns/ATIS/escort, radar picture, game-master markers |
-| `zoneCommander.lua`, `zeus_Full_v2.1.lua`, `WelcomeMessagev2.lua` | — | present in the repository, **not loaded** by the missions |
+| `Common Scripts/zoneCommanderv2.lua` | 115 262 | le moteur, commun à toutes les cartes |
+| `Common Scripts/Moose_2026-10-11.lua` | 132 407 | le Moose embarqué, **modifié pour Foothold** (son CTLD appelle des fonctions de Foothold, note 07 §1) |
+| `Common Scripts/Foothold_Localization.lua` | 38 857 | tous les textes vus par les joueurs, 10 langues |
+| `Common Scripts/AIEN.lua` | 16 093 | réactions de l'IA au sol (Chromium18), adaptées |
+| `Setup files/<carte>.lua` | 5 000 à 10 000 | les données de campagne d'une carte, écrites à la main |
+| `Common Scripts/Foothold CTLD.lua`, `Foothold_CTLD_Red.lua` | 9 441, 2 417 | la logistique, sur le CTLD de Moose |
+| `Common Scripts/Splash_Damage_3.4.1_leka.lua` | 4 932 | splash damage, adapté |
+| `Common Scripts/Foothold Config.lua` | 3 530 | 202 réglages serveur |
+| `Common Scripts/WelcomeMessage.lua`, `EWRS.lua`, `Zeus.lua` | 2 941, 1 745, 105 | callsigns, ATIS et escorte ; image radar ; marqueurs de game master |
+| `zoneCommander.lua`, `zeus_Full_v2.1.lua`, `WelcomeMessagev2.lua` | — | présents dans le dépôt, **non chargés** par les missions |
 
-## 2. The detailed notes
+## 2. Les notes détaillées
 
-| Note | Covers | Lines |
+| Note | Couvre | Taille |
 |---|---|---|
-| [`01-zones-capture-map.md`](foothold-analysis/01-zones-capture-map.md) | zone model, garrisons, losses, neutral state, capture channels, pending capture, advance capture, dormancy, connection graph, frontline, everything drawn on the F10 map, win and lose | 18 features |
-| [`02-persistence-lifecycle-plumbing.md`](foothold-analysis/02-persistence-lifecycle-plumbing.md) | save files and their fields, staged autosave, load and re-apply, restart and reset, era and PvE/PvP switches, player identity, slot control, events, loops and timers, F10 menu queues, localisation, the Moose census, script load order | 21 features |
-| [`03-ai-groups-sorties.md`](foothold-analysis/03-ai-groups-sorties.md) | `GroupCommander` state machines (air and surface), spawn eligibility and caps, CAP and strike tasking, AI supply helicopters, AIEN, MANTIS, bombers, Hunter, throttles | 15 features |
-| [`04-director.md`](foothold-analysis/04-director.md) | the planner that authorises every AI launch: capabilities, cycle, target scoring, packages, posture, phases and gates, learning, CAP slots, ground release, events, difficulty scaling | 19 features |
-| [`05-economy-shop-ranks-missions.md`](foothold-analysis/05-economy-shop-ranks-missions.md) | coalition and personal credits, kill attribution, the whole shop catalogue, ranks, statistics, career, joint missions, player missions, the F10 tree | 13 features |
-| [`06-player-support-tools.md`](foothold-analysis/06-player-support-tools.md) | JTAC drones, player laser designator, CSAR, zone intel, tankers, AWACS, CAP control, every map-marker command, carrier control, welcome/callsigns/ATIS, escort, EWRS, Zeus, splash damage | 19 features |
-| [`07-ctld-warehouse-logistics.md`](foothold-analysis/07-ctld-warehouse-logistics.md) | what Foothold adds to Moose CTLD, cargo catalogue, zone supplies, warehouse cargo, FARP kits, C-130J, spy and demolition teams, warehouse stocks, legacy logistics, Red CTLD, the list of Moose CTLD features relied on | 22 features |
-| [`08-mission-maker-side.md`](foothold-analysis/08-mission-maker-side.md) | the manual (63 pages), the 202 Config settings, the structure of a setup file with excerpts, the `.miz` conventions measured, the Config Manager, server operation, the authoring cost of one map | 10 headings |
+| [`01-zones-capture-map.md`](foothold-analysis/01-zones-capture-map.md) | modèle de zone, garnisons, pertes, état neutre, canaux de capture, capture temporisée, advance capture, dormance, graphe de connexions, frontline, tout ce qui est dessiné sur la carte F10, victoire et défaite | 18 fonctionnalités |
+| [`02-persistence-lifecycle-plumbing.md`](foothold-analysis/02-persistence-lifecycle-plumbing.md) | fichiers de sauvegarde et leurs champs, sauvegarde étalée, chargement et réapplication, redémarrage et reset, ères et PvE/PvP, identité des joueurs, contrôle des slots, événements, boucles et timers, files de menus F10, langues, recensement de Moose, ordre de chargement des scripts | 21 fonctionnalités |
+| [`03-ai-groups-sorties.md`](foothold-analysis/03-ai-groups-sorties.md) | machines à états de `GroupCommander` (air et surface), conditions de spawn et plafonds, CAP et frappes, hélicoptères de supply IA, AIEN, MANTIS, bombardiers, Hunter, limiteurs | 15 fonctionnalités |
+| [`04-director.md`](foothold-analysis/04-director.md) | le planificateur qui autorise chaque sortie IA : capacités, cycle, choix de cible, packages, posture, phases et verrous, apprentissage, slots de CAP, sorties au sol, événements, difficulté | 19 fonctionnalités |
+| [`05-economy-shop-ranks-missions.md`](foothold-analysis/05-economy-shop-ranks-missions.md) | crédits de coalition et personnels, attribution des kills, tout le catalogue de la boutique, rangs, statistiques, carrière, missions conjointes, missions joueurs, arbre F10 | 13 fonctionnalités |
+| [`06-player-support-tools.md`](foothold-analysis/06-player-support-tools.md) | drones JTAC, désignateur laser du joueur, CSAR, intel de zone, ravitailleurs, AWACS, contrôle des CAP, toutes les commandes par marqueur, porte-avions, accueil/callsigns/ATIS, escorte, EWRS, Zeus, splash damage | 19 fonctionnalités |
+| [`07-ctld-warehouse-logistics.md`](foothold-analysis/07-ctld-warehouse-logistics.md) | ce que Foothold ajoute au CTLD de Moose, catalogue de cargo, supplies de zone, cargo d'entrepôt, kits de FARP, C-130J, équipes espion et démolition, stocks d'entrepôt, ancienne logistique, CTLD rouge, liste des fonctions du CTLD Moose utilisées | 22 fonctionnalités |
+| [`08-mission-maker-side.md`](foothold-analysis/08-mission-maker-side.md) | le manuel (63 pages), les 202 réglages de config, la structure d'un fichier de setup avec extraits, les conventions du `.miz` mesurées, le Config Manager, l'exploitation serveur, le coût d'écriture d'une carte | 10 rubriques |
 
-Each note opens with its feature table and ends with "Seen outside this theme".
-Inside a note, "(estimation)" and "not read" mark what was not read in the code; section 8 below lists what remains so.
+Chaque note s'ouvre sur son tableau de fonctionnalités et finit par ce qu'elle a vu hors de son thème.
+Dans une note, « (estimation) » et « non lu » marquent ce qui n'a pas été lu dans le code ; la section 8 ci-dessous liste ce qui le reste.
 
-## 3. Findings that change what the PRD assumed
+## 3. Constats qui changent ce que supposait le PRD
 
-The PRD of this lot was written from Foothold 4.7.0 (read 2026-10-02).
-Five of its statements no longer hold on 6.5.3.
+Le PRD de ce lot a été écrit d'après Foothold 4.7.0 (lu le 2026-10-02).
+Cinq de ses affirmations ne tiennent plus sur la 6.5.3.
 
-1. **There is a licence now.**
-   The PRD rules a fork out because upstream had `license: null`.
-   6.5.3 ships `LICENSE` (GPL-3.0-only for Leka's code), with Apache-2.0 kept on the original zoneCommander parts, GPL-3 for Moose and AIEN, MIT for Splash Damage and EWRS (`THIRD_PARTY_NOTICES.md`).
-   The second reason against a fork stands: the engine grew by 12 500 lines in four weeks.
-   A consequence to weigh: code copied or closely adapted from Foothold into a VEAF module would bring GPL-3.0 terms with it; ideas and mechanisms do not.
-2. **Moose is a toolbox in the engine, not its skeleton.**
-   The census (note 02, "Moose dependency census") counts, in the engine, 392 raw `missionCommands` calls, 574 raw `outText`, 162 raw `timer.scheduleFunction`, 3 `world.addEventHandler`, against Moose used mostly for unit conversions (`UTILS`, 384), positions (`COORDINATE`, 182) and timers (`SCHEDULER`, 97).
-   The PRD's "OPS layer (`AUFTRAG`/`FLIGHTGROUP`, one state machine per AI flight)" is gone from regular sorties: OPS is used at six side sites only (Hunter, battleship, naval artillery, V1), and every supply, CAP, CAS, SEAD, runway and convoy sortie is tasked with raw DCS tasks (note 03 §7).
-   The Moose parts with real weight are `SPAWN` with `AIRBASE` (parking-spot spawn of AI aircraft), `STORAGE` (warehouses), `MANTIS` (air defence), `CTLD`, and the template registry `_DATABASE.Templates.Groups`.
-   So "Moose costs the frames" is less likely than the PRD supposed; it is still unmeasured, and ticket 07 is still the way to know.
-3. **Foothold already does what our performance section plans.**
-   Dormant zones exist (distance suspension, idle suspension, wake-up by players, by the front or by an AI mission, respawn one group per 0.1 s, losses kept — note 01 §9).
-   The zone update is one staggered wave (one zone per 0.1 s inside a 10 s period), spawn decisions go through a queue with a budget, the save is staged, menu refreshes are queued (note 02, "Engine main loops").
-   The one thing we planned that Foothold does not do is use events for losses: it polls every garrison (note 01 §4) and every AI group state (note 03 §16).
-4. **Sorties are no longer declared one by one as live objects.**
-   The Caucasus setup declares 402 `DirectorCapability` records against 7 `GroupCommander:new`; a capability is passive data, instantiated when the Director authorises it, and a "DynamicHybrid" filler generates more from distance rules (notes 04 §2, 08 §3).
-   This is close to our "sorties derived from the graph", arrived at from the other side.
-5. **The authoring cost was under-counted.**
-   Measured on Caucasus (note 08, "Authoring cost of one map"): 10 014 setup lines, 89 zones, 409 sortie declarations, 135 visible and 14 hidden connections, 1 331 trigger zones (717 of them spawn sub-zones), 508 late-activated template groups, 338 statics.
-   62 to 74 % of the lines of the other modern setup files are identical to Caucasus lines: most of a setup file is code copied from map to map.
+1. **Il y a une licence maintenant.**
+   Le PRD écarte un fork parce que l'amont était en `license: null`.
+   La 6.5.3 livre un `LICENSE` (GPL-3.0-only pour le code de Leka), avec Apache-2.0 conservée sur les parties d'origine de zoneCommander, GPL-3 pour Moose et AIEN, MIT pour Splash Damage et EWRS (`THIRD_PARTY_NOTICES.md`).
+   La seconde raison contre un fork tient toujours : le moteur a grossi de 12 500 lignes en quatre semaines.
+   Une conséquence à peser : du code copié ou adapté de près depuis Foothold dans un module VEAF emporterait les termes de la GPL-3.0 ; les idées et les mécanismes, non.
+2. **Moose est une boîte à outils dans le moteur, pas son squelette.**
+   Le recensement (note 02, « Moose dependency census ») compte, dans le moteur, 392 appels bruts à `missionCommands`, 574 `outText` bruts, 162 `timer.scheduleFunction` bruts et 3 `world.addEventHandler`.
+   En face, Moose sert surtout aux conversions d'unités (`UTILS`, 384), aux positions (`COORDINATE`, 182) et aux timers (`SCHEDULER`, 97).
+   La « couche OPS (`AUFTRAG`/`FLIGHTGROUP`, une machine à états par vol IA) » du PRD a disparu des sorties ordinaires : OPS ne sert plus qu'à six endroits annexes (Hunter, cuirassé, artillerie navale, V1), et toutes les sorties de supply, CAP, CAS, SEAD, frappe de piste et convoi sont pilotées par des tâches DCS brutes (note 03 §7).
+   Les parties de Moose qui pèsent vraiment sont `SPAWN` avec `AIRBASE` (spawn des avions IA au parking), `STORAGE` (entrepôts), `MANTIS` (défense aérienne), `CTLD`, et le registre de templates `_DATABASE.Templates.Groups`.
+   « C'est Moose qui coûte les images » est donc moins probable que le PRD le supposait ; ce n'est toujours pas mesuré, et le ticket 07 reste le moyen de le savoir.
+3. **Foothold fait déjà ce que prévoit notre section performance.**
+   Les zones dormantes existent : suspension par la distance, suspension « idle », réveil par les joueurs, par le front ou par une mission IA, respawn d'un groupe toutes les 0,1 s, pertes conservées (note 01 §9).
+   La mise à jour des zones est une seule vague étalée (une zone toutes les 0,1 s dans une période de 10 s), les décisions de spawn passent par une file avec budget, la sauvegarde est étalée, les rafraîchissements de menus sont en file (note 02, « Engine main loops »).
+   La seule chose que nous prévoyons et que Foothold ne fait pas : utiliser les événements pour les pertes ; il scrute chaque garnison (note 01 §4) et l'état de chaque groupe IA (note 03 §16).
+4. **Les sorties ne sont plus déclarées une par une comme objets vivants.**
+   Le setup du Caucase déclare 402 `DirectorCapability` contre 7 `GroupCommander:new` ; une capacité est une donnée passive, instanciée quand le Director l'autorise, et un générateur « DynamicHybrid » en ajoute d'après des règles de distance (notes 04 §2, 08 §3).
+   C'est proche de nos « sorties dérivées du graphe », atteint par l'autre bout.
+5. **Le coût d'écriture d'une carte était sous-compté.**
+   Mesuré sur le Caucase (note 08, « Authoring cost of one map ») : 10 014 lignes de setup, 89 zones, 409 déclarations de sorties, 135 connexions visibles et 14 cachées, 1 331 trigger zones (dont 717 sous-zones de spawn), 508 groupes templates en late activation, 338 statics.
+   62 à 74 % des lignes des autres setups modernes sont identiques à des lignes du Caucase : l'essentiel d'un fichier de setup est du code copié d'une carte à l'autre.
 
-One finding concerns our servers today rather than the design; see section 9.
+Un constat concerne nos serveurs d'aujourd'hui plutôt que la conception : voir la section 9.
 
-## 4. How Foothold works, in one page
+## 4. Comment marche Foothold, en une page
 
-A campaign is a graph of **zones** (89 on Caucasus), each with an owner (0 neutral, 1 red, 2 blue), a facility type (airbase, FARP, carrier, ground, logistics) and a **garrison**: an ordered list of template groups per owner, re-drawn at random per campaign from size profiles (note 01 §1–2).
-A zone never changes side directly.
-Its garrison is destroyed slot by slot; when the last slot is gone the zone turns **neutral** (note 01 §5).
-A neutral zone is captured by bringing something into it — an AI supply helicopter or convoy, CTLD troops, a supply crate, a Hercules drop — which starts a **pending capture** of `ZoneCaptureBuildSeconds` (120 s) anchored on a physical object that the enemy can destroy (note 01 §6–7).
-On capture the first garrison slot spawns; each later supply delivery adds or repairs one slot (note 01 §4).
-An airbase zone switches the DCS airbase coalition, which is what opens or closes its dynamic-spawn slots (notes 01 §6, 02 "Player spawn handling").
+Une campagne est un graphe de **zones** (89 sur le Caucase).
+Chaque zone a un propriétaire (0 neutre, 1 rouge, 2 bleu), un type d'installation (aérodrome, FARP, porte-avions, sol, logistique) et une **garnison** : une liste ordonnée de groupes templates par propriétaire, retirée au hasard à chaque campagne d'après des profils de taille (note 01 §1–2).
 
-The AI is two layers.
-`GroupCommander` is the execution state machine of one sortie (hangar → preparing → takeoff → in air → landed), entirely polled (note 03 §2).
-The `Director`, one per side, decides: every 30 s it scores Blue zones, picks one by weighted random, builds a package (CAP, SEAD, CAS, runway strike, surface, feint, reserve), authorises launches through gates, reassesses every 90 s, and keeps decaying memories of what worked (note 04 §3–8).
-Routine CAP, ground convoy release and reactions to the players' captures are separate Director functions (note 04 §9–12).
-Air defence is a MANTIS network per side (note 03 §11); ground groups react to fire through AIEN (note 03 §10).
+Une zone ne change jamais de camp directement.
+Sa garnison est détruite emplacement par emplacement ; quand le dernier est tombé, la zone devient **neutre** (note 01 §5).
+Une zone neutre se capture en y amenant quelque chose : un hélicoptère ou un convoi de supply IA, des troupes CTLD, une caisse de supply, un largage de Hercules.
+Cela lance une **capture temporisée** de `ZoneCaptureBuildSeconds` (120 s), ancrée sur un objet physique que l'ennemi peut détruire (note 01 §6–7).
+À la capture, le premier emplacement de garnison apparaît ; chaque livraison de supply suivante en ajoute ou en répare un (note 01 §4).
+Une zone aérodrome bascule la coalition de l'aérodrome DCS, ce qui ouvre ou ferme ses slots en dynamic spawn (notes 01 §6, 02 « Player spawn handling »).
 
-Players earn **personal credits** for kills and deliveries, which become coalition credits and rank only when they **land in a friendly zone**; dying loses them, ejecting keeps 25 % (note 05 §3).
-Coalition credits buy shop items — support flights, JTAC drones, intel, captures, zone upgrades, repairs — from an F10 menu or a `buy:<id>` map marker (note 05 §4–5).
-A 20-step **rank** ladder gates shop and CTLD items (note 05 §7).
-Player **missions** are a polled list of closures with rewards, shown in a menu and on the map (note 05 §11).
+L'IA a deux étages.
+`GroupCommander` est la machine à états qui exécute une sortie (hangar → préparation → décollage → en vol → posé), entièrement par scrutation (note 03 §2).
+Le `Director`, un par camp, décide : toutes les 30 s il note les zones bleues, en tire une au hasard pondéré, compose un package (CAP, SEAD, CAS, frappe de piste, surface, feinte, réserve), autorise les décollages par des verrous, réévalue toutes les 90 s, et garde une mémoire dégressive de ce qui a marché (note 04 §3–8).
+La CAP de routine, la sortie des convois et les réactions aux captures des joueurs sont des fonctions séparées du Director (note 04 §9–12).
+La défense aérienne est un réseau MANTIS par camp (note 03 §11) ; les groupes au sol réagissent au feu par AIEN (note 03 §10).
 
-Logistics is Moose CTLD with Foothold on top: prices and ranks on cargo, zones that follow ownership, supply crates tracked physically, weapon stock moved between airbase **warehouses**, player-built FARPs (note 07).
+Les joueurs gagnent des **crédits personnels** pour leurs kills et leurs livraisons.
+Ces crédits ne deviennent crédits de coalition et rang qu'en **se posant dans une zone amie** ; mourir les fait perdre, s'éjecter en garde 25 % (note 05 §3).
+Les crédits de coalition achètent des articles de boutique — vols de soutien, drones JTAC, intel, captures, améliorations et réparations de zone — depuis un menu F10 ou un marqueur `buy:<id>` (note 05 §4–5).
+Une échelle de 20 **rangs** conditionne les articles de boutique et de CTLD (note 05 §7).
+Les **missions** proposées aux joueurs sont une liste de fonctions scrutées, avec récompense, affichées dans un menu et sur la carte (note 05 §11).
 
-State is saved every 60 s to Lua files under `Saved Games\<instance>\Missions\Saves` (eight files per map, era and mode — note 02 "Files written"), which needs `io` and `lfs` in `MissionScripting.lua`.
-A win or a defeat wipes the save and sets flag 181, which a mission trigger turns into `a_end_mission`; the server reloads the mission (notes 01 §18, 02 "Campaign lifecycle").
+La logistique est le CTLD de Moose avec Foothold par-dessus : prix et rangs sur le cargo, zones qui suivent le propriétaire, caisses de supply suivies physiquement, stocks d'armes déplacés entre **entrepôts** d'aérodromes, FARP construits par les joueurs (note 07).
 
-## 5. What VEAF already has
+L'état est sauvegardé toutes les 60 s dans des fichiers Lua sous `Saved Games\<instance>\Missions\Saves` (huit fichiers par carte, ère et mode — note 02 « Files written »), ce qui exige `io` et `lfs` dans `MissionScripting.lua`.
+Une victoire ou une défaite efface la sauvegarde et pose le flag 181, qu'un trigger de la mission transforme en `a_end_mission` ; le serveur recharge la mission (notes 01 §18, 02 « Campaign lifecycle »).
 
-Read from the modules' headers and by grep on `src/scripts/` (2026-11-15, `origin/develop` at `cfe3dcf8`); not a line-by-line read, except `veafCampaign.lua`'s function list.
+## 5. Ce que VEAF a déjà
 
-| VEAF brick | What it gives against Foothold |
+Lu dans les en-têtes des modules et par grep sur `src/scripts/` (2026-11-15, `origin/develop` à `cfe3dcf8`).
+Ce n'est pas une lecture ligne à ligne, sauf la liste des fonctions de `veafCampaign.lua`.
+
+| Brique VEAF | Ce qu'elle apporte face à Foothold |
 |---|---|
-| `veafCampaign.lua` (1 559 lines, `FEAT-MULTI-MISSION-CAMPAIGN`, 🧑 waiting for its in-game check) | zones by owner with a neutral state, garrisons drawn once with `veafCasMission`'s generators and recorded, losses by `S_EVENT_DEAD`, capture of a neutral zone by ground presence held for a time (including CTLD crates), airbase coalition switch, zones and connections on the F10 map, a situation radio menu, assault convoys by rule and on player order paid from a ground reserve, the state file written through `io`/`lfs`, destroyed scenery, SAM missiles left, work counters |
-| `veafCombatZone.lua` | editor-defined zones activated and deactivated on demand with their groups: the nearest thing to dormancy |
-| `veafQraCore.lua`, `veafAirWaves.lua`, `veafReactiveZone.lua`, `veafOpposition.lua` | reactive AI flights around a zone, waves, and an opposition level that follows the number of players |
-| `veafSkynetIadsHelper.lua` + Skynet-IADS | the integrated air defence, in place of MANTIS |
-| `veafGroundAI.lua` + vendored `AIEN.lua` | ground group orders and reactions to fire |
-| VEAF CTLD 2 (`src/scripts/community/CTLD.lua`) | troops, crates, FOB, with an `EventDispatcher` (`OnTroopsDeployed`, `OnCrateUnpacked`…); airfield logistic zones (`FEAT-CTLD-AIRBASE-LOGISTICS`, done); Fat Cow |
-| `community/CSAR.lua` | pilot rescue |
-| `veafCarrierOperations.lua`, `veafAssets.lua`, `veafMove.lua` | carrier operations by radio menu, tanker and AWACS information, tanker repositioning by marker |
-| `veafWeather.lua`, `veafAirbases.lua`, `veafAirfieldFrequencies.lua` | ATIS and METAR, runway data, airfield frequencies |
-| `veafSpawn*.lua`, `veafShortcuts.lua`, `veafSecurity.lua` | marker commands for a game master (spawn, destroy, smoke, flares, illumination) behind security tiers — Foothold's Zeus has no identity check |
-| `veafRadio.lua`, `veafScheduler.lua`, `veafEventHandler.lua`, `veafI18n.lua` | paginated F10 menus that survive DCS's id recycling, native-timer scheduling, one event dispatcher, a FR/EN catalogue |
-| `veafCombatLog.lua` | every shot, hit and kill with shooter and player: the raw material of a reward or statistics system |
+| `veafCampaign.lua` (1 559 lignes, `FEAT-MULTI-MISSION-CAMPAIGN`, 🧑 en attente de son contrôle en jeu) | zones par propriétaire avec un état neutre, garnisons tirées une fois avec les générateurs de `veafCasMission` et enregistrées, pertes par `S_EVENT_DEAD`, capture d'une zone neutre par une présence au sol tenue un certain temps (caisses CTLD comprises), bascule de coalition de l'aérodrome, zones et connexions sur la carte F10, menu radio de situation, convois d'assaut par règle et sur ordre des joueurs payés sur une réserve, fichier d'état écrit par `io`/`lfs`, décor détruit, missiles SAM restants, compteurs de travail |
+| `veafCombatZone.lua` | zones de l'éditeur activées et désactivées à la demande avec leurs groupes : ce qui ressemble le plus à la dormance |
+| `veafQraCore.lua`, `veafAirWaves.lua`, `veafReactiveZone.lua`, `veafOpposition.lua` | vols IA réactifs autour d'une zone, vagues, et un niveau d'opposition qui suit le nombre de joueurs |
+| `veafSkynetIadsHelper.lua` + Skynet-IADS | la défense aérienne intégrée, à la place de MANTIS |
+| `veafGroundAI.lua` + `AIEN.lua` embarqué | ordres aux groupes au sol et réactions au feu |
+| CTLD 2 de VEAF (`src/scripts/community/CTLD.lua`) | troupes, caisses, FOB, avec un `EventDispatcher` (`OnTroopsDeployed`, `OnCrateUnpacked`…) ; zones logistiques d'aérodrome (`FEAT-CTLD-AIRBASE-LOGISTICS`, fait) ; Fat Cow |
+| `community/CSAR.lua` | sauvetage des pilotes |
+| `veafCarrierOperations.lua`, `veafAssets.lua`, `veafMove.lua` | opérations porte-avions par menu radio, informations ravitailleurs et AWACS, repositionnement d'un ravitailleur par marqueur |
+| `veafWeather.lua`, `veafAirbases.lua`, `veafAirfieldFrequencies.lua` | ATIS et METAR, données de pistes, fréquences d'aérodromes |
+| `veafSpawn*.lua`, `veafShortcuts.lua`, `veafSecurity.lua` | commandes par marqueur pour un game master (spawn, destruction, fumigènes, flares, éclairage) derrière des niveaux de sécurité — le Zeus de Foothold n'a aucun contrôle d'identité |
+| `veafRadio.lua`, `veafScheduler.lua`, `veafEventHandler.lua`, `veafI18n.lua` | menus F10 paginés qui survivent au recyclage d'ids de DCS, planification sur le timer natif, un répartiteur d'événements, un catalogue FR/EN |
+| `veafCombatLog.lua` | chaque tir, impact et kill avec le tireur et son joueur : la matière première d'un système de récompenses ou de statistiques |
 
-Nothing in `src/scripts/veaf/` matches these words: `credit` as an economy, `shop`, a rank ladder, `splash`, `force_player_slot`, `dormant` (grep, 0 relevant hits).
+Rien dans `src/scripts/veaf/` ne correspond à ces mots : `credit` au sens d'une économie, `shop`, une échelle de rangs, `splash`, `force_player_slot`, `dormant` (grep, aucun résultat pertinent).
 
-## 6. Catalogue and synthesis table
+## 6. Catalogue et tableau de synthèse
 
-Effort is what it would take to reproduce the feature on VEAF bricks, without Moose: **low** (days, on an existing brick), **medium** (a ticket or two, new code on known ground), **high** (a lot of its own, or dependent on unknowns in DCS).
-"Ref" points to the note and section holding the mechanism.
+L'effort est ce qu'il faudrait pour reproduire la fonctionnalité sur les briques VEAF, sans Moose : **faible** (quelques jours, sur une brique existante), **moyen** (un ou deux tickets, du code neuf en terrain connu), **fort** (un lot à lui seul, ou dépendant d'inconnues dans DCS).
+« Réf. » renvoie à la note et à la section qui détaillent le mécanisme.
 
-### 6.1 Zones, capture and the map
+### 6.1 Zones, capture et carte
 
-| Feature | What the player sees | Mechanism | VEAF equivalent | Effort | Ref |
+| Fonctionnalité | Ce que voit le joueur | Mécanisme | Équivalent VEAF | Effort | Réf. |
 |---|---|---|---|---|---|
-| Zone model with neutral state | zones coloured red, blue, grey | object per zone bound to a same-named trigger zone; owner 0/1/2; airbase auto-capture switched off | `veafCampaign` zones, declared in `campaign.yaml` | done | 01 §1, §5 |
-| Random garrisons by size profile | a different defence each campaign | per-size counts by category (SAM, SHORAD, AAA, ground, armour, artillery) drawn from a template pool with a campaign seed | `veafCampaign.composeGarrison` over `veafCasMission` generators | done, by another route | 01 §2 |
-| Spawn sub-zones | groups spread inside a zone, SAMs on prepared spots | 717 hand-placed sub-zones (`<Zone>-n`, `-SAM-`, `-SHORAD-`), random valid point on land | `veaf.findSpawnPoint`, `veafCampaign.placeGarrisonGroup`: no hand-placed sub-zone | done, by another route | 01 §2 |
-| Loss detection | "zone lost a group" | **polled**: every built slot scanned every 10 to 60 s | `veafCampaign.onUnitDead` (event) | done | 01 §4 |
-| Upgrade and repair one slot per delivery | "zone upgraded 3/8", repaired groups reappear whole | `upgrade()` repairs the first damaged group by respawn, else spawns the next slot | reinforcement only between missions (campaign rules) | medium: a live reinforcement rule and its trigger | 01 §4 |
-| Combat effectiveness and surrender | weakened red zones change colour; the last weak units may surrender | states full / reduced / static from unit attributes; surrender roll 40 to 80 % by tier | none | low | 01 §4 |
-| Zone income | credits per tick | owner paid `income` at each zone update | none (no economy) | low once an economy exists | 01 §4 |
-| Disabled zones and critical objects | "zone destroyed", drawn black | zone deactivated for good when its critical statics are dead | destroyed scenery is recorded; no "destroyed zone" state | low | 01 §5 |
-| Capture channels | land a helicopter, drop troops or a crate, drive a convoy in | every channel calls `startPendingCapture` with a participant | `veafCampaign.holdsGround`: one detection for any ground presence | done | 01 §6 |
-| Pending capture | "Capturing X…", fill colour blending in 4 steps, enemy warned | 120 s timer tied to a living participant inside the zone; cancels if all are lost | hold time on a neutral zone exists | low: the colour blend and the warning | 01 §7 |
-| Advance capture | buy a supply that holds near a worn zone and captures when it falls | eligibility threshold on built ratio; held supply released on neutralisation | none | medium, needs AI supply sorties first | 01 §8 |
-| Zone dormancy | nothing visible; units appear as players approach | suspend destroys the garrison keeping per-slot survivors; resume respawns one group per 0.1 s then trims to the survivors; a dozen "hold" reasons | none; `veafCombatZone` activation is the closest | **high**: planned in ticket 02; the hold rules and loss-preserving respawn are the work | 01 §9 |
-| Connection graph | lines or arrows between zones | hand-declared undirected edges, derived "connected to blue" tables, a zone-distance matrix | `veafCampaign` connections and `neighbours` | done | 01 §10 |
-| Frontline computation | not drawn; drives CAP stations and AWACS | nearest-enemy segments and signed distance to front per zone | none | medium | 01 §11 |
-| Zone shapes and labels on F10 | coloured circle or quad, a text box per coalition with garrison state | fixed mark ids updated in place with `setMarkup*` | `veafCampaign` drawing | done; label content is low | 01 §12 |
-| Connection lines and supply arrows | coloured by ownership | `lineToAll` / `arrowToAll` between zone edges | `veafCampaign.drawConnections` | done | 01 §13 |
-| Territory overlay | Voronoi cells tinted by owner with frontier borders | plain-Lua geometry, incremental redraw, many map marks | none | medium | 01 §14 |
-| Hidden and pop-up zones, zone triggers | zones that appear during the campaign | name-based hidden flag; callbacks on captured / lost / destroyed | none | low | 01 §15 |
-| Zone status menu | per-zone list by side, status text with health and coordinates | per-group menu rebuilt through a queue | `veafCampaign.buildRadioMenu`, `situationText` | done | 01 §16 |
-| Win and lose | "Enemy has been defeated", restart | test on zone events; wipe the save; flag 181 → `a_end_mission` | none in `veafCampaign` (episodic campaign ends between missions) | low: ticket 05 | 01 §18 |
+| Modèle de zone avec état neutre | zones colorées rouge, bleu, gris | un objet par zone lié à la trigger zone du même nom ; propriétaire 0/1/2 ; capture automatique des aérodromes DCS coupée | zones de `veafCampaign`, déclarées dans `campaign.yaml` | fait | 01 §1, §5 |
+| Garnisons aléatoires par profil de taille | une défense différente à chaque campagne | effectifs par catégorie (SAM, SHORAD, AAA, sol, blindés, artillerie) tirés dans un pool de templates avec une graine de campagne | `veafCampaign.composeGarrison` sur les générateurs de `veafCasMission` | fait, par un autre chemin | 01 §2 |
+| Sous-zones de spawn | groupes répartis dans la zone, SAM sur des emplacements préparés | 717 sous-zones posées à la main (`<Zone>-n`, `-SAM-`, `-SHORAD-`), point valide au hasard sur la terre | `veaf.findSpawnPoint`, `veafCampaign.placeGarrisonGroup` : aucune sous-zone à poser | fait, par un autre chemin | 01 §2 |
+| Détection des pertes | « la zone a perdu un groupe » | **par scrutation** : chaque emplacement construit relu toutes les 10 à 60 s | `veafCampaign.onUnitDead` (événement) | fait | 01 §4 |
+| Amélioration et réparation, un emplacement par livraison | « zone améliorée 3/8 », les groupes réparés reviennent entiers | `upgrade()` répare le premier groupe abîmé par respawn, sinon fait apparaître l'emplacement suivant | renforts seulement entre deux missions (règles de campagne) | moyen : une règle de renfort en direct et son déclencheur | 01 §4 |
+| Efficacité au combat et reddition | les zones rouges affaiblies changent de couleur ; les dernières unités faibles peuvent se rendre | états plein / réduit / statique d'après les attributs des unités ; tirage de reddition de 40 à 80 % selon le palier | rien | faible | 01 §4 |
+| Revenu de zone | des crédits à chaque tick | le propriétaire touche `income` à chaque mise à jour de zone | rien (pas d'économie) | faible une fois qu'une économie existe | 01 §4 |
+| Zones désactivées et objets critiques | « zone détruite », dessinée en noir | zone désactivée pour de bon quand ses statics critiques sont morts | le décor détruit est enregistré ; pas d'état « zone détruite » | faible | 01 §5 |
+| Canaux de capture | poser un hélicoptère, larguer des troupes ou une caisse, amener un convoi | chaque canal appelle `startPendingCapture` avec un participant | `veafCampaign.holdsGround` : une seule détection pour toute présence au sol | fait | 01 §6 |
+| Capture temporisée | « Capture de X… », remplissage qui vire à la couleur en 4 paliers, ennemi prévenu | timer de 120 s lié à un participant vivant dans la zone ; annulée si tous sont perdus | la durée de tenue d'une zone neutre existe | faible : le dégradé de couleur et l'avertissement | 01 §7 |
+| Advance capture | acheter un supply qui attend près d'une zone usée et la capture dès qu'elle tombe | seuil d'éligibilité sur le ratio construit ; supply retenu puis relâché à la neutralisation | rien | moyen, après les sorties de supply IA | 01 §8 |
+| Dormance des zones | rien de visible ; les unités apparaissent quand les joueurs approchent | la suspension détruit la garnison en gardant les survivants par emplacement ; le réveil respawne un groupe toutes les 0,1 s puis réduit aux survivants ; une douzaine de raisons de rester éveillée | rien ; l'activation de `veafCombatZone` s'en approche | **fort** : prévu au ticket 02 ; le travail est dans les règles de maintien et le respawn qui préserve les pertes | 01 §9 |
+| Graphe de connexions | lignes ou flèches entre zones | arêtes non orientées déclarées à la main, tables dérivées « reliée au bleu », matrice des distances entre zones | connexions et `neighbours` de `veafCampaign` | fait | 01 §10 |
+| Calcul du front | non dessiné ; pilote les stations de CAP et l'AWACS | segments vers l'ennemi le plus proche et distance signée au front par zone | rien | moyen | 01 §11 |
+| Formes et étiquettes de zone sur la carte | cercle ou quadrilatère coloré, une étiquette par coalition avec l'état de la garnison | ids de marques fixes mis à jour en place par `setMarkup*` | dessin de `veafCampaign` | fait ; le contenu de l'étiquette est faible | 01 §12 |
+| Lignes de connexion et flèches de supply | colorées selon le propriétaire | `lineToAll` / `arrowToAll` entre les bords des zones | `veafCampaign.drawConnections` | fait | 01 §13 |
+| Territoires colorés | cellules de Voronoï teintées par propriétaire, avec les frontières | géométrie en Lua pur, redessin incrémental, beaucoup de marques | rien | moyen | 01 §14 |
+| Zones cachées, zones qui apparaissent, triggers de zone | des zones qui surgissent en cours de campagne | drapeau « caché » porté par le nom ; fonctions appelées sur capture / perte / destruction | rien | faible | 01 §15 |
+| Menu d'état des zones | liste des zones par camp, texte d'état avec santé et coordonnées | menu par groupe reconstruit via une file | `veafCampaign.buildRadioMenu`, `situationText` | fait | 01 §16 |
+| Victoire et défaite | « L'ennemi est vaincu », redémarrage | test sur les événements de zone ; sauvegarde effacée ; flag 181 → `a_end_mission` | rien dans `veafCampaign` (la campagne par épisodes se termine entre deux missions) | faible : ticket 05 | 01 §18 |
 
-### 6.2 Persistence, lifecycle and plumbing
+### 6.2 Persistance, cycle de vie et plomberie
 
-| Feature | What the player sees | Mechanism | VEAF equivalent | Effort | Ref |
+| Fonctionnalité | Ce que voit le joueur | Mécanisme | Équivalent VEAF | Effort | Réf. |
 |---|---|---|---|---|---|
-| Campaign save | progress survives a restart | Lua table serialised to a file every 60 s; zones, garrison survivors, credits, shop stock, live AI groups, Director memory | `veafCampaign.writeState` (zones, garrisons, losses, stocks, scenery) | low: cadence and the extra fields | 02 "Campaign save" |
-| Staged autosave | no stutter at save time | 8 zones per 0.1 s collected, then serialised in a coroutine | single write | low | 02 "Staged autosave" |
-| Restore of live AI flights and convoys | flights reappear in the air after a restart | saved position and state per live group, re-spawned in the air | none | medium, with AI sorties | 02 "Campaign load", 03 §16 |
-| Warehouse persistence | weapon stocks survive | CSV, one airbase per second | `veafCampaign` records stocks | low | 02 "Warehouse persistence" |
-| Player file | credits, rank, career and language follow the player across maps | keyed by UCID on disk, by name at run time | none | medium: the first per-player persistent data in VEAF | 02 "Rank and player-statistics file" |
-| Reset and restart | admin "end mission and reset" | empty save written, flag 181, the server reloads | none | low | 02 "Campaign lifecycle" |
-| Era and PvE/PvP switches | Modern, Cold War, Vietnam; PvP variants | two Config globals select template sets and the save name | `mission.era` filters at build; build variants | low for era; PvP is a design of its own | 02 "Era and mode switches" |
-| Slot control | slots only where your side holds the base | airbase coalition; a user flag per client group; rejection at `S_EVENT_BIRTH` by `net.force_player_slot` | `veafCampaign.setAirbaseCoalition`; no rejection at birth | low | 02 "Player spawn handling" |
-| Friendly fire | message and rank penalty | on `S_EVENT_KILL` between friends | none | low | 02 "Friendly fire" |
-| Marker commands for admins | none for players | plain words typed in a marker, no admin list, aliases configurable | `veafSecurity` tiers, `veafRemote` | done, and stricter | 02 "Admin and player map-marker commands" |
-| Main loops, queues, watchdog | an on-screen "engine crash" warning if the loop dies | 10 s wave at 0.1 s per zone; evaluation queue with a budget; watchdog on the last completed update | `veafScheduler`; `veafCampaign.beat` | low: the patterns are known | 02 "Engine main loops" |
-| F10 menu queues | menus refresh without a hitch | per-group handles, debounced refresh, one group per tick, "unchanged" check | `veafRadio` | done for the tree; per-group budgets are low | 02 "F10 radio menu management" |
-| Localisation | each player picks one of 10 languages | key lookup with EN fallback, scopes server / player / group | `veafI18n` (FR, EN, one language per mission) | medium for per-player language | 02 "Message output and localisation" |
+| Sauvegarde de campagne | la progression survit à un redémarrage | table Lua sérialisée dans un fichier toutes les 60 s ; zones, survivants des garnisons, crédits, stock de la boutique, groupes IA vivants, mémoire du Director | `veafCampaign.writeState` (zones, garnisons, pertes, stocks, décor) | faible : la cadence et les champs en plus | 02 « Campaign save » |
+| Sauvegarde étalée | pas de saccade à la sauvegarde | 8 zones collectées toutes les 0,1 s, puis sérialisation dans une coroutine | écriture en une fois | faible | 02 « Staged autosave » |
+| Restauration des vols et convois IA vivants | les vols réapparaissent en l'air après un redémarrage | position et état sauvegardés par groupe vivant, respawn en vol | rien | moyen, avec les sorties IA | 02 « Campaign load », 03 §16 |
+| Persistance des entrepôts | les stocks d'armes survivent | CSV, un aérodrome par seconde | `veafCampaign` enregistre les stocks | faible | 02 « Warehouse persistence » |
+| Fichier des joueurs | crédits, rang, carrière et langue suivent le joueur d'une carte à l'autre | indexé par UCID sur disque, par nom en jeu | rien | moyen : la première donnée persistante par joueur chez VEAF | 02 « Rank and player-statistics file » |
+| Reset et redémarrage | commande admin « fin de mission et reset » | sauvegarde vide écrite, flag 181, le serveur recharge | rien | faible | 02 « Campaign lifecycle » |
+| Ères et PvE/PvP | Modern, Cold War, Vietnam ; variantes PvP | deux globales de config choisissent les jeux de templates et le nom de sauvegarde | `mission.era` filtre au build ; variantes de build | faible pour l'ère ; le PvP est une conception à part | 02 « Era and mode switches » |
+| Contrôle des slots | des slots seulement là où son camp tient la base | coalition de l'aérodrome ; un user flag par groupe client ; rejet au `S_EVENT_BIRTH` par `net.force_player_slot` | `veafCampaign.setAirbaseCoalition` ; pas de rejet à la naissance | faible | 02 « Player spawn handling » |
+| Tir fratricide | message et pénalité de rang | sur `S_EVENT_KILL` entre amis | rien | faible | 02 « Friendly fire » |
+| Commandes admin par marqueur | rien pour les joueurs | des mots tapés dans un marqueur, sans liste d'admins, alias configurables | niveaux de `veafSecurity`, `veafRemote` | fait, et plus strict | 02 « Admin and player map-marker commands » |
+| Boucles principales, files, chien de garde | un avertissement à l'écran si la boucle meurt | vague de 10 s à 0,1 s par zone ; file d'évaluation avec budget ; chien de garde sur la dernière mise à jour terminée | `veafScheduler` ; `veafCampaign.beat` | faible : les schémas sont connus | 02 « Engine main loops » |
+| Files de menus F10 | les menus se rafraîchissent sans à-coup | poignées par groupe, rafraîchissement différé, un groupe par tick, test « inchangé » | `veafRadio` | fait pour l'arbre ; les budgets par groupe sont faibles | 02 « F10 radio menu management » |
+| Langues | chaque joueur choisit parmi 10 langues | recherche par clé avec repli sur l'anglais ; portées serveur / joueur / groupe | `veafI18n` (FR, EN, une langue par mission) | moyen pour une langue par joueur | 02 « Message output and localisation » |
 
-### 6.3 AI groups and sorties
+### 6.3 Groupes et sorties IA
 
-| Feature | What the player sees | Mechanism | VEAF equivalent | Effort | Ref |
+| Fonctionnalité | Ce que voit le joueur | Mécanisme | Équivalent VEAF | Effort | Réf. |
 |---|---|---|---|---|---|
-| Air sortie state machine | AI flights start from parking, fly, land, despawn | polled FSM per sortie; parking spawn; raw DCS tasks | `veafQraCore` / `veafAirWaves` state machines for defensive flights; no generic sortie | **high**: ticket 04 | 03 §2 |
-| Parking-spot spawn | aircraft appear on stands | Moose `SPAWN` + `AIRBASE` free-spot tables write `parking` / `parking_id` per unit | `veafSpawnAircraft`, `veafAircraftSpawn` spawn aircraft; parking data per terrain exists in the tools | medium | 03 §16 |
-| Spawn eligibility and role caps | fewer enemy flights with fewer players | one gate; caps on CAP, CAS, SEAD, runway by player count and difficulty | `veafOpposition` level | medium | 03 §3 |
-| CAP behaviour | patrols that engage, go home winchester | racetrack with engage-en-route, RTB rules, SAM avoidance | QRA and air waves | medium | 03 §4 |
-| Strike tasking (CAS, SEAD, runway, anti-ship) | enemy strikes on blue zones | raw task tables per role | `veafCombatMission` spawns enemy flights; no zone-targeted strike | medium each | 03 §5 |
-| Surface sorties | convoys on roads, artillery, ships | road routes between zones, arrival → capture or delivery | `veafCampaign.sendConvoy`, `absorbConvoy` | done for assault convoys; supply convoys low | 03 §6 |
-| AI supply helicopters | helicopters landing in zones, some with a sling load | landing spots (109 zones on Caucasus), stall recovery | none; two DCS traps on scripted helicopter landings are recorded in `dcs-runtime-traps.md` | **high**: landing a scripted helicopter on a point is not reliable in DCS | 03 §9 |
-| Garrison roaming and AIEN | ground groups patrol, dismount, react to fire | name-prefix roaming between sub-zones; AIEN reactions | `veafGroundAI`, vendored AIEN | low | 03 §10 |
-| Air defence network | SAMs that switch on and off, SAMs hidden on the MFD until seen | MANTIS per side; hide/reveal flag; night reaction time, low-level radar blur | Skynet through `veafSkynetIadsHelper` | low for the network; the night and reveal rules are low to medium | 03 §11 |
-| Strategic bomber and interceptors | a bomber raid with escort; interceptors rolled against it | air-spawned raid, monitor, menus | none | medium | 03 §12 |
-| Hunter | two fighters sent after a player on a kill streak | Moose OPS intercept | QRA scaling is the nearest | low to medium | 03 §8, 06 §17 |
-| Throttles and cleanup | — | staggered updates, dormant FSM, spawn queue, wreck cleanup | caps planned in the PRD | medium | 03 §15 |
+| Machine à états des sorties aériennes | des vols IA qui partent du parking, volent, se posent, disparaissent | une machine à états scrutée par sortie ; spawn au parking ; tâches DCS brutes | les machines à états de `veafQraCore` / `veafAirWaves` pour les vols défensifs ; pas de sortie générique | **fort** : ticket 04 | 03 §2 |
+| Spawn au parking | les avions apparaissent sur les stands | `SPAWN` et `AIRBASE` de Moose cherchent les places libres et écrivent `parking` par unité | `veafSpawnAircraft`, `veafAircraftSpawn` font apparaître des avions ; les données de parking par terrain existent côté outils | moyen | 03 §16 |
+| Conditions de spawn et plafonds par rôle | moins de vols ennemis quand il y a moins de joueurs | un seul verrou ; plafonds CAP, CAS, SEAD, piste selon le nombre de joueurs et la difficulté | le niveau de `veafOpposition` | moyen | 03 §3 |
+| Comportement des CAP | des patrouilles qui engagent, rentrent à court de munitions | hippodrome avec engagement en route, règles de retour, évitement des SAM | QRA et vagues | moyen | 03 §4 |
+| Frappes (CAS, SEAD, piste, anti-navire) | des frappes ennemies sur les zones bleues | tables de tâches brutes par rôle | `veafCombatMission` fait apparaître des vols ennemis ; pas de frappe ciblée sur une zone | moyen pour chacune | 03 §5 |
+| Sorties de surface | convois sur route, artillerie, navires | routes entre zones, arrivée → capture ou livraison | `veafCampaign.sendConvoy`, `absorbConvoy` | fait pour les convois d'assaut ; convois de supply faible | 03 §6 |
+| Hélicoptères de supply IA | des hélicoptères qui se posent dans les zones, certains sous élingue | points de poser (109 zones sur le Caucase), récupération quand l'hélicoptère cale | rien ; deux pièges DCS sur le poser d'un hélicoptère scripté sont consignés dans `dcs-runtime-traps.md` | **fort** : poser un hélicoptère scripté sur un point n'est pas fiable dans DCS | 03 §9 |
+| Patrouilles de garnison et AIEN | les groupes au sol patrouillent, débarquent, réagissent au feu | déplacement entre sous-zones d'après un préfixe de nom ; réactions AIEN | `veafGroundAI`, AIEN embarqué | faible | 03 §10 |
+| Réseau de défense aérienne | des SAM qui s'allument et s'éteignent, cachés sur le MFD tant qu'ils n'ont pas été vus | un MANTIS par camp ; drapeau caché/révélé ; délai de réaction de nuit, flou radar à basse altitude | Skynet via `veafSkynetIadsHelper` | faible pour le réseau ; les règles de nuit et de révélation sont faibles à moyennes | 03 §11 |
+| Bombardier stratégique et intercepteurs | un raid de bombardiers escorté ; des intercepteurs tirés contre lui | raid apparu en vol, surveillance, menus | rien | moyen | 03 §12 |
+| Hunter | deux chasseurs envoyés après un joueur en série de kills | interception par Moose OPS | l'échelle des QRA s'en approche | faible à moyen | 03 §8, 06 §17 |
+| Limiteurs et nettoyage | — | mises à jour étalées, machine à états en sommeil, file de spawn, nettoyage des épaves | plafonds prévus au PRD | moyen | 03 §15 |
 
-### 6.4 The Director
+### 6.4 Le Director
 
-| Feature | What the player sees | Mechanism | VEAF equivalent | Effort | Ref |
+| Fonctionnalité | Ce que voit le joueur | Mécanisme | Équivalent VEAF | Effort | Réf. |
 |---|---|---|---|---|---|
-| Capability catalogue | — | passive records: origin, target, role, templates, condition | "sorties derived from the graph" (PRD) | medium | 04 §2 |
-| Planning cycle and operations | attacks that come as packages, with pauses | 30 s tick; states waiting / recovery / shaping / assault / exploit / surge | none; in `FEAT-MULTI-MISSION-CAMPAIGN` Claude plays the enemy between missions | **high** | 04 §3 |
-| Target scoring | the enemy goes for weak or valuable zones | additive score, weighted-random pick | `veafCampaign.planAssaults` (rule: every neutral neighbour) | medium for a simple score | 04 §4 |
-| Campaign objective | a consistent enemy push across a region | named strategy, areas declared per map, "strategic shadow" | none | high | 04 §5 |
-| Package formation, feint, reserve | CAP + SEAD + strikers arriving together | doctrine → weighted role draw; conditional reserve | none | high | 04 §6 |
-| Phases, gates, reassessment, learning | SEAD before CAS; attacks called off when they fail | phase machine, 90 s reassessment, decayed outcome counters saved as remaining time | none | high | 04 §8 |
-| Routine CAP slots and scramble | enemy CAP where players fly | slot abstraction keeps the count stable | QRA, air waves | medium | 04 §9 |
-| Ground release | a convoy or artillery group every so often | probabilistic release every 90 s under player-scaled limits | `veafCampaign.launchDueAssaults` | low | 04 §10 |
-| Reactions to captures | CAS diverted onto a zone blue just took | reaction operations on capture and pressure | counter-attack convoy after a delay | medium | 04 §12 |
-| Difficulty and player scaling | harder with more players, eases after losses | stage tables and difficulty profiles feed every limit | `veafOpposition` | low to medium | 04 §15 |
-| Random events | a strike mission, a special event every 15 to 25 min | `EventCommander`; 17 events on Caucasus | none | low per event, content is the cost | 04 §16 |
-| Blue AI in PvE | AI blue flights supporting the players' attack | support of the players' mission, not a plan | none | medium | 04 §14 |
+| Catalogue de capacités | — | enregistrements passifs : origine, cible, rôle, templates, condition | les « sorties dérivées du graphe » du PRD | moyen | 04 §2 |
+| Cycle de planification et opérations | des attaques qui arrivent en packages, avec des pauses | tick de 30 s ; états attente / récupération / préparation / assaut / exploitation / poussée | rien ; dans `FEAT-MULTI-MISSION-CAMPAIGN` c'est Claude qui joue l'ennemi entre deux missions | **fort** | 04 §3 |
+| Choix de cible | l'ennemi vise les zones faibles ou précieuses | score additif, tirage pondéré | `veafCampaign.planAssaults` (règle : tout voisin neutre) | moyen pour un score simple | 04 §4 |
+| Objectif de campagne | une poussée ennemie cohérente dans une région | stratégie nommée, régions déclarées par carte, objectifs classés | rien | fort | 04 §5 |
+| Composition du package, feinte, réserve | CAP + SEAD + frappe qui arrivent ensemble | doctrine → tirage pondéré des rôles ; réserve conditionnelle | rien | fort | 04 §6 |
+| Phases, verrous, réévaluation, apprentissage | la SEAD avant le CAS ; des attaques annulées quand elles échouent | machine à phases, réévaluation toutes les 90 s, compteurs de résultats dégressifs sauvegardés en temps restant | rien | fort | 04 §8 |
+| Slots de CAP de routine et décollage sur alerte | des CAP ennemies là où volent les joueurs | la notion de slot garde le nombre de CAP stable | QRA, vagues | moyen | 04 §9 |
+| Sortie des forces au sol | un convoi ou un groupe d'artillerie de temps en temps | tirage toutes les 90 s sous des limites liées au nombre de joueurs | `veafCampaign.launchDueAssaults` | faible | 04 §10 |
+| Réactions aux captures | du CAS détourné sur une zone que le bleu vient de prendre | opérations de réaction sur capture et sur pression | convoi de contre-attaque après un délai | moyen | 04 §12 |
+| Difficulté et nombre de joueurs | plus dur à plusieurs, plus doux après des pertes | tables de paliers et profils de difficulté qui nourrissent toutes les limites | `veafOpposition` | faible à moyen | 04 §15 |
+| Événements aléatoires | une mission de frappe, un événement spécial toutes les 15 à 25 min | `EventCommander` ; 17 événements sur le Caucase | rien | faible par événement ; le coût est dans le contenu | 04 §16 |
+| IA bleue en PvE | des vols IA bleus en soutien de l'attaque des joueurs | soutien de la mission des joueurs, pas un plan | rien | moyen | 04 §14 |
 
-`BudgetCommander` is dead code in 6.5.3 (note 04 §13).
+`BudgetCommander` est du code mort en 6.5.3 (note 04 §13).
 
-### 6.5 Economy, shop, ranks, missions
+### 6.5 Économie, boutique, rangs, missions
 
-| Feature | What the player sees | Mechanism | VEAF equivalent | Effort | Ref |
+| Fonctionnalité | Ce que voit le joueur | Mécanisme | Équivalent VEAF | Effort | Réf. |
 |---|---|---|---|---|---|
-| Coalition credits | a shared balance | one account per side | the ground reserve of `veafCampaign` is a budget in units, not credits | low | 05 §1 |
-| Personal credits banked on landing | "+50 credits (unclaimed)", cashed when landing in a friendly zone, lost on death | `S_EVENT_KILL` attribution, target class from DCS attributes, landing test 5 s later | `veafCombatLog` records the same events | medium | 05 §3 |
-| Flight-time, turnaround, night, refuelling rewards | small bonuses | timers on takeoff and landing; refuelling events | none | low each | 05 §3 |
-| Shop | F10 menu by category with zone pickers; `buy:<id>` markers | item registry, per-side shelves with stock and rank, deferred payment | none | medium for the mechanism; each item is its own effect | 05 §2, §4 |
-| Shop catalogue | 45 item ids on Caucasus | each item calls an engine function | partial: several effects exist as VEAF commands (smoke, illumination, spawn of CAP or JTAC by marker) | per item, low to high | 05 §5 |
-| CAP auto-buy | a destroyed CAP is replaced, paid automatically | authorisation count per purchase | none | low once CAP purchase exists | 05 §6 |
-| Ranks | 20 ranks, gating items | thresholds on rank credits, saved per UCID | none | medium, with the player file | 05 §7 |
-| Statistics and leaderboards | top lists, per-sortie recap | counters per sortie, session, lifetime | `veafCombatLog` + `veaf-tools mission combat-log` (after the flight) | low for an in-game recap | 05 §8 |
-| Career and achievements | lifetime counters with paid milestones | per player and per aircraft | none | medium | 05 §9 |
-| Joint missions | parties of up to 4 sharing rewards | invitation and reward split | none | medium | 05 §10 |
-| Player missions | a list of available missions with rewards, map marks | polled closures `isActive` / `isCompleted`, 44 tracked on Caucasus | `veafCombatMission`, `veafCombatZone`, `veafCasMission`: on-demand missions without rewards | medium for a task board on existing missions | 05 §11 |
+| Crédits de coalition | un solde commun | un compte par camp | la réserve au sol de `veafCampaign` est un budget en unités, pas en crédits | faible | 05 §1 |
+| Crédits personnels encaissés à l'atterrissage | « +50 crédits (non encaissés) », touchés en se posant dans une zone amie, perdus à la mort | attribution sur `S_EVENT_KILL`, classe de cible d'après les attributs DCS, test d'atterrissage 5 s après | `veafCombatLog` enregistre les mêmes événements | moyen | 05 §3 |
+| Primes de temps de vol, de rotation, de nuit, de ravitaillement | de petits bonus | timers sur décollage et atterrissage ; événements de ravitaillement | rien | faible pour chacune | 05 §3 |
+| Boutique | menu F10 par catégorie avec choix de zone ; marqueurs `buy:<id>` | registre d'articles, étagères par camp avec stock et rang, paiement différé | rien | moyen pour le mécanisme ; chaque article est un effet à part | 05 §2, §4 |
+| Catalogue de la boutique | 45 articles sur le Caucase | chaque article appelle une fonction du moteur | partiel : plusieurs effets existent en commandes VEAF (fumigènes, éclairage, spawn de CAP ou de JTAC par marqueur) | par article, de faible à fort | 05 §5 |
+| Rachat automatique de CAP | une CAP détruite est remplacée et payée toute seule | nombre de remplacements autorisés à l'achat | rien | faible une fois l'achat de CAP en place | 05 §6 |
+| Rangs | 20 rangs qui conditionnent les articles | seuils sur les crédits de rang, sauvegardés par UCID | rien | moyen, avec le fichier des joueurs | 05 §7 |
+| Statistiques et classements | des classements, un bilan par vol | compteurs par vol, par session, à vie | `veafCombatLog` + `veaf-tools mission combat-log` (après le vol) | faible pour un bilan en jeu | 05 §8 |
+| Carrière et hauts faits | compteurs à vie avec paliers payés | par joueur et par appareil | rien | moyen | 05 §9 |
+| Missions conjointes | des équipes de 4 au plus qui partagent les récompenses | invitation et partage | rien | moyen | 05 §10 |
+| Missions joueurs | une liste de missions disponibles avec récompense, marques sur la carte | fonctions `isActive` / `isCompleted` scrutées ; 44 missions suivies sur le Caucase | `veafCombatMission`, `veafCombatZone`, `veafCasMission` : missions à la demande, sans récompense | moyen pour un tableau des tâches sur les missions existantes | 05 §11 |
 
-### 6.6 Player support tools
+### 6.6 Outils de soutien aux joueurs
 
-| Feature | What the player sees | Mechanism | VEAF equivalent | Effort | Ref |
+| Fonctionnalité | Ce que voit le joueur | Mécanisme | Équivalent VEAF | Effort | Réf. |
 |---|---|---|---|---|---|
-| JTAC drone | a drone lasing targets of a zone, menu for code, priority, smoke | `Spot.createLaser`, 0.5 s update, target list from the zone's spawned groups | `_spawn jtac` and CTLD JTAC (estimation: not compared feature by feature) | low | 06 §1 |
-| 9-line JTAC | talk to a FAC on the radio | native DCS `FAC` task | `veafSpawn` JTAC with frequency | done or low | 06 §2 |
-| Player laser designator | scout aircraft lase what is in front of them | cone search by `world.searchObjects`, 10 Hz spot update per player | none | medium | 06 §3 |
-| CSAR and enemy pilots | downed pilots with beacon and marker; capture enemy pilots | Foothold's own code inside `LogisticCommander`, **not** Moose CSAR | `community/CSAR.lua` | low to wire rewards; enemy-pilot capture medium | 06 §4 |
-| Zone intel | a purchased 60-min report and markers per group | reads the zone's own spawn list ("omniscient"), snapshot and diff | `FEAT-CAMPAIGN-INTEL-DELAY` (briefing side) | medium | 06 §5 |
-| Tankers and AWACS on demand | spawn a tanker, move its racetrack by menu or two markers | air spawn, TACAN, racetrack task | `veafMove` tanker flight plan by marker, `veafAssets` | low | 06 §6–7 |
-| AWACS following the front | AWACS station moves after each capture | station computed from the frontline | none | low once a frontline exists | 06 §7 |
-| CAP control | move a purchased CAP with `caphere1` / `caphere2` | marker pair → racetrack | none for purchased flights | low | 06 §8 |
-| Carrier control | "sail to area" menu; Tarawa by marker; wind over deck | looped waypoint route, speed recalculated for wind, `ASTAR` sea routing | `veafCarrierOperations` | low: sailing to a named area | 06 §10 |
-| Callsigns, IFF, ATIS, closest airfield | a callsign and IFF code at spawn; ATIS on request | allocation keyed on group-name patterns; runway in use from wind | `veafWeather` ATIS, `veafAirbases`; no callsign allocation | low | 06 §11 |
-| Escort for players | a free two-ship escort with altitude and orbit commands | native `Escort` task, generation counters | `FEAT-AWACS-ESCORT-COMMANDS` lot (status not read) | medium | 06 §12 |
-| EWRS | BRA picture and bogey dope, per-player settings | `getDetectedTargets(RADAR)` on friendly radars | none | medium | 06 §13 |
-| Zeus | `-create`, `-destroy`, `-explode`, `-smoke`, `-illuminate` markers | no identity check | `veafSpawn`, `veafShortcuts` behind `veafSecurity` | done | 06 §14 |
-| Smoke, flare, illumination on targets | purchased marking of 3 targets | raw `trigger.action` calls | `veafCombatZone` and `veafSpawnEffects` | done | 06 §15 |
-| Splash damage | area kills credited to the player | third-party script, tuned | none | medium to vendor and maintain; a design choice | 06 §18 |
+| Drone JTAC | un drone qui illumine au laser les cibles d'une zone, menu pour le code, la priorité, la fumée | `Spot.createLaser`, mise à jour toutes les 0,5 s, liste de cibles tirée des groupes spawnés de la zone | `_spawn jtac` et le JTAC de CTLD (estimation : non comparés point par point) | faible | 06 §1 |
+| JTAC 9-line | parler à un FAC à la radio | tâche DCS native `FAC` | JTAC de `veafSpawn` avec fréquence | fait ou faible | 06 §2 |
+| Désignateur laser du joueur | un appareil éclaireur illumine ce qu'il a devant lui | recherche en cône par `world.searchObjects`, mise à jour du spot à 10 Hz par joueur | rien | moyen | 06 §3 |
+| CSAR et pilotes ennemis | pilotes abattus avec balise et marqueur ; capture de pilotes ennemis | code propre à Foothold dans `LogisticCommander`, **pas** le CSAR de Moose | `community/CSAR.lua` | faible pour brancher des récompenses ; moyen pour la capture de pilotes ennemis | 06 §4 |
+| Intel de zone | un rapport acheté pour 60 min et des marqueurs par groupe | lit la liste de spawn de la zone (« omniscient »), instantané puis différences | `FEAT-CAMPAIGN-INTEL-DELAY` (côté briefing) | moyen | 06 §5 |
+| Ravitailleurs et AWACS à la demande | faire venir un ravitailleur, déplacer son hippodrome par menu ou par deux marqueurs | spawn en vol, TACAN, tâche d'hippodrome | plan de vol ravitailleur par marqueur de `veafMove`, `veafAssets` | faible | 06 §6–7 |
+| AWACS qui suit le front | la station de l'AWACS bouge après chaque capture | station calculée d'après le front | rien | faible une fois qu'un front existe | 06 §7 |
+| Contrôle des CAP | déplacer une CAP achetée avec `caphere1` / `caphere2` | paire de marqueurs → hippodrome | rien pour des vols achetés | faible | 06 §8 |
+| Contrôle du porte-avions | menu « naviguer vers la zone » ; Tarawa par marqueur ; vent sur le pont | route en boucle, vitesse recalculée pour le vent, routage maritime `ASTAR` | `veafCarrierOperations` | faible : aller vers une zone nommée | 06 §10 |
+| Callsigns, IFF, ATIS, aérodrome le plus proche | un callsign et un code IFF au spawn ; ATIS à la demande | attribution d'après le nom du groupe ; piste en service d'après le vent | ATIS de `veafWeather`, `veafAirbases` ; pas d'attribution de callsign | faible | 06 §11 |
+| Escorte pour les joueurs | une escorte gratuite de deux avions avec choix d'altitude et ordres d'orbite | tâche native `Escort`, compteurs de génération | lot `FEAT-AWACS-ESCORT-COMMANDS` (🧑 en attente de son contrôle en jeu) | faible à moyen | 06 §12 |
+| EWRS | image BRA et bogey dope, réglages par joueur | `getDetectedTargets(RADAR)` sur les radars amis | rien | moyen | 06 §13 |
+| Zeus | marqueurs `-create`, `-destroy`, `-explode`, `-smoke`, `-illuminate` | aucun contrôle d'identité | `veafSpawn`, `veafShortcuts` derrière `veafSecurity` | fait | 06 §14 |
+| Fumée, flares, éclairage sur des cibles | marquage acheté de 3 cibles | appels `trigger.action` bruts | `veafCombatZone` et `veafSpawnEffects` | fait | 06 §15 |
+| Splash damage | les kills de zone crédités au joueur | script tiers, réglé | rien | moyen à embarquer et à maintenir ; un choix de conception | 06 §18 |
 
-### 6.7 CTLD and warehouses
+### 6.7 CTLD et entrepôts
 
-| Feature | What the player sees | Mechanism | VEAF equivalent | Effort | Ref |
+| Fonctionnalité | Ce que voit le joueur | Mécanisme | Équivalent VEAF | Effort | Réf. |
 |---|---|---|---|---|---|
-| Cargo catalogue with prices and ranks | CTLD items cost credits and need a rank | veto hooks before load and build | CTLD 2 catalogue, no price | low once credits exist | 07 §2–3 |
-| Zones following ownership | pickup zones appear at captured bases | zones activated and deactivated on capture | `FEAT-CTLD-AIRBASE-LOGISTICS` (airfield logistic zones follow the owner) | done | 07 §4 |
-| Troops capture or reinforce | drop troops to capture a neutral zone | CTLD event → pending capture | CTLD 2 `OnTroopsDeployed` → `veafCampaign.holdsGround` | done | 07 §7 |
-| Zone supplies | carry physical supply crates to upgrade a zone | crates tracked from pickup to delivery every 3 to 6 s | crate presence captures; no "supply upgrades a zone" | medium | 07 §8 |
-| Warehouse logistics | finite weapon stocks per airbase, moved by players | DCS warehouse API through Moose `STORAGE`; refills; location policy | `veafCampaign` stocks; `veafQraLogistics` | medium | 07 §9, §17 |
-| Player-built FARPs | build a FARP with a warehouse from a kit | invisible FARP static plus functional statics | Fat Cow and `add_farp` (tools); `veafGrass` FARP props | medium | 07 §14 |
-| C-130J load, air-drop, auto-build | drop crates that build themselves | dynamic cargo events, hidden helper | Hercules script was withdrawn in 6.18.0; CTLD 2 support not checked (estimation) | medium | 07 §13 |
-| SAM built in parts | add launchers to an existing site | merge of groups near a site | none | medium | 07 §11 |
-| Spy and demolition teams | AI teams giving intel or blowing up structures | routed infantry with timers | none | medium | 07 §10 |
-| Persistence of built units | built units and FARPs survive a restart | Moose CSV plus Foothold CSV | not checked in CTLD 2 (estimation) | medium | 07 §16 |
+| Catalogue de cargo avec prix et rangs | les articles CTLD coûtent des crédits et exigent un rang | veto avant le chargement et la construction | catalogue de CTLD 2, sans prix | faible une fois les crédits en place | 07 §2–3 |
+| Zones qui suivent le propriétaire | des zones de chargement apparaissent sur les bases capturées | zones activées et désactivées à la capture | `FEAT-CTLD-AIRBASE-LOGISTICS` (les zones logistiques d'aérodrome suivent le propriétaire) | fait | 07 §4 |
+| Troupes qui capturent ou renforcent | larguer des troupes pour capturer une zone neutre | événement CTLD → capture temporisée | `OnTroopsDeployed` de CTLD 2 → `veafCampaign.holdsGround` | fait | 07 §7 |
+| Supplies de zone | porter des caisses physiques pour améliorer une zone | caisses suivies du chargement à la livraison toutes les 3 à 6 s | une caisse présente capture ; pas de « le supply améliore la zone » | moyen | 07 §8 |
+| Logistique d'entrepôts | des stocks d'armes finis par aérodrome, déplacés par les joueurs | API d'entrepôt DCS via `STORAGE` de Moose ; réassorts ; règles de localisation | stocks de `veafCampaign` ; `veafQraLogistics` | moyen | 07 §9, §17 |
+| FARP construits par les joueurs | construire un FARP avec entrepôt à partir d'un kit | static FARP invisible et statics fonctionnels | Fat Cow et `add_farp` (outils) ; décors de FARP de `veafGrass` | moyen | 07 §14 |
+| C-130J : chargement, largage, construction automatique | larguer des caisses qui se montent toutes seules | événements de cargo dynamique, soldat auxiliaire caché | le script Hercules a été retiré en 6.18.0 ; prise en charge par CTLD 2 non vérifiée (estimation) | moyen | 07 §13 |
+| SAM construits en plusieurs parties | ajouter des lanceurs à un site existant | fusion de groupes près d'un site | rien | moyen | 07 §11 |
+| Équipes espion et démolition | des équipes IA qui donnent de l'intel ou font sauter des structures | infanterie routée avec minuteries | rien | moyen | 07 §10 |
+| Persistance des unités construites | les unités et FARP construits survivent à un redémarrage | CSV de Moose et CSV de Foothold | non vérifié dans CTLD 2 (estimation) | moyen | 07 §16 |
 
-Note 07 §25 lists the base Moose CTLD features Foothold relies on, for a later comparison with CTLD 2.
+La note 07 §25 liste les fonctions du CTLD de Moose sur lesquelles Foothold s'appuie, pour une comparaison ultérieure avec CTLD 2.
 
-### 6.8 The mission-maker side
+### 6.8 Le côté créateur de mission
 
-| Feature | What the mission maker does | VEAF equivalent | Effort | Ref |
+| Fonctionnalité | Ce que fait le créateur de mission | Équivalent VEAF | Effort | Réf. |
 |---|---|---|---|---|
-| Setup file | writes 5 000 to 10 000 lines of Lua per map | `campaign.yaml` + build generation (PRD) | done in principle | 08 §3 |
-| `.miz` conventions | places 1 331 trigger zones and 508 template groups by naming convention | the build generates zones and slots; no template group | done in principle | 08 §4 |
-| Config file | 202 settings in 22 sections | `mission.yaml`; for Foothold itself, `config_override:` (ADR 0008) | n/a | 08 §2 |
-| Config Manager | a Windows tool edits the config, downloads and updates missions, handles DCSServerBot `.miz.orig` | `veaf-tools`, `Publish-Foothold.ps1` | n/a | 08 §5 |
-| Server operation | desanitise `MissionScripting.lua`, saves folder, reset | already true on dcs.veaf.org (`io`, `lfs` open, measured 2026-10-03) | n/a | 08 §6 |
+| Fichier de setup | écrit 5 000 à 10 000 lignes de Lua par carte | `campaign.yaml` et génération au build (PRD) | fait dans le principe | 08 §3 |
+| Conventions du `.miz` | pose 1 331 trigger zones et 508 groupes templates selon des conventions de nommage | le build génère les zones et les slots ; aucun groupe template | fait dans le principe | 08 §4 |
+| Fichier de config | 202 réglages en 22 sections | `mission.yaml` ; pour Foothold lui-même, `config_override:` (ADR 0008) | sans objet | 08 §2 |
+| Config Manager | un outil Windows édite la config, télécharge et met à jour les missions, gère les `.miz.orig` de DCSServerBot | `veaf-tools`, `Publish-Foothold.ps1` | sans objet | 08 §5 |
+| Exploitation serveur | désanitiser `MissionScripting.lua`, dossier de sauvegardes, reset | déjà vrai sur dcs.veaf.org (`io` et `lfs` ouverts, mesuré le 2026-10-03) | sans objet | 08 §6 |
 
-## 7. What is cheap, what is covered, what is dear
+## 7. Ce qui est couvert, ce qui est bon marché, ce qui coûte cher
 
-**Already covered by VEAF bricks** (the core loop): zones with a neutral state, random garrisons, capture by ground presence with a hold time, airbase coalition, the F10 map with zones and connections, the situation menu, assault convoys, the state file, CTLD troops capturing, logistic zones following the owner, game-master markers, the air-defence network.
+**Déjà couvert par les briques VEAF** (la boucle de base) : zones avec état neutre, garnisons aléatoires, capture par présence au sol avec durée de tenue, coalition des aérodromes, carte F10 avec zones et connexions, menu de situation, convois d'assaut, fichier d'état, capture par troupes CTLD, zones logistiques qui suivent le propriétaire, marqueurs de game master, réseau de défense aérienne.
 
-**Cheap on those bricks**: win and lose with reset, the pending-capture colour blend and warning, surrender of weak zones, critical objects, a coalition credit account, income per zone, slot rejection at birth, tanker and CAP control by markers, carrier "sail to area", statistics recap, ground release rules, random events as a mechanism.
+**Bon marché sur ces briques** : victoire et défaite avec reset, dégradé de couleur et avertissement de la capture en cours, reddition des zones faibles, objets critiques, compte de crédits de coalition, revenu par zone, rejet d'un slot à la naissance, contrôle des ravitailleurs et des CAP par marqueurs, porte-avions « naviguer vers la zone », bilan statistique, règles de sortie des forces au sol, mécanisme d'événements aléatoires.
 
-**Dear**, with the reason:
+**Cher**, avec la raison :
 
-1. **Zone dormancy** — a dozen reasons to stay awake that must agree, and a respawn that restores exactly the survivors in the same places; it is also the feature that buys the most performance.
-2. **Generic AI air sorties** — parking spawn, a state machine per sortie, tasking per role, restore after restart; Foothold spends about 13 500 lines on it (`GroupCommander`).
-3. **AI supply helicopters landing in zones** — DCS does not reliably land a scripted helicopter on a point (two traps recorded in `docs/agents/dcs-runtime-traps.md`); Foothold needs 109 hand-placed landing zones and a stall recovery on one map.
-4. **The Director** — 25 000 lines; not any single formula but the amount of shared state it reads and the hysteresis around every choice (note 04, "Reproduction notes").
-5. **The player economy as a whole** — credits banked on landing, shop, ranks, career: each piece is medium, but together they need per-player persistent data, which VEAF has never had, and a catalogue of effects.
-6. **Warehouse logistics** — finite weapon stocks moved by players touch every airbase warehouse and the save.
+1. **La dormance des zones** — une douzaine de raisons de rester éveillée qui doivent s'accorder, et un respawn qui rend exactement les survivants aux mêmes endroits ; c'est aussi la fonctionnalité qui rapporte le plus en performance.
+2. **Les sorties aériennes IA génériques** — spawn au parking, une machine à états par sortie, une tâche par rôle, la restauration après redémarrage ; Foothold y consacre environ 13 500 lignes (`GroupCommander`).
+3. **Les hélicoptères de supply IA qui se posent dans les zones** — DCS ne pose pas de façon fiable un hélicoptère scripté sur un point (deux pièges consignés dans `docs/agents/dcs-runtime-traps.md`) ; sur une seule carte, Foothold a besoin de 109 zones de poser placées à la main et d'une procédure de récupération.
+4. **Le Director** — 25 000 lignes ; la difficulté n'est dans aucune formule isolée, mais dans la quantité d'état partagé qu'il lit et dans l'hystérésis qui entoure chaque choix (note 04, « Reproduction notes »).
+5. **L'économie des joueurs prise en bloc** — crédits encaissés à l'atterrissage, boutique, rangs, carrière : chaque pièce est moyenne, mais ensemble elles exigent une donnée persistante par joueur, que VEAF n'a jamais eue, et un catalogue d'effets.
+6. **La logistique d'entrepôts** — des stocks d'armes finis déplacés par les joueurs touchent chaque entrepôt d'aérodrome et la sauvegarde.
 
-## 8. What was not read
+## 8. Ce qui n'a pas été lu
 
-The eight notes mark their own gaps.
-A gap-filling pass on notes 01 to 04 was running when this page was written; see the commit log of `foothold-analysis/` for what it closed.
-Known to remain unread or estimated at that time:
+Les huit notes marquent leurs propres trous.
+Une passe de comblement a repris les notes après leur première écriture ; l'historique git de `foothold-analysis/` dit ce qu'elle a fermé.
+Les notes 01 et 03 n'ont plus de trou connu, hormis une estimation sur AIEN dans la note 03.
+Restait non lu ou estimé à l'écriture de cette page, sous réserve de la passe en cours sur les notes 02 et 04 à 07 :
 
-- note 05: DEAD, runway-strike and red mass-attack missions; recon completion; the joint-mission invitation flow; achievement tiers; the internals of purchased CAS, SEAD, decoy and bomber flights (only `spawnCapAt` was read in detail);
-- note 06: `boardPilot` (credit refund at pick-up); the "CAP Control" menu tree; the intel snapshot/diff builder in detail; Splash Damage analysed by diff against the default version, without line numbers;
-- note 07: SAM add-on save (`Foothold CTLD.lua:7847-8095`); managed/PvP warehouse mode (`6507-6634`, `7346-7520`); the Red CTLD tracking loop (`Foothold_CTLD_Red.lua:1895-2216`);
-- note 08: setup lines 3886–4240 and 6559–7458; the manual's screenshots (text only was extracted); `MizBatchUpdater.exe` and `MizFileReplacer.exe` (no documentation in the repository); the Config Manager's C# code, on purpose;
-- features several notes point at and none details: the zone "regular supply" production and local recovery jobs (`zoneCommanderv2.lua:52059-54689`), the destroyable warehouse building of a zone (`46108-46584`), PvP industry objectives and territory share, train repair on Normandy;
-- the other nine maps' setup files were only compared by line similarity with Caucasus;
-- nothing was run in DCS: every statement is from reading code, the manual and the mission file.
+- note 05 : les missions DEAD, frappe de piste et attaque de masse rouge ; la détection de fin d'une reconnaissance ; le déroulé d'invitation des missions conjointes ; les paliers des hauts faits ; l'intérieur des vols achetés CAS, SEAD, leurre et bombardier (seul `spawnCapAt` a été lu en détail) ;
+- note 06 : `boardPilot` (remboursement des crédits au ramassage) ; l'arbre du menu « CAP Control » ; le détail du constructeur d'instantané et de différences de l'intel ; Splash Damage analysé par différence avec la version par défaut, sans numéros de ligne ;
+- note 07 : la sauvegarde des extensions de SAM (`Foothold CTLD.lua:7847-8095`) ; le mode d'entrepôt « managé » et PvP (`6507-6634`, `7346-7520`) ; la boucle de suivi du CTLD rouge (`Foothold_CTLD_Red.lua:1895-2216`) ;
+- note 08 : les lignes 3886–4240 et 6559–7458 du setup ; les captures d'écran du manuel (seul le texte a été extrait) ; `MizBatchUpdater.exe` et `MizFileReplacer.exe` (aucune documentation dans le dépôt) ; le code C# du Config Manager, volontairement ;
+- des fonctionnalités que plusieurs notes signalent et qu'aucune ne détaillait : la production de supply des zones et les travaux de réparation locale (`zoneCommanderv2.lua:52059-54689`), le bâtiment entrepôt destructible d'une zone (`46108-46584`), les objectifs industriels et la part de territoire en PvP, la réparation des trains en Normandie ;
+- les fichiers de setup des neuf autres cartes n'ont été comparés au Caucase que par similarité de lignes ;
+- rien n'a été lancé dans DCS : tout vient de la lecture du code, du manuel et du fichier de mission.
 
-The VEAF column of section 6 comes from module headers and grep, not from reading each VEAF module; where it matters for a decision, check the module first.
+La colonne VEAF de la section 6 vient des en-têtes de modules et de grep, pas de la lecture de chaque module VEAF ; là où elle pèse sur une décision, lire le module d'abord.
 
-## 9. A security finding on the missions we run today
+## 9. Un constat de sécurité sur les missions que nous faisons tourner
 
-In Foothold, an F10 map marker whose text starts with `-code:` has the rest of its text compiled with `loadstring` and executed (`zoneCommanderv2.lua:29203-29210` in 6.5.3).
-The only condition on the handler is that the marker event carries coalition 1 or 2 (`zoneCommanderv2.lua:28456`); there is no player name, UCID, rank or password check on that branch, and the configurable admin aliases do not cover it.
-The same code is in the 5.3.5 our missions run (`VEAF-Foothold-Caucasus/src/scripts/zoneCommanderv2.lua:26331`).
-On dcs.veaf.org, `io` and `lfs` are available to missions (measured 2026-10-03, see the PRD), so that Lua can read and write files on the server.
-Not tested in game.
-`Zeus.lua` (spawn and destroy by marker) has no identity check either (note 06 §14).
+Dans Foothold, un marqueur de carte F10 dont le texte commence par `-code:` voit le reste de son texte compilé par `loadstring` et exécuté (`zoneCommanderv2.lua:29203-29210` en 6.5.3).
+La seule condition du gestionnaire est que l'événement de marqueur porte la coalition 1 ou 2 (`zoneCommanderv2.lua:28456`).
+Il n'y a sur cette branche aucun contrôle de nom de joueur, d'UCID, de rang ni de mot de passe, et les alias admin configurables ne la couvrent pas.
+Le même code est dans la 5.3.5 que font tourner nos missions (`VEAF-Foothold-Caucasus/src/scripts/zoneCommanderv2.lua:26331`).
+Sur dcs.veaf.org, `io` et `lfs` sont ouverts aux missions (mesuré le 2026-10-03, voir le PRD), donc ce Lua peut lire et écrire des fichiers du serveur.
+Non testé en jeu.
+`Zeus.lua` (spawn et destruction par marqueur) n'a pas non plus de contrôle d'identité (note 06 §14).
 
-## 10. A possible order of integration
+## 10. Un ordre d'intégration possible
 
-A proposal to react to, not a plan; each step is a choice David can drop.
+Une proposition à discuter, pas un plan ; chaque étape est un choix que David peut écarter.
 
-1. **Finish the core loop on what exists** — ticket 05 of this lot (periodic save cadence, win and lose, reset) plus the cheap capture polish (pending-capture colours and warning, critical objects).
-   It makes a playable persistent campaign with convoys only, and it is what ticket 07 needs to measure anything.
-2. **Dormancy** (ticket 02) — before adding AI, because it sets how many zones a server can carry, and Foothold's rules (note 01 §9) are a tested list of what must keep a zone awake.
-3. **A small enemy** — graph-derived capabilities and a simple score for the target (notes 04 §2, §4, §10), ground first, then CAP through the QRA and air-wave bricks.
-   The full Director is not needed to get counter-attacks; it can stay out, as the PRD already says.
-4. **AI air sorties** (ticket 04) — CAS and SEAD strikes on zones, then supply flights; helicopters landing in zones last, or replaced by convoys and CTLD, given the DCS traps.
-5. **An economy, if wanted** — a coalition credit account and income first, then a shop of a few items whose effects VEAF already has (JTAC, smoke and illumination, tanker, CAP), then personal credits banked on landing.
-   Ranks, career and achievements need a per-player file and can come last or never.
-6. **Logistics depth** — supplies that upgrade a zone through CTLD 2, then warehouse stocks.
-7. **Comfort tools** — EWRS, zone intel, carrier "sail to area", callsign allocation, each independent of the rest.
+1. **Finir la boucle de base sur l'existant** — le ticket 05 de ce lot (cadence de la sauvegarde périodique, victoire et défaite, reset) et le fignolage bon marché de la capture (couleurs et avertissement de la capture en cours, objets critiques).
+   Cela donne une campagne persistante jouable avec des convois seulement, et c'est ce dont le ticket 07 a besoin pour mesurer quoi que ce soit.
+2. **La dormance** (ticket 02) — avant d'ajouter de l'IA, parce qu'elle fixe combien de zones un serveur peut porter, et que les règles de Foothold (note 01 §9) sont une liste éprouvée de ce qui doit garder une zone éveillée.
+3. **Un petit ennemi** — des capacités dérivées du graphe et un score simple pour la cible (notes 04 §2, §4, §10), au sol d'abord, puis des CAP par les briques QRA et vagues.
+   Le Director complet n'est pas nécessaire pour avoir des contre-attaques ; il peut rester dehors, comme le dit déjà le PRD.
+4. **Les sorties aériennes IA** (ticket 04) — frappes CAS et SEAD sur les zones, puis vols de supply ; les hélicoptères qui se posent dans les zones en dernier, ou remplacés par des convois et du CTLD, vu les pièges DCS.
+5. **Une économie, si on en veut une** — d'abord un compte de crédits de coalition et un revenu, puis une boutique de quelques articles dont VEAF a déjà les effets (JTAC, fumée et éclairage, ravitailleur, CAP), puis les crédits personnels encaissés à l'atterrissage.
+   Rangs, carrière et hauts faits demandent un fichier par joueur et peuvent venir en dernier, ou jamais.
+6. **La profondeur logistique** — des supplies qui améliorent une zone via CTLD 2, puis des stocks d'entrepôt.
+7. **Les outils de confort** — EWRS, intel de zone, porte-avions « naviguer vers la zone », attribution de callsigns, chacun indépendant du reste.
 
-The PRD currently puts shop, economy, ranks, events, the director, the task board, JTAC and on-demand tankers out of scope; steps 5 to 7 would each reopen part of that.
+Le PRD met aujourd'hui hors périmètre la boutique, l'économie, les rangs, les événements, le Director, le tableau des tâches, le JTAC et les ravitailleurs à la demande ; les étapes 5 à 7 rouvriraient chacune une part de cela.

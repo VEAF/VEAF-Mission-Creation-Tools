@@ -333,9 +333,24 @@ Read in full: `71149-71441`.
 - "Authorising" an assignment does not spawn anything: it sets `assignment.authorized = true`, clears the group's spawn-evaluation cache and dormant delay, and wakes its FSM (`91897-91909`, `82650`); the actual spawn is the `GroupCommander`'s own, which asks `allowsGroupSpawn` (`96017-96021`).
 - An assignment is refused this tick (left unauthorised) when: the runway strike waits for SEAD (`91828`), the operation waits for its CAP (`91832`), SEAD waits for an ingress CAP (`91836-91837`), the role is blocked by the SEAD/CAS gate (helicopters exempt) (`91841-91843`), no role slot is free (`91847-91849`), or another surface group was already authorised from the same source zone this tick (`91860-91862`).
 - An assignment is cancelled when the feint target became unusable, the origin zone is no longer usable, or an attack CAP's target is no longer "player-relevant" (`91786-91800`, `91819-91825`).
-- **SEAD/CAS gate**: CAS planes are held while long-range SAM threats lie within 45 NM of the target; the gate is rechecked every 30 s for at most 2 SEAD attempts, after which it can fall back to ground forces, redirect or contain the package (`71004-71006`; functions `88955-89031`, `88519-88600` located by name, exact sequence is (estimation)).
-- **SEAD ingress CAP**: a CAP is positioned within 30 NM of the SEAD ingress point, with a 180 s spawn delay and a maximum hold of 360 s (`71008-71013`; `88800-88955` not read).
-- **Red package CAP protection**: fixed-wing attackers are cancelled when no CAP can protect them under air pressure (`90668-90685`, `90862-90979` not read, (estimation) from names).
+- **SEAD/CAS gate** (`_updateSeadCasGate`, read in full: `88955-89030`, `88456-88599`), Red only, in `shaping` and `assault`, re-evaluated every `SEAD_CAS_GATE_RECHECK_SEC` = 30 s while the operation still has unlaunched CAS (`71004-71006`):
+  1. If a gate SEAD is already airborne, the CAS is released at once (`88961-88963`).
+  2. Threats = long-range SAM sites near the target (`_longRangeSeadThreatsNearTarget`, 45 NM); with none, the gate is clear, any unlaunched gate SEAD whose target has no SEAD target left is cancelled, and the clearing is recorded as role evidence (`88973-88989`).
+  3. With threats, the gate blocks fixed-wing CAS and `_ensureSeadGateAttempt` looks for a SEAD, in this order: a SEAD of the package already tasked on a threat zone; else, if fewer than `SEAD_CAS_GATE_MAX_ATTEMPTS` = 2 attempts were made, re-task another SEAD of the package (launched ones first) onto a threat zone; else take a new SEAD from the pools of the threat zone; else accept any other SEAD still active (`88456-88517`).
+  4. If no SEAD can be had: use a ground fallback if an artillery or surface group is in the package or can be taken for the target, cancelling the fixed-wing CAS (`sead-gate=ground`) (`88535-88565`, `89009`).
+  5. Else, if the package has an unlaunched helicopter CAS, cancel only the fixed-wing CAS and let the helicopters go (`89010-89029` first half).
+  6. Else redirect the unlaunched package to the best shadow candidate with no long-range SAM near it (not for a reaction operation, once per operation) (`88567-88599`).
+  7. Else contain the operation with reason `long-range-sead-<reason>` (`89028-89029`).
+- Helicopter CAS is never blocked by the gate (`91841-91843`).
+- **SEAD ingress CAP** (`_updateSeadIngressCapGate`, read: `88800-88830`, `88860-88953`): before an unlaunched SEAD is authorised, a `support` record is built with the SEAD's ingress point and route axis (`88823-88830`).
+  - The gate opens when a CAP covers the ingress point: an existing CAP within `SEAD_INGRESS_CAP_COVERAGE_NM` = 30 NM (`existing`), an airborne CAP re-vectored there and arrived within 30 NM (`revector`), or a CAP spawned for it, 180 s after its launch (`SEAD_INGRESS_CAP_SPAWN_DELAY_SEC`) (`88865-88924`, `71008-71013`).
+  - While a method is in progress the SEAD stays blocked (`88926-88929`).
+  - With no CAP obtainable: if the ingress is not "high risk", the SEAD is released unescorted after `SEAD_INGRESS_CAP_UNSUPPORTED_DELAY_SEC` = 180 s (`seadIngressUnsupported`); if it is high risk, the SEAD is cancelled after `SEAD_INGRESS_CAP_MAX_HOLD_SEC` = 360 s (`88931-88952`).
+- **Red package CAP protection** (read: `90306-90318`, `90668-90684`, `90795-90978`; the feasibility search `90459-90540` only at its ends):
+  - It applies when the package still has unlaunched fixed-wing attackers and the players' **air-threat** score at the target is > 0 (`90306-90318`).
+  - Then CAP coverage becomes required for the operation: an already reserved CAP assignment is used, else a ready CAP candidate is committed, possibly with its slot and hangar timers accelerated (once per operation, up to `RED_PACKAGE_CAP_ACCELERATION_MAX_SEC` = 5 min) (`90459-90562`, `90877-90920` not read in detail, `71054`).
+  - If the CAP role limit is 0 or no CAP can be found, every unlaunched fixed-wing CAS, SEAD and runway strike (feints excepted) is cancelled with reason `red-package-cap-unavailable`; helicopters and ground groups stay (`90862-90876`, `90966-90978`, `90668-90684`).
+  - When the air pressure disappears the reserved package CAP is released (`red-package-pressure-cleared`) (`90816-90840`).
 
 ### Reassessment (read in full: `89398-89541`, `89828-89903`)
 
@@ -343,7 +358,10 @@ Read in full: `71149-71441`.
 - Inputs: target strength now vs baseline (−10 % since last look or −20 % since start = "weakening"; the reverse = "strengthening"), package losses, the best alternative objective and the player-activity component of both (`89408-89417`, `89442-89463`).
 - "Bad fight" = ≥ 2 launched and loss ratio ≥ 60 % (75 % for an important target: score ≥ 170, runway or income) without weakening (`89446-89455`).
 - Redirect evidence = a redirectable (unlaunched) part exists and either the players moved (alternative player score ≥ 100 and ≥ current + 80) or the alternative is better by ×1.35 or +80 combined with a bad fight / reinforcement / loss of the current candidate (`89458-89469`, `71002-71003`).
-- A redirect needs the same alternative on 2 consecutive reassessments, is allowed once per operation and never for a reaction operation; it re-targets only the unlaunched groups (`89861-89891`; `89645-89814` not read).
+- A redirect needs the same alternative on 2 consecutive reassessments, is allowed once per operation and never for a reaction operation; it re-targets only what can be re-tasked (`89861-89891`).
+- `_redirectOperationUnlaunched` (read: `89608-89700`, `89760-89813`): an assignment can follow if it is an unlaunched, dormant `attack` air group of a re-taskable role whose source is still usable and whose role fits the new target (SEAD needs SEAD targets there and a clear source route, a runway strike needs a runway not on cooldown, a CAP needs a player-relevant target), or an airborne SEAD that can be re-routed with `EngageSeadMission`; the rest is cancelled as `reassessment-redirect-incompatible`, and launched groups are marked `detached` (they finish their old sortie outside the operation) (`89608-89643`, `89682-89700`, `89760-89771`).
+- The operation then restarts its clocks on the new target: `originalTargetZone` kept, `redirectCount + 1`, phase start and deadlines recomputed, reassessment baseline, SEAD gate and package CAP protection reset; the feint is dropped (`89773-89805`).
+- If nothing can follow, the redirect returns 0 and the caller falls through to "contain" (`89656-89665`).
 - Otherwise "contain": cancel everything unlaunched and finish with result `contained`, when the main attackers are exhausted without progress or the fight is bad (`89893-89901`, `89814-89826`).
 - The reserve is released on "target weakening" or "player pressure" (player score ≥ 100 with losses < 50 %), or as a "delayed wave" at the fallback time; it is cancelled ("conserved") on a bad fight (`89471-89478`, `89905-89945`).
 
@@ -351,8 +369,24 @@ Read in full: `71149-71441`.
 
 - A `failed` result is upgraded from the destroyed share of the target's initial strength: remaining ≤ 10 % → `near-complete`, destroyed ≥ 25 % → `partial`, ≥ 10 % → `incomplete` (`88110-88129`).
 - The learning outcome is `success` (captured), `partial` (neutralised, near-complete, partial, or "meaningful progress"), `failure` ("committed, no progress"), or nothing when no attacking element launched or the deployment was incomplete (`89369-89396`).
-- It is credited, weighted by a causal assessment (`_operationCausalAssessment`, `89244`, not read), to three decayed counters: `doctrineOutcomes[doctrine]`, `targetOutcomes[zone]`, and `roleOutcomes[doctrine][role]` (`92043-92076`, `87387`).
+- It is credited, weighted by a causal assessment (below), to three decayed counters: `doctrineOutcomes[doctrine]`, `targetOutcomes[zone]`, and `roleOutcomes[doctrine][role]` (`92043-92076`, `87387`).
 - The counters are capped at 99 and decay with the battlefield-intelligence half-life of 45 min, expiring after 3 h (`73323-73332`, `73295-73321`, `71037-71038`).
+- `_operationCausalAssessment` (read in full: `89244-89367`) returns `{primaryCause, confidence, doctrineAmount, targetAmount}`; the two amounts scale how much of the outcome is written to the doctrine and target counters:
+
+| Result and evidence | `primaryCause` | Doctrine / target amount |
+|---|---|---|
+| captured | `effective-execution` | 1 / 1 |
+| neutralised, near-complete, partial | `effective-progress` | 1 / 1 |
+| incomplete | `limited-progress` | 0 / 0 |
+| failed or contained, no effector launched and some unlaunched | `assembly-shortfall` | `0.35 × unlaunched share` / 0 |
+| failed or contained, deployment incomplete | `deployment-incomplete` | 0 / 0 |
+| failed or contained, losses mostly to aircraft | `enemy-air` | `max(0.35, 1 − 0.65 × air share of losses)` for both |
+| failed or contained, losses mostly to ground fire | `air-defence` if a long-range SAM threat was seen and never cleared, else `surface-fire` | same formula with the ground share |
+| failed or contained, both kinds of losses | `mixed-threat` | same formula with the combined share |
+| failed or contained with progress and ≥ 50 % losses | `costly-progress` | 1 / 1 |
+| otherwise | `unknown` | 1 / 1 |
+
+- So a failure explained by a specific threat is blamed less on the doctrine and the target (down to 35 %), and a package that never assembled is not blamed on the target at all.
 - Use: doctrine weight × clamp((success + 0.5×partial + 1)/(failure + 1), 0.75, 1.35); role weight × (0.8 + 0.4 × (success + 0.5×partial + 1)/(total + 2)) (`86857-86860`, `86890-86904`).
 - A 3-entry `history` (`targetZone`, `feintTargetZone`, `sourceZone`, `doctrine`, `result`, learning outcome and reason) drives the repetition penalty and the target-history terms (`92091-92100`).
 - Then all groups are released, on-demand instances are disposed, and the Director enters `recovery` for 600–1200 s (`92101-92108`).
@@ -360,7 +394,8 @@ Read in full: `71149-71441`.
 ## 9. Routine CAP management and defensive air reactions
 
 Read: `_routineCapAllocation` (`81380-81467`), head of `_reconcileRoutineCap` (`81469-81530`), `requestReactiveCap` (`72634-72753`), head of `requestPlayerCapResponse` (`81160-81215`), CAP branch of `onGroupStateChanged` (`96077-96133`), slot helpers (`71926-71941`), loss-readiness profiles (`71582-71610`).
-Not read: the bulk of `_reconcileRoutineCap` (`81530-82026`), `_rankCapTargets`/`_routineCapTargetValue` (`80675-80876`), re-vectoring (`82044-82367`), `_syncCapSlotOccupants` (`72225-72395`), `_advanceCapLossRecovery` (`71624-71800`).
+Also read in the gap-filling pass: `_advanceCapLossRecovery` (`71612-71798`), `_rankCapTargets`/`_capTargetRankAllowed`/`_routineCapTargetValue` (`80675-80874`), the selection core of `_reconcileRoutineCap` (`81530-81860`), `_routineCapRevectorTarget`/`_routineCapAwarenessTarget`/`_reconcileRoutineCapRevector` (`82044-82260`).
+Not read: `_syncCapSlotOccupants` (`72225-72395`), the tail of `_reconcileRoutineCap` (`81860-82026`) and of the revector (`82260-82367`).
 
 ### Mechanism
 
@@ -370,13 +405,60 @@ Not read: the bulk of `_reconcileRoutineCap` (`81530-82026`), `_rankCapTargets`/
 - The free slots are distributed between `patrol` (defensive, over own zones) and `attack` (offensive, over enemy zones) by marginal demand: `demand.score / (1 + 0.85 × already allocated)`, ×1.25 while under the base limit, with a minimum of one each when the demand is non-zero (`81410-81450`).
 - A slot has a lease kind (`routine`, `operation`, `active`), a state (`authorized`, `preparing`, active…) and a `readyAt` cooldown (`96084-96125`, `95976`, `95995`).
 - A new slot's first availability is the side's `respawnTimers[side][mission].hangar` plus a jitter of 60 s to 25 min; after a combat loss it is `dead + hangar` plus 0–25 min (`71931-71941`, `71047-71048`).
-- Loss recovery speeds up with player count, by difficulty (`RedReactiveDifficulty`): easy needs ≥ 3 players, 1 slot max, progress rate 0.5, floor 20 min; medium ≥ 3 players, up to 3 slots, rate 1–2, floor 10 min; hard ≥ 2 players, up to 4 slots, rate 1.5–2.5, floor 10 min (`71582-71610`; how the rate is applied is in `_advanceCapLossRecovery`, not read).
+- Loss recovery speeds up with player count, by difficulty (`RedReactiveDifficulty`): easy needs ≥ 3 players, 1 slot max, progress rate 0.5, floor 20 min; medium ≥ 3 players, up to 3 slots, rate 1–2, floor 10 min; hard ≥ 2 players, up to 4 slots, rate 1.5–2.5, floor 10 min (`71582-71610`); the rate is applied by `_advanceCapLossRecovery`, described under "Loss recovery" below.
 - State changes drive the slot: `preparing` → marked preparing; live → active; `landed` → released "after handover"; `dead` from an airborne state → released "after loss" (long cooldown); `dead`/`inhangar` from `preparing` → released as `spawn-failed` with a 120 s permit retry (`96093-96132`).
 - A "routine CAP permit" (`routineCapPermits[groupName]`) is the Director's election of one specific group for a slot; `allowsGroupSpawn` returns true for a routine-CAP group only if it is live, its slot is authorised/preparing, it holds an authorised assignment, or it holds a permit (`95998-96005`).
 - **Player arrival**: when the Blue player count increases (PvE), the player-tracking loop calls `redDirector:requestPlayerCapResponse(now)`, which, if no Red CAP is airborne or preparing, elects the best-ranked in-hangar CAP for the best-ranked CAP target (`60801-60803`, `81160-81215`).
 - **Reactive CAP**: the Red reactive system calls `requestReactiveCap(zone, allowance)` when players press a Red zone; the Director checks the zone ranks within the CAP target window, counts available responses, passes campaign-action admission and stores an `aienAirSupportRequest` with `explicitReaction=true` valid 20 min, which adds up to `reactionCapExtra` slots to the patrol limit (`31468`, `72634-72753`, `81501-81519`).
 - **AIEN air-support call**: when a player aeroplane attacks a Red zone's ground forces (reported by AIEN through `BattleCommander:reportAIENAirSupportAttack`), at most once per 20 min, with a 10 % chance, the Director creates a patrol-CAP request for that zone and Blue receives the message "C2, intercepted enemy communications: %s has requested air support." for 15 s (`71901-71905`, `72414-72456`, `70995-70997`, `Foothold_Localization.lua:21118`).
-- **Re-vectoring an airborne CAP** towards where air combat happens is limited to an ETA of 15 min and driven by the air-combat intelligence (section 11) (`71030`, `82184-82367` not read).
+- **Re-vectoring an airborne CAP** towards where air combat happens is limited to an ETA of 15 min and driven by the air-combat intelligence (section 11) (`71030`); see "Awareness target and revector" below.
+
+### CAP target ranking and election (Red, PvE)
+
+- The base ranking comes from outside the Director: `getClosestCapZonesToPlayers(mission, side, seed)` orders the CAP target zones by proximity to players, then `Director:rankCapZones` re-orders them; Blue and PvP use `BattleCommander:getCapSpawnRankingForSide` instead (`80675-80701`).
+- Each row keeps its `baseRank`; a target is eligible only inside a window of the first `pendingNeeded` ranks, widened to 3 for a zone adjacent to the enemy (`80703-80711`).
+- For each eligible target with at least one usable in-hangar CAP candidate, `_routineCapTargetValue` sums nine components (`80753-80852`):
+
+| Component | Value |
+|---|---|
+| `ranking` | the `directorPriority` carried by the base ranking row |
+| `rank` | `max(0, 60 − 8 × (rank − 1))` |
+| `role` | area roles of the zone: hub 90, gateway 45, resource 40, defence 35, infrastructure 30, approach 15 |
+| `runway` | 70 if the zone has a runway capability |
+| `income` | `min(60, 30 × income)` |
+| `depth` | `min(60, 18 × friendly neighbours + 12 × enemy neighbours)` |
+| `strategy` (attack CAP) | `min(220, 0.35 × strategic-shadow score of the zone)`, else `_regionTargetPreference(zone, 'ATTACK_SUPPORT')` |
+| `strategy` (patrol CAP) | proximity to the shadow's main objective (100 at 0–1 hop, 55 at 2, 25 at 3) and to the secondary one (55 / 30 / 15) |
+| `strategy` (both) | +150 for the running operation's target, +120 for the zone of an active air-support request |
+| `readiness` (attack) | `(1 − readiness) × 70`, readiness = min(supply efficiency, built ratio) of the zone |
+| `readiness` (patrol) | `(1 − readiness) × (90 if important, else 40 if it has a friendly neighbour) − (1 − readiness) × (160 if isolated, 90 with one friendly neighbour, else 40)` |
+| `intelligence` (patrol) | supply-protection value from the battlefield memory, + `min(120, 0.75 × awareness pressure)` on the current awareness target |
+
+- "Important" means hub, gateway, resource, infrastructure or runway (`80800`).
+- The row also carries an `overcommit` factor: `clamp((1 − readiness) × isolation − 0.25 if important, 0, 1)` with isolation 1 / 0.55 / 0.20 for 0 / 1 / more friendly neighbours, and a `front` key (region, else area, else the zone; lone zones within 2 hops share a front) (`80847-80850`, `80713-80719`, `81716-81724`).
+- At most `max(4, 3 × pendingNeeded)` targets are valued, inspecting at most three times that many ranked rows (`81641-81642`, `81730-81741`).
+- Election is by marginal value: `(score + placement intelligence) / (1 + targetCount × (0.85 + 1.25 × overcommit) + 0.22 × frontCount)`, ×1.15 for a target with no CAP yet, ×1.20 for a front with none, ×1.04 if a permit already exists (`81762-81775`).
+- Within the chosen target the candidate group scores `−6 × its rank − 30 × CAPs already taken from its origin zone`, +45 if it already holds a permit, +1000 if it is the named replacement (`81779-81797`).
+- **One new authorisation per mission per tick** (`newAuthorizations < 1`), so CAP launches are spread 30 s apart at least (`81757`).
+- A Red patrol candidate whose origin zone has Blue players near (`BlueIsNear`, or `BluePlaneIsNear` for planes) is not used, unless the target is a reaction target; an attack CAP may then be borrowed as patrol (`81658-81664`, `81698-81715`, `81799-81810`).
+- A permit whose slot stays `authorized` past its deadline without the group reaching `preparing` is withdrawn, the slot released as `authorization-timeout` and the group put on a `capPermitRetrySec` = 120 s cooldown (`81530-81554`).
+
+### Loss recovery (`_advanceCapLossRecovery`, Red PvE)
+
+- It only touches `attack` slots that are `cooling` after a `combat-loss`, have no owner and are not reaction slots (`71690-71697`, `71719`).
+- It needs a player-activity snapshot younger than 15 s, a non-zero base CAP limit, at least `minPlayers` human players and a non-zero front pressure (`71632-71670`).
+- Exception with zero players: if Blue AI CAP is airborne, Red has no CAP airborne and Red CAS or SEAD is airborne, one slot is advanced at the base rate, provided no CAP slot is otherwise available (`71645-71678`).
+- `tier = max(1, floor(players / playersPerSlot))`; slots advanced per tick = `min(maxSlots, tier)`; `rate = min(maxProgressRate, baseProgressRate + (tier − 1) × progressRatePerTier)` (`71680-71687`).
+- Slots are picked where the attack mission is short of its allocation, has no ready slot and has demand; earliest `readyAt` first (`71728-71781`).
+- Each picked slot's `readyAt` is pulled forward by `elapsed × rate` seconds (elapsed since the last tick, capped at 2 ticks), never below its `lossRecoveryFloorAt` (`71783-71793`).
+- So with players pressing the front, a lost attack CAP comes back up to `1 + rate` times faster, down to the floor of the difficulty profile.
+
+### Awareness target and revector
+
+- Each tick Red computes one "awareness" zone: a pending replacement request if any, else the zone of an active AIEN air-support request (pressure 100), else the first patrol-ranked Red zone with player air activity (`capOnly` score plus `min(cap, 0.30 × retained player intent)`) or with a recent air-loss response above threshold (`82044-82118`).
+- A lower-ranked zone can replace it only if it has air-combat intelligence and `pressure + intelligence − rank step × rank difference` is higher (`82066-82081`).
+- `_reconcileRoutineCapRevector` picks a station near that zone (`Frontline.PickStationNearZone`, 30 NM offset, 35 NM safe distance) and does nothing if a Red CAP already covers it within `capAssistCoverageNm` = 30 NM (then a 300 s per-target cooldown) or a patrol permit already targets it (`82121-82230`, `8517-8520`).
+- Otherwise it looks for the best airborne CAP to re-vector (`_bestIngressCapRevector`); if its ETA exceeds `CAP_ROUTINE_REVECTOR_MAX_ETA_SEC` (15 min) it tries a ready replacement from a hangar instead, and for an AIEN request flags `needsReserve` (`82232-82260`, `71030`).
 - **Hunter** (a two-ship scrambled after a player's kill streak) and the strategic-bomber interceptor roll are separate mechanisms outside the Director (see `03-ai-groups-sorties.md` sections 8 and 12).
 
 ### Reproduction notes
@@ -400,15 +482,31 @@ Read in full: `85257-85476`, `84922-84932`, `85184-85210`, ground branch of `onG
 ## 11. Intelligence memories ("learning" about the battlefield)
 
 Read: `_consumeAirCombatIntelligence` head (`72928-72990`), constants (`71018-71046`), `_playerFrontlineActivityScores` head (`75689-75760`), outcome decay (`73295-73364`).
-Not read: `_consumeBattlefieldIntelligence` (`74135-74311`), route-risk functions (`73442-73810`), the scoring body of `_playerFrontlineActivityScores` (`75760-75990`).
+Also read in the gap-filling pass: the scoring body of `_playerFrontlineActivityScores` (`75760-75990`), `_recordBattlefieldSortieOutcome` and the route-risk facts (`73442-73530`), `_battlefieldPackageRoleMultiplier` (`73686-73698`), the difficulty multiplier (`73248-73260`), `BattleCommander:_redReactiveBuildPressureByPlayers` (`31205-31292`).
+Not read: `_consumeBattlefieldIntelligence` (`74135-74311`), the CAP-placement and supply-protection values (`73638-73760`), the sortie registration (`73811-74105`).
 
 - **Player frontline activity**: a per-zone score of where human players are and what they do, plus an air-threat variant (`capOnly`); cached for 15 s; it also yields `humanPlayers`, `frontCount` and `maxPressure` used by the air posture (`75689-75705`, `75712`, `71249-71252`).
-- It is built from the player list by attaching each player to the campaign zone it occupies or the nearest one (`75717-75760`); the weighting by aircraft type, distance to front and in-air state is not read.
+- It is built from the player list by attaching each player to the campaign zone it occupies or the nearest one (`75717-75760`).
+- Which players count: for the general score, aeroplanes and helicopters not in `BlueCasCountIgnoreTypes`; for the air-threat variant (`capOnly`), aeroplanes not in `CapCountIgnoreTypes`, and only those airborne feed the `airThreatScores` output (`75884-75908`).
+- A player launched from a carrier and still in the carrier area is anchored on the carrier's campaign zone nearest the front and weighs `CARRIER_ORIGIN_ACTIVITY_SCALE` = 0.30 (`75765-75781`, `75909-75931`, `70994`).
+- Each player adds a **sector** of scores around its anchor zone, not a single point (`75782-75866`):
+  - anchor is an enemy (Red) zone: +140 on it, +100 on each adjacent Blue zone, and +70 on every other Red zone adjacent to those (+40 back on the anchor);
+  - anchor is a friendly or neutral zone: breadth-first search through Blue zones (up to 6 hops) to the first zones touching Red; those zones get `max(35, 110 − 20 × hops)` and their Red neighbours 20 more; only fronts within 3 hops, and one hop beyond the first, count.
+- So the weighting is by graph position relative to the front, not by aircraft type or metric distance; all eligible types weigh the same.
+- Each player also increments `humanPlayers` and, per distinct anchor, `frontCount`; `maxPressure` is the highest per-zone sum (`75868-75881`).
+- For Red's air-threat variant, Blue **AI** CAP adds a sector on its target zone, and active Blue AI CAS/SEAD sorties add one scaled `min(1.5, 0.5 × CAS + 0.75 × SEAD)` (`75934-75962`).
+- For Red's general variant every zone score is also recorded into a decaying "aggregate player intent" memory, blended back later at 25–30 % (`75966-75972`, `72822`, `71026-71029`).
+- The cache entry carries a `signature` (sorted `zone:score` pairs) that other throttles compare (`75964-75980`).
 - **Air-combat intelligence** (Config `GlobalSettings.directorAirCombatIntelligenceEnabled`, default true): air kills drained from `BattleCommander:_drainDirectorAirCombatKills()` are attached to a zone within 60 NM; each row holds `redAirLoss` and `playerPressure`, has a 5 min half-life, expires after 20 min and is capped at 200; a lost Red group is worth 80 (`72947-72990`, `71018-71022`, `Foothold Config.lua:433-436`).
 - Its sum `airCombatRecentLossScore` feeds the air posture loss ratio (`71238-71239`).
 - **Battlefield intelligence** (Config `GlobalSettings.directorBattlefieldIntelligenceEnabled`, default true): per-route rows for air sorties (`source|target|role`) and supply routes (`source|target|mode`) recording sortie outcomes, with a 45 min half-life, 3 h expiry, at most 128 rows, values capped at 200 (`73261-73267`, `71037-71041`, `Foothold Config.lua:428-431`).
 - The Config comment states its contract: it only biases planning; it "does not add groups, force launches, bypass cooldowns, or block a route" (`Foothold Config.lua:428-430`).
-- Its users in the read code: role weights in the package (`87779`), SEAD escort risk (`87661-87662`), CAP placement value and supply-protection requests (`73638-73760`, not read).
+- Its users in the read code: role weights in the package (`87779`), SEAD escort risk (`87661-87662`), CAP placement value and supply-protection requests (`73638-73760`, not read in detail; the CAP placement value is added to the CAP target score in section 9).
+- A route row counts outcomes per sortie: `airLoss`, `groundLoss`, `unattributedLoss`, `safeReturn` for air routes (plus the same loss counters per route **segment**, located from the point of loss), `delivered`, `returned`, `aborted` for supply routes, and `completed` (`73442-73500`).
+- Risk facts of a route: with `exposure = max(3, completed)`, `air = airLoss / exposure`, `ground = groundLoss / exposure`, `generic = unattributedLoss / max(4, exposure)`, `combined = min(1, 0.35 × air + 0.40 × ground + 0.25 × generic)` (`73502-73514`).
+- Package role multiplier (used in section 6): `1 + min(0.75, (0.75 × risk + 0.25 × past success of the role on that target) × difficulty)`, where risk is the target's air risk for CAP and ground risk for SEAD, 0 for other roles, and the difficulty factor is 0.65 / 1 / 1.25 for `RedReactiveDifficulty` easy / medium / hard (`73686-73698`, `73254-73259`).
+- So past losses to fighters raise the weight of CAP in the next package against that target, and past losses to ground fire raise SEAD.
+- The memory is Red-only in PvE (Blue only in PvP) (`73248-73252`).
 - **Operation outcomes** (doctrine/target/role) are described in section 8.
 - **Campaign front memory** and the **history** lists (operations 3, ground releases 8, strategic purchases 6, campaign actions 6) complete the memory (`71879`, `84898`, `84226`, `77450`).
 
@@ -430,14 +528,18 @@ Not read: `_airReactionDecision` (`71495-71545`), `_buildDefensivePlanProposal` 
 - The queue holds a single pending request; a same-target request raises its allowance, a higher-priority request replaces it, and it expires at the air decision's hold time (`94334-94378`, `94419-94426`).
 - A reaction operation gets `urgency` 3 (capture) or 2 (pressure) and, for a fresh capture, the `counterattack` doctrine (`94443`, `87411-87413`).
 - **CAS diversion on capture**: when Blue captures a zone, `considerCapturedZoneCasDiversion` scores each airborne CAS of the current operation for re-tasking onto the captured zone (distance, ETA, target score, player score, weakness of the captured zone, remaining fuel ≥ 20 %, remaining attack weapons ≥ 30 % of the template); it diverts the best one if the score reaches 60 (`56709`, `84482-84521`, `84736-84766`, `71015-71017`).
-- **Runway destroyed**: `redDirector:onRunwayDestroyed(zone)` is called when a runway is destroyed, and runway strikes on a target cool down for 60 min (`42916`, `71014`, `82587-82641` not read).
+- **Runway destroyed**: `redDirector:onRunwayDestroyed(zone)` is called when a runway is destroyed, and runway strikes on a target cool down for 60 min (`42916`, `71014`).
+- `onRunwayDestroyed` (read: `82587-82620`) starts the 60 min cooldown `runwayStrikeCooldownByTarget[zone]` for that Blue zone and, if a launched runway-strike assignment of the current operation targeted it, records the role evidence `roleEvidenceRunwayHit`; `_runwayStrikeTargetCooling` is what makes a runway strike ineligible meanwhile (`82626-82637`).
+- **Reactive pressure map** (the map the Director reads as `battleCommander._redReactivePressureByZone`): for each Blue combat player (aeroplane or helicopter not in `RedCasCountIgnoreTypes`), the three nearest active Red zones within `maxPlayerDistanceNm` (edge distance) receive 3, 2 and 1 points; the per-zone sums are the pressure, split into `capPressure` (fighter types) and `strikePressure`, with a `blueOccupied` flag for Red zones a Blue player is inside (`31205-31292`).
+- Readers of that map in the Director: target score (`+ min(20, 3 × pressure)` per Red neighbour, `84443-84446`), shadow `urgency` (`78170-78175`), supply priority (`77857`), zone-upgrade demand (`83427`); its signature is one of the shadow's rebuild triggers (`31294-31307`, `78776`).
 - **Defensive plan**: each tick Red computes a primary and a secondary zone to defend from player activity, the Blue Director's operation focus and Blue's own strategic objective; the proposal is cached while its inputs are unchanged (up to 60 s), must be held at least 5 min, and a switch needs 2 confirmations (`76847-76905`, `71059-71063`).
 - The plan is used for supply priority (+45 primary, +25 secondary) and for the ground-route threat list (`77872-77885`, `95875`).
 
 ## 13. Economy decisions: strategic budget, zone upgrades, supply priority
 
 Read in full: `84006-84398`, `83448-83467`, `77825-77937`, `BudgetCommander` (`96236-96289`); head of `selectZoneUpgradeTarget` (`83296-83330`).
-Not read: `_strategicBudgetFacts` (`83517`), `_strategicBudgetUpgradePlan`/`_zoneUpgradeScore` (`83156-83233`, `83911`), `_strategicWarehousePlan` (`83929`), `_buildLogisticsIntelligence` (`77938`).
+Also read in the gap-filling pass: `_zoneUpgradeScore` (`83156-83231`), `_massTacticalAirstrikeDecision` (`83636-83676`), `_tacticalAirstrikeCandidates` (`83701-83781`), the mass-attack planner (`34445-34613`, `35003-35024`), `_adoptMassAttack` (`92111-92139`).
+Not read: `_strategicBudgetFacts` (`83517`), `_strategicBudgetUpgradePlan` (`83911`), `_strategicWarehousePlan` (`83929`), `_buildLogisticsIntelligence` (`77938`).
 
 ### Red strategic budget (Director)
 
@@ -465,13 +567,16 @@ Not read: `_strategicBudgetFacts` (`83517`), `_strategicBudgetUpgradePlan`/`_zon
 
 - `Director:requestZoneUpgrade(context)` records a demand (pressure zone, Blue-occupied zones, reason, cooldown) that the budget then prices and schedules; it is called by the Red reactive tick when players strike a zone (`31761-31771`, `83431`).
 - `Director:selectZoneUpgradeTarget(zoneChoices, context, now)` is called by the shop's zone-upgrade action to pick the zone and the upgrade slot: it scores each candidate zone not occupied by Blue and inside the "upgrade corridor" of the pressure zone using a defence profile per category (`sam`, `shorad`, …) (`24130`, `83296-83330`).
+- `_zoneUpgradeScore(zone, context)` (`83156-83231`): +45 if the zone is the pressured zone itself, +35 for another zone of the same demand; +160 if it can launch CAP (runway capability), +45 with an airbase, −35 if its runway is currently blocked; `12 × ground connections + 5 × friendly ones`; `min(30, 2 × attack or supply routes starting there)`; `min(20, 5 × income)`; +15 if connected to a Blue zone, else +8 if near one; history over previous upgrades: `−180 / index` for the same zone, `−35 / index` for a zone within 2 hops.
+- So Red upgrades airbases and well-connected zones next to the pressure first, and does not upgrade the same place twice in a row.
 - `Director:regularSupplyTargetPriority(targetZone, context)` gives the regular supply system a per-zone priority made of: area role (hub 50, infrastructure 45, gateway 40, resource 25, defence 20, approach 15), income (max 40), player pressure (max 90, plus Red reactive pressure max 100), operation focus (120, or 50 for the same area), defensive plan (45/25), strategic objective (90 main, 45 secondary), area recommendation (45/25), fresh capture (100, Blue side), and campaign strategy bonuses (`77825-77937`, called at `54488`).
 - So supply/recapture/upgrade choices are not made by the Director's operation; the Director only supplies priorities and admission to the supply system (`BattleCommander:_regularSupplyTargetPriority`, `54443-54488`).
 
 ## 14. Blue AI (PvE) and both sides in PvP
 
 Read in full: `_updateBlue` (`95709-95800`), `allowsGroupSpawn` (`95930-96022`), `_blueCanManageGroup` and `_blueGroupCandidateScore` (`94737-94773`), `_blueAdoptActiveAttackMission` (`80033-80078`), `_configuredRoleLimit`/`_configuredAirCapacity` (`85494-85624`).
-Not read: `_blueReconcileAssignments` (`95095-95709`), `_blueReassessSupportFocus` (`80215`), `_blueMissionCandidateScore` (`79364-79530`), the scoring half of `selectMissionTarget` (`79935-80002`).
+Also read in the gap-filling pass: `_blueMissionCandidateScore` (`79364-79528`), `selectMissionTarget` (`79890-80000`), `_blueReconcileAssignments` (`95095-95150`, `95215-95330`, `95560-95708`; the middle `95150-95215` and `95330-95560` skimmed).
+Not read: `_blueReassessSupportFocus` (`80215`), `_blueSelectAreaMissionCandidate` (`79530-79830`).
 
 - `Director:update` dispatches to `_updateBlue` when `GlobalSettings.pvpEnabled` is true (either side) or the side is Blue (`95802-95805`).
 - The Blue Director has no offensive plan of its own: its "operation" is the adoption of the **active player attack mission** (PvE: a zone whose `ActiveCurrentMission` entry is `Attack`; PvP: the side's objective attack slots), chosen by `selectMissionTarget('ATTACK', …)` (`95778-95780`, `80033-80078`).
@@ -482,6 +587,34 @@ Not read: `_blueReconcileAssignments` (`95095-95709`), `_blueReassessSupportFocu
 - Blue role limits come from the "friendly support" stages: `getBlueCapLimit(bluePlayers)`, `getBlueCasLimit(blueCasPlayers)`, `getBlueSeadLimit(bluePlayers)`; anti-ship only with ≤ 1 Blue player (`85502-85515`).
 - These decrease as players join: e.g. `BlueCapSupportStages.medium` gives 1 CAP with 0–1 player and 0 from 1000 players, `easy` gives 2 then 1, `hard` gives 0 (`Foothold Config.lua:1053-1067`).
 - The Blue Director also answers target questions for the mission generator: `selectMissionTarget(role, candidates, context)` is called for roles `RUNWAYSTRIKE`, `ATTACK_SUPPORT`, `CAPTURE`, `DEAD`, `SEAD`, `CAS`, `RECON` (`62466`, `64037`, `64337`, `64510`, `64731`, `65050`, `65390`), and `getBluePackageRecommendation()` (`62320`).
+- **Mission target scoring** (`_blueMissionCandidateScore`, one additive score per candidate zone, base 100) (`79364-79528`):
+
+| Term | Value |
+|---|---|
+| neighbours | +45 per friendly, +12 per enemy, +8 per neutral, + `min(56, 8 × connections)` |
+| front progression | `_campaignFrontProgressionScore` for the friendly side (section 5) |
+| value | `min(50, 2 × income)`, +35 with an airbase, +12 with SEAD targets |
+| weakness | `(1 − target readiness) × 80` |
+| region | `_regionTargetPreference(zone, role)` |
+| SAM exposure | SEAD/DEAD: `+ min(260, 180 × exposure)`; RECON: `− min(300, 200 × exposure)`; RUNWAYSTRIKE: `− min(180, 100 × exposure)`; other roles: `− min(300, 180 × exposure)` |
+| area role | the member's `bluePriority`, hub +110, gateway +85, approach +45, resource +30, infrastructure +25, defence +60 for SEAD/DEAD |
+| area continuity | `+220 + min(80, 20 × friendly zones)` when the area is partly held; +220 for the committed area, then +120 / +90 / +45 at 0 / 1 / 2 hops from the last committed target; +260 for the area of the running operation; +70 for the recommended area |
+| players | + player-activity score of the zone |
+| anchor | proximity to the context's primary/anchor zone or the operation target: +220 / +150 / +95 / +45 at 0 / 1 / 2 / 3 hops |
+| AI coverage | +14 per role (CAP, CAS, SEAD) that Blue AI can cover there, +20 more for SEAD on a SEAD mission |
+| RUNWAYSTRIKE | +700 on the package's runway zone, +220 on the package goal |
+| ATTACK history | same target: −90 × age after failed/aborted/contained, +90/+70/+35 × age after neutralised/near-complete/partial; within 2 hops of a captured or neutralised target: +35 × age |
+
+- `selectMissionTarget` scores every active, non-hidden candidate, adds for ATTACK, ATTACK_SUPPORT and CAPTURE a term towards the area's package goal (`max(0, 180 − 35 × hops) + max(0, 40 − distance in NM)`), sorts, and lets `_blueSelectAreaMissionCandidate` pick area-first (`79927-79972`).
+- If an operation is running and role is `ATTACK`, the candidate matching the operation target is returned at once (`79907-79914`).
+- Side effects: an `ATTACK` choice starts the Blue objective (`_blueStartObjective`); a `CAPTURE` choice sets `blueAreaCommitment = {areaId, startedAt, lastProgressAt, lastTargetZone}` and refreshes the package recommendation (`79978-79997`).
+- **Assignment reconciliation** (`_blueReconcileAssignments`, each Blue tick while an operation exists):
+  - it tracks each assignment's progress (`lastProgressState`, `lastProgressAt`) and removes one that stays unlaunched beyond `blueAssignmentRetrySec` = 120 s plus the group's preparation delay (`launch-timeout`), or whose on-demand source zone became unusable (`95109-95118`, `95215-95224`, `95235-95245`);
+  - unauthorised assignments are authorised: a CAP when its slot can be authorised, the other roles unless the operation is still waiting for its CAP cover (`95246-95285`);
+  - per role, in the order CAP, CAS, SEAD, RUNWAYSTRIKE, ANTISHIP, vacancy = role limit − active − pending, with the PvP variant using the shared capacity (`95288-95330`);
+  - when vacancies exist and `blueCandidateRetryAt` has passed (retry every 120 s), candidates are collected (`_blueCollectCapCandidates`, `_blueCollectGroupCandidates`, scored as described above with 320 / 190 / 100 by hops from the focus) and assigned in order, **at most one CAP per pass**; a candidate may be re-tasked from its own target to the focus (`95572-95689`);
+  - a CAS or SEAD assignment triggers `_blueEnsurePackageCap`, and it is left unauthorised while that CAP is required and not yet up (`95659-95680`);
+  - if the required CAP was lost and human Blue players are present, the cover requirement is waived ("cap-cover=human-players"): the players are the CAP (`95225-95229`, `95695-95703`).
 - `Director:recordBluePlayerEngagement(zoneName, …)` is fed from the kill handler to know where Blue players fight (`42698-42701`).
 - Blue keeps an "area commitment" (the area it is making progress in) that is saved (`92077-92089`, `92515`).
 - **PvP**: both Directors run `_updateBlue`; player counts come from per-side "cohorts" (`pvpPlayerCohortsBySide[side].capCount/casCount/combatPlaneCount/generation`) (`95736-95740`).
@@ -498,7 +631,9 @@ Not read: `_blueReconcileAssignments` (`95095-95709`), `_blueReassessSupportFocu
 | Red CAS / SEAD / runway strike amount | `CasDifficulty`, `SeadDifficulty`, `RunwayStrikeDifficulty` + their stage tables | role limits, hence air capacity and package maximum | `Foothold Config.lua:868-874`, `85519-85527`, `85619-85649` |
 | Blue AI support | `FriendlyCapSupport`, `FriendlyCasSupport`, `FriendlySeadSupport` + `Blue*SupportStages` | Blue role limits, decreasing with players | `Foothold Config.lua:877-882`, `1053-1067`, `85502-85515` |
 | Red reactivity | `RedReactiveDifficulty` (easy/medium/hard) | reactive thresholds, forced groups, extra CAP, strategic-budget profile, CAP loss recovery | `Foothold Config.lua:438`, `31055-31135`, `83448-83456`, `71612-71615` |
-| AI spawn speed | `GlobalSettings.difficultyScaling = {[1]=1.0,[2]=1.0}` | multiplies attack/patrol timers per side | `Foothold Config.lua:416-423` |
+| AI spawn speed | `GlobalSettings.difficultyScaling = {[1]=1.0,[2]=1.0}` | multiplies the `dead`/`hangar`/`preparing` timers of `attack` and `patrol` sorties per side (details below) | `Foothold Config.lua:416-423`, `8657-8668` |
+| Supply speed | `GlobalSettings.supplyDifficultyScaling = {[1]=1.0,[2]=1.0}` | same multiplier for `supply` sorties; defaults to the previous one when absent | `Foothold Config.lua:1310`, `8661-8663`, `8675-8676` |
+| Repair speed | `GlobalSettings.repairDifficultyScaling = {[1]=1,[2]=1}`, `ExtraRedRepairTimeLowPlayerCountPercent = 0` | scales regular-supply repair time per side (floor 0.1); extra Red repair time at low player count, clamped 0–50 % | `Foothold Config.lua:1325`, `1332`, `8486-8491` |
 | Director memories | `GlobalSettings.directorBattlefieldIntelligenceEnabled`, `directorAirCombatIntelligenceEnabled` | turn the two intelligence memories off | `Foothold Config.lua:428-436`, `72949-72962` |
 | Package size | players (Red CAS-counted) | `2 + floor(players/2)`, cap 6, then posture | `85639-85649`, `71179-71206` |
 | Feint / second front | players ≥ 4 | chance 25 % + 10 % per player above 4, max 70 % | `90030-90033` |
@@ -511,6 +646,37 @@ Not read: `_blueReconcileAssignments` (`95095-95709`), `_blueReassessSupportFocu
 - Player counts are sizes of the global lists `playerListBlue`, `playerListBlueCas`, `playerListRedCas` (`60619-60632`); which aircraft types count is decided by ignore lists (`CapCountIgnoreTypes`, `RedCasCountIgnoreTypes`, `BlueCasCountIgnoreTypes`, `Foothold Config.lua:890`, `930`, `1069-1070`).
 - No Config setting named "max flights" or "disable automatic combat AI" exists for PvE; the PvE equivalents are the stage tables above and, for PvP, `PvPDisableCombatAI`.
 - `MaxBlueGroundGroupsPerZone = 4` and its Red counterpart limit zone garrison generation, not Director sorties (`Foothold Config.lua:445`, `481`).
+
+### Stage tables: what scales with what
+
+- Seven tables in the Config map a player count to an amount, each with `easy`/`medium`/`hard` variants selected by its difficulty setting: `CapLimitStages`, `RedCasLimitStages`, `RedSeadLimitStages`, `RedRunwayStrikeLimitStages` (Red, growing with players) and `BlueCapSupportStages`, `BlueCasSupportStages`, `BlueSeadSupportStages` (Blue AI, shrinking with players) (`Foothold Config.lua:894`, `936`, `975`, `1014`, `1053`, `1075`, `1097`).
+- A table is a list of `{player = n, amount = m}` steps; `getCapLimit(players)` looks the count up through `_limitFromStages`, falling back to hard-coded values when the table is missing (`60867-60885`).
+- Example, `CapLimitStages.medium`: 0–2 players → 1, 3–4 → 2, 5 → 3, 9 → 4, 10 → 6, 999 → 7; `easy` starts at 0 with no player and ends at 6; `hard` reaches 2 at 2 players and ends at 8 (`Foothold Config.lua:894-932`).
+- One CAP "amount" is one patrol CAP plus one attack CAP (`Foothold Config.lua:889`).
+- The counted players differ per table: Blue players not in `CapCountIgnoreTypes` for CAP, not in `RedCasCountIgnoreTypes` for Red CAS (`Foothold Config.lua:890`, `930`).
+
+### Timer scaling outside the Director (`difficultyScaling`, escalation and fade)
+
+- `GlobalSettings.setDifficultyScaling(value, coalition)` rebuilds `respawnTimers[coalition]` from `defaultRespawns` (15 min `dead`, 18 min `hangar`, 2 min `preparing` for supply, patrol and attack, both sides) and multiplies every timer by `value`, supply timers by the supply scale; a value below 1 makes that side's AI come back faster (`8571-8582`, `8586-8668`).
+- At load it is applied once per side from the Config values (`8670-8682`).
+- **Red catch-up when it is losing**: `_rebalanceRedDifficulty` runs after every zone state change; it counts the eligible zones (active, not suspended, not neutral, not hidden) and the share held by Blue; when Blue holds **≥ 90 %**, Red's timers are set to **half** the configured scale, otherwise back to the configured scale (`37004-37070`, called at `55450`).
+- So the last Red zones respawn their sorties twice as fast; this is the only automatic difficulty change active on Caucasus.
+- **Escalation and fade (inactive on Caucasus)**: `BattleCommander:new(savepath, updateFrequency, saveFrequency, difficulty)` accepts `difficulty = {start, min, max, escalation, fade, fadeTime, coalition}` (`17082`, `17120`).
+- With it, each time a zone of that coalition is emptied of its garrison `increaseDifficulty()` lowers the modifier by `escalation` (down to `min`), i.e. shorter timers, and at the end of each zone-update wave, once `fadeTime` seconds passed since the last change, `decreaseDifficulty()` raises it by `fade` (up to `max`); the applied scale is `start + modifier` (`19253-19265`, `55297-55299`, `43266-43270`).
+- The Caucasus setup calls `BattleCommander:new(filepath, 10, 60)` with no `difficulty` table, so `bc.difficulty` is nil and none of this runs (`MA_Setup_CAv2.lua:754`, `30240-30242`).
+- The modifier is not saved in v6.5.3 (see `02-persistence-lifecycle-plumbing.md`).
+- The Director's own scaling by `RedReactiveDifficulty` is separate: reactive thresholds, strategic-budget profile, CAP loss-recovery profile and the battlefield-intelligence factor 0.65 / 1 / 1.25 (`31055-31135`, `83448-83456`, `71612-71615`, `73254-73259`).
+
+### Red mass attack (the `surge`)
+
+- It is a `BattleCommander` feature the Director only buys and adopts: shop item `redmassattack` → `triggerRedMassAttack(preferredTargetNames)` (`35003-35024`, `84274-84276`).
+- Settings: at least 4 groups; per-type limits CAP 2, CAS 2, SEAD 1, RUNWAYSTRIKE 1 (6 groups at most); a group already in `takeoff` or `inair` towards the target counts as live (`34445-34464`).
+- Targets are Blue zones with an airbase (not carriers); for each, a plan pools the Red `attack` air groups and uninstantiated capabilities of every usable Red zone by type into `live` (already flying to that target), `assigned` (dormant, same target) and `retask` (dormant, another target within the retask distance), nearest source first; groups held by a Director operation are excluded, and SEAD needs SEAD targets (`34501-34558`, `34582-34590`).
+- Plan score = `10 × groups filled + number of roles filled`; a plan is eligible with ≥ 4 groups, at least one CAP, at least one striker and at least one dormant group to force out (`34560-34579`, `34591-34602`).
+- The Director's preferred targets win if eligible; otherwise a random pick among the best-scoring plans (`34604-34613`).
+- Player view: Red gets `COMBAT_RED_MASS_ATTACK` (target, forced groups, total), Blue gets `INTEL_MASS_ATTACK` (target) for 15 s with the sound `Intel_short.ogg` (`35018-35022`).
+- `Director:_adoptMassAttack` turns the running mass attack into an operation `{doctrine = 'surge', targetZone, assignments = {}}` with no assignments of its own, sets state `surge` and the next surge to 2700–5400 s later; a mass attack started outside the Director (shop, admin) is adopted the same way and pre-empts the current operation (`92111-92139`, `95853-95860`).
+- The state of a running mass attack is saved and restored (`34834-34990`, not read).
 
 ## 16. `EventCommander` and the events of the Caucasus setup
 
@@ -536,7 +702,10 @@ Read in full: `96291-96367`; setup events sampled (`MA_Setup_CAv2.lua:6130-6500`
 | `StrikeVaziani` | strike | flags, Lima Blue and Vaziani Red | respawns the Vaziani supply warehouse target, 1000 credits | `9297-9337` |
 | `SamDeltaWarehouse`, `SamEchoWarehouse`, `SamGolfWarehouse`, `SamAlphaWarehouse`, `SamHotelWarehouse`, `SamJuliettWarehouse`, `SamKiloWarehouse` | strike | flag not set, the supplying Red base and its SAM zone both Red and active, a nearby zone Blue | registers the warehouse scenery as a 500-credit strike target with a map mark; destroying it sets the custom flag that the `TheaterInfrastructure` entry and the supply capability's `condition` read (the SAM zone loses its resupply) | `9339-9715`, `2271-2290`, `1291` |
 
-- The tactical airstrike is the one event the Director steers: `getTacticalAirstrikePlan(pickOptions)` / `consumeTacticalAirstrikePlan` / `commitTacticalAirstrikeLaunch(selection, cooldown)`; candidates come from the bomber module's target/spawn pickers and from the Director's own target list, restricted to the current operation's area (`83701-83740`, `83783-83876`; scoring not read).
+- The tactical airstrike is the one event the Director steers: `getTacticalAirstrikePlan(pickOptions)` / `consumeTacticalAirstrikePlan` / `commitTacticalAirstrikeLaunch(selection, cooldown)`; candidates come from the bomber module's target/spawn pickers and from the Director's own target list, scored as follows (`83701-83781`).
+- Candidates are the Director's offensive target candidates that the bomber module also accepts as a target and for which it finds a spawn point away from players; score = the target's offensive score, +220 if it is the operation's target (`main`), +140 if it is the feint target (`diversion`), +60 if it is in the operation's area (`opportunity`), then ×0.35 if it was the previous airstrike's target (`83737-83775`).
+- During a `surge` the only candidate is the mass-attack target, and only if `_massTacticalAirstrikeDecision` said to include an airstrike in the mass attack (`83711-83733`, `83636-83676`).
+- That decision is refused with no players, with 7 or more groups already in the mass attack, with < 30 % serviceable CAP or ≥ 65 % losses; otherwise it is a weighted draw between `include = 55 + min(100, 12 × players) + min(100, 0.25 × target score) + 70 × serviceable − 120 × lossRatio` and `omit = 95 + 160 × lossRatio + 15 × groups above 4`, shifted by the air posture (conserve −90 / +70, pressure +30, concentrate +55 on `include`) (`83646-83675`).
 - The launch is validated again at spawn time: Director still ready, same operation signature, source zone still Red and active, no player within `minPlayerSpawnNm` (default 80 NM) of the spawn point (`MA_Setup_CAv2.lua:6455-6465`).
 - Moose is used in events only for `GROUP:FindByName():GetAmmunition()` and `SCENERY:FindByZoneName()` (`MA_Setup_CAv2.lua:6143-6144`, `9045`).
 
@@ -552,7 +721,7 @@ Read in full: `96291-96367`; setup events sampled (`MA_Setup_CAv2.lua:6130-6500`
 
 ## 18. Persistence (what the Director saves)
 
-Read: the top-level field list of `exportPersistence` (`92448-92577`); restore (`93046-94266`) not read.
+Read: the top-level field list of `exportPersistence` (`92448-92577`); the restore (`93046-94266`) is described in `02-persistence-lifecycle-plumbing.md`, subsection "`Director:_restorePersistence`".
 
 - `exportPersistence(getCommanderIndex)` returns one table per side, version 1, holding: `state`, campaign front memory, campaign strategy, campaign action lease/decision/history, air posture (as remaining seconds), air reaction decision, Blue area commitment, Blue/Red CAP group timers, CAP slots, tactical-strike transfers, CAS capture diversions, operation counter, remaining seconds of recovery/planning/surge/zone-upgrade/budget/spend/bomber/tactical-airstrike timers, budget intent, AIEN request, `history`, `doctrineOutcomes`, `targetOutcomes`, `roleOutcomes`, zone-upgrade history, budget history, ground decision timer, ground history and ground reuse cooldowns, air-combat and battlefield intelligence (`92457-92577`).
 - All timers are saved as **remaining seconds**, not absolute times, and outcome rows as an age (`outcomeObservedAgeSec`), so a restart resumes the clocks (`92538-92545`, `73334-73344`).
@@ -592,6 +761,6 @@ Read: the top-level field list of `exportPersistence` (`92448-92577`); restore (
 - `MissionCommander` (`mc:trackMission`, `mc:launchIdleAttack`) pairing every event with a player-facing mission (`102546-103949`, `MA_Setup_CAv2.lua:6195`, `6454`).
 - Regular supply system and its permits, where `NoAIBlueCapture` is enforced (`54270-54543`).
 - Zone auto-suspension by distance to the front (`GlobalSettings.autoSuspendNmBlue = 70`, `autoSuspendNmRed = 95`, PvP 100/100 and `proximityWakeNm = 50`) (`MA_Setup_CAv2.lua:6061-6070`).
-- Red mass attack mission and its shop item `redmassattack` (`BattleCommander:isRedMassAttackMissionActive`, used at `95853`).
+- Red mass attack mission tracking by `MissionCommander` (`autoTrackRedMassAttackMission`, `103062`); the planner itself is described in section 15.
 - Warehouse facilities purchasable by Red (`redwarehouse`, `redwhrepair`) and `zone.warehouseFacility` state (`84255-84265`).
 - PvP player cohorts and objective attack slots (`pvpPlayerCohortsBySide`, `objectivesBySide`, `80038-80047`).

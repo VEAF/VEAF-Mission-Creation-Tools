@@ -18,6 +18,7 @@ from typing import Any
 
 import yaml
 from mission_tools.mission_yaml_editor import load_yaml, save_yaml
+from veaf_libs.ctld_config import CTLD_CONFIG_FILENAME
 from veaf_libs.i18n import language, t
 from veaf_mission_mcp.airbase import set_airbase_coalition
 from veaf_mission_mcp.mission_settings import set_briefing
@@ -127,8 +128,48 @@ def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str
         "objectives": [{"kind": o.kind, "zones": list(o.zones)} for o in campaign.objectives],
         "zones": zones,
         "connections": [list(connection) for connection in campaign.connections],
-        "sides": {side: {"reserve": dict(state.sides[side].reserve)} for side in COALITIONS},
+        "sides": {side: _side_data(campaign, state, side) for side in COALITIONS},
         "scenery_destroyed": state.scenery_destroyed,
+        **_persistent_data(campaign),
+    }
+
+
+def _side_data(campaign: CampaignDefinition, state: CampaignState, side: str) -> dict[str, Any]:
+    """A side's part of the data table: its reserve, unless a persistent campaign gave it none.
+
+    An episodic campaign always counts its reserves, an empty one meaning nothing left. A persistent
+    campaign that declares no reserve for a side means it draws for free: the runtime does that when
+    the side has no `reserve` at all.
+
+    Args:
+        campaign: The validated campaign.
+        state: The campaign state the mission starts from.
+        side: ``blue`` or ``red``.
+
+    Returns:
+        ``{"reserve": {...}}``, or an empty table.
+    """
+    if campaign.mode == "persistent" and side not in campaign.declared_reserves:
+        return {}
+    return {"reserve": dict(state.sides[side].reserve)}
+
+
+def _persistent_data(campaign: CampaignDefinition) -> dict[str, Any]:
+    """What only a persistent campaign's mission carries: its mode, and its live play's settings.
+
+    Args:
+        campaign: The validated campaign.
+
+    Returns:
+        ``{"persistent": True, "player_side", "dynamic"}``, or an empty table for an
+        episodic campaign.
+    """
+    if campaign.mode != "persistent":
+        return {}
+    return {
+        "persistent": True,
+        "player_side": campaign.player_side,
+        "dynamic": campaign.dynamic,
     }
 
 
@@ -271,6 +312,57 @@ def opposition_for(players: tuple[int, int], player_side: str) -> dict[str, Any]
     return {"level": players[1], "follow": "air_to_air", "players_coalition": player_side.upper()}
 
 
+#: The CTLD 2 crate section a persistent campaign adds: one "Zone supplies" crate per side, which the
+#: runtime consumes to reinforce a friendly zone (FEAT-DYNAMIC-CAMPAIGN ticket 03). CTLD tells crates
+#: apart by their weight, so these two are odd enough to clash with none of the shipped ones.
+SUPPLY_CRATE_SECTION = "Campaign"
+SUPPLY_CRATES: tuple[dict[str, Any], ...] = (
+    {"unit": "M 818", "weight": 1009.01, "cratesRequired": 1, "side": 2},
+    {"unit": "Ural-375", "weight": 1009.02, "cratesRequired": 1, "side": 1},
+)
+
+#: The one-man CTLD 2 troop group a persistent campaign adds, for the spy team (ticket 08).
+SPY_GROUP: dict[str, Any] = {"inf": 1}
+
+
+def add_campaign_cargo(mission_folder: Path, dynamic: dict[str, Any]) -> list[str]:
+    """Add to the mission's CTLD 2 catalogue what a persistent campaign's players carry.
+
+    The "Zone supplies" crates and the spy team, under the names `dynamic.supply_crate` and
+    `dynamic.intel.spy_troops` give, when the mission's `ctld-config.yaml` does not have them yet. A
+    mission without that file has no CTLD 2, and is left alone.
+
+    Args:
+        mission_folder: The mission folder.
+        dynamic: The campaign's live play settings.
+
+    Returns:
+        What was added, for the report: the crate's and the troop group's names.
+    """
+    path = mission_folder / CTLD_CONFIG_FILENAME
+    if not path.is_file():
+        return []
+    crate_name = str(dynamic.get("supply_crate") or "Zone supplies")
+    spy_name = str((dynamic.get("intel") or {}).get("spy_troops") or "Spy")
+    data = load_yaml(path)
+    facing = data.get("mm_facing")
+    if not isinstance(facing, dict):
+        return []
+    added: list[str] = []
+    crates = facing.setdefault("spawnableCrates", {})
+    known_crates = {str(crate.get("desc")) for section in crates.values() for crate in (section or [])}
+    if crate_name not in known_crates:
+        crates[SUPPLY_CRATE_SECTION] = [{**crate, "desc": crate_name} for crate in SUPPLY_CRATES]
+        added.append(crate_name)
+    groups = facing.setdefault("loadableGroups", [])
+    if spy_name not in {str(group.get("name")) for group in groups}:
+        groups.append({"name": spy_name, **SPY_GROUP})
+        added.append(spy_name)
+    if added:
+        save_yaml(path, data)
+    return added
+
+
 def _set_opposition(mission_yaml: Path, block: dict[str, Any]) -> None:
     """Write the `opposition:` block of `mission.yaml`, keeping the rest of the file.
 
@@ -349,6 +441,8 @@ def prepare_next_mission(
         # briefing alone, since what was written on top of them is design
         set_briefing(mission_folder, situation=strategic_situation(campaign, state))
     _enable_campaign_module(mission_folder / "mission.yaml", campaign.era)
+    if campaign.mode == "persistent":
+        add_campaign_cargo(mission_folder, campaign.dynamic)
     # rewritten on every run: the title arrives with the design, and a test copy is the one that turns
     # security off, never the campaign
     name = mission_name(campaign.name, state.mission + 1, page.title if page else None)

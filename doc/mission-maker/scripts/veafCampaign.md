@@ -55,3 +55,12 @@ Une seule boucle pour tout le module, aucun minuteur par zone.
 `<Saved Games>\DCS\Missions\Saves\<campagne>\mission-NN.state`, une table Lua (`return { … }`) que `veaf-tools campaign apply` relit.
 Il demande `io` et `lfs` dans l'environnement des scripts de mission ; `os` est utilisé quand il est là, pas exigé.
 Voir [le fichier d'état](../CAMPAIGN.md#state-file).
+
+---
+
+## Mode persistant {#persistent}
+
+Avec `mode: persistent` dans `campaign.yaml`, le même module joue une campagne en **une seule mission** qui se sauvegarde dans `<Saved Games>\DCS\Missions\Saves\<campagne>\persistent.state`, se recharge au démarrage, se termine par une victoire ou une défaite, et repart de zéro ensuite.
+Ses zones dorment loin des joueurs, son front bouge tout seul, et il démarre deux modules de plus : `veafCampaignOps` (hélicoptères de ravitaillement, aviation ennemie, Hunter) et `veafCampaignEconomy` (crédits, boutique, tâches, renseignement).
+Le menu radio gagne **Crédits**, **Tâches**, **Renseignement**, **Boutique**, **Auto-contrôle (admin)** et **Remettre la campagne à zéro (admin)**.
+Voir [Campagne persistante](../PERSISTENT_CAMPAIGN.md).

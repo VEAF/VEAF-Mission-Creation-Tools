@@ -197,6 +197,8 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafSanctuary.lua` | Détection de zone sanctuaire |
 | `test_veafMissileGuardian.lua` | Logique d'interception de missiles |
 | `test_veafCampaign.lua` | Campagne multi-missions : tirage, enregistrement et pertes des garnisons |
+| `test_veafCampaignPersistent.lua` | Campagne persistante : sauvegarde relue, victoire, défaite, remise à zéro, zones en sommeil, renfort, contre-attaques, livraisons CTLD 2, auto-contrôle |
+| `test_veafCampaignLive.lua` | Campagne persistante : hélicoptères de ravitaillement, aviation ennemie, Hunter, crédits, boutique, tâches, renseignement, équipe espion |
 | `test_veafCasMission.lua` | Génération de packages de menaces CAS |
 | `test_veafCasMission_menu.lua` | Menu MISSION CAS fixe : aucune entrée ajoutée ni retirée pendant une mission, réponses sans mission en cours |
 | `test_veafTransportMission.lua` | Setup de mission de transport |

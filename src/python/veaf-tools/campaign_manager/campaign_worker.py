@@ -126,6 +126,9 @@ class CampaignWorker:
         campaign, issues = load_campaign(self.campaign_file)
         if campaign is None:
             return issues, None
+        if campaign.mode == "persistent":
+            # one mission that saves and reloads itself: there is no "between two missions" to play
+            return [*issues, ValidationIssue(ERROR, t("campaign.issue.persistent_no_apply"))], None
         if not self.state_file.exists():
             return [*issues, ValidationIssue(ERROR, t("campaign.issue.not_started", path=self.state_file))], None
         current, state_issues = load_state(self.state_file)

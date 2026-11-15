@@ -75,7 +75,7 @@ Trigger-zone conventions in the `.miz` (all read from `env.mission.triggers.zone
 ### Mechanism
 
 `CustomZone:getByName` builds once per name a table `{name, type, point, radius, vertices, minX…maxZ, radiusSq, isHidden}` from the mission table and caches it (`zc2:4228-4284`).
-`CustomZone:isInside(point)` does a bounding-box rejection, then a squared-distance test for circles or `UTILS.IsPointInPolygon` for quads (`zc2:4294-4306`); this Moose utility is a plain ray-casting test and is the only Moose dependency of the geometry (estimation on the Moose internals).
+`CustomZone:isInside(point)` does a bounding-box rejection, then a squared-distance test for circles or `UTILS.IsPointInPolygon` for quads (`zc2:4294-4306`); this Moose utility is a plain ray-casting test (crossing-number on `x`/`z`, on a deep copy of the vertex list at every call) and is the only Moose dependency of the geometry (`Moose_2026-10-11.lua:5145-5168`).
 `CustomZone:getZoneBuildings` runs `world.searchObjects(Object.Category.SCENERY, sphere)` once per zone and caches the positions of scenery objects with the `Buildings` attribute (`zc2:4308-4343`).
 
 State kept per zone at runtime: `side`, `active`, `suspended`, `built` (slot index → live group or static name), `spawnSubZones` (slot → sub-zone used), `groups` (the AI `GroupCommander`s based there, other theme), `triggers`, `criticalObjects`, `restrictedGroups`, `pendingCapture`, and a set of caches and dormancy flags (`zc2:46594-46651`).
@@ -98,12 +98,78 @@ A name containing `dismounted` is never spawned by the zone itself (`zc2:51560`,
 Group names containing `IsNotShown` or `Red EWR` are spawned hidden on the F10 map (`zc2:4658-4660`).
 
 Random garrisons: `RandomGroundGroups` and `RandomBlueGroups` default to true (`zc2:48417-48418`).
-`applyRandomRedUpgrades()` rewrites `zone.upgrades.red` of every eligible zone (not hidden-without-size, not a carrier) from a size template `RandomUpgradeTemplates[size]` that gives a count or `{min,max}` range per category `sam`, `shorad`, `aaa`, `ground`, `armor`, `arty` and a `total` (`zc2:49516-49598`, `zc2:48506-48524`).
+`applyRandomRedUpgrades()` rewrites `zone.upgrades.red` of every eligible zone (not hidden-without-size, not a carrier) from a size template `RandomUpgradeTemplates[size]` that gives a count or `{min,max}` range per category `sam`, `shorad`, `aaa`, `ground`, `armor`, `arty` and a `total` (`zc2:49516-49598`; the tables themselves are in `setup:698-728`, resolved by `resolveTemplate`, `zc2:48506-48524`).
 `MaxRedGroundGroupsPerZone` (Config) caps the number of red groups per zone, clamped to 5–12 (3–6 on Normandy), and scales the templates down per size tier when below the map maximum (`zc2:49517-49581`).
 Categories are derived from the group name by substring (`aaa`, `shorad`/`sa-8`/`sa-15`…, `sa-2`/`sa-10`/`hawk`/`patriot`…, `arty`/`mlrs`…, `armor`, `infantry`/`truck`…) (`zc2:48550-48596`).
-Pinned, `Fixed` and static entries are kept; the rest is drawn from a global pool of all red (or blue) templates filtered by the Config "enabled templates" switches (`zc2:49028-49110`, `zc2:48690-48727` not read in full).
-The draw is deterministic per campaign: a campaign seed is created once (from `socket.gettime` if LuaSocket loads, else mission date and timers) and mixed with side, zone size and zone name before each zone is generated (`zc2:48450-48494`).
-`applyRandomUpgradesForNewZonesOnly()` exists so that a saved campaign keeps its drawn garrisons and only new zones are drawn (`zc2:49621` onwards, body not read).
+Pinned, `Fixed` and static entries are kept; the rest is drawn from a global pool of red (or blue) templates filtered by the Config "enabled templates" switches (detail below).
+The draw is deterministic per campaign: a campaign seed is created once (from `socket.gettime` if LuaSocket loads, else mission date and timers) and mixed with side, zone size and zone name before each zone is generated (`zc2:48450-48494`); all draws go through `fhRand`, a linear congruential generator `seed = (1103515245 × seed + 12345) mod 2^31` (`zc2:48420-48440`).
+The setup file calls `applyRandomRedUpgrades()` and `applyRandomBlueUpgrades()` only when no save was loaded, and `applyRandomUpgradesForNewZonesOnly()` otherwise (`setup:5917-5919`, `setup:5938-5939`).
+
+Size templates for red, Caucasus (`setup:698-714`); a single number is a fixed count, `a–b` a uniform range, "flak" = `flakChance` / `flakSecondChance` / `flakMax`, "keep" = `RandomRedPickKeepChance` for both `Red SAM SHORAD Pantsir S1` and `Red SAM SHORAD Tor M2`:
+
+| size | sam | shorad | aaa | ground | armor | arty | total | flak | keep % |
+|---|---|---|---|---|---|---|---|---|---|
+| `small` | 0 | 0–2 | 0–2 | 0–3 | 0–2 | 0–2 | 4–6 | 10 / 0 / 1 | 20 |
+| `smallwithShorad` | 0 | 2 | 2 | 0–1 | 1 | 0 | 4–7 | 10 / 0 / 1 | 30 |
+| `smallmedium` | 0 | 0–3 | 0–2 | 0–3 | 0–3 | 0–2 | 4–7 | 12 / 0 / 1 | 30 |
+| `medium` | 0–1 | 0–3 | 0–3 | 0–3 | 0–3 | 0–3 | 4–9 | 20 / 0 / 1 | 40 |
+| `mediumbig` | 0–1 | 0–4 | 0–3 | 0–3 | 0–4 | 0–3 | 5–10 | 30 / 5 / 2 | 50 |
+| `big` | 0–1 | 0–4 | 0–3 | 0–3 | 0–4 | 0–3 | 5–10 | 50 / 20 / 2 | 70 |
+| `bignosam` | 0 | 0–4 | 0–3 | 0–3 | 0–4 | 0–3 | 5–10 | 50 / 20 / 2 | 70 |
+| `extrabig` | 1–2 | 0–5 | 0–4 | 0–4 | 0–4 | 0–4 | 7–12 | 60 / 30 / 2 | 100 |
+| `sam` | 1 | 1–2 | 1–2 | 0 | 0 | 0 | 3–5 | 10 / 0 / 1 | 70 |
+| `sam2` | 1 | 1–2 | 1–2 | 0 | 0–1 | 0 | 3–6 | 10 / 0 / 1 | — |
+| `samspecial` | 2 | 1–3 | 1–2 | 0 | 0 | 0 | 6–7 | 25 / 8 / 2 | 0 |
+| `redarmycamp` | 0 | 0 | 0 | 3–5 | 0 | 0–5 | 6–8 | — | — |
+| `redarmycamp2` | 0 | 0 | 1–2 | 3–5 | 0 | 0–4 | 6–8 | 0 / 0 / 0 | — |
+| `redarmycamp3` | 0–2 | 0–3 | 1–3 | 0 | 0 | 0 | 6–8 | 0 / 0 / 0 | — |
+
+Blue size templates (`RandomUpgradeTemplatesBlue`, `setup:716-727`): every size has `ground 0–1`, `armor 1`, `aaa 0–1`, `shorad 0–1`; `sam` is 0 for `small`, `smallmedium`, `medium`, `mediumbig`, `bignosam` and 0–1 for `big`, `extrabig`, `sam`, `sam2`, `samspecial`; `total` is 2 (`small`, `smallmedium`), 2–3 (`medium`, `mediumbig`), 3–4 (`big`, `extrabig`, `bignosam`), 4 (`sam`, `sam2`, `samspecial`).
+In PvP both sides use `PvPBaseGarrisonProfiles`, which maps every size onto the blue `small` / `medium` / `big` / `bignosam` / `sam` rows with the big ones forced to `total = 3` (`setup:729-746`).
+`ZoneSizeExclusions[size]` is a list of lower-case substrings a template name must not contain for that size, e.g. `small = {"sa-10","sa-11","sa-2","pantsir","tor m2"}`, `medium = {"sa-10","sa-11","pantsir"}` (`setup:689-696`, `zc2:48728-48744`); `zone.noLongRangeSam` additionally bans SA-2/SA-10/SA-11 names (`zc2:48739-48741`, `zc2:48633-48639`).
+`RandomRedPool` (55 names for the modern era: 5 strategic SAM, 7 SHORAD, 10 AAA, 2 infantry, 3 armour, 6 mech, 3 special, 10 artillery, plus 6 "Enemy Ground-Light" groups outside Vietnam and 3 "…-Modern" ones in the modern era) and `RandomBluePool` (9 names) are literal lists in the setup file, swapped name by name for the Cold War and Vietnam eras (`setup:594-687`, counts by reading the list).
+
+### Mechanism — the random draw
+
+Pools (`zc2:48746-48866`).
+`getGlobalRedPool()` returns `RandomRedPool` when the setup file defines it; otherwise it scans every `upgrades.<key>.red` list (carrier and "hidden" keys excepted) and keeps each name that is not pinned, not `Fixed`, not a static and that exists as a template (`zc2:48746-48780`).
+`getGlobalBluePool()` is the same over `upgrades.<key>.blue`, with `Blue SAM PATRIOT` always excluded (`zc2:48782-48813`).
+`fillPoolsFrom(source, pools, zone, size)` sorts the candidate names into per-category lists after four filters: not pinned/`Fixed`/static; enabled by the Config switches; not excluded by `ZoneSizeExclusions` or `noLongRangeSam`; a template of that name exists (`zc2:48815-48848`).
+The Config switch is a table `RedTemplateEnabled` (or the older `RedSamTemplateEnabled`) keyed by family — `SA-2`, `SA-3`, `SA-5`, `SA-6`, `SA-8`, `SA-9`, `SA-10`, `SA-11`, `SA-13`, `SA-15`, `SA-19`, `Tor M2`, `Pantsir S1`, `MANPAD`, all true by default; the family of a name is found by substring (`manpad`, `pantsir`, `tor m2`, then `sa-19` … `sa-2` longest first, with hyphen or space), with per-name overrides `RedTemplateKeyByName` and the built-in `Enemy Task forces` → `MANPAD` (`zc2:48641-48687`, `zc2:48689-48712`).
+A disabled name is replaced by `RedTemplateReplacementByName[name]` (built-in: `Enemy Task forces` → `Enemy ground forces`) and the replacement is filtered again; with no replacement it is dropped (`zc2:48714-48719`, `zc2:48828-48836`).
+In PvP the "base-garrison" purpose additionally bans SA-5, SA-10, SA-11, SA-15, SA-19, Tor M2 and Pantsir, and any SAM/SHORAD whose family is not SA-2/3/6/8/9/13/MANPAD (`zc2:48691-48706`).
+
+`buildRandomRedUpgrades(zone, maxGroups, generationProfiles)` (`zc2:49028-49302`):
+
+1. Seed the generator for (zone, "red", size); with no template for that size the authored list is returned with disabled names replaced (`resolveConfiguredRedUpgrades`) (`zc2:49030-49034`, `zc2:49000-49014`).
+2. Resolve the template: each range is rolled once with `fhRand`, and `total` is clamped to `maxGroups` (`zc2:48506-48524`, `zc2:49037`).
+3. Walk the authored list: statics go to `staticList`; a pinned entry whose family is disabled is dropped; `Fixed`, pinned and "extra forced" entries (the names in `zone.extraUpgrade` bought for red) go to `fixedList` and are counted per category (`zc2:49039-49083`).
+4. Build the pools from the global red pool (or, when `RandomGroundGroups` is false, from the zone's own list, falling back to the global pool if that yields nothing), and remove the forced names from them (`zc2:49104-49128`).
+5. Flak: when the template has `flakChance`, the flak pool (`RandomFlakPool` or the default `Red SAM AAA 3` and `Red SAM AAA 4`, filtered like any pool and restricted to the `aaa` category) is taken out of the ordinary AAA pool (`zc2:48926-48942`, `zc2:49130-49136`).
+6. Targets: `needed[cat] = rolled count − fixed count`; `targetTotal` is at least `fixed + sum of category minimums` and at most `maxGroups`; if the category needs exceed the room left, random categories that have a range are decremented one by one, never below their minimum (`zc2:49138-49190`).
+7. Output order: statics (only if `UseStatics`), then fixed, then for each category in the order sam, shorad, aaa, ground, armor, arty: `want` names drawn without repetition from the category pool, with repetition only when the pool is smaller than `want` (`pickFromPoolAllowRepeats`) (`zc2:49191-49228`, `zc2:48869-48900`).
+8. Each picked name passes `applyRandomRedPickKeepChance`: a name listed in the template's `RandomRedPickKeepChance` is kept with that percentage, otherwise swapped for another name of the same pool that is not already picked and preferably not itself in the keep-chance list (`zc2:48902-48924`).
+9. If room remains (`total` larger than the sum of categories), names are drawn one at a time from the union of all category pools that still have room below their maximum, falling back to the `other` pool (`zc2:49230-49266`).
+10. Flak substitution: one roll of `flakChance` %, then (if `flakMax > 1` and at least two random AAA slots exist) one roll of `flakSecondChance` %; that many randomly chosen random-AAA slots are overwritten with distinct names of the flak pool (`zc2:48956-48998`, `zc2:49268-49270`).
+
+Scaling by `MaxRedGroundGroupsPerZone` (`zc2:49517-49581`): only in PvE, not on Normandy, and only when the setting is below both 12 and the largest `total` maximum of the sizes in use.
+Each size then gets a `ceiling`: with a setting ≤ 6, `min(high, setting − gap)` where `gap` is 2 for `small`, 1 for `smallmedium` and `medium`, 0 for `mediumbig`, `big`, `bignosam`; above 6, `high` is reduced by `(high − (6 − gap)) × (mapMax − setting) / (mapMax − 6)` rounded down (rounded to nearest when `gap` is 0); the low bound follows (`zc2:49528`, `zc2:49556-49574`).
+With a setting ≤ 6 and `gap > 0` a "weight budget" is also applied: budget = 2 × (min(rolled total, max(tierMinimum, rolled total − 1)) − fixed count) with `tierMinimum` 2 for `small` and 3 otherwise; every random pick costs 2, or 1 for a single-unit AAA/SHORAD template; picks that satisfy a category minimum are always paid, the others are kept in order only while the budget lasts (`zc2:49575-49577`, `zc2:49142-49147`, `zc2:49272-49299`).
+Sizes without a `tierGap` entry (`extrabig`, `sam…`, `redarmycamp…`, `smallwithShorad`) keep their template and only the global clamp of `total` (`zc2:49557-49558`, `zc2:49094-49101`).
+
+`buildRandomBlueUpgrades(zone, actualOwner)` follows the same plan with fewer steps: template from `RandomUpgradeTemplatesBlue[size]`, `total` clamped to `MaxBlueGroundGroupsPerZone` (itself clamped to 1–4), statics and fixed/pinned/forced entries first, then per category in the order sam, shorad, ground, aaa, armor, arty a draw **without** repetition, then a fill from the categories still below their maximum, each name used once (`zc2:49304-49330`, `zc2:49366-49399`, `zc2:49438-49506`).
+There is no keep-chance, no flak and no scaling for blue.
+With `actualOwner` given (PvP), the same function builds the base garrison of either side from `PvPBaseGarrisonProfiles`, keeps the industry-core statics first, and returns a second "materialized" list = base + the paid extra upgrades of that side appended as pinned entries (`zc2:49305-49350`, `zc2:49449-49455`, `zc2:49508-49512`).
+
+Result storage: the drawn list is stored twice, as `zone.randomUpgradesRed` / `randomUpgradesBlue` (the "base", persisted) and as a copy in `zone.upgrades.red` / `.blue` (the working list that extra upgrades later extend) (`zc2:49587-49594`, `zc2:49608-49615`).
+
+`applyRandomUpgradesForNewZonesOnly()` (`zc2:49621-49849`), run instead of the two functions above when a save was loaded:
+
+- a zone is drawn only if it has no saved entry at all, or (PvE) a saved entry without either `randomUpgrades*` list; it then also forgets `remainingUnits` and sets `_refreshRandomUpgrades` (`zc2:49732-49771`);
+- on Normandy it first renames old saved extra upgrades `EWR` / `BluePD` to `bluePD` (`zc2:49624-49658`);
+- for every zone restored as suspended, each slot of `remainingUnitsSnapshot` is compared with the unit types of the template now in that slot (`_getUpgradeTemplateUnitCount`): the saved survivors are kept when the template name is unchanged and the saved types are a sub-multiset of the template's types for an idle-suspended zone, a PvP zone, a `_preserveSuspendedLosses` zone or a `Blue SAM …` / `Blue Armor …` template; otherwise the slot is reset to the full template (and its saved sub-zone forgotten) as soon as the name changed or the saved types are not exactly the template's (`zc2:49773-49846`, `zc2:49685-49722`).
+
+`pickReplacementUpgrade(zone, missingName, upgradesList, side)` (`zc2:49851-50020`) is the single-slot fallback used when a template fails to spawn or is disabled: it builds the same filtered pools, takes the category of the missing name, and draws uniformly among the pool names of that category not already in `upgradesList`; when that category is empty, not allowed by the size template (maximum 0) or already at its maximum, it draws among all categories that still have room; it returns nil when nothing fits.
 
 ### Mechanism — spawning one garrison group
 
@@ -141,6 +207,16 @@ Called for every zone by `bc:init()` after the save file has been applied (`setu
 - A zone restored as suspended does not spawn its garrison: slot names are put in `built` and remembered in `_persistedHibernatedSlots`; only groups whose template is a "suspension-persistent radar" (blue GCI/EWR) are spawned (`zc2:51504-51545`).
 - Sets the restricted-group flags, initialises the zone's AI group commanders, seeds supply/advance-capture caches (`zc2:51745-51756`).
 
+`weedOutRemainingUnits(opts)` is the trim pass that turns a freshly respawned full-strength garrison back into the damaged one that was saved (`zc2:51788-51901`).
+It first destroys any live group whose name is in the zone's upgrade list but not in `built` (template leftovers), unless `skipDestroyUnspawnedGroups` is set (`zc2:51794-51807`, `zc2:51893-51895`).
+The trim itself runs twice, 2 s and 4 s after the call (two one-shot `SCHEDULER`s, the second also fires `opts.onTrimComplete`), because the groups have only just been requested from `coalition.addGroup` (`zc2:51896-51900`).
+For each built group it reads the saved slot, either `remainingUnits[slot]` (a list of unit **type names**) or, for "fixed hidden" groups, `remainingUnitNames[slot]` (a list of unit **names**) (`zc2:51814-51821`).
+Exact-name branch: if at least one live unit name is in the saved list, every unit whose name is not in it (or exceeds its saved count) is destroyed with `Unit:destroy()` (`zc2:51824-51850`).
+Type branch (the "sort by type" case): otherwise a multiset `need[typeName] = count` is built from the saved list and the group's units are walked in order; a unit whose type still has a positive count consumes one, any other unit is destroyed, so the survivors are the first N units of each type, not the same individuals (`zc2:51851-51865`).
+An empty saved type list destroys nothing, except in an idle-wake restore (`idleRestoreToken`) where it empties the group (`zc2:51851`).
+It also destroys statics listed in `newStatics` that are not in `built` (PvP neutral industry cores excepted) and marks the supply-efficiency cache dirty when anything was removed (`zc2:51869-51891`).
+An idle-wake trim is abandoned if the zone changed side, went back to sleep or was superseded by a newer wake in the meantime (`zc2:51810-51812`).
+
 Statics as garrison: when `UseStatics` is true a static named in `upgrades` counts as a built slot as long as it exists; when false, such statics are destroyed by `getFilteredUpgrades` (`zc2:51510-51515`, `zc2:48403-48408`).
 
 `getFilteredUpgrades()` returns the upgrade list of the current owner with red templates disabled in Config removed or substituted (`getRedTemplateReplacement`), and returns an empty list for a neutral zone (`zc2:48329-48414`).
@@ -176,7 +252,10 @@ Combat effectiveness and surrender (red, visible, non-carrier zones only, `zc2:5
 
 - State `full`, `reduced` (damaged, mobile units left, no air defence left) or `static` (damaged, only statics left) recolours the zone fill: red `{1,0,0,0.3}`, light red `{1,0.45,0.45,0.3}`, purple `{0.55,0.2,0.7,0.3}` (`zc2:55655-55664`, `zc2:45911-45915`).
 - Air defence = unit has attribute `SAM TR`, `AAA` or `IR Guided SAM`; "weak" = not air defence and `Unarmed vehicles` or `Infantry` (`zc2:45901-45908`).
-- When the zone is no longer "strong" (no static, no ship, no air defence, all mobile groups weak, at most 4 live units), a tier 4..1 is evaluated and a surrender roll is made with chance 40/60/70/80 % for tiers 4/3/2/1 (`zc2:55666-55683`, `zc2:45916-45921`; the tier boundaries are in `EvaluateZoneSurrenderTransition`, not read).
+- When the zone is no longer "strong" (no static, no ship, no air defence, all mobile groups weak, at most 4 live units), a tier 4..1 is evaluated and a surrender roll is made with chance 40/60/70/80 % for tiers 4/3/2/1 (`zc2:55666-55683`, `zc2:45916-45921`).
+- The tier **is** the number of live garrison units (1 to 4): `EvaluateZoneSurrenderTransition` keeps three values per zone — the last observed live-unit count, whether the zone was strong at the last scan, and the lowest tier already rolled (`surrenderEvaluatedTier`, persisted) — and returns a tier to roll only when the zone has weakened since the last scan (it was strong, or the count dropped) and the count is lower than any tier already rolled (`zc2:45942-45970`).
+- Consequences: at most one roll per tier and per weakening cycle, so at most four rolls (4, 3, 2, 1 units) as the garrison is worn down; the first scan after a load or wake-up only seeds the observation and never rolls; a zone that becomes strong again (repair, upgrade) forgets its rolled tiers; a protected zone (below) is left untouched (`zc2:45944-45958`, `zc2:45973-45982`).
+- The roll itself uses `math.random(1,100) <= chance`, not the campaign generator (`zc2:55998`).
 - On success all weak groups are destroyed and removed from `built`, and blue gets "ZONE_ENEMY_FORCES_SURRENDERED" (`zc2:55998-56010`, `zc2:55686-55705`).
 - Units targeted by an active CAS slot are "surrender-protected" (`zc2:55729-55733`, `zc2:46001`).
 
@@ -188,7 +267,14 @@ Combat effectiveness and surrender (red, visible, non-carrier zones only, `zc2:5
 - if nothing needed repair and all slots are full → "ZONE_ALREADY_FULLY_UPGRADED" (blue only), return false (`zc2:56990-56995`);
 - otherwise the first missing slot is spawned (group via `_spawnBuiltGroup`, static via `SPAWNSTATIC:NewFromTemplate(...):SpawnFromCoordinate` → `coalition.addStaticObject`), message "ZONE_UPGRADED_COUNT" n/total (blue) or "ZONE_DEFENSES_UPGRADED" (red, also shown to blue in PvE), trigger `upgraded` (`zc2:56997-57089`).
 
-Who calls `upgrade()`: each successful supply delivery to a friendly zone (AI supply flight or convoy, player supply crate, pre-placed crate — `zc2:55236-55248`, `zc2:69981-69985`), the capture itself (one step, `zc2:56702-56707`), the regular-supply "local recovery" jobs (other theme: logistics), admin commands, and `UpgradeUntilComplete` loops used by shop items and start-up (`zc2:50822`, not read).
+Who calls `upgrade()`: each successful supply delivery to a friendly zone (AI supply flight or convoy, player supply crate, pre-placed crate — `zc2:55236-55248`, `zc2:69981-69985`), the capture itself (one step, `zc2:56702-56707`), the regular-supply "local recovery" jobs (other theme: logistics), admin commands, and the "until complete" loops below.
+
+"Until complete" loops, all built on a self-rescheduling `timer.scheduleFunction` that stops as soon as the zone changes side:
+
+- `ZoneCommander:UpgradeUntilComplete(onComplete, delaySeconds)`: returns false at once when nothing is damaged or missing; otherwise, starting 1 s later and then every `delaySeconds` (default 2 s), each step either respawns one damaged group (`RespawnZoneRepairTarget`) or, when none is damaged, calls `upgrade(true)` for one missing slot; `onComplete(zone)` is called after the last step (`zc2:50822-50856`).
+  Its only caller in the Caucasus setup is the shop item `supplies` ("fully upgrade zone") (`setup:4017-4035`).
+- `ScheduleZoneUpgradeUntilComplete(zone, …)` (local): upgrade-only variant (no repair), one silent `upgrade(true)` every 2 s until `built` is as long as the filtered upgrade list; used by `MakeZoneRedAndUpgrade` and the two `AwakenZone…` variants (`zc2:50494-50513`, `zc2:50518`, `zc2:50628`, `zc2:50637`).
+- `upgradeRedZones()` / `upgradeBlueZones()` (admin markers `upgradeallred` / `upgradeallblue`): collect every visible, awake zone of the side that needs a repair or a slot, then process them one after the other, 10 s apart, each with its own 2 s repair-or-upgrade loop; a busy flag refuses a second run and "all zones fully upgraded" is printed at the end (`zc2:50858-50975`).
 
 ### Reproduction notes
 
@@ -215,7 +301,10 @@ A carrier zone that becomes neutral with warehouse logistics on is disabled in t
 
 `ZoneCommander:disableZone(silent)` destroys every built group/static and the critical statics, sets `side = 0` and `active = false`, runs triggers `destroyed`, rebuilds the connection map and redraws (`zc2:50185-50270`).
 An inactive zone is skipped by `update()` (`zc2:55147`), cannot be captured (`capture()` requires `active`, `zc2:56559`; a capture attempt prints "<zone> has been destroyed and can no longer be captured", `zc2:56793-56802`), and is drawn dark (`zc2:51402-51405`).
-It is called (a) by `checkCriticalObjects` when all `criticalObjects` statics are dead (polled in the maintenance pass, `zc2:55742-55744`, `zc2:51904-51930`), (b) by setup-file `lost` triggers of single-use zones, e.g. the insurgency grids which also pay 500 credits to blue (`setup:2725-2729`), (c) by `checkAndDisableFriendlyZones` in the setup (`setup:2048`, not read).
+It is called (a) by `checkCriticalObjects` when all `criticalObjects` statics are dead (polled in the maintenance pass, `zc2:55742-55744`, `zc2:51904-51930`), (b) by setup-file `lost` triggers of single-use zones, e.g. the insurgency grids which also pay 500 credits to blue (`setup:2725-2729`).
+`checkAndDisableFriendlyZones()` is not a caller of `disableZone`: it is an optional setup-file hook that `capture()` invokes after every capture when the global exists (`zc2:56686-56688`).
+In the Caucasus setup it is an empty function (`setup:2048-2049`); other maps use it to turn hidden reserve zones red (`MakeZoneRedAndUpgrade`) or destroy them (`DestroyHiddenZone`) according to which named zones are blue, and also schedule it once 3 to 10 s after start (`COLDWAR_SETUP.lua:2302-2333`, `foothold pg nya v2.lua:1627-1647`, `IRAQ_SETUP.lua:1411-1424`).
+`RecaptureBlueZone()` is the reverse of disabling, reachable only from the admin marker `recapture`: on an inactive zone it sets `active = true`, invalidates the CAP SAM-threat cache and, 2 s later, calls `capture(2, true)`; on an active zone it does nothing (`zc2:50977-50992`, `zc2:29149-29155`).
 `DestroyHiddenZone()` is the variant for hidden zones: no messages, no drawing (`zc2:50146-50183`).
 
 ### Reproduction notes
@@ -316,7 +405,30 @@ Eligibility (`zc2:50100-50142`): zone active, not suspended, not hidden, red, wi
 Recomputed at each maintenance pass (not on Normandy) (`zc2:56027-56029`, `zc2:55453-55488`); a change updates the shop selector bucket `advance_capture_targets` and queues the availability message.
 The purchase calls `requestCaptureMission(zone, {advanceCapture = true})`, which sets `_advanceCaptureWaitingForNeutral` on the chosen supply commander (`zc2:23494-23498`); carrier zones are refused (`zc2:23426-23428`).
 When the zone is neutralised, `_releaseAdvanceCaptureHeldSupply(zone)` re-routes the holding helicopters/planes/convoys to land or drive in (`zc2:55337`, `zc2:60041-60075`).
-The hold routes themselves (`_assignAdvanceCaptureHoldRoute` etc., `zc2:59447-59503`) belong to the AI-flight theme and were not read.
+### Mechanism — hold, release and abort routes
+
+The hold point is always "80 % of the way, but never closer than a minimum distance to the target": `holdDistance = min(0.8 × L, L − dmin)`, 0 when `L ≤ dmin`, with `dmin` = 25 NM for planes, 10 NM for helicopters, 4 NM of road distance for convoys (`zc2:57939-57955`, `zc2:59785-59801`, `zc2:58616-58624`, `zc2:68909-68918`).
+The point is stored in `gc._advanceCaptureHold = {x, z, aglM|altitude}` and persisted, so a restored flight returns to the same hold (`zc2:57996`, `zc2:59849`, `zc2:25485-25492`, `zc2:29759`).
+
+`_assignAdvanceCaptureHoldRoute` dispatches by carrier type (`zc2:59447-59468`):
+
+| Carrier | Hold route | Code |
+|---|---|---|
+| Plane | Two raw waypoints pushed with `GROUP:Route`: a take-off point, then a fly-over turning point at the hold carrying `ComboTask{ Orbit{pattern = CIRCLE, point, speed = 250 kt IAS converted to TAS, altitude = cruise altitude BARO} }`. | `zc2:57922-58007` |
+| Helicopter, no cargo | Current position → the usual supply transit waypoints stopped at the hold → a turning point "Advance Capture Hold" at 200 m AGL carrying an `Orbit` task with `pattern = "Race-Track"`, `speed = 0` (a hover). | `zc2:59776-59850`, `zc2:58083-58097` |
+| Helicopter, sling load (`WarehouseLogistics` and `SuppliesCargoTransport` on, not `NotCargo`) | Same, preceded by a waypoint whose task is the cargo pick-up (`ExternalCargoLoad`) of a freshly spawned 600 kg container; release is not allowed before 120 s after the route was set, and is forced after 600 s even if the helicopter never reported reaching the hold. | `zc2:59439-59463`, `zc2:58640-58705` |
+| Helicopter, internal cargo | The internal-cargo logistics route (same function as a normal delivery). | `zc2:59451-59454` |
+| Ground / ship convoy | The normal supply road route (`dc.GetSupplyConvoyRoute`) is deep-copied and cut at the hold distance measured along its legs; the last point is moved to the hold position and loses its task, so the convoy simply stops there. | `zc2:68871-68954`, `zc2:68974-68979` |
+
+Release, `_releaseAdvanceCaptureHeldSupply(zoneName)`, called from `_neutralizeEmptyBuiltZone` (`zc2:60041-60203`):
+
+- every supply commander with `_advanceCaptureWaitingForNeutral` and that target is re-routed: a plane gets the ordinary `_assignPlaneRoute` to the zone, a helicopter gets its unload-and-land route (sling load, internal cargo) or the plain `_assignHeloRoute`, a convoy gets a fresh road route from its current position (`dc.BuildSupplyConvoyRouteFromPoint`) pushed 1 s after a `controller:popTask()` (`zc2:60129-60196`, `zc2:59503-59527`);
+- a sling-load helicopter is released only when `_advanceCaptureExternalCargoCanRelease` is true: the 120 s delay has elapsed **and** the lead unit has been seen within 1 NM of the hold point, or the 600 s fallback has expired; otherwise the release is retried at each in-air update of that group as long as the target is neutral or friendly (`zc2:59995-60025`, `zc2:60142-60163`, `zc2:67623-67652`);
+- the same function also turns around supply groups that were already flying home after an abort (`_supplyReturnHome`) and sends them to the zone (`zc2:60045-60127`).
+
+If the zone is already neutral or friendly when the purchase is processed, `_assignAdvanceCaptureOpenRoute` skips the hold and assigns the normal delivery route directly (`zc2:59470-59501`).
+
+Abort, `_abortAdvanceCaptureHeldSupply(zoneName, ratio)`, called when the zone has been repaired above `AdvanceCaptureAbortRemainingThreshold` (`zc2:60205-60292`): an airborne flight is routed back to its own zone with `_supplyReturnHome = true`; a flight still in `takeoff` is destroyed with its cargo and returned to the hangar; a convoy still `preparing` goes back to the hangar; a convoy `enroute` gets a road route home.
 
 ## 9. Zone dormancy: distance suspension, idle suspension, wake-up
 
@@ -324,7 +436,10 @@ The hold routes themselves (`_assignAdvanceCaptureHoldRoute` etc., `zc2:59447-59
 
 Players do not see dormancy directly: a suspended zone keeps its colour, label and ownership, but its garrison does not exist in the world.
 A zone wakes up when an enemy player comes within `proximityWakeNm`, when the front gets close, or when an AI mission targets or overflies it.
-The admin map marker `whynot` prints the suspend decision of the zone under it (`zc2:28918-28922`, `explainSuspendDecision` at `zc2:37219`, body not read).
+The admin map marker `whynot` prints the suspend decision of the zone under it (`zc2:28918-28922`).
+`explainSuspendDecision(zoneName, groupId)` prints a 25 s text to the group (or to all) (`zc2:37219-37392`).
+With idle suspension enabled and a stored decision record it prints that record: state (`idle` / `normal` / `awake`), age of the decision, nearest-enemy distance against the full and idle limits, and one boolean per hold (`idleCandidate`, `normalSuspend`, `nearbyHold`, `settlingHold`, `attackHold`, `eventHold`, `committed`, `playerObjective`, `incomingSupply`, `canReceive`, `supplierHold`, `playerHold`, `jtacHold`, `farpHold`, `carrierHold`, `neighborHold`, `criticalHold`, `reactiveHold`, `startupRestore`, `sa5Hold`, `noIdleSuspend`) (`zc2:37222-37235`).
+Otherwise it recomputes the decision on the spot with the same inputs as `_autoZoneSuspend` (it calls `reindexCombatZones(true, true)` to also get the textual sources) and prints the distance, limit, neighbour flags, neutral-wake test, incoming/receivable supply, the list of the zone's own attack/patrol groups that keep it active as an origin, the lists of groups that make it an active target, and the verdict `=> shouldSuspend=` (`zc2:37244-37391`).
 
 ### Settings
 
@@ -356,6 +471,14 @@ For each owned active zone it computes (`zc2:37753-37834`):
 - holds: active JTAC on the zone, player proximity wake still valid, carrier navigation link, a dynamic FARP within 20 NM, critical objects present, red reactive pressure (`zc2:37778-37791`).
 
 `shouldSuspend` = none of the holds, no enemy or neutral neighbour, no combat, no incoming supply, cannot receive supply, and `dist > limit` (`zc2:37802`).
+
+`reindexCombatZones(includeSources, useAutoSuspendEnemyReferences)` rebuilds the two sets used above, `_activeAttackOrPatrol[zoneName]` (zones that are a live target) and `_activeOrigin[zoneName]` (zones that are a live origin), from scratch at each call (`zc2:35040-35228`).
+It walks, for every zone, a cached list of its attack/patrol group commanders (`_getReindexCombatCache`) and for each one computes: `live` (state other than `inhangar`/`dead`), `spawnable` (the cached result of the spawn-eligibility gate), `directorReserved` (the Director holds the group for an operation), and `sideValid` (patrol: origin and target on the same side; attack: target owned by the other side and not neutral) (`zc2:35074-35103`).
+A record counts when it has a reason (`spawnable`, `live` or `director-reserved`) and is side-valid or live: an attack record marks its origin active and, if the target is active, visible, owned and awake or idle-suspended, its target active; a patrol record marks both only when the patrolled zone is within its own suspend limit of an enemy zone (`zc2:35120-35170`).
+Passive Director capabilities (`directorPassiveCombatByOrigin[origin].attack/.patrol`, counts per target) add the same marks without a live group (`zc2:35184-35222`).
+Side effects: a group on its way home re-wakes the idle zones of its return footprint, and a committed group re-wakes its target footprint (`_wakeIdleMissionZones`) (`zc2:35105-35118`).
+It returns the per-zone nearest-enemy distance cache and the set of "committed" target names, which the idle-suspend test uses (`zc2:35227`).
+With `includeSources` it also fills `_activeAttackOrPatrolSources` / `_activeOriginSources` with one text line per contributing group, for the `whynot` explanation (`zc2:35043-35044`, `zc2:35133-35136`).
 Otherwise a suspended zone is queued for resume (`zc2:37841-37848`).
 Extra wake rules: up to two suspended neighbours of each neutral zone are woken if they have a reason to act (`zc2:37723-37749`); red zones within 12 NM (5 NM on Normandy) of an awake red zone are kept awake together (`zc2:37857-37909`); a zone with a damaged blue GCI radar is always woken (`zc2:37503-37506`, `zc2:37914`).
 
@@ -519,7 +642,11 @@ Sites: the centre of each active, non-hidden zone; a carrier zone may instead co
 Bounds: the bounding box of all sites enlarged by the margin (`zc2:39637` onwards).
 Cell of a zone: start from the bounds polygon and clip it successively against the perpendicular bisector with every other site, nearest first (Sutherland–Hodgman against one half-plane); cells under 1000 m² are dropped (`zc2:39751-39779`, `zc2:39233-39275`).
 For each cell the set of sites that actually clipped it (`impacts`) is remembered, and the reverse index `_territoryOverlayAffectedBy` (`zc2:39759-39768`, `zc2:39899` onwards).
-Drawing: `ZONE_ELASTIC:New(name, polygon):DrawZone(-1, color, borderAlpha, color, fillAlpha, 1, true)` (`zc2:39790-39803`); in Moose, `ZONE_POLYGON_BASE:DrawZone` triangulates the polygon and fills each triangle as its own map mark, then draws border lines (`Moose_2026-10-11.lua:11635-11700`; the triangle primitive itself was not read).
+Drawing: `ZONE_ELASTIC:New(name, polygon):DrawZone(-1, color, borderAlpha, color, fillAlpha, 1, true)` (`zc2:39790-39803`); in Moose, `ZONE_POLYGON_BASE:DrawZone` triangulates the polygon and fills each triangle as its own map mark, then draws border lines (`Moose_2026-10-11.lua:11635-11700`).
+The triangulation is done once in `ZONE_POLYGON_BASE:New` by ear clipping: the vertex list is forced clockwise, then recursively the first clockwise corner that contains no other vertex is cut off as a triangle until three points remain, giving n − 2 triangles for an n-gon (`Moose_2026-10-11.lua:11449-11521`).
+Each triangle is filled by `_ZONE_TRIANGLE:Fill` → `COORDINATE:MarkupToAllFreeForm({p2, p3}, coalition, nil, nil, fillColor, fillAlpha, 0, nil)`, which ends in `trigger.action.markupToAll(7, coalition, markId, v1, v2, v3, lineColor, fillColor, lineType, readOnly, "")` — shape id 7 is the free-form polygon, here with three vertices, line type 0 (no outline) and a fresh `UTILS.GetMarkID()` per triangle (`Moose_2026-10-11.lua:11419-11425`, `Moose_2026-10-11.lua:19268-19287`).
+The border is one `trigger.action.lineToAll` mark per polygon edge (`COORDINATE:LineToAll`) (`Moose_2026-10-11.lua:11682-11705`).
+All ids are kept in the zone object's `DrawID` list and removed one by one (`UTILS.RemoveMark`) by `UndrawZone` when a cell is rebuilt (`Moose_2026-10-11.lua:10581-10595`, `zc2:39390`, `zc2:39405`).
 With `TerritoryOverlayFrontierOnlyBorders`, cell borders are suppressed and only edges shared with a cell of a different owner are drawn, each as a 250 m wide quad (`trigger.action.quadToAll`) (`zc2:39794-39796`, `zc2:39805-39897`).
 A side's overlay is shown only if another side still exists on the map (`_territoryHasOpposition`) (`zc2:39781-39788`).
 
@@ -581,7 +708,7 @@ Zone-related commands, each acting on the zone under the marker (`bc:getZoneOfPo
 | `upgradeallred`, `upgradeallblue` | upgrade every zone of a side | `zc2:28794-28803` |
 | `whynot` | explains the suspend decision of the zone | `zc2:28918-28922` |
 | `givemesupplies` | adds 3 expedited supply stock to the zone | `zc2:29157-29163` |
-| `status` | status output | `zc2:28810` (body not read) |
+| `status` | The zone status message of section 16 for the zone under the marker, 60 s to the author's group (30 s to the coalition when the mark has no initiator, followed by the zone's local recovery detail if it is friendly); outside any zone the author is told the command needs a zone. | `zc2:28810-28832` |
 
 ## 18. Campaign win and lose conditions
 

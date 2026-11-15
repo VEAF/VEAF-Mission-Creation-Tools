@@ -147,6 +147,28 @@ There is no per-unit loss accounting inside the FSM: a group only becomes `dead`
 A Blue supply helicopter that dies between 60 and 120 s after spawn is retried once without cargo (`68759-68781`).
 A supply helicopter still inside its home zone 280 s after take-off is destroyed and re-queued without cargo (`67599-67606`).
 
+### Restore of air sorties after a server restart
+
+What is saved per live air sortie (`_buildAirPersistenceRecord`, `25441-25560`): commander name, Director capability id / derivative slot / instance generation, origin and target zone, side, `mission`, `MissionType`, unit category, template set and the template actually used, plus role extras (CAS altitude, CAP holding point, orbit distance, buffer, SAM-return and return-home state, CAP-assist retask, supply return-home and shop flags, advance-capture phase and hold point).
+The save splits them into `inair` (position, heading, alive count, time in state) and `spawnNowTakeoff` (flights that were still on the ground: they are simply launched again) (`29604-29610`, `29788-29790`).
+`bc:init()` schedules `_runPendingAirAiRestore` 5 s after start; it waits (up to 12 × 5 s) for the dynamic-hybrid bootstrap, and holds the take-off list until the warehouse persistence has loaded (`30285`, `29573-29602`, `29892-29919`).
+
+Matching a saved record to a commander (`_resolveAirPersistenceCommander`, `29389-29501`): first by Director capability id (the capability is re-activated into a commander, `29301-29387`); else by exact name (a `_retasked_…` suffix stripped); else, for dynamic-hybrid groups, by base name with a score on origin/target/role/side/mission; else by metadata score (origin 3, target 4, side 3, mission 3, MissionType 3, category 2, template 2), accepted from 10 points up; supply records never use the metadata fallback.
+The matched commander receives the saved extras, `state = 'preparing'` with `lastStateTime = now − 999999` so that the next `update` spawns at once, and for an in-air record `_pendingInAirRestore = saved` (`29741-29780`, `29825-29870`).
+A take-off record is dropped when the origin zone changed side, or is fully suspended and the group is neither a shop supply nor an authorised regular supply (`29637-29641`).
+
+`_processAirRestoredSpawn(restoreData, …)` (`68044-68265`), called from the `preparing` state instead of the parking spawn:
+
+1. Abort to hangar when the saved position or the template is missing, or when a CAS/SEAD plane was saved farther than max(2 × origin–target distance, 100 NM) from both its origin and its target (`68045-68078`, `67025-67043`).
+2. Adjust the spawn point: CAS is put back on its origin→target axis (`_getRestoreCasSpawnPoint`); a supply helicopter or plane saved inside its final approach is moved back to 1 NM before the approach fix, the destination being the target, or the origin when it was returning or the target is no longer valid (`68079-68107`, `59692-59709`).
+3. Altitude: the saved one; helicopters are clamped to 60–300 m AGL (1 500 ft AGL when no altitude was saved) (`68109-68124`).
+4. Template rewrite, without parking: every unit is translated/rotated around unit 1 to the saved position and heading and given `alt`, `heading`, `psi`; the route is replaced by two "Turning Point" waypoints, the spawn point and a point 2 NM ahead, both `alt_type = "BARO"` at the saved altitude and the template speed (380 m/s default) (`68126-68173`).
+5. `SPAWN:NewFromTemplate(tpl, template, alias, true):InitSkill(…):OnSpawnGroup(cb):Spawn()` → `coalition.addGroup` in the air (`68183-68245`).
+6. In the callback: `state = 'inair'`, `lastStateTime = now − saved time in state`, surplus units destroyed from the last index down so that only `aliveCount` remain, cargo weight applied to planes, and `_assignRestoredAirMission` scheduled 0.5 s (CAS) or 2.5 s later (`68199-68242`).
+7. `_assignRestoredAirMission` first waits (0.5 s retries, up to `idleZoneWakeHoldSec`) for the idle zones of the target footprint to wake, then calls `_assignMissionAfterInAirRestore`, which re-issues the normal tasking of the role from the current position with the "restore direct" variants; "Not available" is retried up to 10 times at 0.5 s (`68008-68042`).
+
+There is no restore of fuel, weapons or damage: the flight comes back with a full template loadout and only the unit count is preserved.
+
 ## 3. Spawn eligibility: how a group decides it may launch
 
 ### Mechanism
@@ -196,14 +218,76 @@ RTB is a two-waypoint Moose route (`COORDINATE:WaypointAirTurningPoint` + `Waypo
 `_checkCapSamReturn` re-flies the original leg if a SAM threat that displaced the CAP is gone, every 30 s, only if all aircraft have ≥ 40 % fuel (`67215-67259`).
 "CAP assist": when a Red CAP gets airborne, a Blue CAP already flying may be retasked toward its target zone after 120–300 s (`GlobalSettings.capAssist*`, `8510-8520`, `67581-67584`, `61582`).
 
+### CAP assist (Blue CAP retasked against a Red CAP), PvE only
+
+Settings: `capAssistEnabled = true`, `capAssistCoverageNm = 30`, `capAssistDelayMinSec = 120`, `capAssistDelayMaxSec = 300`, `capAssistTargetZoneCooldownSec = 300` (`8510-8520`).
+Trigger: `_tryScheduleBlueCapAssistFromRedCap(redGc)` when a Red CAP becomes airborne; it needs at least one airborne Blue CAP, no cooldown and no pending request on that Red CAP's target zone (`61582-61607`).
+Mode: `patrol` when the Red CAP's target zone is Blue (Red is attacking a Blue zone), `attack` otherwise (`61273-61280`).
+Desired station: patrol = `Frontline.PickStationNearZone(zone, 2, −35 NM, …, safe 30 NM)`; attack = `Frontline.PickCapStationFromOrigin(blueOrigin, zone, 2, 100, 25 NM)` computed per candidate (`61287-61305`).
+Already covered: if a Blue CAP assigned to that zone has its current holding point within 30 NM of the desired station (patrol) or an equivalent attack coverage exists, nothing is scheduled and the zone gets a 60 s cooldown (`61307-61339`, `61613-61630`).
+Candidate: the airborne Blue CAP, not returning home, not already retasked during this sortie, "retask-ready" (a positive `_capRetaskCapabilityScore` — body not read, presumably remaining air-to-air weapons (estimation) — and a minimum fuel fraction of at least 0.40), whose current holding point is nearest to the desired station (`61376-61434`, `19875-19878`).
+A request `{token, executeAt = now + random(120, 300), assistMode, blueGroupName}` is stored per target zone and executed by `_executeBlueCapAssistForTargetzone` (`61640-61650`).
+At execution the checks are redone (a Red CAP still `inair` on that zone, still no coverage, candidate still valid, else another candidate is selected); then the Blue group simply receives a new `_assignCapTask` at the new station with an orbit range of 35–40 NM (attack) or 30–40 NM (patrol), is flagged `_capAssistRetaskedThisSortie` and `_capAssistRetaskedTargetzone`, and the zone gets the 300 s cooldown; any failure sets a 60 s cooldown (`61453-61580`).
+The retask is saved and restored with the sortie (`25476-25477`, `29749-29750`).
+
+### CAP target ranking (`CapTargets`, `CapRef`, `getClosestCapZonesToPlayers`)
+
+`BattleCommander:buildCapSpawnBuckets()` rebuilds four global tables from every air CAP commander and every not-yet-activated Director CAP capability (`30667-30759`):
+
+- `CapTargets[side][mission][targetZone] = { candidates = {{name, origin, dist, state, unitCategory, capability}, …}, ranksByName = {name → rank} }`, the candidates of one target sorted by `_sortCapBucketCandidates` (origin→target distance from `ZONE_DISTANCES` is the stored `dist`) (`30683-30699`, `30717-30736`);
+- `CapSpawnBucket[side][mission][targetZone]` = the same order as a list of names, and `CapRankIndex[name] = {side, mission, target, rank}` (`30732-30734`);
+- `CapRef[name]` = the live `GroupCommander` object for a CAP name, also maintained when a Director capability is activated or disposed; it is what the orbit-start `Script` task and the denial cohorts use to find the commander from a name (`30698`, `26450`, `26752`, `35985`, `57244`);
+- `CapAnchors[side][mission]` = every zone that is the target of at least one CAP record, used as fallback anchors; `CapAnchorRowByZoneName[zone]` = that zone's row of `ZONE_DISTANCES` (`30741-30756`).
+
+It is rebuilt after each capture and neutralisation (zones theme) and ends by re-staggering the CAP hangar delays (`30757-30758`).
+
+`getClosestCapZonesToPlayers(missionType, side, …)` ranks the target zones of one side and mission (`65609-65780`):
+
+1. Anchors = the zones in `playerZoneSpawn` (player name → zone where that player's airplane last started; A-10A/C, AV-8B and Hercules/C-130J are not recorded) that are owned by the **enemy of the patrolling side** for `patrol`, or by the acting side for `attack`, active, awake and visible; with no such anchor, all CAP target zones (`CapAnchors`) are used (`65621-65639`, `101090-101099`).
+2. Candidates = keys of `CapTargets[side][mission]` that are active, awake, visible and of the right owner (own side for patrol, enemy and not neutral for attack) (`65686-65711`).
+3. Score = mean distance from the candidate to all anchors (`ZONE_DISTANCES`), multiplied by 0.6 when the candidate has an enemy neighbour in the connection graph; ascending sort (`65713-65727`).
+4. The geometric result is cached per (side, mission, bucket version, target-state generation, anchor set) for at least 300 s (`65647-65660`, `65729-65736`).
+5. It also returns `capMeta = {limit, currentCap, capLeft = max(1, limit − currentCap), targets, enemyAdj}` (`65738-65752`).
+
+Use in the gate (`66442-66475`): the group's target must rank within `capWindow = min(#ranked, capLeft)`, or within the top `max(3, capWindow)` when it has an enemy neighbour; a refused Red group gets the air-limit denial (retry timers of §3), a refused Blue group returns to the hangar.
+Then, inside the target's own candidate list, the group counts the better-ranked candidates already `preparing` so that two groups do not take the same slot (`66465-66475`).
+For Red in PvE the ranked list is passed through the Director (`rankCapZones`); Blue and PvP use `getCapSpawnRankingForSide`, a mirrored/Director-aware variant (`66435-66443`, `30848`).
+
 ## 5. Strike tasking (CAS, SEAD, runway strike, anti-ship)
 
 All four use the same pattern: compute waypoints from the group's current position, build DCS task tables, wrap them with Moose `COORDINATE:WaypointAirTurningPoint(...)` / `WaypointAirLanding(...)` and push with `GROUP:Route(wp, 1)` (a `Mission` task set on the controller after 1 s), then `bc:setDefaultAG(group)` for options (`35309-35429`).
 SEAD: `buildSeadIngressPlan` picks viable emitters and an ingress point; the route is start → optional climb → commit point (task = `EngageTargets {'SAM elements','Air Defence'}` + one attack task per viable unit from `getAttackTask`) → target → 20 nm approach fix → landing; a self-defence `EngageTargets` vs planes within 15 nm (Red) / 20 nm (Blue) rides on every leg (`35322-35423`).
 `gmoose:TaskFunction("BattleCommander.MarkSeadIngressCommitted", routeState)` and `"BattleCommander.MarkAirReturnHome"` are script callbacks fired at waypoints to update FSM flags (`35377`, `35391`).
 Runway strike: 4 waypoints along the straight line to the target airbase (attack at 75 % of the distance, 450 kt), task `BombingRunway {runwayId, weaponType=AnyBomb, expend=ALL, groupAttack=true}` (`35431-35521`); the three-ship templates carry BetAB-500 / Durandal (`MA_Setup_CAv2.lua:1145-1150`).
-CAS plane/helicopter and anti-ship (`EngageCasMission` 36091, `EngageHeloCasMission` 36325, `EngageAntiShipMission` 35524) follow the same construction (not read line by line — estimation).
 Blue runway-strike aircraft are made invisible to AI with the `SetInvisible` command (`35512-35514`).
+
+### The task tables, as built
+
+What the Moose helpers produce, so that the tables can be written by hand.
+`GROUP:Route(points, delay)` = `controller:setTask({id='Mission', params={airborne=<is air>, route={points=points}}})` after `delay` seconds (`Moose_2026-10-11.lua:27090-27098`, `27177-27186`, `26038-26054`).
+`COORDINATE:WaypointAirTurningPoint(altType, speedKmh, tasks, name)` = `{x, y=<z>, alt, alt_type, type="Turning Point", action="Turning Point", speed=<m/s>, speed_locked=true, ETA=0, ETA_locked=false, name, task={id="ComboTask", params={tasks=tasks}}}`; `WaypointAirLanding(speedKmh, airbase)` is the same with `type="Land"`, `action="Landing"`, `speed_locked=false` and `airdromeId = <airbase id>` (or `helipadId` + `linkUnit` for a FARP or ship) (`Moose_2026-10-11.lua:18720-18764`, `18777-18779`).
+`GROUP:EnRouteTaskEngageTargets(dist, types, prio)` = `{id='EngageTargets', params={maxDistEnabled=true, maxDist=dist, targetTypes=types, priority=prio}}` (`Moose_2026-10-11.lua:26804-26815`).
+`GROUP:TaskFunction("Fn", args…)` = a `WrappedAction` whose action is a `Script` command running `Fn(GROUP:Find(...), unpack(args))`, the arguments being parked in a Moose state table keyed by the group (`Moose_2026-10-11.lua:26951-26964`).
+`getAttackTask(name, expend, altitude)` returns, for a group name, `{id='AttackGroup', params={groupId, expend, weaponType=Weapon.flag.AnyWeapon, altitudeEnabled=(altitude~=nil), altitude, groupAttack=false}}`, and for a static or unit name `{id='AttackUnit', params={unitId, expend, weaponType=AnyWeapon, groupAttack=true, altitudeEnabled, altitude}}` (`36557-36597`).
+`setDefaultAG(group, search)` sets the controller options `JETT_TANKS_IF_EMPTY=true`, `PROHIBIT_JETT=true`, `RTB_ON_BINGO=true`, `REACTION_ON_THREAT=BYPASS_AND_ESCAPE`, `SILENCE=true`, `RADAR_USING=FOR_CONTINUOUS_SEARCH` when `search`, and `RTB_ON_OUT_OF_AMMO = 2147485694 + 30720 + 4161536` (a weapon-flag mask) (`36613-36624`).
+
+`EngageCasMission(targetZone, groupName, expend, weapon, altitudeFt, landAirbaseId, side, approachFrom, restoreDirect, opts)` (`36091-36323`):
+
+- attack task: one `ComboTask` holding one `getAttackTask` per name in the target zone's `built` (plus the zone's warehouse static as an `AttackUnit`), `expend` defaulting to `AI.Task.WeaponExpend.ONE`, optional `weaponType`, `groupAttack`, `attackQtyLimit`/`attackQty` overrides (`36112-36183`);
+- en-route task: `EngageTargets` with `maxDist` 20 NM (Blue) / 15 NM (Red) and target types `{'Planes','Ground Units'}`, or `{'Planes','Helicopters','Ground Units'}` for Blue in PvE and for Red on a `ChanceAiAttackHelo` roll, or `{'Multirole fighters','Interceptors','Bombers','Ground Units'}` with `InvisibleA10` (`36138-36158`);
+- geometry: axis from the launch point (or `approachFrom`) to the first target; altitude = `Altitude` in feet → metres (default 6 000 m), except Su-25 / Su-25T CAS which fly a random 5 000–10 000 ft kept for the life of the group (`36185-36201`, `36211-36226`);
+- waypoints, all "Turning Point": WP1 at the current position (350 m/s unless a route speed is given; regular CAS passes 300 kt IAS), WP2 5 NM along the axis carrying the en-route task, WP3 20 NM short of the target carrying en-route + the attack `ComboTask`, WP4 15 NM beyond the start along the axis (or 10 NM short of the recovery airbase when return tracking is on) carrying en-route + the `MarkAirReturnHome` callback, then a `Land` waypoint at the airbase `landAirbaseId` (300 kt) (`36280-36299`);
+- after `Route`: `CommandSetUnlimitedFuel(true)` and `setDefaultAG(group, true)` (`36308-36322`).
+
+`EngageHeloCasMission` (`36325-36472`): radar option set to 3 (`SetOptionRadarUsing(3)`), 300 ft AGL by default, 70 m/s; en-route `EngageTargets{maxDist = 4 NM, targetTypes = {'Ground Units'}}`; the same `ComboTask` of `AttackGroup`/`AttackUnit` built from the zone's garrison and warehouse, the geometry aiming at the zone centroid; waypoints = a raw take-off point `{type=TAKEOFF, action=FIN_POINT, speed=0, alt=0}` with the prefer-vertical-landing option, "CAS Mid 1 NM" (en-route task), "CAS Approach 5 NM" short of the zone centre (en-route + attack + a `MarkHeloCasIngressCommitted` callback), optionally "CAS RTB Approach" 3 NM short of home (`MarkAirReturnHome` callback), then either a `Land` waypoint at an airbase or a turning point carrying `{id='Land', params={point=<home vec2>, durationFlag=false, combatLandingFlag=false}}`; then `setDefaultAG(group)` (`36338-36471`, `Moose_2026-10-11.lua:26688-26703`).
+It returns a `routeState` (`committed` once within 5 NM of the target) that the FSM uses to know whether the attack has begun (`36369-36378`).
+
+`EngageAntiShipMission` (`35524-35586`): target = the up to three nearest `built` groups of the zone whose first unit is a ship; each gets `{id='AttackGroup', params={groupId, expend = ALL by default, altitudeEnabled=true, altitude = 4 572 m or the given altitude, weaponType?}}` in one `ComboTask`.
+The route comes from `getDefaultWaypoints`: a raw `{id='Mission', params={route={points={WP1 at the current position (350 m/s), WP2 over the first target (250 m/s), Land at the airbase}}}}` where WP1 and WP2 both carry the attack `ComboTask` (`36979-37002`); an `EngageTargets{maxDist = 30 NM, targetTypes = {'Ships'}}` is appended to the tasks of points 2 and 3 when they have a task list, and the whole thing is set with `controller:setTask` directly, then `setDefaultAG` (`35566-35585`).
+
+Supply plane route, `_assignPlaneRoute` (`57887-57920`, plan in `_resolvePlaneRoutePlan`, `59660-59690`): three waypoints pushed with `GROUP:Route(wp, 1)` — a raw take-off point at the current position, an "Approach" turning point 20 NM short of the target airbase on the line from the start (BARO, cruise altitude = `Altitude` or 10 000 ft, 250 kt IAS converted to TAS), and a `Land` waypoint at the target zone's airbase (50 m/s); no task on any of them.
+The target airbase is the zone's `airbaseName`; if its DCS coalition differs from the zone's side it is first forced neutral (`SetCoalition(0)`) so that the landing is accepted (`59664-59668`).
+Unless told otherwise the function also removes 50 items from the origin warehouse (`57915-57917`).
 
 ## 6. GroupCommander — surface state machine (convoys, artillery, ships)
 
@@ -227,6 +311,16 @@ Supply convoy at a friendly zone: after `landedDespawnTime` (60 s) it delivers (
 Supply or attack convoy at a neutral zone: `tg:startPendingCapture(side, {kind="group", …, destroyOnFinish=true, stopGroup=true})` — the convoy itself becomes the capturing force (`69931-69953`, `70079-70103`).
 Attack convoy at an enemy zone: no explicit action; the units fight with their DCS AI while walking the sub-zone tail, and the FSM stays in `atdestination` until the zone changes side or the group dies (`70061-70135`).
 A Red convoy arriving where a Blue player is near waits 60 s (`70070-70077`).
+
+### Restore of surface sorties after a server restart
+
+`_runPendingSurfaceAiRestore` (scheduled like the air one) resolves each saved record of `pending.active` to a commander and hands it to `_processSurfaceRestoredSpawn(restoreData, now, bc)` (`30034-30075`, `30286`, `70141-70505`).
+Validity test: the group is restored only if what it was doing still makes sense — the zone under its saved position, or its target, must still have the right owner for its mission (supply: target friendly or neutral, or home when returning; attack: target enemy; artillery returning: home still owned; advance capture: target still enemy); otherwise it goes back to the hangar (`70158-70222`).
+If the target footprint is idle-suspended the restore is postponed until the zones are awake, for at most `idleZoneWakeHoldSec` (`70223-70234`).
+Route: rebuilt from the saved position — `_buildSurfaceRestoreTask` (road route from that point to the target, or to home for a returning supply), a two-point off-road `Mission` to the saved hold point for a convoy waiting in advance capture, `_buildSurfaceArtilleryHomeTaskFromPoint` for artillery going home, and for an attack convoy saved `atdestination` a new sub-zone tour of the target (`70284-70371`).
+Spawn: the template is rotated to the saved heading and spawned with `SPAWN:NewFromTemplate(tpl, template, self.name, true)` at the saved position (`70268-70279`, `70382-70390`).
+In the callback the FSM is set to the saved state (`enroute` or `atdestination`) with `lastStateTime = now − saved duration`, the dead units of the saved "alive mask" are removed (`_applySurfaceRestoreAliveMask`), and the route is pushed 5 s after a `controller:popTask()` (`70411-70467`, `69196`).
+A Normandy battleship is first moved to a safe water point within 5 km (`70236-70248`).
 
 ### Artillery
 
@@ -293,8 +387,19 @@ Config: `SuppliesCargoTransport = true` (AI helicopters use cargo transport), `A
 The container is a raw `coalition.addStaticObject(country, {type="container_cargo", category="Cargos", canCargo=true, mass=600, …})` placed at a landing spot of the origin zone or just ahead of the helicopter (`58495-58533`, `59309-59330`).
 `ExternalHeloCargoRoute` is a small table of raw DCS task builders: `ExternalCargoLoad {unitIdTransport, groupId, unitId}`, `ExternalCargoUnLoad {zoneId, unitIdTransport}`, a zero-speed race-track `Orbit` used as a hover hold, air waypoints, and transit-route helpers (`58056-58260`).
 Safety nets: a helicopter hovering below a speed threshold inside the target zone for too long has its cargo destroyed so it can land (`67691-67741`); an "advance capture" variant holds the helicopter in orbit outside an enemy zone until it turns neutral, then releases it (`67621-67653`).
-Supply planes use `_assignPlaneRoute` (not read in detail — estimation: straight route and landing at the target airbase).
+Supply planes use `_assignPlaneRoute`: take-off point, an approach fix 20 NM short of the target airbase at cruise altitude, landing at that airbase (detail in §5) (`57887-57920`).
 Supply helicopters get ROE via `_applySupplyHeloDefaultRoe` and `OptionPreferVerticalLanding` (`58301`, `68600`).
+
+### Internal cargo of AI supply helicopters (written, switched off in v6.5.3)
+
+Scope: only a Blue supply helicopter whose template unit type is `CH-47Fbl1`, with `WarehouseLogistics` on, `SuppliesCargoTransport` not false, not `NotCargo`, not a no-cargo retry and not a route-only FARP launch (`59028-59033`, `59126-59130`).
+In v6.5.3 the two spawn paths force `NotCargo = true` for such templates and the call to `_prepareHeloInternalCargoSpawn` is commented out ("Internal cargo temporarily disabled after the DCS update"), so the code below is dormant (`66793-66794`, `68509-68512`).
+Mechanism when enabled: `_prepareHeloInternalCargoSpawn` wraps the Moose spawner's `SpawnWithIndex` so that, before `coalition.addGroup`, it fixes the lead unit's `unitId`, reserves three cargo ids, and rewrites the template route; right after the spawn it creates three statics behind the helicopter (12 m aft, 1.3 m apart) with `coalition.addStaticObject(country.id.USA, {type='cds_crate', shape_name='cds_crate', category='Cargos', canCargo=true, mass=400, groupId, unitId, x, y, heading, name='<group>_INTCARGO_<i>'})` (`59131-59178`).
+The first waypoint receives one task per crate `{id='CargoTransportationPlane', params={x, y, unitIdTransport=<helo unit id>, groupId=<crate>, unitId=<crate>}}` followed by a `Script` callback `bc:_markInternalSupplyLoaded(group, version, heloUnitId)` (`59044-59053`).
+Delivery leg (`_buildHeloInternalCargoRoute`): the usual supply transit waypoints at 289 km/h, an "Approach" point at 500 ft, then a "Landing Approach" point at 400 ft / 160 km/h whose task list is: optional return-home callback, `Land{point = destination, duration 2 s, combatLanding for Blue}`, one `{id='CargoUnloadPlane', params={groupId, unitId}}` per crate, and a `Script` callback `bc:_markInternalSupplyUnloaded(…)` (`59072-59117`).
+`_markInternalSupplyUnloaded` forces the FSM to `landed`, which lets the normal arrival code capture or deliver (`59258-59272`).
+Advance-capture variant: instead of landing, a slowdown point 1.5 NM before the hold and a hover `Orbit` at 100 m AGL / 140 km/h at the hold point (80 % of the way, at least 10 NM short), with the same 120 s / 600 s release timers as the sling-load case (`59054-59071`, `59091-59100`).
+The origin warehouse is debited `AIDeliveryamount` (20) once per sortie (`59206-59210`).
 
 ### Reproduction notes
 
@@ -314,7 +419,7 @@ Ships use Moose `GROUP:RouteGroundTo(coord, speed, "Off Road", 1)` (`27749-27753
 
 AIEN is a third-party ground-AI script ("AI ENhancement") bundled and modified for Foothold; it runs on its own and calls back into `bc`.
 What Foothold exposes in Config: `AIEN.config.dontInitialize=false`, `blueAI=true`, `redAI=true`, `dismount=true`, `message_feed=true`, `initiative=true`, and the scheduler cadences `phaseCycleTimerMin=0.2`, `phaseCycleTimerActive=0.08`, `phaseCycleTimerIdle=0.5` s (`Foothold Config.lua:2363-2382`).
-Fixed inside AIEN: `firemissions=true` (artillery fires on targets reported by other units and drones), `uavNightScan=true`, `reactions=true`, `suppression=true` (unarmoured groups hit by artillery or air are suppressed 15–45 s), `directorReaction=true` (`AIEN.lua:17-24`).
+Fixed inside AIEN: `firemissions=true` (artillery fires on targets reported by other units and drones), `uavNightScan=true`, `reactions=true`, `suppression=true` (the source comment says unarmoured groups are suppressed 15–45 s; the code does the opposite test, see "AIEN reactions in detail" below), `directorReaction=true` (`AIEN.lua:17-24`).
 Exclusions by group-name fragment: `AIEN_xcl_tag = {"Testing","Hidden","hidden","supply","support","EscortGroup","attack"}` — so convoys named `…-supply-…` / `…-attack-…` are not touched; `"Red SAM"` groups may only delegate; `"Blue SAM"` groups keep awareness but never move or change ROE; `"Blue Armor …"` groups may answer attacks by delegation (`AIEN.lua:27-30`).
 Movement limits: `maxGroupInMovement = 10` groups at once, `initiativeRange = 4000` m, `maxSlope = 25°`, speeds 8 m/s off-road, 15 m/s on road, 2 m/s infantry (`AIEN.lua:34`, `44-51`).
 Mechanism: one `world.addEventHandler` handling `S_EVENT_HIT`, `S_EVENT_BIRTH`, `S_EVENT_DEAD`/`S_EVENT_UNIT_LOST` (`AIEN.lua:16057-16080`), plus a self-rescheduling `AIEN.performPhaseCycle` that rotates through phases (`update_GROUND`, `update_DRONE`, `update_TACTICAL`, `update_INITIATIVE`) at the cadence above (`AIEN.lua:14069-14071`, `14097`, `14253`, `14857`, `14868`, `15144`).
@@ -323,6 +428,53 @@ Dismounts: trucks/APCs/IFVs hit but not killed drop infantry (MANPAD team if the
 Hooks into Foothold: `bc:getZoneOfPoint` to keep reactions inside the owning zone (many sites, e.g. `AIEN.lua:7817`, `12244`); `bc:roamGroupsInZoneNow` to make other groups of the zone move when one is hit (`AIEN.lua:9374`); `bc:startZoneAttackFlash(z, 60)` (`AIEN.lua:13658`); `bc:reportAIENAirSupportAttack` and `bc:reportAIENEnemyPositionAttack`, which ask the Director for an air-support CAP (10 % chance, 20 min cooldown) or an "enemy position response" sortie (30 % chance; helicopter CAS or convoy to the shooter's position) (`AIEN.lua:13554-13556`, `13619`, `15636`; `zoneCommanderv2.lua:70995-70997`, `71901-71907`).
 An enemy-position-response convoy drives to the reported point, stays 15 s within 1 km, returns to within 1 km of home and despawns; a warning `AIEN_ENEMY_POSITION_ARTILLERY_CONVOY_WARNING` is sent 2–3 min after launch when the trigger was artillery (`69668-69737`).
 `AIEN.ReactToSmoke(zoneObj, groupName, 20)` is called by the engine when smoke is used on a zone (`23658`, `AIEN.lua:11034`).
+
+### AIEN reactions in detail
+
+Entry point: `event_hit(unit, shooter, weapon)` from `S_EVENT_HIT`, only for vehicles of a group that passes `groupAllowedForAI` (exclusion tags, coalition switch) (`AIEN.lua:15179-15265`).
+Friendly fire is ignored (`AIEN.lua:15267-15279`).
+Order of effects on a hit:
+
+1. `Blue SAM` groups only produce the "zone under attack" report (`reportOnlyReaction`) on their first hit and nothing else (`AIEN.lua:15281-15301`, `13710-13715`).
+2. Suppression: if the shooter is known and has the attribute `Air`, `Ships` or `Indirect fire`, and the hit unit has the attribute `Armored vehicles`, `groupSuppress` sets ground ROE to 4 (weapon hold) and back to 2 after 2 × the reaction time (`AIEN.lua:15303-15315`, `10412-10431`).
+3. Dismount, first hit only: shooter airborne → the MANPAD team carried by the group is dropped 8–15 s later; shooter is a ground unit within 1 000 m → all carried infantry is dropped 8–15 s later; both remount after `remountTime` (600 s) (`AIEN.lua:15317-15330`, `11793-11860`).
+4. Reaction choice, first hit only (a group stays "under attack" for `underAttackTimeout` = 600 s and does not re-evaluate) (`AIEN.lua:15339-15343`, `14150-14153`, `71`): the group is stopped (`trigger.action.groupStopMoving`), and seven facts are computed — weapon category `w_cat` (shell/missile/rocket/bomb), shooter category `s_cat` (plane/helicopter/ground/ship/structure), `s_indirect` (shooter has `Indirect fire`, or unknown shooter with shell/rocket), `s_close` (shooter inside the group's own weapon range), `s_fireMis` (shooter seen less than 30 s ago and slower than 1 m/s, or a 30 % roll), own class `o_cls`, shooter class `s_cls` (`ARBN` for an unknown shooter with missile/bomb) (`AIEN.lua:15354-15466`).
+5. The candidate list is the 11 entries of `reactionsDb` minus the ones ruled out by the situation (table below), minus every entry whose index is greater than 2 × the group's skill number (`AIEN.lua:15483-15548`).
+   The skill number is the mean `skillVal` of the units as authored in the mission file, a random 4–12 for "Random", and a random 2–5 when the group id is not found in `env.mission` (which is the case of groups created at runtime — estimation) (`AIEN.lua:9842-9879`).
+6. Each remaining entry is scored as the sum of seven table look-ups, one per fact (`w_cat`, `s_cat`, `s_indirect`, `s_close`, `s_fireMis`, `o_cls`, `s_cls` weights stored in the entry), the list is sorted by descending score, and `executeReactions` runs the functions in that order until one returns true (`AIEN.lua:15558-15598`, `13595-13610`).
+7. On success the group is told to continue moving (`trigger.action.groupContinueMoving`) when the entry has `resume`, and the message, flash and sound of the zone-attack report are produced (`AIEN.lua:13611-13684`).
+
+| # | Reaction | Removed when | What it does | Code |
+|---|---|---|---|---|
+| 1 | `ac_accelerate` | — | Only if the group is moving: `controller:setSpeed(30, true)`. | `AIEN.lua:11933-11960` |
+| 2 | `ac_panic` | — | Drops its infantry, then after the reaction time moves to a random valid terrain point 500–2 000 m away (by road when a road is near and the trip is over 700 m) and sets speed to 30 m/s. | `AIEN.lua:11980-12064` |
+| 3 | `ac_disperse` | shooter is a helicopter or a plane | Enables the DCS "disperse under fire" option for the group. | `AIEN.lua:11962-11978`, `15512-15527` |
+| 4 | `ac_dropSmoke` | hit unit is not armoured | Needs at least 50 % of units with `HeavyArmoredUnits` or `IFV`; after the reaction time spawns `smoke_source_num` (5) smokes 15–30 m around each such unit, staggered over 1–5 s, and shifts the group a few metres. | `AIEN.lua:12066-12166`, `15532-15534` |
+| 5 | `ac_withdraw` | own class is ARTY/MLRS/MISSILE; map Kola | Moves toward the nearest friendly group **of the same zone's garrison** that is 2 000–3 500 m away; 600–900 s later goes back to the end of its editor route or to its original position. | `AIEN.lua:12169-12262`, `15495-15500` |
+| 6 | `ac_attack` | shooter position unknown or not detected; shooter is a plane; own class SAM/SHORAD/ARTY/MLRS/AAA | Refused when the enemy strength within 8 km of the shooter exceeds 20; otherwise ROE free, drops infantry (unless the attacker is a helicopter), moves on the shooter's position in cone formation at 10 m/s (4 m/s with dismounts); returns 120 s after getting within 300 m, or after 600 s. | `AIEN.lua:12275-12410`, `15501-15527` |
+| 7 | `ac_coverBuildings` | map Kola | Tests four points 2 500 m N/S/E/W of the group, inside the same zone, having at least 4 scenery buildings within 2 500 m (`CustomZone:getZoneBuildings`) and no enemy unit; moves to the centroid of the buildings of the nearest such point; returns after 420–900 s. | `AIEN.lua:12419-12540` |
+| 8 | `ac_groundSupport` | shooter not recent enough (`s_fireMis` < 1); shooter unknown; shooter airborne; map Kola | Picks, among the other garrison groups of the same zone, the one with the best class weight (MBT 10, ATGM 9, IFV 7, APC 5.5, SHORAD 5 …) and sends **it** to the hit group's position. | `AIEN.lua:12545-12610`, `253-274`, `15489-15527` |
+| 9 | `ac_coverADS` | shooter class is not `ARBN` | Picks the garrison group of the same zone with the best anti-air weight (SAM 10, SHORAD 9, MANPADS 8, AAA 7 …) and, if not already inside its threat range, moves next to it; returns after 900–1 200 s. | `AIEN.lua:12623-12720`, `276-296`, `15529-15531` |
+| 10 | `ac_fireMissionOnShooter` | shooter unknown/not detected, or neither a helicopter nor a ground unit | The first idle friendly `ARTY` group with the shooter inside 80 % of its range drops its task and fires 20 rounds at the shooter's position. | `AIEN.lua:12733-12765`, `15501-15511` |
+| 11 | `ac_airSupport` | — | Inert: the table entry references a function `ac_airSupport` that is not defined anywhere in the file, so `executeReactions` skips it. | `AIEN.lua:13486-13488`, `13599-13600` |
+
+The reaction time used by every delayed action is `random(1..3) × 25 / skill` seconds (`AIEN.lua:130-131`, `9149-9157`).
+
+After the reaction, still inside the hit handler (`AIEN.lua:15601-15800`):
+
+- counter-battery (`firemissions`): unless the reaction already was a fire mission and unless the shooter is a plane, an idle friendly ARTY/MLRS with the shooter inside 90 % of its range may fire back; it requires a friendly unit with `SAM SR`, `SAM TR` or `EWR` within 50 km of the impact, succeeds with probability `1 − (d / 50 km)²`, announces "identified enemy artillery fire" and fires after 160 s ± 35 % at a point scattered by up to `300 × (d / 50 km)^1.5` m (`AIEN.lua:11121-11215`);
+- Director response (Foothold hook, Red only, not Normandy): if the hit group's zone is a Red airbase zone with plane spawn, "armed" for advance capture and not yet eligible, and the attacker is a player helicopter within 5 NM or artillery within 10 NM, then once per zone a 30 % roll calls `bc:reportAIENEnemyPositionAttack(zone, attackerPos, kind)` (`AIEN.lua:13554-13591`, `15618-15638`);
+- delegation: a Red SAM/SHORAD/ARTY/MLRS group hit by a helicopter, or any group hit by an eligible ground attacker, hands the fight to the best idle mobile group of the same zone's garrison (class weight × 10 000 − distance, within 4 000 m for the anti-helicopter case and 10 000 m for the ground case); that group runs `ac_attack` with return-to-zone, a second one joins with 25 % chance, and the zone is locked against further delegation for 1 200 s (`AIEN.lua:15641-15800`, `81`);
+- zone roam: when nothing stronger was launched, a 10 % roll (15-minute cooldown per zone) calls `bc:roamGroupsInZoneNow(zone, candidates, {stepDelay = 5})` so that other groups of the zone change sub-zone (`AIEN.lua:9360-9378`, `75-77`).
+
+Outside hits, the phase cycle runs these enabled behaviours:
+
+- phase A `update_GROUND`: one group per step, refreshes its situational awareness (`getSA`), expires `tasked` flags after `taskTimeout` and the under-attack flag after 600 s (`AIEN.lua:14097-14190`);
+- phase B `update_ISR`: purges dead or stale entries of the intel database (`AIEN.lua:14194-14246`);
+- phase C `update_DRONE`: drone (UAV) detection feeding the intel database (`AIEN.lua:14253`, body not read);
+- phase D `update_ARTY` (`firemissions`): each idle ARTY/MLRS with rounds left searches enemy units inside 85 % of its range (and outside its minimum range), requires a contact younger than 180 s and, for an unguided battery, a target slower than 0.5 m/s, then fires; **Blue batteries (and both sides in PvP) additionally need a spotter on the target's zone** — a JTAC in the Foothold JTAC queue, an active 9-line, an active scout, or active zone intel (`_zoneIntelIsActive`) (`AIEN.lua:14412-14800`, `14430`, `14556-14600`);
+- phase E `update_TACTICAL`: empty in this version, it only advances the phase (`AIEN.lua:14857-14861`);
+- phase F `update_INITIATIVE` (`initiative`, not on Kola): only MBT/ATGM/IFV/APC/RECCE groups without an editor route, idle, not under attack, with a strength above 3 and at least one known target; the nearest known enemy group within 4 000 m is compared in strength, and if weaker the group advances to a point on the line toward it (`pointBetween(own, enemy, 5000)`) in cone formation, announces "moving to engage hasty targets", and returns to its post 480 s later; at most `maxGroupInMovement` (10) such moves per cycle (`AIEN.lua:14868-15060`).
 
 ### Reproduction notes
 
@@ -373,6 +525,22 @@ Not available in the Vietnam era (`4127`).
 The bomber is **air-spawned** with `Respawn.SpawnAtPoint(template, coord, heading, 5, altitude, speed, …)` and radio-silenced (`4140-4144`); the escort is spawned later (`SpawnEscortLater`) and given a raw `ComboTask` of `Follow` (offset 15 nm ahead for Red, 2 000 ft above) + `EngageTargets` planes within 40 nm (`2055-2090`).
 `StartBomberAuftrag` (despite the name, raw tasks) → `DynamicBomber.AssignIngressBombingTask`: `BuildBombingTaskForZone` makes one bombing task per unit/static of the target zone's built groups, including its warehouse, then an RTB route with an approach fix and a `Script` task that destroys the group at the last waypoint (`1500-1700`, `1702-1740`, `1776`).
 `StrategicBomber.StartMonitor(side)` polls the raid's status; `Finish` applies cooldowns and loss penalties (`2980-3057`).
+
+### The monitor and the Blue controls in detail
+
+Monitor (`3018-3057`): one self-rescheduling `timer.scheduleFunction` per side, period 20 s, first run 20 s after launch, guarded by a per-side token so that a newer raid silently cancels the older loop.
+Each tick looks up the bomber by its template name (`Group.getByName(cfg.template)`, the bomber is spawned under that fixed name): if it is gone → `Finish(side, "dead")`; otherwise it refreshes `status = "alive"`, `lastAliveTime`, and re-wakes the idle zones of the raid's footprint.
+The successful end is not detected by the monitor: the bomber's last-waypoint script (and the landing handler) call `MarkRecoveredByGroupName`, which sets `status = "recovered"`, pays the player-escort rewards, records the result, cleans up the escort and clears the state without going through `Finish` (`2923-2948`, `1591-1593`, `42268-42269`).
+`Finish(side, status)` (`2980-3016`): records `lastResult[side] = {status, time, targetZone, spawnZone}` and tells the Red Director (`onStrategicBomberResult`); on `"dead"` sets `cooldownUntil[side] = now + deathCooldownSeconds` (default 3 600 s) and, for Blue, debits `lossPenaltyCredits` (default 500) with `cancel.ogg` and `STRATEGIC_BOMBER_LOST_CREDITS`; queues the landing cleanup of escort and interceptor (Blue) or destroys the escort (Red, unless the bomber died); destroys the bomber group and clears the state (`2883-2899`).
+
+Blue raid life cycle (`LaunchBlue`, `3759-3935`): the bomber is air-spawned, given unlimited fuel, and either pushes at once or first holds.
+Hold reasons: `"player"` when the buyer chose a player escort, `"sam"` when the target zone contains a SAM type listed in `StrategicBomber.BadSamDisplayByName` (the hold message names them) (`3784-3790`, `2552-2582`).
+The hold is a raw one-waypoint mission at the spawn point: `{id="Mission", params={route={points={{type="Turning Point", alt=<route altitude>, alt_type="BARO", speed=<300 kt IAS as TAS>, task=ComboTask{ {id="Orbit", params={pattern="Circle", speed, altitude}} }}}}}}` (`3341-3386`).
+Blue F10 menu: under the per-group root `Dynamic Control` (`MENU_DYNAMIC_CONTROL`, built by `buildCapControlMenu`), a sub-menu named after the bomber ("B-1B Lancer", "B-52H Stratofortress" in Cold War) with `Push` (only while not yet pushed) and `Destroy`; there is no `Hold` command in the menu although `HoldBlue` and its label exist (`4195-4223`, `16425`, `16656-16657`, `Foothold_Localization.lua:162`, `656-657`, `693-695`).
+`PushBlue` (`3936-4039`): refuses when already pushing; calls `StartBomberAuftrag(missionId, template, targetZone, escortName, nil, {routeAltitudeFt, attackAltitudeFt, weaponExpend, toIngressSpeedKt, afterIngressSpeedKt, staticsLast=true, deferBombingTaskToIngress=true, landAndRefuelAtOrigin=true, homeAirbaseName, rtbApproachDistanceNm})`, sets `pushed`, rolls the Red interceptor (`TrySpawnBlueInterceptor`), plays `ding.ogg` and announces `STRATEGIC_BOMBER_PUSHING` with an ETA to ingress (or the player-escort variant), then rebuilds the control menu.
+`DestroyBlue` destroys bomber and escort and clears the state, with `STRATEGIC_BOMBER_DESTROYED` to the caller (`4101-4121`).
+Player escort (`3100-3340`): a client counts as escorting while within 2 NM horizontally and ±2 000 ft of the bomber lead (`PlayerEscortRadiusMeters`, `PlayerEscortAltitudeToleranceMeters`, `2339-2340`); after 60 s in that envelope (`PlayerEscortQualifySeconds`, `2341`) the player is "qualified", and if the raid was holding for a player escort and no bad SAM remains, the first qualification pushes the bomber automatically (`3161-3185`, `3207-3232`).
+When the bomber is recovered, `playerEscortReward` (default 1 000) is split equally between the qualified players as contribution credit, with the career stat "Strategic bomber escort" and the message `STRATEGIC_BOMBER_ESCORT_COMPLETED_SOLO` / `_MULTI` (`3125-3159`).
 Interceptor vs Blue bomber: one roll per raid, `math.random(1,10) <= threshold` with threshold 1/3/6 for `CapDifficulty` easy/medium/hard; spawned from the closest Red CAP-recovery airbase on free fighter parking (`FindFreeParkingSpotForAircraft`) from a random Red CAP template, tasked by `AssignInterceptorTask` (`2344-2348`, `2640-2678`, `2787-2880`).
 WW2/Normandy has a parallel older bomber set (`bomberRedTemplate = 'DynamicBomberRed_Template'`, `redInterceptorTemplate`, min spawn distances 40 nm) (`110205-110228`).
 
@@ -428,7 +596,7 @@ The "Blue player near origin" spawn block does not apply to air and supply group
 The FSM is a pure polling design (no `S_EVENT_*`): group existence, "any unit airborne", "all landed", "any unit in zone" are sampled each tick, so every state change has up to one tick (10 s, or 30 s for throttled in-air groups) of latency.
 The Moose pieces it actually needs are: template cloning with unique names (`SPAWN:NewFromTemplate`, alias), parking-spot discovery and reservation (`AIRBASE:GetFreeParkingSpotsTable`, `SpawnAtParkingSpot`) — the hardest part to redo, since DCS exposes only `Airbase:getParking()` and the spawn must write per-unit `parking`/`parking_id` into the group table — and waypoint table builders.
 Side-agnostic records (one authored origin→target pair usable by whichever coalition owns the origin) rest on the per-side template lists.
-The in-air restore path after a server restart (`_processAirRestoredSpawn`, `68044`) re-spawns flights in the air at their saved position; it is the only air spawn of regular sorties (persistence theme).
+The in-air restore path after a server restart (`_processAirRestoredSpawn`, `68044`) re-spawns flights in the air at their saved position; it is the only air spawn of regular sorties (see "Restore of air sorties" in §2 and "Restore of surface sorties" in §6).
 Hidden dependencies: `Frontline` (distance to front, CAP station picking), `ZONE_DISTANCES` and the sub-zone/road-hook caches, the intel system (`_zoneIntelBroadcast`, `_jtacMessage`), the warehouse logistics, and the Director callbacks sprinkled through every state (`_recordDirectorRegularSupplyOutcome`, `onManagedSpawnDenied`, `requestDirectorInstanceDisposal`).
 
 ## Seen outside this theme

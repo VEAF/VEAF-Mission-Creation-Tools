@@ -117,7 +117,9 @@ Each era and each mode therefore has its own campaign; only the rank file is sha
 Other writes outside this folder: `AIEN.lua` writes a log under `Logs\` (`AIEN.lua:9117-9118`).
 Desanitisation: the engine needs `io` and `lfs`; no `os.` call was found by grep in `zoneCommanderv2.lua`.
 Wall-clock time for the `lastSeen` field of rank records comes from LuaSocket `socket.gettime()` if a `socket` global or `package.loaded.socket` exists, otherwise `lastSeen` is not updated (`zoneCommanderv2.lua:43666-43683`).
-A `require("socket")` exists at `zoneCommanderv2.lua:48459`, which needs `require` to be desanitised (context of that call not read).
+A `require("socket")` exists at `zoneCommanderv2.lua:48459`, inside `fhEnsureCampaignSeed()`, which seeds the engine's own random generator once per session (`zoneCommanderv2.lua:48449-48475`).
+It is guarded by `if package and require`, so it only runs when `require` is desanitised; it then extends `package.path`/`package.cpath` with `.\LuaSocket\` and uses `socket.gettime()` in microseconds as the seed.
+Without it the seed is built from the mission date, `env.mission.start_time`, `timer.getAbsTime()` and `timer.getTime()` (`zoneCommanderv2.lua:48465-48475`).
 `net.get_player_list`, `net.get_name` and `net.get_player_info` are called from the mission scripting environment (`zoneCommanderv2.lua:41170-41195`, `43698-43708`, `43789-43795`).
 
 ## Campaign save: what is in `zonePersistance`
@@ -149,7 +151,9 @@ A `require("socket")` exists at `zoneCommanderv2.lua:48459`, which needs `requir
 | `customFlags` | free key/value table `CustomFlags` used by setup files for one-off campaign events | `zoneCommanderv2.lua:44530` |
 | `globalExtraUnlock` | shop unlock flag (per side in PvP) | `zoneCommanderv2.lua:44531` |
 
-`zonePersistance.difficultyModifier` is read on load inside `loadFromDisk` (`zoneCommanderv2.lua:44601-45960`), but its writer was not located (not read).
+`zonePersistance.difficultyModifier` is read on load (`zoneCommanderv2.lua:45690-45695`) but **nothing writes it** in v6.5.3: a grep of every `.lua` file of the extract finds the name only at its class default (`11997`), in `increaseDifficulty`/`decreaseDifficulty` (`19253-19265`) and in that load branch.
+None of the persistence builders (`25176-25886`, `44529-44552`) puts it in the state, so the load branch is a leftover that never fires on a save produced by this version.
+The value itself is also inert on Caucasus: it only moves when `bc.difficulty` exists, and the setup file calls `BattleCommander:new(filepath, 10, 60)` without the fourth `difficulty` argument (`Setup:754`, `zoneCommanderv2.lua:17082`, `17120`); see `04-director.md` section 15.
 
 **Per-zone record** (`zoneCommanderv2.lua:25276-25320`, `25357-25400`):
 `side`; `level` (number of built groups); `remainingUnits[slot]` = list of type names of the units still alive in each garrison group (life ≥ 1); `remainingUnitNames[slot]` for "Fixed" hand-placed groups (exact unit names); `spawnSubZones[slot]` (which sub-zone each group was placed in); `samMfdReveals`; `suspended`, `idleSuspended`, `suspendedLossesVersion`; `destroyed` (critical static objects destroyed); `active`; `isAwaken` (pop-up zones); `triggers[id] = hasRun`; `firstCaptureByRed`; `advanceCaptureThresholdArmed`; `upgradesUsed`, `upgradesUsedRed`, `upgradesUsedBlue`; `surrenderEvaluatedTier`; `extraUpgrade[] = {side, name}` (shop-bought groups); `lat_long`; `logisticCenter`; `warehouseFacility`; the regular-supply counters (`regularSupplyReady`, `…ExpeditedReady`, `…Progress`, `…Efficiency`, `…StockSide`, `…LossDelays`, `…LocalRecoveryJobs` with remaining seconds); `pendingCapture`; `captureObjectTombstones`; `randomUpgradesRed`, `randomUpgradesBlue` (the garrison template names drawn for this campaign); `retiredStaticUpgrades`.
@@ -176,7 +180,10 @@ Inside the coroutine: `_finalizePersistenceState` (accounts, shops, players, Dir
 The final `io.open`/`write` of each file is a single blocking call (`zoneCommanderv2.lua:7196-7201`).
 If a new request arrives while a job runs, it is ignored unless the job has not ticked for 5 s, in which case the job is discarded and replaced (`zoneCommanderv2.lua:44411-44428`).
 If a synchronous campaign write happened meanwhile (generation counter changed) or a campaign reset is pending, the job is cancelled (`zoneCommanderv2.lua:44458-44464`).
-A zone flagged dirty while the coroutine is serialising is re-serialised before the write (`zoneCommanderv2.lua:7143`, `7185-7191`); the code that sets the dirty flag was not read.
+A zone flagged dirty while the coroutine is serialising is re-serialised before the write: the serialiser keeps, per zone, the index of its text chunk in `saveJob.zoneParts.indices` and a `dirty` set, and rewrites the dirty chunks just before `table.concat` (`zoneCommanderv2.lua:7144-7154`, `7188-7194`).
+The only code that sets a zone dirty is `ZoneCommander:_requestSurrenderPersistenceRefresh()`: if a non-rank-only job is running and already collected this zone, it re-collects the zone record into the job's state and, if the zone chunk was already serialised, marks it dirty (`zoneCommanderv2.lua:45984-45992`).
+Its single caller is the zone-surrender evaluation, when the zone's `surrenderEvaluatedTier` changes (`zoneCommanderv2.lua:56011`).
+So the "dirty" mechanism protects one field only, the surrender tier (the reason, avoiding a second surrender roll after a restart, is an estimation); every other change made during a staged save simply waits for the next save.
 When the job ends, a completion callback writes the warehouse CSV (only when `WarehouseLogistics == false`) and the `foothold.status` pointer file (`zoneCommanderv2.lua:44553-44575`).
 A synchronous variant `saveToDisk()` builds the whole state in one call (`zoneCommanderv2.lua:44577-44579`, `25701-25709`).
 
@@ -211,15 +218,76 @@ If the garrison list had to change, the survivor lists are discarded and the zon
 
 **Garrisons with losses.**
 In `ZoneCommander:init`, for each saved slot with a non-empty survivor list the full group is spawned from its template (`zoneCommanderv2.lua:51593-51611`).
-Then `weedOutRemainingUnits` destroys the surplus units: for "Fixed" groups by exact unit name (`zoneCommanderv2.lua:51787-51850`); the type-name matching branch after line 51850 was not read.
+Then `weedOutRemainingUnits` destroys the surplus units: for "Fixed" groups by exact unit name, provided at least one saved name still exists in the group (`zoneCommanderv2.lua:51788-51850`).
+Otherwise it matches by type: the saved list is turned into a count per type name, the live units are walked in order, each unit whose `getDesc().typeName` still has a positive count is kept (count decremented) and every other unit is destroyed with `Unit:destroy()` (`zoneCommanderv2.lua:51851-51865`).
+So which unit of a type survives is the first in group order, not the one that actually survived, and position and damage are those of a fresh spawn.
+Groups listed in the zone's upgrades but not in `built` are destroyed outright, and statics of `newStatics` that are not in `built` are destroyed too (`zoneCommanderv2.lua:51794-51807`, `51869-51888`).
+The trim runs twice, 2 s and 4 s after the call, through two one-shot `SCHEDULER`s (`zoneCommanderv2.lua:51896-51900`).
 A slot whose saved list is empty is not spawned at all (`zoneCommanderv2.lua:51612-51614`).
 Static upgrades are only marked as built if the static still exists (`zoneCommanderv2.lua:51599-51604`).
 
 **AI flights and convoys.**
 Parsed into `_pendingAirAiPersistence` and `_pendingSurfaceAiPersistence` at load (`zoneCommanderv2.lua:44626-44889`), restored 5 s after `init` by a raw `timer.scheduleFunction` (`zoneCommanderv2.lua:29892-29918`, `30156-30178`), and requested again right after the warehouse load completes (`zoneCommanderv2.lua:112270`).
-Dedicated spawn-point helpers exist per mission type for the restore (`zoneCommanderv2.lua:59692-59711`, `67045`, `69018`); the restore bodies (`29295-29920`) were not read in detail, so "re-spawned in the air at the saved position with the saved alive count" is an estimation from the record fields.
-Director memory is kept in `_pendingDirectorPersistence` and consumed by `Director:_restorePersistence` (`zoneCommanderv2.lua:44601-44624`, `93046`).
+The mechanism is detailed in the next subsection.
+Director memory is kept in `_pendingDirectorPersistence` and consumed by `Director:_restorePersistence` (`zoneCommanderv2.lua:44601-44624`, `93046`), detailed after it.
 Cooldowns are saved as *remaining seconds*, not absolute times, because mission time restarts at each launch (`zoneCommanderv2.lua:92448-93027`, e.g. `recoveryRemainingSec`, `planningRemainingSec`).
+
+### Restore of live AI flights and convoys (read in full: `29295-30180`, `68008-68265`, `70141-70470`)
+
+**Two steps.**
+The restore never spawns anything itself: it finds the `GroupCommander` that owned the saved group, hangs the saved record on it, forces its state machine to `preparing` with an expired timer, and runs one `update` so that the commander's own spawn code does the work (`zoneCommanderv2.lua:29866-29870`, `30140-30144`).
+`GroupCommander:_processAirPreparing` then branches on `_pendingInAirRestore`: restored spawn instead of fresh spawn (`zoneCommanderv2.lua:68713-68722`); the surface counterpart consumes `_pendingSurfaceRestore` (`zoneCommanderv2.lua:70782-70784`).
+
+**Waiting conditions.**
+Both restores wait for the DynamicHybrid bootstrap (which generates the commanders): up to 12 retries 5 s apart (`zoneCommanderv2.lua:29590-29598`, `30050-30058`).
+Flights saved in state `takeoff` additionally wait for the warehouse CSV to be loaded when `WarehouseLogistics` is on, because a ground start draws aircraft from the warehouse; in-air flights are restored without waiting (`zoneCommanderv2.lua:29600-29602`, `29877-29889`, `112270`).
+
+**Finding the owner of a saved record** (`_resolveAirPersistenceCommander`, `_resolveSurfacePersistenceCommander`), in this order:
+1. Director capability: if the record carries `directorCapabilityId` (or its group name is a capability id), the capability is re-instantiated with the saved instance name, derivative slot (2 or 3) and instance generation; generation mismatches and duplicates are refused with a reason string (`zoneCommanderv2.lua:29301-29387`).
+2. Exact commander name, also after stripping a `_retasked_…` suffix (`zoneCommanderv2.lua:29406-29423`, `29939-29956`).
+3. DynamicHybrid base name (`DYNH-…` without its numeric suffix): the only candidate, or the best by a score on origin (+4), target (+4), role (+2), side (+2), mission (+2), mission type (+2), unit category (+1), template (+1) (`zoneCommanderv2.lua:29295-29299`, `29425-29472`, `29958-30004`).
+4. For non-supply records, any compatible commander by metadata score: origin +3, target +4, side +3, mission +3, mission type +3, unit category +2, template +2, accepted from 10 points for air and 9 for surface (`zoneCommanderv2.lua:29473-29500`, `30005-30031`).
+5. Last resort for a DynamicHybrid record with no owner: a new `GroupCommander` is built from the saved fields (shop-bought supply helicopters for air; any role for surface), added to the origin zone and registered with the DynamicHybrid tracker, and the DynamicHybrid name counter is raised to the saved suffix (`zoneCommanderv2.lua:29522-29571`, `30074-30112`).
+A record with no owner is dropped with an `env.info` line (`zoneCommanderv2.lua:29782`, `29872`, `30146`).
+
+**Flights saved in state `takeoff`** (`spawnNowTakeoff`) are not restored in place: the commander is put in `preparing` with `_spawnNowImmediateCheck`, so it performs a normal fresh launch from its base at once (`zoneCommanderv2.lua:29771-29780`).
+They are skipped when the origin zone changed side or is suspended (shop supply and regular supply from a suspended zone excepted) (`zoneCommanderv2.lua:29637-29641`).
+In PvP an ordinary CAP in that state is not relaunched: it is handed to the Director's pending save data as a CAP timer or operation member with zero remaining delay, so the Director relaunches it under its own rules (`zoneCommanderv2.lua:29631-29636`, `29642-29701`).
+
+**Sortie state copied back onto the commander before the spawn** (`zoneCommanderv2.lua:29825-29856`): sortie side, regular-supply origin, shop-launch and paid-supply flags, supply return-home, CAS altitude, CAP holding point with orbit distance and buffer, CAP SAM-return, CAP retask target, CAP return-home with its elapsed seconds and slot-released flag, the advance-capture flags and hold point, the Director retask original target and mission, and the current target zone.
+
+**In-air re-creation** (`GroupCommander:_processAirRestoredSpawn`):
+- Position: the saved `{x,y,z}`; a CAS or SEAD plane saved farther than `max(2 × route distance, 100 NM)` from both home and target is not restored (`zoneCommanderv2.lua:68044-68078`, `67025-67043`).
+- The position is corrected per mission: a CAS group saved beyond its engagement line is pulled back to 1 NM before a point 5 NM (helicopter) or 20 NM (plane) short of the target on the home-target axis; supply helicopters and planes get a point computed towards their destination, or towards home when returning or when the target is no longer valid (`zoneCommanderv2.lua:68079-68107`, `67045-67089`, `59692-59711`).
+- Altitude: the saved one for planes; for helicopters the saved height above ground clamped to 60–300 m, or 1500 ft AGL when no altitude was saved (`zoneCommanderv2.lua:68109-68124`).
+- The template (saved `templateName`, else the commander's last or resolved template) is copied, its units are moved to the saved point keeping their formation offsets rotated to the saved heading, and its route is replaced by two "Turning Point" waypoints 2 NM apart along that heading with empty tasks (`zoneCommanderv2.lua:68057-68065`, `68126-68173`).
+- Spawn is `SPAWN:NewFromTemplate(tpl, restoreTemplate, alias, true):InitSkill(...):OnSpawnGroup(...):Spawn()`, an air start because the first waypoint is a turning point; Red uses `AiPlaneSkill`, Blue "Excellent" (`zoneCommanderv2.lua:68184-68187`, `68245`).
+- In the spawn callback: state `inair`, `lastStateTime = now − lastStateDuration` (so the sortie timers resume), side forced to the saved side, and units beyond the saved `aliveCount` destroyed from the end of the group (`zoneCommanderv2.lua:68199-68225`).
+- 0.5 s (CAS) or 2.5 s (others) later `_assignRestoredAirMission` gives the group its real route with `_assignMissionAfterInAirRestore`, retrying every 0.5 s up to 10 times while the group is not yet available, and first waking an idle-suspended target zone (holding up to `idleZoneWakeHoldSec` = 120 s) (`zoneCommanderv2.lua:68233-68242`, `68008-68042`, `67335`, `8466`).
+- A failed route assignment is shown on screen to everybody for 15 s (`zoneCommanderv2.lua:68035-68040`).
+- Weapons fired and fuel burnt are not restored: the group comes back with the template loadout; only the "no weapon left, returning home" state is carried by `capReturnHome`/`airReturnHome` (`zoneCommanderv2.lua:68234-68235`, `25609-25630`).
+
+**Surface re-creation** (`GroupCommander:_processSurfaceRestoredSpawn`):
+- The restore is allowed only if the zones still make sense: the zone containing the saved point, the home zone and the target zone are checked against the saved side (attack needs an enemy target, supply a friendly or neutral one or a valid home when returning, artillery returning home a friendly home) (`zoneCommanderv2.lua:70158-70222`).
+- The template is copied with the saved heading; the route is rebuilt **from the saved point**: remaining road route to the target or home for `enroute`, a route back home for returning artillery, a direct two-point off-road leg to the saved hold point for an advance-capture convoy waiting for a neutral zone, an attack route into the zone for an attack group saved `atdestination` (`zoneCommanderv2.lua:70257-70371`, `69018-69193`).
+- If no route can be built the group is retired (`dead`) instead of spawned (`zoneCommanderv2.lua:70330-70352`).
+- Spawn is `SPAWN:NewFromTemplate(tpl, restoreTemplate, self.name, true)` at the saved position (`zoneCommanderv2.lua:70382-70390`).
+- In the callback: state set to the saved `enroute`/`atdestination`, timers resumed with `lastStateDuration`, flags restored, then the alive mask is applied: with `aliveUnitTypes`, units are kept per type up to the saved count and the others destroyed; without it, units beyond `aliveCount` are destroyed (`zoneCommanderv2.lua:70411-70421`, `70455`, `69196-69230`).
+- The controller's task is popped and the rebuilt route pushed 5 s later (`zoneCommanderv2.lua:70456-70467`).
+- On Normandy a battleship is moved to a safe water point first (`zoneCommanderv2.lua:70236-70248`).
+
+After both passes every saved record is offered to `_retryDirectorSavedInstanceDisposal`, which throws away on-demand Director instances that ended up unused (`zoneCommanderv2.lua:29877-29885`, `30150-30153`, `26552`).
+
+### `Director:_restorePersistence` (read: `93046-93200`, the saved-key list, the operation tail `93880-94266`)
+
+It runs on the Director's first ready tick, refuses a table whose `version` is not 1 or whose `side` differs, and rebuilds each memory with validation against the current mission (`zoneCommanderv2.lua:93046-93047`, `95815-95818`).
+Every `…RemainingSec` becomes `now + remaining`, and every `…ElapsedSec` becomes `now − elapsed` (`zoneCommanderv2.lua:93051-93052`, `93079-93080`, `93919-93934`).
+Entries naming a group, capability or zone that no longer exists are dropped (ground history and reuse cooldowns: `zoneCommanderv2.lua:93054-93082`).
+CAP slots are rebuilt one by one: the owner is re-resolved through `_restoreDirectorPersistenceCommander`, an unknown state falls back to `cooling`, a slot whose owner cannot be restored is put back to `cooling` without owner, and loss-recovery fields are re-anchored on `now` (`zoneCommanderv2.lua:93083-93183`).
+Then, in file order: campaign front memory, campaign strategy (name and goal zone/region validated), campaign action, air posture, air reaction decision, Blue area commitment and Blue timers, CAP group timers, operation counter, the three outcome tables, `history`, zone-upgrade history and cooldown, the strategic-budget timers, intent and history, the tactical-airstrike cooldown and last target, the AIEN request, both intelligence memories, the recovery/planning/surge timers, the pending reaction, tactical-strike transfers and CAS capture diversions, and finally the running operation (`zoneCommanderv2.lua:93184-93558`).
+The operation is restored assignment by assignment: each one is re-bound to its live commander or to its capability, with its role, phase, target, `authorized`/`launched`/`completed` flags, kill counters, reserve and SEAD-gate fields (`zoneCommanderv2.lua:93882-93960`).
+A SEAD ingress CAP support record is re-created and a launched CAP is re-routed to the ingress point (`zoneCommanderv2.lua:94200-94242`).
+If no combat assignment survives, a Red PvE operation is released and the Director starts in `recovery`; otherwise the saved `state` is resumed (`zoneCommanderv2.lua:94247-94263`).
 
 **Shops and accounts.**
 `accounts` replaces the coalition balances and shop stock is restored per item with a fallback to the default stock (`_resolveSavedShopStock`, `zoneCommanderv2.lua:45642`).
@@ -247,7 +315,11 @@ Save walks the airbases one per second with Moose `TIMER` (fallback `SCHEDULER`)
 In `warehouseOnly` mode the rows of airbases not rewritten are carried over from the previous file (`zoneCommanderv2.lua:111990-111999`, `112054-112064`).
 Load reads the CSV with `UTILS.LoadFromFile`/`UTILS.Split` and applies quantities to each `STORAGE`; a suspended blue zone whose average stock is under 500 gets 500 of each repair item added (`zoneCommanderv2.lua:112079-112125`, `112225-112246`).
 FARPs rebuilt at startup delay the warehouse load until they exist (`zoneCommanderv2.lua:111570-111630`, `112261-112268`).
-Moose: `STORAGE` wraps the DCS `Warehouse` object obtained from `Airbase:getWarehouse()` (estimation for the exact wrapped calls; the Moose source was not read); `AIRBASE:FindByName` is used next to raw `Airbase.getByName` (`zoneCommanderv2.lua:111512-111518`).
+Moose: `STORAGE` is a thin wrapper over the DCS `Warehouse` object.
+`STORAGE:New(name)` does `Airbase.getByName(name):getWarehouse()` and keeps the result in `self.warehouse` (`Moose_2026-10-11.lua:35671-35679`); `STORAGE:FindByName` only returns the instance Moose registered for that airbase in its database (`Moose_2026-10-11.lua:35698-35701`, `12649`).
+Each method is one DCS call: `AddItem` → `warehouse:addItem(name, n)`, `SetItem` → `warehouse:setItem`, `RemoveItem` → `warehouse:removeItem`, `GetItemAmount` → `warehouse:getItemCount(name)`, `GetInventory` → `warehouse:getInventory(item)` returning its `aircraft`, `liquids` and `weapon` tables (`Moose_2026-10-11.lua:35710-35727`, `35838-35841`).
+Cargo objects use `Warehouse.getCargoAsWarehouse(staticOrUnit)` instead (`Moose_2026-10-11.lua:35680-35697`).
+`AIRBASE:FindByName` is used next to raw `Airbase.getByName` (`zoneCommanderv2.lua:111512-111518`).
 
 **Reproduction notes.**
 The save is staggered at one airbase per second (`zoneCommanderv2.lua:112005`, `112048-112052`); the reason (slow inventory read) is an estimation.
@@ -396,6 +468,51 @@ An alias is rejected if it contains `:` or a newline, is blank, collides with a 
 Other built-in words are not aliasable and stay active in both modes: `debug`, `spawn`, `prepp`, `addshop`, `removeshop`, `upgradeallred`, `upgradeallblue`, `event`, `event:<name>`, `recapture`, `capture:<…>`, `givemesupplies`, `addrank:<player>,<n>`, `Message:<text>`, `SpelaMusik`, `ConfigStatus`, `debughelp`, `adminbuy` (needs `AllowAdminBuy`) (`zoneCommanderv2.lua:28356-28404`, grep of `event.text==` in `28470-29245`).
 `-code:<lua>` runs the rest of the marker text through `loadstring` and `pcall` with no guard at all (`zoneCommanderv2.lua:29203-29214`).
 
+**Guards, command by command** (bodies read in full: `zoneCommanderv2.lua:28455-29253`).
+The only test common to all commands is the handler's entry condition: event 26, a text, and a marker coalition of 1 or 2 (`zoneCommanderv2.lua:28456`).
+No command body tests a UCID, a player name, a rank (except `buy`), a password or a "debug enabled" flag; there is no admin password and no admin list anywhere in the Config file, whose "Admin Commands" section holds only `AdminCommands` and `AdminCommandAliases` (`Config:3468-3512`).
+`AdminCommandAliases` are all empty strings by default, and an empty alias disables that action, so turning `AdminCommands` on without filling the words removes the twelve aliasable actions entirely (`Config:3477-3512`, `zoneCommanderv2.lua:28411-28412`).
+
+| Command | Guard in its body | Effect | Lines |
+|---|---|---|---|
+| `help`, `debughelp`, `ConfigStatus` | none | text to the author's group, else to the marker's coalition | `28481-28553` |
+| `buy`, `buy:<item>` | rank: with `RankingSystem`, the author's rank must reach the item's `reqRank`; uses the marker's coalition account | list or purchase | `28555-28620` |
+| `adminbuy`, `adminbuy:<item>` | config flag `AllowAdminBuy`, default `true`; no rank check | purchase without rank, at the marker's coalition cost | `28622-28660`, `Config:1948` |
+| `köp…` / alias `buyWithoutRank` | secret word only | same as `adminbuy` | `28662-28705` |
+| `debug` | none | dumps the zone's built groups and unit life to `dcs.log` | `28707-28746` |
+| `spawn` | none | forces every `inhangar`/`dead` group of the zone under the marker to launch now | `28747-28760` |
+| `spawnnow[:<side>]` | none | `spawnNowBySide(side)`, default side = marker coalition | `28761-28773` |
+| `prepp` | none | moves the zone's `dead` groups to `inhangar` with an expired timer | `28774-28788` |
+| `addshop`, `removeshop` | none | rebuilds or removes the Blue shop menu | `28789-28793`, `28804-28808` |
+| `upgradeallred`, `upgradeallblue` | none | upgrades every zone of a side | `28794-28803` |
+| `status`, `intelstatus`, `whynot`, `missions`, `stats`, `top`, `mystats` | none (player commands) | information | `28810-28834`, `28918`, `29068-29084`, `29215-29240` |
+| `additems…` / alias `addZoneItems` | secret word only | adds weapons to the zone or FARP warehouse | `28836-28872` |
+| `event` | none | lists event ids in `dcs.log` | `28874-28879` |
+| `event:<id>` | none | `evc:triggerEvent(id)` | `28880-28885` |
+| `rensa` / alias `clearZone` | secret word only | `zone:killAll()` | `28886-28895` |
+| `Message:<text>` | none | `trigger.action.outText` to everybody, 10 s | `28896-28901` |
+| `SpelaMusik` | none | sets flag 180 for 300 s and plays `BH.ogg` to Blue | `28902-28910` |
+| `AvslutaFoothold` / alias `endMission` | secret word only | `forceMissionComplete()` | `28911-28917` |
+| Tarawa markers | Blue coalition and `AllowTarawaToMoveFreely` for the free-move forms | carrier group routing | `28938-29009` |
+| `farphere`, `givemefarpzell`, `escortmissionfarp` | PvP only for this branch; alias `createFarp` | builds a FARP at the marker | `29011-29040` |
+| `givemefarp` / alias `createFarp` | secret word only | builds an ordinary FARP | `29042-29066` |
+| `addfunds:<n>` / alias `addBlueFunds` | secret word only | `bc:addFunds(2, n)` | `29085-29096` |
+| `addrank:<player>,<n>` | none | adds rank credits to a named player, with the rank-up sound | `29097-29123` |
+| `addfundsred:<n>` / alias `addRedFunds` | secret word only | Red funds | `29125-29136` |
+| `upgradera` / alias `upgradeZone` | secret word only; refuses a suspended zone | `zone:upgrade()` | `29137-29148` |
+| `recapture` | none | `zone:RecaptureBlueZone()` | `29149-29156` |
+| `givemesupplies` | none | adds 3 expedited supply stock to the zone | `29157-29163` |
+| `maxxa` / alias `fullyUpgradeZone` | secret word only | `zone:MakeZoneSideAndUpgraded()` | `29164-29171` |
+| `capture:<1|2>` | none | `zone:capture(side)` | `29172-29184` |
+| `blå`, `röd` / aliases `captureNeutralBlue`, `captureNeutralRed` | secret word only | `zone:capture(2)` / `zone:capture(1)` | `29185-29202` |
+| `-code:<lua>` | none | arbitrary Lua | `29203-29214` |
+| `StartaOm` / alias `restartMission` | secret word only | sets flag 181 | `29242-29245` |
+
+"Secret word only" means the branch is `(not adminAliases and text == <built-in word>) or customAdminAction == <action>`: knowing the word is the whole protection.
+`AdminCommands = true` therefore hides only the twelve aliasable actions behind chosen words; the non-aliasable rows marked "none" (`spawn`, `capture:`, `addrank:`, `event:`, `Message:`, `recapture`, `upgradeall…`, `-code:`) stay open to every client with their fixed names.
+Those names are published in game: the open `debughelp` command prints the text `ADMIN_DEBUG_HELP`, which lists `spawn`, `rensa`, `capture:`, `maxxa`, `event:`, `addfunds:`, `addrank:`, `upgradera`, `upgradeallred`, `spawnnow:` and `-code:` with examples (`zoneCommanderv2.lua:28492-28500`, `Foothold_Localization.lua:2056`).
+A marker whose `event.coalition` is neither 1 nor 2 is ignored (`zoneCommanderv2.lua:28456`); whether a spectator or game-master marker carries such a value is an estimation.
+
 **Mechanism.**
 A dedicated `world.addEventHandler` object tests `event.id == 26` (`S_EVENT_MARK_CHANGE`) with a text and a coalition of 1 or 2 (`zoneCommanderv2.lua:28453-28456`, `29252`).
 Zone-targeted commands use the marker position: `bc:getZoneOfPoint(event.pos)` (`zoneCommanderv2.lua:28886`).
@@ -431,7 +548,14 @@ Each zone carries its own maintenance interval and dormancy state; an "active FS
 The engine mixes two: 162 calls to raw `timer.scheduleFunction` (with 14 `timer.removeFunction`) and 97 `SCHEDULER:New` plus 3 `TIMER:New` (counts by grep on `zoneCommanderv2.lua`).
 Raw timers are used for one-shot delays and self-rescheduling chains (the function returns the next time, e.g. `zoneCommanderv2.lua:43307`).
 `SCHEDULER:New(obj, fn, args, start, repeat)` is used for the recurring loops and for many one-shots with `repeat = 0` (e.g. `zoneCommanderv2.lua:28084`, `17314-17316`).
-Moose `SCHEDULER` wraps `timer.scheduleFunction` through its `SCHEDULEDISPATCHER`, adds error trapping, and stops when the function returns `false` (estimation: Moose source not read; the stop-on-`false` contract is relied on at `zoneCommanderv2.lua:44526`).
+Moose `SCHEDULER:New(master, fn, args, start, repeat, randomize, stop)` registers the call with the global `_SCHEDULEDISPATCHER` (`Moose_2026-10-11.lua:7884-7915`).
+The dispatcher wraps `fn` in a `CallHandler` closure and starts it with `timer.scheduleFunction(CallHandler, {CallID, Info}, now + start)`; stopping is `timer.removeFunction(ScheduleID)` (`Moose_2026-10-11.lua:7954-7990`, `8071-8087`, `8088-8105`).
+The handler runs `fn` under `xpcall` with an error handler that logs "Error in timer function" and a traceback to `dcs.log` (`Moose_2026-10-11.lua:7996-8003`, `8030`, `8038`).
+Rescheduling rule: if the call succeeded and returned `nil` or any value other than `false`, and `repeat ~= 0`, the handler returns `now + repeat ± randomize × repeat / 2` to DCS; with `repeat == 0` the schedule is reclaimed; an error or a `false` return stops a repeating schedule (`Moose_2026-10-11.lua:8043-8056`).
+So a Lua error inside a repeating `SCHEDULER` function kills that loop silently, which is the same failure mode the engine watchdog exists for.
+The stop-on-`false` contract is relied on at `zoneCommanderv2.lua:44526`.
+Moose `TIMER:New(fn, ...):Start(tstart, dT, duration)` is the lighter form: one direct `timer.scheduleFunction(self._Function, self, tstart)`, re-armed every `dT`, with no `xpcall` (`Moose_2026-10-11.lua:22991-23003`, `23042-23060`).
+The bundled Moose is patched by Foothold: the dispatcher's error handler reads the engine global `bc` to add context to its log line (`Moose_2026-10-11.lua:7998`), so the file is not a stock Moose build.
 
 **Reproduction notes.**
 The 0.1 s per-zone stagger, the evaluation queue with a budget, the staged save and the menu queues are all the same pattern: no loop is allowed to touch every zone, group or player in one frame.
@@ -460,7 +584,13 @@ The satellite scripts lean on Moose events more: `WelcomeMessage.lua` handles `E
 | `111446-111447` | MANTIS `SAM_Group`, `EWR_Group` | SAM and EWR groups given to MANTIS | `FilterOnce` |
 | `111454` | `SET_ZONE` prefix `Scoot` | scoot zones for MANTIS | `FilterStart` |
 
-`FilterStart` makes Moose subscribe to birth, dead, crash and remove-unit events and keep the set current; `FilterOnce` is a single scan of the Moose database (estimation: Moose source not read).
+`FilterOnce` is a single pass over the Moose database of that object kind (`self.Database`), adding the objects that pass the filters and removing the others; nothing is subscribed (`Moose_2026-10-11.lua:13954-13963`).
+`SET_GROUP:FilterStart` does the same initial pass, then subscribes the set to `EVENTS.Birth` (add if it passes the filters), and to `Dead`, `Crash`, `RemoveUnit`, `UnitLost` and `PlayerLeaveUnit` (remove the group when its last unit goes) (`Moose_2026-10-11.lua:14358-14373`, `13970-13977`, `14009-14016`, `14392-14412`).
+When the set has a zone filter it also starts a `TIMER` re-evaluating zone membership every 30 s (`Moose_2026-10-11.lua:14366-14370`).
+`SET_CLIENT:FilterStart` subscribes to `Birth`, `Dead`, `Crash` and `PlayerLeaveUnit`, with the same optional 30 s zone timer (`Moose_2026-10-11.lua:15941-15955`).
+`SET_ZONE:FilterStart` scans the zone database and subscribes to Moose's own `NewZone`/`DeleteZone` events (`Moose_2026-10-11.lua:16631-16644`).
+`HandleEvent` registers the object with Moose's single `EVENT` dispatcher, which is one `world.addEventHandler(self)` for the whole framework and fans each DCS event out to the subscribed objects (`Moose_2026-10-11.lua:6620-6623`, `8630-8634`, `8846`).
+So every live `SET_*` costs one callback per matching DCS event, plus a 30 s poll when filtered by zone.
 
 **Reproduction notes.**
 The hidden dependency is the Moose database itself: `_DATABASE.Templates.Groups[name]` is read 26 times to get a group template (units, country, category) by name (`zoneCommanderv2.lua:1160`, `1220`, `1277`, `5228`, `27187`).
@@ -481,7 +611,39 @@ The flush turns the dirty set into a queue of groups and starts a raw timer chai
 Before rebuilding, each entry is validated: the group still exists, still has the same id, and its menu root and state object are the ones captured when queued (`zoneCommanderv2.lua:40473-40476`).
 Requests arriving during a drain are accumulated and flushed when the queue empties (`zoneCommanderv2.lua:40496-40499`).
 The same request/flush pattern exists for the shop selector, dynamic control, supply and tanker menus (`zoneCommanderv2.lua:17319-17345`, `17389`, `17419`, `17441-17455`, `17600`) and for joint-mission menus (`18911`).
-The exact content of the 6.4.9 and 6.5.0 crash fixes could not be attributed: no engine changelog ships in the extract (only `tools/FootholdConfigManager/CHANGELOG.md`), so linking these queues to those versions is an estimation.
+No engine changelog ships in the extract (only `tools/FootholdConfigManager/CHANGELOG.md`), so the queues cannot be tied to the 6.4.9 or 6.5.0 crash fixes; what follows is the code as it stands in 6.5.3.
+
+**The five queues of 6.5.3.**
+
+| Queue | Request | Coalescing delay | Drain rate | Unit of work | Code |
+|---|---|---|---|---|---|
+| Zone status / intel | `requestZoneStatusMenuRefresh(groupId or nil, intelOnly)` | one-shot `SCHEDULER` 0.15 s | raw timer, **1 group per 0.1 s** | rebuild of one group's Red/Blue zone lists, or of its intel submenu only | `17272-17317`, `40469-40499` |
+| Shop selectors | `requestShopSelectorRefreshForCoalition(side, tags or item ids)` | one-shot `SCHEDULER` 0.15 s | one-shot `SCHEDULER` re-armed every `shopSelectorRefreshInterval` = **0.25 s**, `shopSelectorRefreshBudget` = **1 job per tick** | one (group, shop item) pair: the zone-selector submenu of that item | `17319-17417`, `17513-17629`, `17649-17697`, `11999-12000` |
+| Dynamic control | `requestDynamicControlMenuRefresh()` | shares the shop flush | shares the shop worker: while both have work, **every fourth tick** goes to dynamic control (after 3 non-priority shop jobs) | one group's "Dynamic Control" root menu | `17389-17392`, `17600-17613`, `17655-17667` |
+| Supply / tanker | `requestDelayedSupplyMenuRefresh()`, `requestDelayedTankerMenuRefreshForBlue(needsShop)` | supply: raw timer, debounced to 1 s after the **last** request; tanker: raw timer 2 s | supply feeds the shop queue; tanker: **1 group per 0.5 s**, re-run 2 s later if requested meanwhile | supply: shop items `supplies`/`supplies2`; tanker: one group's shop menu or dynamic-control menu | `17419-17511` |
+| Joint missions | `refreshJointMenusForSide(side)` | pending-side set | raw timer, **1 group per 0.1 s** | one group's joint request and pending-request submenus | `18911-18975` |
+
+**Deduplication inside the queues.**
+Zone status: the dirty state is three variables (`…RefreshAll`, `…RefreshIntel`, `…RefreshPendingGroups`), so any number of requests before the flush yields at most one entry per group (`zoneCommanderv2.lua:17301-17308`, `17278-17292`).
+Shop selectors: a job is keyed `side|groupId|itemId` in a `seen` set, so the same pair is never queued twice; a "priority" item (`capture`, `advancecapture`) is moved to the head of the queue (`zoneCommanderv2.lua:17549-17596`).
+Dynamic control: `indexByGroup` keeps one slot per group and overwrites it (`zoneCommanderv2.lua:17607-17612`).
+
+**The "unchanged" checks that avoid a rebuild.**
+- Zone status: the rows of each side (zone object, handler, label text) are compared with the rows last rendered for that group, together with the root handle, viewer side, translator, locale, side labels and "More" label; only a side that differs is removed and re-added, and nothing is touched when both match (`zoneCommanderv2.lua:40317-40324`, `40408-40466`).
+- Dynamic control: a signature string concatenating every input of the menu (support flights active, spawn indexes, push modes, rank, …) is compared with `groupDynamicSignatures[groupId]`; when equal and not forced, only the tanker sub-part is refreshed (`zoneCommanderv2.lua:16408-16427`).
+- Strike and intel mission menus: a signature of the active missions or zones is compared with the stored one, plus the rendered root and locale for intel (`zoneCommanderv2.lua:103218`, `103254-103258`, `103318`, `103364-103368`).
+- Joint pending requests: the pending rows (player, label, request) and the four labels are compared with the previous rows; identical means return (`zoneCommanderv2.lua:18861-18877`).
+- The shop root menu has no such check: `refreshShopMenuForGroup` removes every remembered item and rebuilds (`zoneCommanderv2.lua:22395-22411`).
+
+**Handle tracking and validation.**
+Handles are kept in tables keyed by group id: `zoneStatusMenus`, `redSideMenus`, `blueSideMenus`, `_zoneStatusMenuStateByGroup`, `groupSupportMenus[gid] = {menu, items, selectorNodes}`, `groupDynamicMenus`, `groupDynamicSignatures`, `groupTankerMenus`, `groupCarrierNavigationMenus`, `jointMenusByGroup`, `jointMenuOwnersByGroup`/`BySide`, plus `statsMenus`, `languageMenus`, `aiLogisticsMenus` on the `LogisticCommander` (`zoneCommanderv2.lua:40420-40466`, `22400-22411`, `97826-97889`).
+A queued entry captures what it was queued against (root handle and state object for zone status; owner object and parent menu for joint; menu token for tanker) and is skipped at drain time if the live group no longer has the same id or the captured objects changed (`zoneCommanderv2.lua:17288-17290`, `40473-40476`, `18939-18945`, `17488`, `17665`).
+
+**Dropping handles.**
+`LogisticCommander:pruneGroupMenus(groupid, groupname)` is the single clean-up, called when the player's aircraft is gone (after ejection handling, and from the player-aircraft clean-up of the event dispatcher) (`zoneCommanderv2.lua:97785`, `42158`, `43034`).
+It bumps the group's menu token first, which invalidates every queued or delayed menu job for that group id (`zoneCommanderv2.lua:97786`, `97779-97783`).
+It then checks whether a live DCS group with that name still has that id: if yes it calls `missionCommands.removeItemForGroup` on each tracked handle; if not it **only forgets the handles without calling DCS**, per the comment "Retire native handles without touching DCS when this group is no longer available" (`zoneCommanderv2.lua:97796-97800`, `97825-97873`).
+It also clears the Moose CTLD menu fields cached on the Moose group object (`zoneCommanderv2.lua:97816-97823`).
 
 **Reproduction notes.**
 Removing and re-adding F10 items for many groups in one frame is the cost being avoided.

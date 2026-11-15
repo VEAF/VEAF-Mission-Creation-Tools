@@ -128,11 +128,11 @@ The rest was sampled; each section says what was read.
 | has an airbase | +18 | `84406` |
 | has SEAD targets | +18 | `84407` |
 | weakness | `(1 − readiness) × 80`, readiness = zone combat-strength ratio or built/upgrade-total | `84408-84412`, `88087-88108` |
-| region preference | `_regionTargetPreference(zone,'ATTACK')` (not read) | `84413` |
+| region preference | `_regionTargetPreference(zone,'ATTACK')`: 0 to 90 by region intent and member role, 0 outside a region (section 5) | `84413`, `76959-77019` |
 | captured by Blue less than 20 min ago | +160 | `84414-84418` |
 | Red neighbours | +35 each | `84419` |
 | connectivity | `min(48, connections × 8) + 12 × Blue neighbours` | `84431` |
-| front progression | `_campaignFrontProgressionScore` (not read) | `84432-84438` |
+| front progression | `_campaignFrontProgressionScore`: `min(180, 45 × Red neighbours)`, +100 for a pocket, plus proximity to Red's and Blue's latest captures (section 5) | `84432-84438`, `79233-79309` |
 | SAM exposure | `− min(260, exposure × 160)` | `84439-84440` |
 | player activity near the zone | `+ playerScores[zone]` | `84441-84442` |
 | reactive pressure of Red neighbours | `+ min(20, pressure × 3)` each | `84443-84446` |
@@ -144,7 +144,7 @@ The rest was sampled; each section says what was read.
 - Operations that ended administratively (aborted, redirected, pre-empted, or never launched an attacker) do not steer the choice (`84449-84455`).
 - The pick is not greedy: `_areaFirstCandidateOrder` first picks an **area** by weighted random among the top three areas of the area recommendation, then `_pickWeightedCandidate` picks by weighted random among the top three candidates of that area (`84832-84886`, `84810-84830`).
 - If that preferred target cannot produce an operation, the other candidates are tried in order (same area first) (`94610-94637`).
-- Every choice must pass `_campaignActionAdmission` (a "campaign action lease" that prevents flip-flopping between areas; constants: hold 2–5 min, decision 1–2 min, history of 6 over 30 min) (`94585-94596`, `77446-77451`; body not read).
+- Every choice must pass `_campaignActionAdmission` (a "campaign action lease" that prevents flip-flopping between areas; constants: hold 2–5 min, decision 1–2 min, history of 6 over 30 min) (`94585-94596`, `77446-77451`); the scoring is in section 5.
 
 ### Player view
 
@@ -152,16 +152,119 @@ The rest was sampled; each section says what was read.
 
 ## 5. Campaign objective: strategy, regions/areas and the "strategic shadow"
 
-Read: doctrine use of the strategy (`87425-87454`), call sites; **not read**: `_selectCampaignStrategy` (`77057-77267`), `_strategicShadowCandidateScore` (`78104-78308`), `_collectStrategicShadowCandidates` (`78308-78672`), `_updateStrategicShadow` (`78759-78973`), `_buildRegionCatalog`/`_buildAreaCatalog` (`74895-75338`), `_observeRegions` (`76378`).
+Read in full: `_regionTargetPreference` (`76959-77019`), `_selectCampaignStrategy`/`_ensureCampaignStrategy`/`_campaignStrategyShadowBias` (`77057-77332`), the campaign-action arbiter (`77445-77754`), `_strategicShadowCandidateScore` (`78104-78306`), the area half of `_collectStrategicShadowCandidates` (`78308-78427`, `78470-78670`), `_updateStrategicShadow` (`78759-78971`), `_regionIntent` (`76257-76304`), `recordZoneOwnershipChange` (`74800-74824`), `_campaignFrontProgressionScore` (`79233-79309`), the setup catalogues (`MA_Setup_CAv2.lua:2271-2507`).
+Not read: `_buildRegionCatalog`/`_buildAreaCatalog` (`74895-75338`), `_buildRegionFacts` (`76105-76256`), `_buildLogisticsIntelligence` (`77938-78074`).
 
-- Mission-maker data: `TheaterAreas` lists named areas with a `kind` (`air_network`, `coastal_corridor`…) and member zones each with a `role` (`hub`, `gateway`, `defence`, `resource`) (`MA_Setup_CAv2.lua:2365-2400`).
-- `TheaterRegions` describes multi-zone objectives such as island groups and is empty on Caucasus (`MA_Setup_CAv2.lua:2362-2363`).
-- `TheaterInfrastructure` links a destroyable warehouse flag to an effect, e.g. `effect="defence_supply"` from `Kobuleti` to `SAM-India` gated by custom flag `SamAlphaWarehouse` (`MA_Setup_CAv2.lua:2271-2290`).
-- The Director keeps a named **campaign strategy** (`self.campaignStrategy.name`) among at least `air_supremacy`, `economic_pressure`, `island_campaign`, `breakthrough`, `counterpunch`, with a `goalRegion` (`87425-87454`).
-- The strategy biases the doctrine choice (section 6) and the strategic score of targets through `_campaignStrategyShadowBias` (`77288`, not read).
-- The "strategic shadow" is a ranked list of objective candidates with a component breakdown (`hub`, `runway`, `income`, `region`, `strategy`, `player`, `commitment`), `effects` (e.g. `GROUND_ASSAULT`), `regionIntent` (e.g. `counterattack_foothold`, `reduce_remnant`) and a `logistics` block; it is consumed by target selection, doctrine, reassessment and the air-reaction decision (`84769-84773`, `87416-87430`, `89425-89440`, `71455-71465`).
-- It is recomputed lazily: `strategicShadowNextAt` and an input signature gate the rebuild (`78672`, `95773`; throttle body not read).
-- `Director:recordZoneOwnershipChange(zoneName, fromSide, toSide, now)` feeds a "campaign front memory" of at most 24 events kept 2 h, used for front-progression scoring (`74800`, `71064-71065`; bodies not read).
+### Mission-maker data (setup file)
+
+- `TheaterAreas` is a list of named areas, each `{id, kind, name, zones = {{name, role}, …}}`; `kind` is `air_network` or `coastal_corridor` on Caucasus, and a zone's `role` is one of `hub`, `gateway`, `defence`, `resource`, `approach` (`MA_Setup_CAv2.lua:2365-2507`).
+- Caucasus areas include `western_georgia` (Batumi, Kobuleti, Senaki, Kutaisi as hubs), `abkhazia` (Sukhumi, Sochi), `black_sea_north` (Gelendzhik, Anapa) and `kuban` (Krymsk, Krasnodar-Center) (`MA_Setup_CAv2.lua:2366-2420`).
+- `TheaterRegions` describes multi-zone objectives (island groups with `core`, `foothold`, `defence` members) and is empty on Caucasus, so every region-based term below is 0 on this map (`MA_Setup_CAv2.lua:2362-2363`, `76960-76961`).
+- `TheaterInfrastructure` entries are `{id, flag, effect = "defence_supply", side, scope = "routes", sourceZone, targetZones}`: a destroyable warehouse, identified by a custom flag, that feeds a SAM zone from a base, e.g. Kobuleti → SAM-India under flag `SamAlphaWarehouse` (`MA_Setup_CAv2.lua:2271-2360`).
+- The Director reads `CustomFlags[infrastructure.flag]` to count intact and destroyed infrastructure per area (`78508-78520`).
+
+### Campaign strategy (Red, PvE)
+
+- One strategy is held at a time: `{name, generation, reason, goalZone, goalRegion, selectedAt, weight}` (`77245-77253`).
+- It is kept until its goal zone stops being a valid enemy/neutral, active, non-hidden zone (in practice: until Red captures it); then the generation is incremented and a new strategy is drawn (`77267-77286`).
+- Selection first floods the operational graph from every usable Red zone to find the reachable non-Red zones (`77083-77103`), then gathers facts over them and picks a goal zone per strategy (`77104-77171`):
+
+| Strategy | Goal zone = reachable zone maximising | Weight in the draw | Lines |
+|---|---|---|---|
+| `air_supremacy` | `100 if runway + 50 if SEAD targets + 5 × connections + 10 × income` | `1 + 2 × runway targets + 0.75 × SEAD targets` | `77114-77120`, `77186-77193` |
+| `economic_pressure` | `100 × income + 10 × connections + 20 if runway` | `1 + 2 × income targets + min(4, total income)` | `77121-77129`, `77194-77202` |
+| `island_campaign` | member of an `island` region: role score (core 100, foothold 80, defence 60, other 40) + 70 if Red already holds part of the region + 40 if contested | `2 + 0.8 × region targets + 1.5 × core targets` | `77130-77146`, `77203-77212` |
+| `breakthrough` | shadow candidate maximising `hub + 30 if a ground route is open` | `2 + maxHub / 24 + min(3, 0.3 × ground-open targets)` | `77161-77165`, `77213-77219` |
+| `counterpunch` | shadow candidate maximising `player + urgency` | `1 + maxPlayer / 60 + maxUrgency / 30`, only if either is > 0 | `77166-77170`, `77220-77228` |
+
+- The draw is a plain weighted random over the available strategies (`77235-77243`); the result is logged with all weights when `config.log` is on (`77255-77263`).
+- The strategy then acts through one function, `_campaignStrategyShadowBias`, which fills the `strategy` component of every shadow candidate (`77288-77332`):
+  - a route bias common to all strategies: 120 for the goal zone itself, else `max(0, 100 − 12 × graph hops to the goal)` (search limited to 12 hops);
+  - `air_supremacy`: +45 for a runway, +25 for SEAD targets;
+  - `economic_pressure`: `min(75, 40 × income)`, +40 on the goal;
+  - `island_campaign`: in the goal region, core 85 / foothold 70 / defence 45 / other 35, +60 on the goal;
+  - `breakthrough`: `0.4 × hub + 20 if a ground route is open`, +60 on the goal;
+  - `counterpunch`: `min(100, 0.35 × player) + min(100, urgency)`, +40 on the goal.
+- It returns 0 in PvP and for Blue (`77289-77291`).
+- It also weighs doctrine choice (section 6) and campaign-action admission (below).
+
+### Strategic shadow: one scored entry per attackable zone
+
+- A candidate's score is the sum of fourteen components (`78107-78122`, `78292-78296`):
+
+| Component | Value | Lines |
+|---|---|---|
+| `base` | 100 for an enemy zone, 60 for a neutral one | `78108` |
+| `player` | player-activity score of the zone, capped 300 | `78109` |
+| `runway` | 110 if the zone has a runway capability | `78123-78124` |
+| `income` | `min(90, 45 × income)` | `78125-78126` |
+| `readiness` | `(1 − target readiness) × 70` | `78127-78130` |
+| `region` | `_regionTargetPreference`: by region intent and member role, e.g. `seize_core` core 90, `counterattack_foothold` foothold 90, `reduce_remnant` 75 (+15 defence), `expand_foothold` core 85, `prepare_assault` core 45; +12 if the region is degraded for the enemy, + `min(25, 0.1 × player pressure)`; neutral zones get 75/60/45/35 by role when the intent is to expand | `76969-77018`, `78132-78151` |
+| `hub` | `min(48, 8 × connections) + min(36, 9 × connections to non-friendly zones)` | `78153-78162` |
+| `urgency` (Red PvE, Blue zone) | +150 if Blue captured it within `captureReactionWindowSec`; + `min(45, 5 × Σ reactive pressure of the Red neighbours)` | `78164-78176` |
+| `history` (Red PvE) | same target: +60 × age for `near-complete`, +30 × age for `partial`, 0 for `incomplete`, −80 × age otherwise; a target within 2 hops of a previous one: −20 × age; administrative endings ignored | `78197-78215` |
+| `history` (Blue / PvP) | same target: +80/+60/+30 × age for neutralised/near-complete/partial, −80 × age for failed/aborted/contained; within 2 hops of a captured or neutralised target: +30 × age | `78180-78196` |
+| `learning` | `_targetOutcomeBias`: `min(30, 10 × success) + min(15, 5 × partial) − min(60, 15 × failure)` on the decayed counters, plus the secondary-axis bias | `78217`, `77431-77442` |
+| `commitment` | +100 if it is the running operation's target, +35 if it is already the shadow's main objective | `78218-78224` |
+| `logistics` | ready for exploitation: `45 + min(45, 15 × available stock)`; sources open but not ready: `−10 + min(20, 5 × productive sources)`; none open: −40; then `+ min(35, 15 × hub sources) + min(45, 25 × pressured sources) − min(40, 12 × blocked sources) + 20 × (average efficiency − 0.5)`; −30 when there is no logistics row | `78225-78242` |
+| `unlock` (Red PvE) | for a SAM zone with SEAD targets whose "defence parent" is the live target (80) or the strategy goal (60), +20 if the parent's supply is ready | `78247-78262` |
+| `strategy` | `_campaignStrategyShadowBias` | `78273-78281` |
+
+- Each candidate also carries `effects`: `SECURE` or `CAPTURE`, `AIRFIELD_CONTROL`, `SEAD`, `GROUND_ASSAULT` (a friendly ground neighbour exists and the convoy route is not blocked) or `AIR_ASSAULT`, `LOGISTICS_READY`/`LOGISTICS_BUILDING`/`LOGISTICS_BLOCKED`, `PLAYER_SUPPORT` (`78244-78290`).
+- `regionIntent` comes from `_regionIntent`, a decision table on who owns the region's members, its core and its footholds: `inactive`, `consolidate`, `defend_region`, `defend_degraded`, `hold_degraded`, `prepare_assault`, `contain`, `counterattack_foothold`, `reduce_remnant`, `expand_control`, `expand_foothold`, `seize_core`, `observe`; a zone outside any region is `frontline` (`76257-76304`, `78300`).
+
+### Area ranking (the "area shadow")
+
+- Each area gets facts: counts of zones per side (all active zones, and "territorial" zones including suspended ones), a `control` label (`friendly`, `enemy`, `neutral`, `contested`, `mixed`, `inactive`), player pressure, income, intact/destroyed infrastructure, blocked friendly runways, the capability inventory of the area and its neighbours (when the planning inventory is younger than 300 s), and a logistics summary (`78332-78427`, `78478-78555`).
+- Area score = sum of (`78562-78662`):
+  - `target`: score of its best candidate;
+  - `depth`: `0.12 ×` the scores of candidates 2 to 4, capped 140;
+  - `player`: `min(90, 0.2 × area player pressure)`;
+  - `role`: area roles of the best candidate, hub 70, gateway 55, resource 35, infrastructure 25, defence 20, approach 10, support 5, capped 100 (`78469-78477`);
+  - `frontline`: `min(45, 9 × number of candidates)`;
+  - `readiness`: `min(70, 6 × combat capabilities nearby)`, or −40 when there are none;
+  - `logistics`: `min(70, 12 × stock + 10 × logistics centres) + 20 × efficiency + min(30, 15 × pressured sources) − 30 × blocked-route ratio`, or −35 with no source;
+  - `infrastructure`: `15 ×` destroyed infrastructure;
+  - `runway`: `− min(140, 20 × blocked runways + 12 × importance + min(60, 0.15 × pressure))`;
+  - `continuity` (Blue or PvP only): `180 + min(90, 20 × friendly zones)` when the area is partly held, +220 for the committed area, +260 for the area of the running operation;
+  - `history`: ±25 / +12 / +35 × age by the result of previous operations in the area.
+- The ranked areas are stored in `areaShadowRecommendation`; this is the list target selection draws its area from (section 4) (`78838-78866`).
+
+### `_updateStrategicShadow`: objective and throttle
+
+- The shadow is rebuilt at most every 300 s unless one of its inputs changed: live target, CAP-target state generation, runway-block generation, region observation signature, player-activity signature, Red reactive pressure signature, strategy name or goal (`78781-78800`).
+- A second gate compares a full input signature and skips the rebuild when nothing changed and the logistics intelligence is younger than 300 s (`78801-78809`).
+- A zone ownership change forces a rebuild at the next tick for both Directors (`74820-74823`).
+- Result `strategicShadowObjective = {main, secondary, candidates, areaShadow, campaignStrategy, campaignGoal, liveTarget}` (`78885-78895`).
+- `main` is the top candidate for Red in PvE, and the best candidate of the top-ranked area for Blue and in PvP (`78817-78822`).
+- `secondary` is the best candidate on a separate front: another region, or more than 2 graph hops from `main` (`78823-78837`).
+- With `config.log`, the main objective, the recommended area and the component breakdown of the top three candidates are logged, only when the signature of the result changes (`78898-78969`).
+
+### Campaign front memory and front progression
+
+- `Director:recordZoneOwnershipChange(zoneName, fromSide, toSide, now)` (class-level, called on every capture) pushes an event `{zone, fromSide, toSide, at}` into a memory shared through the Red Director, capped at `CAMPAIGN_FRONT_EVENT_MAX` = 24, and records the captured zone as the **focus** of the side that took it (`74800-74819`, `71064-71065`).
+- `_campaignFrontProgressionScore(target, advancingSide, friendlyNeighbours, enemyNeighbours)` = `min(180, 45 × friendly neighbours)`, +100 when the target has ≥ 2 friendly neighbours and no other enemy neighbour (a pocket), plus proximity to the side's own last capture (180 on it, 125 at 1 hop, 65 at 2, 25 at 3) or, with no focus yet, proximity to the campaign origins (`105 − 22 × (hops − 1)`); for Red it adds proximity to Blue's latest capture while that is within the memory window (180 / 95 / 35 at 0 / 1 / 2 hops) (`79233-79309`).
+- The result is cached per memory generation and CAP-target generation (`79240-79254`).
+- In the Red target score it is added unweighted next to the connectivity term (`84431-84438`).
+
+### Campaign action admission (the "initiative lease")
+
+- Every Red decision that commits forces passes `_campaignActionAdmission(proposal, now, facts)`; action types are `operation`, `ground`, `upgrade`, `warehouse`, `warehouse_repair`, `mass_attack`, `bomber`, `reaction`, `reactive_cap`, `aien_air_support`, `local_response` (`77452-77464`, `77649-77653`).
+- A proposal is `{action, targetZone, areaId, score, urgency 1–3, reason, logistics}`; urgency defaults to 3 when the candidate's strategic urgency is ≥ 100, 2 when > 0, else 1 (`77488-77503`).
+- `_campaignActionCandidates` builds two scores, `allow` and `hold` (`77523-77647`):
+  - `allow` starts at `70 + min(220, 0.30 × proposal score) + 30 × urgency`; `hold` starts at 75;
+  - current workload raises `hold`: `+ min(100, 9 × air commitments)` for an air action, `+ min(75, 18 × ground commitments)` for a ground one;
+  - if a lease is active: aligned with it (same target, or same area and both actions of a "support" type) → `allow` +140; not aligned → `hold` +140 and `allow` + `55 × (urgency − 1)`;
+  - if an operation is running: same target or area → `allow` +90; elsewhere → `hold` +120 (except for `upgrade`);
+  - strategy: goal zone +70, goal area +30, and +30 to +40 when the action type suits the strategy (e.g. `breakthrough` with `operation`/`ground`, `counterpunch` with reactions and upgrades);
+  - defensive plan: +70 for a defensive action in the primary defended zone or area;
+  - supply: `+ min(45, 25 × supply sorties already heading to the target)`, +35 for a defensive action when sources are under pressure;
+  - repetition: over the last 6 actions within 30 min, `− min(45, 6 × age weight)` for the same action type and `− min(35, 5 × age weight)` for the same target;
+  - urgency 3 adds +170 to `allow`.
+- Decision: an aligned proposal is always allowed; a proposal that already waited out a `hold` and meets no lease is allowed; otherwise it is a weighted random between `allow` and `hold` proportional to the two scores (`77678-77685`, `84810-84830`).
+- The decision is cached by signature (`action|target|urgency|reason`) for 60–120 s, so the same proposal is not re-rolled every tick (`77658-77664`, `77697-77703`).
+- `_commitCampaignAction` creates the lease when the committed action is not aligned with the current one: `{action, targetZone, areaId, urgency, generation, holdUntil = now + 120–300 s}`, and pushes the action into the 6-entry history (`77707-77754`).
+- Effect: for 2 to 5 minutes after Red commits somewhere, actions in the same area are waved through and actions elsewhere must win a draw weighted against them.
 
 ## 6. Building an operation: doctrine, package, feint, reserve
 

@@ -702,4 +702,21 @@ function TestCampaignIntel:test_a_reveal_survives_a_restart_with_the_time_it_had
   luaunit.assertEquals(veafCampaign.zones["Senaki"].revealedUntil, 300)
 end
 
+-- ---------------------------------------------------------------------------
+-- Self-check
+-- ---------------------------------------------------------------------------
+TestCampaignLiveSelfCheck = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+local function verdict(ok, key)
+  return (ok and "OK " or "KO ") .. key
+end
+
+function TestCampaignLiveSelfCheck:test_an_empty_board_is_not_a_fault_before_the_first_beat()
+  start({ air = {} })
+  luaunit.assertEquals(veafCampaignEconomy.selfCheck(verdict)[2], "OK campaign.check.tasks")
+  veafCampaignEconomy.nextTasks = 300 -- drawn once, and nothing on it
+  veafCampaignEconomy.tasks = {}
+  luaunit.assertEquals(veafCampaignEconomy.selfCheck(verdict)[2], "KO campaign.check.tasks")
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -667,7 +667,14 @@ function veafCampaignEconomy.selfCheck(verdict)
   local c = veafCampaignEconomy.counters
   return {
     verdict(true, "campaign.check.credits", veafCampaignEconomy.credits, c.purchases),
-    verdict(#veafCampaignEconomy.tasks > 0, "campaign.check.tasks", #veafCampaignEconomy.tasks, c.posted, c.completed),
+    -- an empty board is wrong once it has been drawn, not before the first beat draws it
+    verdict(
+      #veafCampaignEconomy.tasks > 0 or veafCampaignEconomy.nextTasks == nil,
+      "campaign.check.tasks",
+      #veafCampaignEconomy.tasks,
+      c.posted,
+      c.completed
+    ),
     verdict(true, "campaign.check.intel", c.reveals, c.spies),
   }
 end

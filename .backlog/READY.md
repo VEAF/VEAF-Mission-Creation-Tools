@@ -4,6 +4,10 @@
 
 Lots written up and ready to take.
 
+### [FIX-OPEN-TRAINING-PILOT-FEEDBACK](FIX-OPEN-TRAINING-PILOT-FEEDBACK/PRD.md) · ⬜
+
+David's notes after flying the Open Trainings: the helicopter hard tier is really a medium one (no radar-guided short-range system, add Tor, Tunguska, Osa), and the QNH must show inHg as well as hPa in the welcome message and the ATIS. His third note, the radio menu order, is already done by FEAT-RADIO-MENU-ORDER and waits for the next release. Two tickets, three decisions with a reco each (2026-11-15).
+
 ### [FEAT-SPAWN-OWNERSHIP-DESPAWN](FEAT-SPAWN-OWNERSHIP-DESPAWN/PRD.md) · ⬜
 
 Each pilot can remove from the F10 menu what his markers spawned (`-sa6`, `-armor`, `-cas`, `-convoy`, `-farp`…), all at once or one by one: the runtime records every marker-spawned group with its author, combat zones left out since they clean their own. `-destroy` stays a trusted member's command. Three tickets, eight questions with a reco each; asked by David while correcting the Open Training conduct sheet (2026-11-10).

@@ -2047,6 +2047,29 @@ veaf.i18nCatalog = {
     en = "No assault: nothing left in reserve.",
   },
 
+  -- veafCampaign, persistent mode (FEAT-DYNAMIC-CAMPAIGN)
+  ["campaign.zone_reinforced"] = {
+    fr = "Campagne : %s a été ravitaillée, un groupe de sa garnison est de nouveau au complet.",
+    en = "Campaign: %s has been resupplied; one group of its garrison is back to full strength.",
+  },
+  ["campaign.outcome.victory"] = {
+    fr = "Campagne : l'ennemi ne tient plus aucune zone. Victoire ! La campagne recommencera au prochain chargement de la mission.",
+    en = "Campaign: the enemy holds no zone any more. Victory! The campaign starts again at the next load of the mission.",
+  },
+  ["campaign.outcome.defeat"] = {
+    fr = "Campagne : nous ne tenons plus aucune zone. Défaite. La campagne recommencera au prochain chargement de la mission.",
+    en = "Campaign: we hold no zone any more. Defeat. The campaign starts again at the next load of the mission.",
+  },
+  ["campaign.outcome.reset"] = {
+    fr = "Campagne remise à zéro par un administrateur : elle recommencera au prochain chargement de la mission.",
+    en = "Campaign reset by an administrator: it starts again at the next load of the mission.",
+  },
+  ["campaign.counters_dormancy"] = {
+    fr = "Zones éveillées : %d ; réveils : %d ; mises en sommeil : %d ; renforts : %d",
+    en = "Awake zones: %d; wakes: %d; sleeps: %d; reinforcements: %d",
+  },
+  ["menu.campaign.reset"] = { fr = "Remettre la campagne à zéro (admin)", en = "Reset the campaign (admin)" },
+
   -- veafOpposition
   ["opposition.level"] = {
     fr = "Opposition aérienne dimensionnée pour %d avion(s) (%s)",

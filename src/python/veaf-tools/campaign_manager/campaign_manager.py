@@ -25,6 +25,7 @@ from veaf_libs.dcs_units_data import get_unit_category
 from veaf_libs.i18n import t
 from veaf_libs.mission_validator import ERROR, WARNING, ValidationIssue
 
+from campaign_manager.dynamic_settings import parse_dynamic
 from campaign_manager.mission_conditions import start_seconds
 from campaign_manager.models import (
     COALITIONS,
@@ -35,6 +36,7 @@ from campaign_manager.models import (
     DEFAULT_START_TIME,
     DEFAULT_STATE_WRITE_SECONDS,
     ERAS,
+    MODES,
     RESERVE_CATEGORIES,
     SIDES,
     SIZE_PARAMETER_RANGES,
@@ -558,6 +560,12 @@ def parse_campaign(raw: Any) -> tuple[CampaignDefinition | None, list[Validation
             players = parse_players(head["players"])
         except ValueError:
             issues.append(_error("bad_players", value=head["players"]))
+    mode = str(head.get("mode", "episodic"))
+    if mode not in MODES:
+        issues.append(_error("unknown_mode", mode=mode, known=", ".join(MODES)))
+    dynamic = parse_dynamic(raw.get("dynamic"), issues)
+    raw_sides = raw.get("sides")
+    declared_reserves = tuple(side for side in COALITIONS if isinstance(raw_sides, dict) and side in raw_sides)
     capture_seconds = _parse_seconds(head, "capture_seconds", DEFAULT_CAPTURE_SECONDS, issues)
     state_write_seconds = _parse_seconds(head, "state_write_seconds", DEFAULT_STATE_WRITE_SECONDS, issues)
     size_classes = _parse_size_classes(raw.get("size_classes"), issues)
@@ -613,6 +621,9 @@ def parse_campaign(raw: Any) -> tuple[CampaignDefinition | None, list[Validation
             start_date=start_date,
             start_time=start_time,
             players=players,
+            mode=mode,
+            dynamic=dynamic,
+            declared_reserves=declared_reserves,
         ),
         issues,
     )

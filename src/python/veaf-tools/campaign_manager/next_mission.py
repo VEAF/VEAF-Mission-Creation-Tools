@@ -127,8 +127,48 @@ def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str
         "objectives": [{"kind": o.kind, "zones": list(o.zones)} for o in campaign.objectives],
         "zones": zones,
         "connections": [list(connection) for connection in campaign.connections],
-        "sides": {side: {"reserve": dict(state.sides[side].reserve)} for side in COALITIONS},
+        "sides": {side: _side_data(campaign, state, side) for side in COALITIONS},
         "scenery_destroyed": state.scenery_destroyed,
+        **_persistent_data(campaign),
+    }
+
+
+def _side_data(campaign: CampaignDefinition, state: CampaignState, side: str) -> dict[str, Any]:
+    """A side's part of the data table: its reserve, unless a persistent campaign gave it none.
+
+    An episodic campaign always counts its reserves, an empty one meaning nothing left. A persistent
+    campaign that declares no reserve for a side means it draws for free: the runtime does that when
+    the side has no `reserve` at all.
+
+    Args:
+        campaign: The validated campaign.
+        state: The campaign state the mission starts from.
+        side: ``blue`` or ``red``.
+
+    Returns:
+        ``{"reserve": {...}}``, or an empty table.
+    """
+    if campaign.mode == "persistent" and side not in campaign.declared_reserves:
+        return {}
+    return {"reserve": dict(state.sides[side].reserve)}
+
+
+def _persistent_data(campaign: CampaignDefinition) -> dict[str, Any]:
+    """What only a persistent campaign's mission carries: its mode, and its live play's settings.
+
+    Args:
+        campaign: The validated campaign.
+
+    Returns:
+        ``{"persistent": True, "player_side", "dynamic"}``, or an empty table for an
+        episodic campaign.
+    """
+    if campaign.mode != "persistent":
+        return {}
+    return {
+        "persistent": True,
+        "player_side": campaign.player_side,
+        "dynamic": campaign.dynamic,
     }
 
 

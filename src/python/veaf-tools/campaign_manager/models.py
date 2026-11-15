@@ -29,6 +29,11 @@ ERAS: tuple[str, ...] = ("MODERN", "COLD_WAR", "WW2")
 #: between missions (ticket 06).
 ZONE_KINDS: tuple[str, ...] = ("logistics",)
 
+#: How a campaign is played: mission after mission (`episodic`, FEAT-MULTI-MISSION-CAMPAIGN), or as one
+#: mission that runs on a server, saves itself and reloads where it stopped (`persistent`,
+#: FEAT-DYNAMIC-CAMPAIGN).
+MODES: tuple[str, ...] = ("episodic", "persistent")
+
 #: How many missions the objectives are sized for when `campaign.yaml` does not say.
 DEFAULT_MISSIONS = 10
 
@@ -171,6 +176,12 @@ class CampaignDefinition:
     """When each mission starts, as a clock time or a solar expression."""
     players: tuple[int, int] | None = None
     """The fewest and the most players the squadron expects, or ``None`` when the campaign does not say."""
+    mode: str = "episodic"
+    """One of `MODES`."""
+    dynamic: dict[str, Any] = field(default_factory=dict)
+    """The live play's settings (`dynamic:`), checked, with the aircraft resolved to payloads."""
+    declared_reserves: tuple[str, ...] = ()
+    """The coalitions `sides:` gives a reserve to. A persistent campaign's other side draws for free."""
 
     def zone(self, name: str) -> CampaignZone:
         """Return the zone of that name.

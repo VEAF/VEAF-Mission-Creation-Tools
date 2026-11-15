@@ -22,7 +22,7 @@ This ticket adds the second mode the decision of 2026-11-15 asks for: a single m
 
 ## Win, defeat, reset
 
-- Victory when the enemy holds no zone (or no `key` zone when `campaign.victory: key_zones`), defeat when the players' side holds none: announced to everyone, the campaign freezes (no more sorties, no capture), and the save is rewritten marked `reset`, so the next load of the mission is a fresh campaign.
+- Victory when the enemy holds no zone, defeat when the players' side holds none: announced to everyone, the campaign freezes (no more sorties, no capture), and the save is rewritten marked `reset`, so the next load of the mission is a fresh campaign.
 - An admin radio command (`veafSecurity`) resets the same way at any time.
 - No mission end is forced: ending a mission needs a trigger in the `.miz`, and the server's own restart schedule already reloads the mission.
 

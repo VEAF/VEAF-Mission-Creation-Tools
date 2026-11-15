@@ -33,7 +33,12 @@ Section numbers point to the detailed notes under [`foothold-analysis/`](foothol
 | V1.5 | Territory cells (Voronoi) tinted by owner on the F10 map | 01 §14 |
 | V2 | Foothold's Director (packages, feints, learning) | 04 |
 | V2 | Foothold's full player economy: personal credits banked on landing, ranks, career | 05 §3, §7–§10 |
-| to discuss | Hunter, strategic bombers, trains, spy and demolition teams, C-130J auto-build | 03 §8, §12; 07 §10, §13, §30 |
+| V1 | Hunter: two enemy fighters scrambled against a player on a kill streak | 03 §8 |
+| V1 | Spy team: a CTLD troop that walks into an enemy zone and reveals it for an hour (feeds the intelligence line above) | 07 §10 |
+| V1.5 | Strategic bombers: an escorted red raid to intercept; a blue raid bought in the shop | 03 §12 |
+| V1.5 | Demolition team: CTLD sappers who blow up a zone's structures | 07 §10 |
+| CTLD | C-130J air-dropped crates that build themselves: a feature of our CTLD 2, not of this lot | 07 §13 |
+| left out | Trains (Normandy only) | 07 §30 |
 | left out | PvP, splash damage, EWRS, ten languages | — |
 
 The MCP side generates the dynamic mission in both modes from the same format; its actions come once the format has settled.

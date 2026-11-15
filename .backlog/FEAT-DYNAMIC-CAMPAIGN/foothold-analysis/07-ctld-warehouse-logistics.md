@@ -36,6 +36,11 @@ In this document "Moose" means "implemented inside the bundled Moose `CTLD` clas
 | 23 | Config settings | Summary table of CTLD and logistics settings | `Config:1273-1434`, `Config:1955-2176` |
 | 24 | Performance devices | Throttles, queues, caches, dormancy | see §24 |
 | 25 | Base Moose CTLD features relied on | Neutral list for comparison with another CTLD | see §25 |
+| 26 | Zone "regular supply" economy | Ready-supply production, stock, AI dispatch permits, local repair/build jobs, timings | `zc2:52059-55000`, `zc2:8480-8504` |
+| 27 | Destroyable warehouse building | `[WH]` static of a Logistic Center: siting, destruction effects, 30-min repair, shop items | `zc2:46108-46580`, `zc2:24155-24253` |
+| 28 | `TheaterInfrastructure` | A destroyed map building permanently cuts a RED supply route | `Setup:2271-2360`, `zc2:53810-53861` |
+| 29 | PvP industry and starting territory | Industry cores, income cut, industry strike mission, starting territory share | `zc2:55109-55159`, `zc2:102566-102742`, `Setup:5876-5908` |
+| 30 | Train supply and repair (Normandy) | Not analysed (source no longer available) | — |
 
 ## 1. CTLD instance, options and transport aircraft
 
@@ -144,7 +149,9 @@ Several of these pass a crate static shape (`"iso_container_small"`, `"cds_crate
 ### Direct-load whole vehicles for the C-130J (Moose `AddUnits`, `CTLD.lua:315-323`)
 
 `Humvee`, `Humvee scout` (all eras), and `Mephisto`, `Vulcan`, `Avenger`, `FV-107 Scimitar`, `FV-101 Scorpion` (not Vietnam), each with stock 10.
-Moose stores these in `C130GetUnits` and serves them through `CTLD:_C130GetUnits` (`Moose:78107`); they are spawned as real vehicles to be driven into the C-130J hold instead of crates (estimation for the in-game handling; the Foothold side only registers them and prices them: Avenger 250 / 2, Scimitar 250 / 2, Scorpion 250 / 2, `CTLD.lua:239-241`).
+Moose stores these in `C130GetUnits` and serves them through `CTLD:_C130GetUnits(Group, Unit, Name)` from the `Manage Units → Get Units` menu (`Moose:78107-78229`); the Foothold side only registers them and prices them (Avenger 250 / 2, Scimitar 250 / 2, Scorpion 250 / 2, `CTLD.lua:239-241`).
+What Moose does in game: the aircraft must be inside a LOAD zone and the stock not exhausted; the veto hook `CanGetUnits` is called (Foothold's credit and rank check); at most `maxUnitsNearby` (default 3) such vehicles may already stand within `UnitDistance` (default 90 m) of the aircraft, otherwise `TOO_MANY_UNITS_NEARBY`; then each template of the entry is spawned as a **live ground group** behind the aircraft (heading + 180°, at half the airframe length + 5 m, 2.5 m further per template) with `SPAWN:NewWithAlias(template, "<template>-<random>"):InitRandomizeUnits(true, 10, 2):InitCoalition():SpawnFromVec2()` (→ `coalition.addGroup`), recorded in `DroppedTroops`, with a `UnitsSpawn` FSM event, the stock decremented and the message `DEPLOYED_NEAR_YOU` (`Moose:78123-78228`).
+So there is no crate and no build: the vehicle exists at once on the ramp, and getting it into the hold is left to the C-130J module's own vehicle-loading system (the script does nothing more with it; the loading itself is DCS behaviour, not read in code — (estimation)).
 
 ### Static supply crates (Moose `AddStaticsCargoFromType`, `CTLD.lua:330-367`)
 
@@ -361,6 +368,25 @@ Delivery (`zoneSupplyApplyOne`): same tracking as zone supplies with `deliveryTy
 Two stricter variants exist: PvP, and the "managed" mode when a `WarehouseWeaponLocationPolicy` is active; in both the exact per-item quantities debited are stored on the crate (`cargo._warehouseDebitItems`) and re-applied item by item at destination by `ApplyWarehouseDebitItems` (`storage:AddItem`), with settlement states `applied` / `discarded` and a refund path when the crate is removed at its source (`CTLD.lua:6395-6425`, `CTLD.lua:6427-6505`, `CTLD.lua:6964-7006`).
 Moose `STORAGE` wraps the DCS `Warehouse` object: see §17.
 
+### Managed mode in detail (PvE with a weapon location policy)
+
+- Entry: `Foothold_ctld._GetCrates` (the wrapper around the Moose function) builds a `warehouseRequest = {cargoName, _warehouseMeta}` when `WarehouseLogistics` is on, a policy is active and the cargo's sub-category is `Warehouse`, and passes it through the Moose call as an extra argument; the bundled Moose `CTLD:_GetCrates` calls back `_prepareManagedWarehousePickup` before spawning (`Moose:78338`), `_completeManagedWarehousePickup` after (`Moose:78609`) and `_bindManagedWarehouseDrop` when a dropped crate is replaced (`Moose:78578`) — three more Foothold-only hooks inside the bundled Moose (`CTLD.lua:7355-7360`, `CTLD.lua:7401-7402`).
+- Prepare (`_prepareManagedWarehousePickup`): the source storage must exist and belong to the player's side; for each category of the bundle every catalogue item is resolved to a policy identity (`WarehouseWeaponLocationPolicy.GetItemIdentity`) and gets a row `{key, item, stock, optional, take}` (`CTLD.lua:6427-6453`).
+- An item whose policy rule does not allow this airbase is "optional": whatever is in stock is taken, up to the limit; any other item is taken only if the stock covers the full limit (`amount × sets`, × 3 for rockets), otherwise none of it; the category is refused with `CTLD_REASON_INSUFFICIENT_STOCK` when the total stock of its expected items is below the requirement (`CTLD.lua:6455-6473`).
+- The credit charge (`price × sets`, rank check) is debited at this stage through `bc:debit` and remembered in `request.paid` (`CTLD.lua:6489-6503`).
+- Complete (`_completeManagedWarehousePickup`): if Moose spawned fewer crates than requested, the unspawned sets are refunded (`bc:credit(…, "warehouse crate spawn")`); each crate is flagged `_warehouseManaged` and stamped with its source zone, airbase, native airbase id, side, share of the price and buyer name; each row's `take` is split evenly between the crates (remainder to the first ones) into `cargo._warehouseDebitItems[key] = {item, amount}`, and only then is the storage debited with `storage:SetItem(key, stock - take)` (unlimited stocks are left alone) (`CTLD.lua:6518-6554`).
+- So a managed crate is an exact manifest: what leaves one warehouse is what arrives in the other, item by item (`ApplyWarehouseDebitItems` adds `amount.amount` of `amount.item`, skipping forbidden items, era-restricted ones on delivery and destinations that hold the item in unlimited quantity) (`CTLD.lua:6395-6423`).
+- Crate identity across DCS cargo operations: `_indexManagedWarehouseCargo` keeps `_managedWarehouseCargoByStatic[staticName] = cargo`; the dynamic-cargo events of the bundled Moose call `_updateManagedWarehouseDynamicCargo(event, "loaded" | "unloaded" | "removed")`, which re-points the tracking entry to the DCS dynamic-cargo object, marks the crate attached/detached, or discards the manifest when DCS removed the cargo (`CTLD.lua:6507-6516`, `CTLD.lua:6603-6634`, `Moose:77313`, `Moose:77346`).
+- When Moose replaces a crate object on drop, `_bindManagedWarehouseDrop(original, replacement)` moves the whole manifest and settlement state to the replacement and re-registers it in the supply tracking loop as already unloaded (`CTLD.lua:6556-6595`).
+
+### PvP mode in detail
+
+- In PvP every crate request (not only warehouse bundles) opens a `_warehousePickupRequest` context holding the pickup unit, the LOAD zone it stands in and, when that zone is a player-built FARP, its record and native airbase; a FARP of the other side refuses the request (`CTLD.lua:7370-7388`).
+- For warehouse bundles the request also carries the bundle definition and a quote phase (`awaiting` when `CTLDCost`, else `free`): the price is quoted and charged inside the hooks, and the stock actually admitted is attached to the spawned crates afterwards through `claimZoneSupplyPickupDebit` (source zone, side, native id, item manifest, price paid, buyer) (`CTLD.lua:7390-7400`, `CTLD.lua:7495-7511`).
+- On a drop, when Moose spawns a replacement crate for one that carried a manifest or a consumed zone-supply unit, every `_warehouse*` / `_zoneSupply*` field is moved from the old cargo object to the new one and the tracking entry is re-keyed, marked airborne-then-unloaded (`CTLD.lua:7408-7475`).
+- The same wrapper keeps the C-130J auto-build set consistent when one of its crates is replaced on drop (`CTLD.lua:7477-7494`).
+- The wrapper also blocks `Tor M2` always and `Pantsir S1` outside PvP Modern, and any cargo whose policy says unavailable (`CTLD.lua:7347-7354`).
+
 ### Reproduction notes
 
 In the default (non-managed) mode a bundle is not conserved: the debit skips items in short supply while the credit adds the full amount of every item, so a delivery can create stock.
@@ -415,7 +441,12 @@ Reward for an upgrade: 150 (HAWK, NASAMS) or 200 (IRIS-T), stats `Upgraded HAWK`
 In `OnAfterCratesBuild`, if the built vehicle resolves to a profile and role, `samMergeTryMergeComponentIntoNearbySystem` is called (`CTLD.lua:6227-6246`).
 It finds the nearest live system group of the profile (first in `GroundUnits`, else a one-shot Moose `SET_GROUP:FilterCoalitions("blue"):FilterZones({ZONE_RADIUS}):FilterOnce()` scan, `CTLD.lua:1128-1178`), takes the system's current template, appends the component's unit, reorders units by role, lays them out on rings of 6 slots (radius 120 m + 35 m per ring) around the anchor unit, spreads launcher headings evenly over 360°, clears wrecks with `world.removeJunk` in a 400 m sphere, spawns the merged template under a new name `<system_template>-<random>`, then destroys the old system and the component (`CTLD.lua:587-669`, `CTLD.lua:1234-1254`).
 The tracking lists (`GroundUnits`, Moose `DroppedTroops`, kill-reward registry) are re-pointed to the new group (`CTLD.lua:1256-1273`).
-Augmented sites survive restarts through a separate save read by `LoadIRISAugments` / `ApplyIRISAugments` 5 s after the CTLD load, followed by a one-pass merge of stray stand-alone components (`CTLD.lua:7847-8095`, `CTLD.lua:8276-8283`; bodies only skimmed).
+Augmented sites survive restarts **without any save file of their own**: the Moose CTLD CSV already stores, for each saved group, a `Structure` column listing `unitType==count;…` (`UTILS.GetCountPerTypeName(group)`, `Moose:83881`, `Moose:83910-83912`), and Foothold re-reads that same file 5 s after the CTLD load (`CTLD.lua:8276-8283`):
+- `LoadIRISAugments()` reads `Foothold_ctld.filename` again with `UTILS.LoadFromFile`, keeps the rows that are a SAM system of a known profile (system template name in the group name or in the cargo-templates column, or a system cargo name), converts the `Structure` column into a count per role, and keeps the rows where a role exceeds the profile's baseline: `{profile_key, x, y, extras = {[role] = count above baseline}}` (`CTLD.lua:7847-7924`);
+- `ApplyIRISAugments(rows)`: Moose has just restored each site from its **baseline** template; for each row the nearest restored system of the same profile within `IRIS_MERGE_DISTANCE` (400 m) that is not already matched is taken, its template is extended with copies of the unit of each role until the saved counts are reached, the layout is re-flowed, and the site is respawned under a new name `<system_template>-<random>`, with the same re-pointing of `GroundUnits`, Moose `DroppedTroops` and the kill-reward registry as a live merge (`CTLD.lua:7926-8060`);
+- `RunIrisOnePassStandaloneMerge()` then walks `GroundUnits` once and tries to merge every surviving stand-alone add-on component into a nearby system (`CTLD.lua:8062-8096`).
+The three steps are skipped when a PvP round reset is pending (`CTLD.lua:8277`).
+Packing an augmented site: `OnBeforeCratesPacked` counts the units of each role in the group being packed and, for each unit above the baseline, creates the matching add-on crate set next to the player (`_GetCrates(Group, Unit, addonCargo, extra × cratesPerSet, false, true, true, true)`, message `CTLD_CRATES_POSITIONED`), so that nothing is lost when a 3-launcher HAWK is packed back into crates; for a C-130J the new crates are registered like requested ones (`CTLD.lua:7520-7594`, `CTLD.lua:7596-7602`).
 When the build comes from a C-130J auto-build helper, the merge radius is Moose's `EngineerSearch` instead of 400 m (`CTLD.lua:6229-6238`).
 
 ### Reproduction notes
@@ -484,7 +515,10 @@ Hard-coded in `CTLD.lua`: names London, Dallas, Paris, Moscow, Berlin, Rome, Mad
 Moose builds the `CTLD_TROOP_FOB` template group like any crate cargo; `OnAfterCratesBuild` recognises the template name in the new group's name, destroys that placeholder group and calls `BuildAFARP(coordinate, {zell=…})` (`CTLD.lua:6128-6196`).
 `BuildAFARP` (`CTLD.lua:5695-5925`):
 - picks a free name, creates a Moose `ZONE_RADIUS` of 150 m;
-- calls Moose `UTILS.SpawnFARPAndFunctionalStatics(name, coord, ENUMS.FARPType.INVISIBLE, coalition, country, callsignNumber, frequency…)` (`CTLD.lua:5830-5834`), which spawns the invisible FARP heliport static and its service statics (the code later looks up statics named `AMMO - <name>` and `WINDSOCK - <name>`, `CTLD.lua:5618-5619`) through `coalition.addStaticObject` (estimation for the Moose internals);
+- calls Moose `UTILS.SpawnFARPAndFunctionalStatics(name, coord, ENUMS.FARPType.INVISIBLE, coalition, country, callsignNumber, frequency, AM, nil, nil, nil, 10000, 0, 0, nil, true, true, 3, 80, 80)` (`CTLD.lua:5830-5834`), i.e. no ADF beacon, no vehicle template, liquids 10000, equipment 0, airframes 0, no F10 text, dynamic spawn and hot start allowed, **3 pads** spaced 80 m;
+  - what Moose does (`Moose:4843-5001`): with more than one pad it builds a group table of `Heliports`-category units of type `Invisible FARP` / shape `invisiblefarp` (`Moose:2030`), the first named `<name>` and the others `<name>-2`, `<name>-3`, placed on an equilateral triangle of side 80 m, each carrying `heliport_callsign_id`, `heliport_frequency`, `heliport_modulation`, `dynamicSpawn`, `allowHotStart`, and spawns it with **`coalition.addGroup(country, -1, groupData)`** (category −1), then injects a synthetic `EVENTS.Birth` with `world.onEvent` so that Moose registers the new airbase (`Moose:4888-4943`); a single pad would instead go through `SPAWNSTATIC:NewFromType(type, "Heliports", country):InitFARP(…):SpawnFromCoordinate` (→ `coalition.addStaticObject`) (`Moose:4945-4949`);
+  - `PopulateStorage`: `STORAGE:New(name)` then `SetLiquid` of 10000 × 1000 = 10 000 000 for diesel, gasoline, jet fuel and MW50; equipment and airframes are left untouched because Foothold passes 0 (it stocks them itself in `CopyWarehouse`) (`Moose:4844-4866`, `Moose:4875-4878`, `Moose:4951`);
+  - four service statics spawned with `SPAWNSTATIC` (→ `coalition.addStaticObject`) 100 m from the centre, 30° apart, facing it: `FUEL - <name>` (`FARP Fuel Depot`), `AMMO - <name>` (`FARP Ammo Dump Coating`), `TENT - <name>` (`FARP Tent`), `WINDSOCK - <name>` (`Windsock`), all in category `Fortifications`; these are the names the ZELL code looks up later (`Moose:4952-4968`, `CTLD.lua:5618-5619`);
 - adds a Moose CTLD `LOAD` zone on it (`CTLD.lua:5853`);
 - records `{name, coord, seq, zell, supplyStock}` in `BuiltFARPCoordinates` and `builtFarpSupplyRecordsByName`, and calls `bc:registerDynamicFarp(name, coord, side)` so the engine knows it (`CTLD.lua:5858-5877`);
 - one second later `bc:CopyWarehouse(name, isFromSave)` stocks its warehouse (§17) (`CTLD.lua:5887-5905`);
@@ -497,11 +531,12 @@ PvP adds ownership (`side`, `country`, native airbase id), a limit of 3 active F
 ### "FOB / Logistic Center"
 
 There is no separate FOB kit in v6.5.3: the Moose cargo type `CTLD_CARGO.Enum.FOB` is used only as the "static site, does not move" type for the FARP kits and SAM sites (`CTLD.lua:287-327`).
-`LogisticCenter` is a **zone property** in the engine (`zoneObj.LogisticCenter == true`), not something players build: it marks the zones whose warehouse is the unlimited source of weapons when `WarehouseLogistics` is on (`zc2:115114`, `zc2:115191-115204`, §17).
+`LogisticCenter` is a **zone property** in the engine (`zoneObj.LogisticCenter == true`), not something players build with CTLD crates: it marks the zones whose warehouse is the unlimited source of weapons when `WarehouseLogistics` is on (`zc2:115114`, `zc2:115191-115204`, §17).
+It is set by the setup file for the starting bases, and players can create one in a fully upgraded friendly airbase zone with the shop item "Logistic Center [WH]", which spawns the `[WH]` building described in §27 (`Setup:5921-5934`, `zc2:24155-24210`).
 
 ### Reproduction notes
 
-Spawning a functional FARP at runtime relies on DCS accepting a `Heliports`-category static with a warehouse; the warehouse is then reachable with `Airbase.getByName(name):getWarehouse()`.
+Spawning a functional FARP at runtime relies on DCS accepting `coalition.addGroup(country, -1, {units = {{category = "Heliports", type = "Invisible FARP", …}}})` (several pads) or `coalition.addStaticObject` with a `Heliports` static (one pad) and giving the result a warehouse; the warehouse is then reachable with `Airbase.getByName(name):getWarehouse()` (`Moose:4903-4949`).
 Runtime FARPs are not in `env.mission`, so anything that enumerates airbases at start must be told about them (the `RegisterExtraAirbase` / `supplyZones` / `allZones` calls).
 
 ## 15. Rewards, kill credit and career hooks
@@ -519,7 +554,7 @@ Rank is only an entry condition (`reqRank` passed to `bc:debit`); CTLD actions f
 ### Mission-maker view
 
 Requires a de-sanitized `io`/`lfs`; otherwise a 300 s message `CTLD_SAVE_LOAD_DISABLED_DESANITIZE` is shown to all (`CTLD.lua:8153-8154`).
-Files (in `FootholdSavePath` or `<Saved Games>\Missions\Saves`): `<base>_CTLD_Save.csv` (Moose format), the FARP file `FarpFileName`, the SAM-augment file, and `<base>_CTLD_Red_Save.csv` in PvP (`CTLD.lua:8105-8110`, `CTLD.lua:8144-8145`).
+Files (in `FootholdSavePath` or `<Saved Games>\Missions\Saves`): `<base>_CTLD_Save.csv` (Moose format; its `Structure` column is also what restores the SAM add-ons, §11), the FARP file `FarpFileName`, and `<base>_CTLD_Red_Save.csv` when the red CTLD exists (`CTLD.lua:8105-8110`, `CTLD.lua:8137-8146`).
 
 ### Mechanism
 
@@ -578,6 +613,24 @@ The engine also uses `Warehouse.getResourceMap()` (name → wsType 4-tuple) and 
 "Unlimited" is represented by the quantity 1073741823 (`zc2:20204`, `zc2:115071`).
 
 **`WEAPONSLIST`** (`zc2:112318-114937`): a hand-maintained catalogue `WEAPONSLIST.Items[category] = {weapon ids…}` with categories `AA_MISSILES`, `AG_MISSILES`, `AG_ROCKETS`, `AG_BOMBS`, `AG_GUIDED_BOMBS`, `FUEL_TANKS`, `MISC`, `MODS` (`zc2:112323-112372`), about 1 300 lines of ids plus a separate mods list (`zc2:113738-114440`).
+Structure of the catalogue:
+- A weapon entry carries **no attributes at all** (no name, no weight, no price, no era): it is only an identifier, in one of two forms accepted by the DCS `Warehouse` API — a resource string such as `'weapons.missiles.AIM-7E'`, `'weapons.nurs.ARAKM70BAP'`, `'weapons.bombs.AGM_62'`, `'weapons.droptanks.1100L Tank'`, `'weapons.containers.{GPU_5_POD}'`, `'weapons.gunmounts.A20_TopTurret_M2_L'`, or a wsType 4-tuple such as `{4,4,8,477}` for the items that have no resource string (`zc2:112375`, `zc2:112559-112560`, `zc2:112953-112956`).
+- The category is the only metadata, given by the list the id is written in; `CategoryOrder` fixes the order in which the categories are walked, and `ItemCategory.ALL` is a pseudo-category for "every list" (`zc2:112323-112344`).
+
+| Category | Content | Entries (strings + tuples) | Lines |
+|---|---|---|---|
+| `AA_MISSILES` | air-to-air missiles | 67 | `zc2:112373-112443` |
+| `AG_MISSILES` | air-to-ground missiles, decoys, some guided glide weapons | 113 + 2 | `zc2:112444-112563` |
+| `AG_ROCKETS` | unguided rockets (`weapons.nurs.*`) | 77 | `zc2:112564-112644` |
+| `AG_BOMBS` | unguided, cluster and general bombs | 142 + 3 | `zc2:112645-112794` |
+| `AG_GUIDED_BOMBS` | guided bombs | 40 + 1 | `zc2:112795-112840` |
+| `FUEL_TANKS` | drop tanks | 106 | `zc2:112841-112951` |
+| `MISC` | adapters, pylons, pods, containers, gun mounts, everything else | 768 + 8 | `zc2:112952-113737` |
+| `MODS` | weapons of community aircraft mods; attached only when `AllowMods` and `Era == "Modern"` | 689 + 3 | `zc2:113738-114445` |
+
+- So about 1 330 entries in the seven stock categories and about 690 more with mods (counts made by script on the listed line ranges).
+- Everything else about a weapon lives outside the list, as separate name sets: era restriction (`restrictedWeapons`, `restrictedWeaponsVietnam` → `IsRestricted`), always-forbidden (`ForbiddWeaponsInAllEra`), "smart weapon" half refill (`WarehouseWeaponCaps`), per-airbase location rules (`WarehouseWeaponsAllowedAtAirbases`), the ×3 multiplier for the whole `AG_ROCKETS` category, and a `WEAPONSLIST_MODS_CLEAR_SET` used to zero mod weapons when mods are off (`zc2:114438-114445`, `zc2:114797-114812`, `CTLD.lua:1398-1400`).
+- `_flattenUnique(itemsByCategory, categories)` builds the de-duplicated flat list behind `GetAllItems()`, and `_wsFilterRestricted` removes era-restricted ids in Coldwar/Vietnam (`zc2:114447-114484`).
 `GetItems(category)` returns the list, minus era-restricted items in Coldwar/Vietnam; `GetAllItems()` is the cached flattened list; `IsRestricted(name)` tests the era list (`zc2:114498-114517`, `zc2:114937-114939`).
 `SyncFromWarehouseLogistics` runs 0.1 s after load: it scans the inventory of the Logistic Center airbases for weapon keys not in the catalogue, files them under a category derived from their wsType, and zeroes them at all other friendly bases — a self-healing step for new DCS weapons (`zc2:114617-114768`, `zc2:115251-115262`).
 `ClearWeaponsInStorage` sets every catalogue item to 0 (`zc2:114770-114787`).
@@ -610,7 +663,7 @@ A health scanner evaluates one zone per second in a round-robin and stores `Ware
 File format: theme 02.
 
 **Zone "regular supply" stock** (the packages players consume): `zone._regularSupplyReady`, `_regularSupplyExpeditedReady`, `_regularSupplyPendingStock`, `_regularSupplyStockSide`; `_consumePlayerRegularSupplyStock(amount, side, now)` refuses when the zone is not the player's, or when ready minus reserved is short (it first tries to release delayed AI dispatch permits in the player's favour), and returns how many of the consumed units were "expedited" ones (`zc2:52369-52401`); `_restorePlayerRegularSupplyStock` puts them back (`zc2:52403-52416`).
-Production and AI dispatch of that stock belong to theme 03.
+Production, AI dispatch and the repair jobs that spend that stock are described in §26.
 
 ### Reproduction notes
 
@@ -723,7 +776,15 @@ A second Moose instance `Foothold_redCtld = CTLD:New(coalition.side.RED, prefixe
 Catalogue (`CTLD_Red.lua:784-815`): troops `Squad 4 AK47`, `Squad 8 AK47`; crates (2 each) `Scout BRDM 2`, `Ammo Truck`, `Arty SPH 253 Akatsia 8 NM`, `Truck with ZU-23`, and outside Vietnam `Arty SPM 259 Nona 3 NM`, `ATGM AT-3 SAGGER`, `Kord 12.7 MM`, `MLRS LC 80 MM 2.2 NM`, `MRAP M-ATV`; `SA-8` (2 crates) and `SA-3 SAM system` (4 crates) if those red templates are enabled; `Tor M2` (PvP Modern); sub-menus `Support`, `ARTY`, `SAM/AAA`, `ANTI TANK`, `LIGHT ARMOR`; stock 6 (PvE) or 10–12 (PvP).
 Prices: `RedCTLDPrices`, PvE defaults from 100 (squad, Kord) up to 5000 / rank 8 (SA-3) (`CTLD_Red.lua:122-136`); PvP uses the shared `CTLDPrices` with red entries (25–750) (`CTLD_Red.lua:96-120`, `Config:2035-2058`).
 Zone supplies: `Red zone supplies C-130J / MI-8 / Mi-24P` (`CTLD_Red.lua:818-820`) with its own, simpler tracking loop `tickRedZoneSupply` every 5 s (`CTLD_Red.lua:2218`, `CTLD_Red.lua:1895-2216`) and its own completion handler `completePendingRedCtldSupply` (`CTLD_Red.lua:1437`).
-Zones: `addCTLDZonesForRedControlled` mirrors §4 with sides swapped (`CTLD_Red.lua:2237-2274`).
+Red tracking loop in detail (`redCtldProcessZoneSupply`, `CTLD_Red.lua:1895-2207`), run for every tracked crate by `tickRedZoneSupply` on a Moose `TIMER` started at 15 s with a 5 s period, which returns at once when no crate is tracked and rebuilds the "supplies on board" cache at the end (`CTLD_Red.lua:2209-2218`):
+- crate reported on board by Moose, or found inside the carrier's box → marked loaded; static gone while the carrier still exists → still on board; static gone otherwise → entry removed (`CTLD_Red.lua:1896-1924`);
+- first movement of the crate → `CTLD_CRATE_LOADED_GROUND_CREW`, `wasAirborne = true`; once it has moved, "unloaded" is decided from the carrier: on the ground, crate farther than the airframe's `detach`/`width` (internal cargo, `ropelength == 0`) or outside `width`/`height` (sling); in flight, farther than `detach` in 3D or outside the `width × ropelength × width` box; without a carrier, crate at ≤ 0.5 m AGL (`RED_ZONE_SUPPLY_AGL_THRESHOLD`) (`CTLD_Red.lua:1931-1981`, `CTLD_Red.lua:863`);
+- a crate is "on ground" at ≤ 0.5 m AGL or once unloaded and still; its zone is resolved from its position; outside any zone it is re-checked every 60 s and dropped after 600 s (`RED_ZONE_SUPPLY_NOZONE_RECHECK`, `_TTL`) (`CTLD_Red.lua:1984-1989`, `CTLD_Red.lua:2042-2051`, `CTLD_Red.lua:864-865`);
+- PvP, crate on a player-built red FARP: a zone-supply crate adds 1 to the FARP's supply counter (150 credits, `Zone supply delivery`) or is refunded if it came from that FARP; a warehouse crate is settled into the FARP's storage (`CTLD_Red.lua:1990-2040`);
+- PvP warehouse crates in a zone: settled with `Foothold_ctld.ApplyWarehouseDebitItems(storage, cargo, zone, "delivery" | "return")`, reward = the bundle's `reward` (else 100 for a multi-category bundle, 50 for a single one), stat `Warehouse delivery`; destroyed with a reason in an enemy zone, when logistics is off, or when no storage exists; left waiting in a neutral zone (`CTLD_Red.lua:2053-2118`);
+- zone-supply crate back in its pickup zone → stock refunded (`CTLD_SUPPLIES_RETURNED_TO_ZONE`); in a BLUE zone → destroyed ("enemy zone"); in a neutral zone → `zone:startPendingCapture(RED, {kind = "static", …, delivery = {handler = "red_ctld_capture_delivery", payload}})`; in a RED zone → `zone:_addImportedRegularSupplyStock(1, now)` and `redCtldFinalizeDelivery(…, "CTLD_ZONE_SUPPLY_ACTION_STOCKED", "Zone supply delivery", 150, {ready, max})` (`CTLD_Red.lua:2120-2206`).
+Differences from the BLUE loop (§8): no separate C-130J cadence or one-shot landing confirmation, no serialized "ready queue" (each crate is applied in the pass that sees it), no automatic warehouse bundle on a zone-supply delivery, and the stock added is an "imported" unit rather than an "expedited" one (`CTLD_Red.lua:2194`, `CTLD.lua:5366-5371`).
+Zones: `addCTLDZonesForRedControlled` mirrors §4 with sides swapped; zone names containing `hidden`, `dropzone`, `carrier` or `fob alpha` are not registered (`CTLD_Red.lua:2220-2235`, `CTLD_Red.lua:2237-2274`).
 Persistence: `<base>_CTLD_Red_Save.csv`, same Moose options (`CTLD_Red.lua:2276-2318`).
 In PvP it borrows the BLUE implementations by assigning the functions (`CanBuildCrates`, `OnAfterTroopsDeployed`, `OnAfterTroopsPickedUp`, reward registry, career recorders…) (`CTLD_Red.lua:2297-2316`), clones the FARP templates as `CTLD_TROOP_FOB_RED` / `CTLD_TROOP_FOB_ZELL_RED` under country RUSSIA (`CTLD_Red.lua:765-782`), and copies the BLUE "Warehouse" bundles (`CTLD_Red.lua:822-836`).
 PvP per-FARP restrictions: at most 3 active FARPs per side (`CTLD.lua:5708-5713`), FARP ownership checked by side and native airbase id on every pickup (`CTLD.lua:6715-6720`), and FARP/ZELL warehouses get the owner's aircraft list only (`zc2:20209-20234`, `CTLD.lua:5590-5593`).
@@ -789,11 +850,206 @@ Features only, each with where Foothold uses it.
 - Lookup helpers used by Foothold: `IsUnitInZone`, `_FindCratesCargoObject`, `_FindTroopsCargoObject`, `GetGenericCargoObjectFromGroupName`, `IsC130J`, `Loaded_Cargo`, `DroppedTroops`, `Spawned_Cargo`, `C130GetUnits` (`CTLD.lua:6713`, `CTLD.lua:6099`, `CTLD.lua:2822`, `CTLD.lua:7193`, `CTLD.lua:8251-8273`).
 - Other Moose classes used around CTLD: `SET_GROUP`, `SET_ZONE` (with its `Trigger` FSM), `SET_CLIENT`, `ZONE` / `ZONE_RADIUS`, `GROUP` routing (`RouteGroundTo`, `Route`, `TaskFunction`), `COORDINATE`, `STORAGE`, `AIRBASE`, `STATIC`, `MESSAGE`, `USERSOUND`, `MENU_GROUP`, `SCHEDULER`, `TIMER`, `UTILS.SpawnFARPAndFunctionalStatics`, `UTILS.SaveToFile` / `LoadFromFile`.
 
+## 26. Zone "regular supply" economy: production, stock, AI dispatch, local recovery
+
+This is the engine-side model behind the `[SUP] n/max` figure of a zone label: every owned zone slowly manufactures "ready supplies", which are spent by players (zone-supply crates, §8), by AI supply flights to other zones, and by the zone's own repair and upgrade jobs.
+Manual citations are from `Foothold Manual v2.7.pdf` §3.5 "Supply Missions, Production, and Recovery" (p. 36) and the Config Manager chapter.
+
+### Player view
+
+- Zone label: `[SUP] n/max [■■□□□] p%` while producing, `[Supplies] n/max` when the target is reached, `[Supplies] n` for a zone that holds stock but cannot produce; the bar has 5 cells; BLUE progress is shown in 1 % steps, RED in 10 % steps (`zc2:52471-52491`, `zc2:52433-52441`).
+- The label also names the running jobs ("Building: Armor -- 57%", "Repairing", "Training" for infantry) and shows "Resupply!" when a BLUE zone has less ready stock than its remaining work needs (manual p. 30; label builder `_regularSupplyLocalRecoveryLabelText`, `zc2:52575-52635`, not read).
+- When the AI is about to send supplies out of a zone, BLUE players standing on the ground in that zone in an aircraft able to carry zone supplies get "<zone>: Supplies are ready and will be dispatched to <target> in 30 seconds." — the window in which they can take the package themselves (`zc2:53746-53793`, `L10N:1650`).
+- Loss of an AI supply sortie: "We have lost a supply helicopter / aircraft / convoy from <zone>." (`zc2:54192-54199`, `L10N:2188-2190`).
+- RED SAM recovery is announced to BLUE with one of 3 random variants per event: construction started (family, zone, minutes), repair started, completed (`RED_SAM_<EVENT>_<1..3>`, `zc2:53229-53238`, `zc2:53454-53458`).
+- `F10 > Stats and Settings > AI Logistics (Currently …)` toggles regular BLUE AI deliveries when `RadioMenuStopSupplies` is true; every BLUE player is told who switched it (`zc2:52108-52160`, `Config:1361-1363`).
+
+### Mission-maker view
+
+| Setting | Default | Meaning | Ref |
+|---|---|---|---|
+| `NormalSupplyCapacity` | 1 (1–3) | automatic production target of a normal zone | `Config:1286-1289`, `zc2:8484` |
+| `WarehouseSupplyCapacity` | 6 (3–6) | automatic production target of a `[WH]` (Logistic Center) zone | `Config:1291-1294`, `zc2:8485` |
+| `GlobalSettings.supplyDifficultyScaling = {[1]=1.0, [2]=1.0}` | 1.0 / 1.0 | multiplier on production time and AI supply-mission timers, per side (0.5 = twice as fast) | `Config:1301-1310`, `zc2:52425-52430` |
+| `GlobalSettings.repairDifficultyScaling = {[1]=1, [2]=1}` | 1 / 1 | multiplier on repair / rebuild / installation time, per side (floor 0.1) | `Config:1312-1325`, `zc2:8486-8491` |
+| `ExtraRedRepairTimeLowPlayerCountPercent` | 0 (0–50) | extra RED repair/build time when fewer than 2 BLUE CAS players are present, applied once at job start | `Config:1327-1332`, `zc2:53254-53256` |
+| `PlayerZoneSuppliesConsumeStock` | true | a player pickup removes one ready supply | `Config:1334-1337` |
+| `NoAIBlueSupplies` | false | permanently disables regular BLUE AI deliveries (and production in zones that only produce through AI routes) | `Config:1352-1354`, `zc2:52172` |
+| `NoAIBlueCapture` | false | no automatic BLUE capture dispatch to neutral zones (PvE) | `Config:1356-1359`, `zc2:54275-54277` |
+| `RadioMenuStopSupplies` | false | gives players the AI Logistics toggle | `Config:1361-1363` |
+| `pvp_supplies` | true | PvP: when false, AI supplies only run when bought | `Config:320-322`, `zc2:54204-54206` |
+
+Engine constants (set in a `do` block at load, not in the Config): production 20 min per supply in a normal zone and 10 min in a `[WH]` zone, player-priority delay 30 s, max 2 paid deliveries per target zone, local-recovery base 15 min (normal) / 5 min (`[WH]`), repair unit time 1 min (RED) / 2 min (BLUE), sensor unit time 3 min (both), maximum job time 20 min, permit retry 60 s, 2 dispatches per tick (`zc2:8480-8504`).
+
+Timings as the manual states them (p. 36), which match the code above:
+- production: one ready supply every 20 minutes in a regular zone, every 10 minutes in a `[WH]` zone, at Supply Speed Scaling 1.00 and full efficiency; missing or damaged upgrade groups add a delay capped at 10 minutes; production pauses when no upgrade group is operational, and stops at the automatic target (not a storage limit);
+- BLUE repair/installation: 15-minute base in a regular zone or 5-minute base in a `[WH]` zone, plus 2 minutes per missing normal unit or 3 minutes per missing SR/TR/STR unit; supplies brought by players, CTLD, air-drop, "Add 3 supplies" and "Resupply friendly zone" skip the base time;
+- RED repair/installation (PvE): no base time (RED must first receive a delivery), 1 minute per missing normal unit, 3 minutes per missing SR/TR/STR;
+- every job is capped at 20 minutes at scaling 1.00, and the cap scales with Repair Time Scaling;
+- up to two jobs per zone at once; each BLUE job consumes one stored supply; stock, production progress and job progress survive a restart.
+
+### Mechanism
+
+State per zone (`ZoneCommander` fields): `_regularSupplyStockSide`, `_regularSupplyReady`, `_regularSupplyExpeditedReady` (the part of the ready stock that was brought in rather than produced), `_regularSupplyProgress` (seconds accumulated toward the next supply), `_regularSupplyLastUpdateAt`, `_regularSupplyPendingStock` (ready units reserved by AI dispatch permits), `_regularSupplyEfficiency`, `_regularSupplyLossDelays`, and up to two local-recovery jobs (`zc2:52343-52366`, `zc2:53687-53743`, `zc2:52494`).
+
+**Tick**: `bc:_updateRegularSupplyStock(now)` then `bc:_dispatchRegularSupplyStock(now)` are called once at the start of every zone-update cycle of the `BattleCommander` (`zc2:43251-43252`); there is no dedicated timer.
+
+**Who can store and who can produce** (`_regularSupplyHasRouteForSide`, `zc2:52163-52191`, `zc2:53690-53692`):
+- a zone can store when it is active, not hidden, RED or BLUE;
+- it can produce when it is a Logistic Center (BLUE, or the owner in PvP), or its name is in the setup's `supplyZones` list, or it owns at least one supply `GroupCommander` of its side that is not shop-only (i.e. it has an AI supply route); with `NoAIBlueSupplies` a BLUE zone of the third kind does not produce.
+- When the owner changes (or the zone cannot store) the stock, the expedited part and the progress are reset to 0 (`zc2:53695-53702`).
+
+**Production** (`ZoneCommander:_updateRegularSupplyStock`, `zc2:53713-53741`):
+- `interval = baseSeconds × supplyDifficultyScaling[side]`, base 1200 s (normal) or 600 s (Logistic Center) (`zc2:52418-52430`);
+- `conditionDelay = 600 s × scale × (1 − efficiency)` and `productionRate = interval / (interval + conditionDelay)`; rate 0 when efficiency is 0;
+- `progress += elapsed × productionRate`; each time `progress >= interval` and the stock is below the maximum, one supply becomes ready; progress is zeroed at the maximum.
+- Efficiency = operational capacity ÷ number of upgrade slots of the zone, clamped to 0–1 (`_commitRegularSupplyEfficiency`); it is recomputed when the zone is marked dirty (unit lost, upgrade set changed), by code outside the range read (`zc2:52291-52329`).
+- Maximum (the automatic target): `WarehouseSupplyCapacity` for a Logistic Center, `NormalSupplyCapacity` otherwise, and a fixed 3 for a PvE RED zone that has an operational warehouse building (`zc2:52332-52341`).
+
+**Adding stock**:
+- `_addImportedRegularSupplyStock(n)`: plain +n to the ready stock, **no upper limit** (deliveries may exceed the target; production then stays paused) (`zc2:52343-52358`);
+- `_addExpeditedRegularSupplyStock(n)`: the same, and the units are flagged expedited, which makes the job they pay for skip the base time (`zc2:52360-52367`, `zc2:52863-52870`);
+- callers: BLUE CTLD crate → expedited (§8), RED CTLD crate → imported (§22), Hercules drop and legacy unload → expedited (§18, §20), shop `zsup3` and scripted `supplies2` → expedited (`zc2:24289`), AI delivery arrival → `_applyRegularSupplyDelivery`.
+
+**AI delivery arrival** (`bc:_applyRegularSupplyDelivery(zone, side, now, paidStockpile)`, `zc2:53286-53310`):
+- a paid `supplies2` "stockpile" delivery → +1 expedited;
+- BLUE (and RED in PvP) → +1 imported: the delivery only fills the stock, the zone then spends it itself;
+- RED in PvE → no stock: the delivery immediately starts a RED recovery job on the first repair candidate, else the first upgrade candidate, else calls `zone:upgrade()`; each successful RED delivery also gives the RED coalition 100 credits.
+
+**Local recovery jobs** (max 2 per zone, `REGULAR_SUPPLY_LOCAL_RECOVERY_MAX_JOBS = 2`):
+- candidates (`_regularSupplyLocalRecoveryCandidates`, `zc2:52908-52970`): for each upgrade slot in index order, a built group with missing units is a `repair` (or a `rebuild` if nothing is left of it); a slot not built yet is an `upgrade`; statics, "dismounted" groups and slots already reserved by a job are skipped; "missing" is the template unit count minus the live group size, with sensors (SR/TR/STR) counted apart (`_regularSupplyRepairFacts`, `zc2:52637-52690`);
+- choice (`_selectRegularSupplyLocalRecoveryTarget`): with both kinds pending and one job already running, the second job takes the other kind, so a zone repairs and builds in parallel; otherwise repairs first (`zc2:52972-53010`);
+- BLUE start (`_startRegularSupplyLocalRecovery`): needs `ready − pending ≥ 1`, a free slot and a target; takes one ready supply (an expedited one first), and creates `{side, action, targetName, targetIndex, durationSec, startedAt, completeAt, usesExpeditedSupply, recoveryBaseSec, showLabel}`; jobs are started automatically at each tick as long as stock and slots allow (`zc2:53180-53227`, `zc2:53660-53679`);
+- durations: repair = `min(max × scale, (base + normalMissing × unitSec + missingSensors × sensorSec) × scale)`; construction = the same with every template unit counted; `base` is 0 for an expedited supply and for RED (`zc2:52863-52906`);
+- RED start (`_startRedRegularSupplyLocalRecovery`): no stored supply, no label, optional low-player-count surcharge, SAM messages to BLUE (`zc2:53241-53284`);
+- finish (`_finishRegularSupplyLocalRecovery`): re-validates the target, then `zone:upgrade(silent, targetName)` for a repair/rebuild or `zone:upgrade(silent, nil, targetIndex)` for an installation; on failure the job is retried later; a BLUE repair whose group has meanwhile been wiped out becomes a rebuild, while a RED repair in the same case is cancelled and needs a new delivery (`zc2:53358-53384`, `zc2:53426-53468`);
+- cancellation refunds the supply when the zone is merely suspended or the target vanished, not when the zone changed side (`zc2:53340-53349`, `zc2:53576-53581`);
+- jobs are saved and restored with their remaining time (`zc2:53475-53555`).
+
+**AI dispatch** (`bc:_dispatchRegularSupplyStock`, `zc2:54689-55000`):
+- it first reconciles permits and runs the local-recovery update, then walks the zones round-robin from a cursor; a source zone qualifies when it holds unreserved ready stock of its own side, AI supply is enabled for that side, and it is active, not suspended, not hidden (`zc2:54690-54716`);
+- its usable supply routes (the zone's supply `GroupCommander`s, rotated by a per-zone cursor) become "offers" grouped by target zone (`zc2:54747-54780`);
+- target demand = missing upgrade slots + damaged groups (1 for a neutral zone) (`_regularSupplyTargetDemand`, `zc2:54287-54335`);
+- target priority = `100 + 45 × missing + 35 × damaged` + 130 if neutral + frontline bonus (80 within 5 NM of the front, 50 within 15, 20 within 30) + waiting time (1 point per 30 s, max 90) − contention (220 + 60 per extra enemy delivery already committed to the same neutral zone) + a Director term (`_regularSupplyTargetPriority`, `zc2:54443-54504`);
+- each tick at most `regularSupplyDispatchBudgetPerTick` (2) dispatches are made, picking the best "ticket" = priority + 30 per unfilled unit (max 3) − 70 per dispatch already made to that target this tick (`zc2:54960-55000`, `zc2:8504`);
+- `_dispatchRegularSupplyCommander` reserves a **permit** on the group: `{sourceZone, targetZone, side, reservedAt, dispatchAt = now + 30 s, allowSuspendedSource}`, increments the source zone's `_regularSupplyPendingStock`, activates the group's state machine, and notifies the players in the zone (the 30 s window above) (`zc2:54615-54687`, `zc2:54208-54226`);
+- a player who takes a crate during the window gets priority: `_consumePlayerRegularSupplyStock` releases as many still-delayed permits of that zone as needed (`zc2:52381-52387`, `zc2:53902-53939`);
+- when the group actually launches, `_consumeRegularSupplyPermit` removes one ready supply from the source (an ordinary one first) and stamps the sortie with its origin (`zc2:53941-53967`);
+- `_reconcileRegularSupplyPermits` releases a permit more than 60 s past its dispatch time, or whose source/target became invalid (side change, suspension, AI supply switched off, route cut by infrastructure, §28) (`zc2:54247-54285`);
+- a lost sortie resets the source zone's production progress to 0; in PvE a lost RED helicopter or convoy also puts that route under a 300 s "loss delay" that starts counting only once the zone has stock again (`_handleRegularSupplySortieLoss`, `_recordRegularSupplyLossDelay`, `zc2:54156-54201`, `zc2:54013-54076`).
+
+### Reproduction notes
+
+- The model is three small pieces: a per-zone production accumulator, a stock with two flavours (produced / brought in), and a reservation ("permit") layer that arbitrates between the AI and the players for the same stock.
+- Production cost is O(zones) arithmetic per cycle; dispatch is bounded by the per-tick budget and by the round-robin cursors.
+- The asymmetry between sides is deliberate: BLUE zones hold stock and repair themselves from it; PvE RED zones hold (almost) no stock and repair only when a delivery arrives, which is what makes cutting RED supply routes meaningful.
+- Hidden dependencies: the upgrade-slot model of a zone (`zone.built`, templates, `zone:upgrade`), the `GroupCommander` state machine for the supply flights, and the Director's priority term.
+
+## 27. The destroyable warehouse building of a zone (`[WH]` static)
+
+### Player view
+
+- A Logistic Center has a physical building, a static named `[WH] <zone>`; the zone label shows `[WH]`, `[WH destroyed]` or `[WH] Repairing n%` (`zc2:46472`, `L10N:1388-1391`).
+- While it stands, the zone has the Logistic Center benefits: unlimited weapon stock (§17), the higher supply target and the faster production and repair base times (§26).
+- Destroying it (it is a normal target for player weapons, it is added to the target lists of the purchased CAS, bomber and structure-strike flights, and it appears in the JTAC and zone-intel target lists; `zc2:36122-36128`, `zc2:1508-1517`, `zc2:109751-109753`) removes those benefits: the supply stock is cut down to the normal-zone target, and the weapon warehouse becomes finite, reset to 50 of every allowed weapon (150 for rockets) (`zc2:46526-46570`, `zc2:51006-51020`).
+- Shop: "Logistic Center [WH]" (`zlogc`, 5000) creates one in a fully upgraded friendly airbase zone; "Repair Logistic Center" (`zwhrepair`, 2000) starts a 30-minute repair: "Warehouse repair started at <zone>. Completion in 30 minutes of mission time.", then "Warehouse repair completed at <zone>. Logistic Center benefits restored." (`zc2:24155-24253`, `L10N:1394-1395`; manual p. 31).
+- In PvE the RED Director can buy the same for RED (`redwarehouse`, `redwhrepair`): a RED "rear supply depot" (`Setup:4833-4864`, `zc2:24212-24234`).
+
+### Mechanism
+
+- State: `zone.warehouseFacility = {name = '[WH] <zone>', state = 'operational' | 'destroyed' | 'repairing', placement = {x, z, heading, kind, subZone, reservedSubZones}, object, repairCompleteAt, repairDurationSec, weaponStock}` (`zc2:24176`, `zc2:46385-46406`).
+- Spawn: `coalition.addStaticObject(country, {category = 'Fortifications', type = 'af_hq', shape_name = 'syr_af_hq', name, x, y, heading})`, country RUSSIA for RED and USA for BLUE; if a wreck still holds the name it is destroyed first and the spawn is retried at the next update (`zc2:46301-46334`).
+- Placement (`_findWarehousePlacement`, `zc2:46108-46299`), for an active airbase zone that is not a carrier:
+  - the building footprint is about 100 m × 31 m (local X ±49.8 m, local Z −20.5 m to +10.8 m);
+  - first choice: beside a road — a mission-maker hint (a trigger zone named `<zone>-wh`), else the road point nearest to the zone centre, else up to 8 road points cached for the zone's numbered sub-zones; the road direction is estimated from four `land.getClosestPointOnRoads` probes 20 m around the point, and the building is set 28 m back from the road, on either side, with its front wall toward it;
+  - every footprint corner must be inside the zone, on `LAND` or `ROAD` surface, not on a road, and the ground height must not vary by more than 2 m;
+  - fallback (BLUE only; a RED depot requires a road site): the centre of a free sub-zone, trying 8 headings and keeping the flattest;
+  - a candidate is rejected when a living unit, static or scenery object lies within 100 m (`world.searchObjects` sphere), and it "reserves" every spawn sub-zone its footprint overlaps so that no defensive group is later spawned into the building;
+  - the chosen placement is cached and saved, so the building comes back at the same spot.
+- Purchase (`applyLogisticCenterUpgrade`): the zone must be friendly, active, an airbase, not already a Logistic Center, and fully upgraded (`not zone:canRecieveSupply()`); the static is spawned at once, the label is refreshed 1 s later, and 2 s later `_activateWarehouseFacility` sets `LogisticCenter = true` and adds 500 000 of every weapon to the airbase (`addWarehouseItemsAtZone(zone, side, 500000)`), releases the zone's pending supply permits and announces `WAREHOUSE_LOGISTIC_CENTER_CREATED` (`zc2:24155-24210`, `zc2:46356-46369`).
+- Watch (`_updateWarehouseFacility(now)`, called at `zc2:55257` on the zone update path, which runs it only for zones that have a facility, `zc2:55150-55152`): an operational facility whose static no longer exists or has no life left becomes `destroyed`: `LogisticCenter = false`, the ready stock is clamped to the new maximum, surplus AI permits of the zone are released (the latest first), and the weapon inventory is reset by `_resetWarehouseFacilityWeapons` (`zc2:46526-46570`).
+- Repair (`applyWarehouseRepair`): `state = 'repairing'`, `repairDurationSec = 1800`; when the time is up the static is respawned and the facility re-activated (`zc2:24236-24253`, `zc2:46572-46580`).
+- While destroyed or repairing the zone has a **finite** weapon stock that is captured into the save (`_hasFiniteWarehouseStock`, `weaponStock = WarehousePersistence.CaptureWeapons(storage)`), so the inventory and the building state are saved in the same checkpoint (`zc2:46378-46406`).
+- Restart: `_initWarehouseFacility` (called from `ZoneCommander:init`, `zc2:51389`) re-creates an operational building from its saved placement; for a destroyed or repairing one it re-creates the **wreck** by spawning the static and blowing it up with `trigger.action.explosion(point, 50)` after checking that nothing else stands within 50 m; a Logistic Center of an older save without placement gets one computed later, one zone per second (`zc2:46464-46524`, `zc2:46444-46462`).
+- A zone that is a Logistic Center by setup (`zones.x.LogisticCenter = true`) gets its facility record created by `_initWarehouseFacility` the same way (`zc2:46470-46473`, `Setup:5921-5934`).
+
+### Reproduction notes
+
+- The building is one static whose life is polled by the owning zone's update; no event is used.
+- The hard part is the automatic siting: road-side placement, flatness, clearance, and the reservation of the spawn sub-zones it covers.
+- Restoring a destroyed state needs a visible wreck, obtained by spawning and exploding the static, which is only safe on a clear site.
+
+## 28. `TheaterInfrastructure`: a destroyed map building cuts a RED supply route
+
+### Player view
+
+- Each RED SAM zone of the Caucasus campaign is resupplied from one RED base, and that link depends on a warehouse **building of the map** (a scenery object); destroying the building stops RED from resupplying, and therefore repairing, that SAM zone from that base.
+- One larger target, the Vaziani supply warehouse, cuts a whole set of routes around Tbilisi and Vaziani; it is offered as a strike mission ("Strike Vaziani", 1000 credits) once BLUE holds Lima while Vaziani is still RED (`Setup:9295-9310`).
+
+### Mission-maker view
+
+`TheaterInfrastructure` is a global list in the setup file; each entry is `{id, flag, effect, side, scope, sourceZone, targetZones}` (`Setup:2271-2360`):
+
+| `id` | `flag` | `effect` | `sourceZone` → `targetZones` |
+|---|---|---|---|
+| `kobuleti_sam_india_warehouse` | `SamAlphaWarehouse` | `defence_supply` | Kobuleti → SAM-India |
+| `sukhumi_sam_foxtrot_warehouse` | `SamDeltaWarehouse` | `defence_supply` | Sukhumi → SAM-Foxtrot |
+| `sochi_sam_echo_warehouse` | `SamEchoWarehouse` | `defence_supply` | Sochi → SAM-Echo |
+| `anapa_sam_alpha_warehouse` | `SamGolfWarehouse` | `defence_supply` | Anapa → SAM-Alpha |
+| `krasnodar_sam_charlie_warehouse` | `SamHotelWarehouse` | `defence_supply` | Krasnodar-Pashkovsky → SAM-Charlie |
+| `mineralnye_sam_juliett_warehouse` | `SamJuliettWarehouse` | `defence_supply` | Mineralnye → SAM-Juliett |
+| `mozdok_sam_kilo_warehouse` | `SamKiloWarehouse` | `defence_supply` | Mozdok → SAM-Kilo |
+| `tbilisi_vaziani_warehouse` | `StrikeVaziani` | `regional_supply` | Tbilisi → Soganlug, Vaziani |
+| `vaziani_warehouse` | `StrikeVaziani` | `regional_supply` | Vaziani → Kilo, Lima, Soganlug, Tbilisi, SAM-Lima, SAM-Mike |
+
+- All entries are `side = RED`, `scope = "routes"`; `scope = "source"` (every route leaving the source zone) is also accepted (`zc2:75005-75024`).
+- The `flag` is the name of a trigger zone placed on the building in the `.miz`: the setup resolves it with Moose `SCENERY:FindByZoneName(flag)` and reports a missing object at start (`Setup:9004-9038`).
+- The Director validates the list at load (unique `id`, non-empty `flag`, valid side and scope, existing source zone, non-empty target list) and raises a Lua error otherwise (`zc2:74986-75035`).
+
+### Mechanism
+
+- A flag becomes true when its target is destroyed: `CustomFlags[flag] = true` is what the mission-target registry sets for a "custom" (one-shot) target, so the cut is permanent and persisted with the campaign (note 05 §11; `Setup:9302`).
+- `bc:_ensureRegularSupplyInfrastructureIndex()` indexes the list by source zone and by target zone (`"*"` for `scope = "source"`) (`zc2:53810-53837`).
+- `bc:_regularSupplyRouteInfrastructureBlocked(groupCommander)` returns true when an entry for the group's source zone and target zone (or a `"*"` entry) matches the group's side and its flag is set (`zc2:53839-53861`).
+- It is consulted when a supply route is evaluated for dispatch, when delayed permits are reconciled, and by the Director when it plans RED supply (`zc2:54549`, `zc2:54262`, `zc2:77962`, `zc2:78094`).
+- The same condition is also written directly on the supply capabilities of the setup, e.g. `DirectorCapability:new({name = 'Support-SAM-India', mission = 'supply', targetzone = 'SAM-India', template = 'SupplyConvoy', type = 'surface', condition = function(self) return not (self.side == 1 and CustomFlags["SamAlphaWarehouse"]) end})` (`Setup:1291`, `Setup:1633-1667`).
+- Because a PvE RED zone repairs only on delivery (§26), a cut route means the SAM zone stays damaged.
+
+### Reproduction notes
+
+- The feature is a lookup table from "destroyed objective flag" to "blocked supply routes"; the cost is one table lookup per route evaluation.
+- It needs scenery objects addressable from the `.miz` (a trigger zone over the building) and a persistent flag store.
+- `effect` (`defence_supply` / `regional_supply`) is not used by the route check read here; it is carried into the Director's region catalogue (`zc2:95900`; its use there was not read).
+
+## 29. PvP: industry objectives and starting territory share
+
+### Industry zones (PvP only)
+
+- Five zones of the Caucasus setup are industrial sites whose key buildings are declared as `industryCores` (a set of static names): Mining Facility (Factory, HQ), Insurgent Camp, Secret Tech Facility (Factory, Factory 2, HQ), Ammunition Depot (four storages), Tank Factory (two factories) (`Setup:868-874`).
+- Income: at each zone update in PvP, a zone with an `income` and an owner pays that income to its owner's coalition account, unless `productionDisabled` (`zc2:55155-55159`).
+- `_observeIndustryCores()` (each update): a core static that no longer exists or has no life left is "retired" for good (added to `zone.retiredStaticUpgrades`, removed from `zone.built`); when no core is alive any more, `zone.productionDisabled = true` and the income stops (`zc2:55109-55144`).
+- Cores are excluded from the zone's own repair and rebuild jobs, so a destroyed factory is never rebuilt (`zc2:53013-53016`).
+- Strike mission: `MissionCommander:new` builds, per side, an "industry strike" mission from the core statics of type `Workshop A`, `Tech combine` or `Tech hangar A`; a site is eligible when it is enemy-owned and each of its living cores lies within 100 NM of a zone the attacker owns; one eligible site is drawn at random and registered as a static group target `INDUSTRY:<side>:<zone>` worth `min(1000, 300 × number of buildings)`, with the coordinates of every building in the mission text (`zc2:102566-102600`, `zc2:102707-102737`).
+
+### Starting territory share
+
+- `PvPStartingTerritoryPercent` (Config, default 50; allowed 20, 30, 40, 50) is the share of the territory each coalition owns at the start of a new or reset PvP round, the rest being neutral (20 → 20 % RED, 20 % BLUE, 60 % neutral; 50 → everything split) (`Config:313-318`).
+- The setup holds an ordered list of zone keys per side (`pvpStartingTerritoryOrder[1]`, `[2]`, nearest to the home base first — ordering principle not read) and computes `quota = round(total zones × percent / 100)`; the first `quota` zones of each list go to that side, the others start neutral (`Setup:5885-5892`).
+- The industrial sites are outside the quota and follow a named neighbour: Mining Facility follows Batumi, Secret Tech Facility follows Sukhumi, Insurgent Camp follows India (else Isunderi), Ammunition Depot follows Sochi, Tank Factory follows the zone keyed `krasnodarc` (else `holmskiy`) (`Setup:5893-5898`).
+- The value used is stored in `CustomFlags.PvPStartingTerritoryPercent`, so an existing save keeps its layout: saved ownership wins, and only zones absent from the save take the starting layout; `StartNormal` swaps the two sides (`Setup:5877-5884`, `Setup:5900-5908`).
+- Anapa and Vaziani start as the two Logistic Centers of a PvP round, with a full supply stock (`Setup:5921-5927`).
+- The PvP victory condition is evaluated on a separate list, `pvpVictoryZones` (`Setup:949-955`, `Setup:2738`, `Setup:2836`); that code was not read.
+
+## 30. Train supply and train repair (Normandy)
+
+Not analysed: the upstream source extract was no longer available in the scratchpad when this section was due (the `fh653` folder disappeared during the pass), so `addConnectionSupply` and the `'train'` supply type could not be read in v6.5.3.
+Nothing in this section is known from the code; the only fact gathered elsewhere is that the Normandy map has its own supply and attack-front logic in several generators (`zc2:63804-63822`, `zc2:64150-64163`).
+
 ## Seen outside this theme
 
 - Pending-capture machinery (`startPendingCapture`, `startPendingCaptureWithCargoStatic`, `registerPendingCaptureHandler`, tombstones): `zc2:46797-46986`, `zc2:24675` — theme 01.
-- Zone "regular supply" production, AI dispatch permits and local recovery jobs: `zc2:52163-54689` — theme 03.
-- Warehouse **facility** building per zone (`[WH]` static, destroyable, repairable, finite stock) and the shop item that creates a Logistic Center: `zc2:46108-46502`, `zc2:24155-24236` — themes 01 / 05.
+- Zone "regular supply" production, AI dispatch permits and local recovery jobs: now detailed in §26.
+- Warehouse **facility** building per zone (`[WH]` static) and the shop items that create and repair a Logistic Center: now detailed in §27.
 - Shop items `zwh50`, `farphere` (AI-built FARP, messages `LOGISTICS_FARP_HELO_ENROUTE*`), `supplies2`: `Config:1609-1889` — theme 05.
 - Zone intel started by the spy (`startZoneIntel`): `CTLD.lua:1956` — intel theme.
 - CSAR / pilot rescue inside `LogisticCommander` (`zc2:98446-100730`, `zc2:101831-102270`) — theme 06.

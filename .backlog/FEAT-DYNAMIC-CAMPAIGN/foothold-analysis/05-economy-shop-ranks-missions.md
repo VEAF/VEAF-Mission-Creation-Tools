@@ -17,7 +17,7 @@ Short file names are used in citations: `zoneCommanderv2.lua` → `zc`, `Foothol
 | 3.6 | Friendly-fire penalty | rank credits removed for team kills | `zc:42641-42675` |
 | 4 | Shop F10 menu and marker shop | per-group categorised menu with zone selectors; `buy:<id>` map marks | `zc:22395-22533`, `zc:28555-28706` |
 | 5 | Shop catalogue | every item, price, rank, target, effect | `Setup:3009-5751`, `Config:1608-1916` |
-| 5 | Dynamic Control menu | control of purchased flights, tankers, carrier | `zc:16259`, `zc:106266-106480` |
+| 5 | Dynamic Control menu | control of purchased flights and tankers (carrier navigation is under Stats and Settings) | `zc:16259-16694`, `zc:106266-106480` |
 | 6 | CAP auto-buy after loss (6.5.2) | automatic re-purchase of a destroyed CAP flight | `zc:21863-21876`, `zc:106427-106466` |
 | 7 | Ranks | 20-step ladder on personal rank credits, gates shop / CTLD / carrier | `zc:17231-17232`, `zc:44332-44408` |
 | 8 | Statistics and leaderboards | per-sortie, per-session and lifetime stats; top lists | `zc:40510-40970`, `zc:21395` |
@@ -133,7 +133,9 @@ The red AI commander also buys through the same function, with a Director-suppli
 - The per-kill message `[player] <text>` is shown to the killer's group only if `ShowKills == true` (Config, default `false`) (`zc:42711-42714`, `Config:275`).
 - A ground unit whose `unit:getID()` is registered in `Foothold_ctld.PlayerCtldRewards.unitsById` credits its builder (`ctldGround`/`ctldAir`) when it kills an enemy (`zc:42827-42849`).
 - AI kills (no player name) are only recorded as "air combat evidence" for the AI Director, not rewarded (`zc:42888-42890`, `zc:42584-42639`).
-- Splash kills: `Splash_Damage_3.4.1_leka.lua` is an optional script (`SplashDamage`, Config default `false`, `Config:272-273`); the reward path has no dedicated splash attribution and only reacts to the `S_EVENT_KILL` it receives (what the splash script itself emits: not read, estimation).
+- Splash kills: `Splash_Damage_3.4.1_leka.lua` is an optional script (`SplashDamage`, Config default `false`, `Config:272-273`); the engine's reward path has no dedicated splash attribution and only reacts to the `S_EVENT_KILL` it receives.
+- The splash script does not emit events: it credits splash kills itself, through the engine's public functions. Each red object it finds destroyed by a blast is priced with `bc:objectToRewardPoints2` and queued; a `S_EVENT_KILL` received for the same unit id removes the queued entry (the engine already paid it); a timer (every 5 s while entries are queued, else 60 s) then calls, for each remaining entry whose player is enrolled (`bc.playerContributions[2][player] ~= nil`), `bc:addTempStat`, `bc:addContribution(player, 2, points)`, `bc:registerCasMissionKill`, `bc:registerSeadMissionKill` and `bc:registerMissionTargetKill` (`Splash_Damage_3.4.1_leka.lua:1304-1346`, `:3492-3532`, `:4549-4559`, `:4780-4783`).
+- Splash credit is therefore blue-only (side 2 is hard-coded) and bypasses the per-kill career counters and the "air combat evidence" that `_handleRewardEnemyKill` records (`Splash_Damage_3.4.1_leka.lua:3511-3519`, `zc:42677-42789`).
 - `S_EVENT_SCORE` is used for "score targets" (scenery/static strike objectives): when a player triggers a score event with comment `general` and amount 0, a 6 s timer re-checks every registered `ScoreTargets[flag]` object and counts those whose relative life is ≤ 50 % as destroyed (`zc:42083-42131`).
 
 ### 3.2 Banking on landing, losing on death
@@ -211,7 +213,9 @@ The red AI commander also buys through the same function, with a Director-suppli
 - A legacy coalition-wide menu "shop for all" (`refreshShopMenuForCoalition`, `missionCommands.addCommandForCoalition`) still exists in the code (`zc:13041-13072`).
 - Selector refresh (zones changing side, upgrades, supply demand): `requestShopSelectorRefreshForCoalition(side, tags|itemIds)` accumulates dirty items, a 0.15 s debounce `SCHEDULER` flushes them into a work queue, and a worker runs every `shopSelectorRefreshInterval` (0.5 s) processing at most `shopSelectorRefreshBudget` (8) "group × item" jobs per tick; every fourth tick is reserved for the Dynamic Control menu when both queues have work (`zc:17382-17411`, `zc:17615-17689`).
 - A selector rebuild is skipped when the candidate rows and labels are unchanged for that group/locale (`zc:22266-22279`).
-- Candidate zones come from pre-computed "buckets" (`blue_unsuspended`, `enemy_unsuspended`, …) maintained incrementally when a zone changes state, or from a `candidatesBuilder`, or from all zones; filters are `targetzoneside`, `allow`, `extraPredicate`, `includeSuspended` (`zc:22147-22215`, `zc:34139-34220` — bucket maintenance not read in detail).
+- Candidate zones come from pre-computed "buckets" (`blue_unsuspended`, `enemy_unsuspended`, …) maintained incrementally when a zone changes state, or from a `candidatesBuilder`, or from all zones; filters are `targetzoneside`, `allow`, `extraPredicate`, `includeSuspended` (`zc:22147-22215`).
+- Buckets (`bc._shopSelectorBuckets[name]`, lists of `{z = zone, wp = waypoint number}`), all restricted to active, non-hidden zones: `blue_visible`, `blue_unsuspended`, `zone_supply_targets`, `blue_airbase_unsuspended`, `enemy_unsuspended`, `advance_capture_targets` (`zone:canAdvanceCapture()`, no carrier), `neutral_unsuspended`, `neutral_capture_targets` (neutral and either not neutral at start or already captured once by red), `warehouse_targets` (blue airbase zone that is not a Logistic Center); an idle-suspended (dormant) zone counts as not suspended (`zc:34139-34189`).
+- `_applyZoneShopSelectorDelta(zone, previousState)` is called when a zone changes state: for each bucket it compares the membership before and after and adds or removes the single entry, then `_getZoneSelectorRefreshTags` returns the tags (`friendly_targets`, `enemy_targets`…) of the shop items whose selectors must be re-queued (`zc:34191-34262`, `zc:34263`).
 - The marker shop is an event handler on event id 26 (`S_EVENT_MARK_CHANGE`) installed by `startMonitorPlayerMarkers` (`zc:28354`, `zc:28455-28456`).
 - Text is localised per group through `L10N:ForGroup(groupId)`; item names may be functions `name(T)` resolved at display time (`zc:19307-19320`).
 
@@ -238,7 +242,7 @@ Columns: price = `ShopPrices` (`Config:1771-1842`); rank = `ShopRankRequirements
 | `dynamicstatic` | Static structure Flight | 500 | 4 | ∞ | enemy zone that has structures | spawns a strike flight against the zone's buildings | `Setup:3841-3882`, `zc:109719` |
 | `groundattack` | Ground attack | 1000 | 5 | ∞ | enemy zone (PvP: optional FARP origin) | launches a ground convoy from the closest friendly zone or FARP within range | `Setup:4473-4544`, `zc:20673` |
 | `strategicbomber` | Strategic Bomber | 1500 | 6 | ∞ | enemy zone → origin / escort options built by `StrategicBomber.BuildBlueShopMenu` | launches a heavy bomber raid with AI or player escort | `Setup:3652-3838`, `zc:3518`, `zc:3759` |
-| `cruisemsl` | Cruise Missile Strike | 800 | 10 | 12 | — | put on the shelf by `addShopItem` but **not registered** in the Caucasus setup, so it never appears there; it is registered in the Syria, Persian Gulf and South Atlantic setups (not read) | `Setup:5555`, `zc:19342-19344` |
+| `cruisemsl` | Cruise Missile Strike | 800 | 10 | 12 | — | put on the shelf by `addShopItem` but **not registered** in the Caucasus setup, so it never appears there; it is registered in the Syria, Persian Gulf and South Atlantic setups, where the buyer picks an enemy zone and the action is `bc:fireAtZone(zone, 'cruise1', true, 8)` (the group `cruise1` fires 8 missiles at the zone; `footholdSyriaSetup.lua:2913-2933`, `zc:24975`) | `Setup:5555`, `zc:19342-19344` |
 
 ### Zone Upgrades (adds a permanent defensive group to a friendly zone)
 
@@ -299,6 +303,19 @@ Columns: price = `ShopPrices` (`Config:1771-1842`); rank = `ShopRankRequirements
 | `zsup3` | Add 3 supplies to zone (PvE) | 750 | 2 | friendly zone | `bc:applyZoneSupplyStockAdd(zone, 3)` | `Setup:5089-5106` |
 | `zwh50` | Resupply warehouse with 50 (PvE) | 500 | 2 | zone with warehouse | `bc:applyWarehouseResupply` | `Setup:5108-5128` |
 
+Detail of the supply and capture actions (`Setup:3886-4052`, `zc:23255-23414`):
+
+- `supplies2` with AI delivery (default, `AllowScriptedSupplies = false`): the zone selector lists friendly, active, non-suspended zones flagged `_needsSupplyForMenu`, sorted `friendly_frontline`, with the `built/total` suffix (`Setup:3931-3937`, `Setup:4005`).
+- When the best available supply group is a helicopter or a convoy and the coalition owns a dynamic FARP (or one lies within 30 NM of the zone), the zone entry becomes a submenu "Deploy from FARP?" > Yes / No, and the purchase carries `allowFarp` (`Setup:3950-3997`).
+- `bc:requestFriendlySupplyMission(zone, params)`: refuses if the zone is not friendly, at most `GlobalSettings.maxPaidSupplyPerZoneBlue` (default 2) paid deliveries may be in progress per zone (`_formatSupplyInProgressMessage`), then `_selectShopSupplyCommander` picks the nearest available supply `GroupCommander` (preferring a warehouse-based one for a `supplies2` "stockpile delivery"), or reports `LOGISTICS_NO_SUITABLE_SUPPLY` (`zc:23276-23321`).
+- The chosen commander is retargeted and forced into its launch state at once (`targetzone = zone`, `state = 'preparing'`, `urgent = true`, `lastStateTime` pushed far in the past, `_activateFsmGroup`), optionally launching from the closer FARP; flags `_paidSupplyParallelLaunch`, `_paidSupplyStockpileDelivery`, `_shopLaunchRequested` mark it as a paid run (`zc:23346-23394`).
+- Messages: "looking for pilots" then, at launch, `LOGISTICS_FRIENDLY_HELO_SCRAMBLE`, `LOGISTICS_FRIENDLY_RESUPPLY_TO` (plane), a ship dispatch message, or `LOGISTICS_FRIENDLY_CONVOY_MOVING` (`zc:23397-23409`).
+- The function returns `{deferredShopPurchase = true}`: the 200 credits are reserved and only debited when the group really launches (§2) (`zc:23410-23412`, `zc:23355`).
+- A `supplies2` purchase on a zone that needs nothing is still accepted as a "stockpile delivery" (it adds to the zone's supply stock) (`zc:23261`, `zc:23288-23290`).
+- `supplies2` with `AllowScriptedSupplies = true` (or for a carrier zone): no flight, the zone gets one expedited supply unit at once (`zone:_addExpeditedRegularSupplyStock(1)`; a carrier zone gets `zone:upgrade()`), refusal text `SYRIA_SHOP_ZONE_NO_RESUPPLY` (`Setup:3915-3927`).
+- `supplies` (only registered when `AllowScriptedSupplies`): `zone:UpgradeUntilComplete(callback)` and a coalition message `SYRIA_SHOP_ZONE_FULLY_UPGRADED` when done; returns `false` (no charge) if the zone was already complete (`Setup:4015-4035`).
+- The Combined Arms items destroy their template groups at load (`Group.getByName('ca-tanks-Coldwar'):destroy()` …) and spawn them on purchase with `CustomZone:spawnGroup` (`Setup:4053-4232`).
+
 ### Other support
 
 | id | Name | Price | Rank | Stock | Target | Effect | Code |
@@ -338,8 +355,65 @@ Columns: price = `ShopPrices` (`Config:1771-1842`); rank = `ShopRankRequirements
 ### Dynamic Control menu (control of purchased support)
 
 - `F10 > Other > Dynamic Control` (`MENU_DYNAMIC_CONTROL`), per group, rebuilt by `refreshDynamicControlMenuForGroup` (`zc:16259`, `zc:16425`).
-- Entries seen in the code: CAP control (reposition by zone, reposition by position, hold racetrack, flight sweep, help, destroy), SEAD push / destroy, decoy push / destroy, CAS destroy, bomber destroy, building-strike destroy, navy arty destroy, strategic bomber push / destroy, tankers control and info, carrier navigation and info (label keys `DYNAMIC_*`; internal layout not read in detail, estimation for the exact nesting).
-- Tanker control and carrier navigation are rank-gated (`_getTankerRequiredRank`, `CarrierRankRequirement = 5`) (`zc:13326`, `zc:13692`, `Config:290-292`).
+- The root exists only while something can be controlled: a purchased flight is active, or a tanker is active; otherwise the menu is removed (`zc:16340-16350`).
+- The tree is rebuilt only when a per-group "signature" string changes (owner side, tanker activity, helicopter or not, rank, which flights are active, SEAD/decoy push mode and readiness, CAP auto-buy order) (`zc:16380-16421`).
+- Exact layout (labels from `L10N:1874-1931`, `L10N:693-695`):
+
+```
+Dynamic Control                                             (zc:16425)
+├─ Tankers Control                                          (zc:16795; needs tanker rank, not for helicopters: zc:16363-16370)
+│  ├─ Arco (Drogue): Move to Zone > <zone> > Orbit | Hot 360…315 > 10…50 NM Leg
+│  ├─ Arco (Drogue): Altitude > <list> / Arco (Drogue): Speed > <kt list>
+│  ├─ Texaco (Boom): Move to Zone / Altitude / Speed        (same shape)
+│  └─ Tanker Help
+├─ CAP Control                                              (zc:16461, while a purchased CAP is active)
+│  ├─ Stop CAP auto-buy                                     (only for the buyer of a pending auto-buy order; zc:16462-16466)
+│  ├─ CAP: Reposition by Zone > <zone, "More" paging> > Orbit | Hot 360…315 > 10…50 NM Leg   (zc:16469-16540)
+│  ├─ CAP: Reposition by Position > Reposition 360…315 > 0…100 NM > Orbit | Hot 360…315 > NM Leg   (zc:16543-16580)
+│  ├─ CAP Help                                              (prints the caphere1/caphere2 marker help; zc:16583)
+│  ├─ CAP: Hold Racetrack                                   (ROE open fire = "Engage If Engaged"; zc:16586-16602)
+│  ├─ CAP: Flightsweep                                      (ROE weapon free = "Engage All"; zc:16603-16619)
+│  └─ CAP: Destroy                                          (zc:16620-16625)
+├─ CAS: Destroy                                             (zc:16627-16633)
+├─ Bomber: Destroy                                          (zc:16635-16641)
+├─ SEAD: Push (only in "push on command" mode, once ready) / SEAD: Destroy   (zc:16643-16664)
+├─ <strategic bomber name> > Push (until pushed) | Destroy  (zc:16656-16657, zc:4195-4223)
+├─ DECOY: Push (same rule) / DECOY: Destroy                 (zc:16667-16684)
+├─ Building strike: Destroy                                 (zc:16687-16688)
+└─ Navy Artillery: Destroy                                  (zc:16690-16691)
+```
+
+- "Reposition by Zone" lists friendly active zones (and neutral ones already captured once), ordered by waypoint number descending; the handler calls `setCapRacetrack(zoneCoord, heading, leg, zoneName)` and announces `DYNAMIC_CAP_EN_ROUTE_TO_ZONE` / `DYNAMIC_CAP_REPOSITIONING_ZONE` (`zc:16433-16458`, `zc:16504-16535`).
+- "Reposition by Position" translates the CAP's **current** position by the chosen distance on the chosen bearing (`capGroup:GetCoordinate():Translate(...)`) and sets an orbit or a racetrack there (`zc:16544-16578`).
+- "Hold Racetrack" and "Flightsweep" only change the rules of engagement of the flight (`OptionROEOpenFire` / `OptionROEOpenFireWeaponFree`, i.e. DCS `AI.Option.Air.id.ROE`), with a coalition message (`zc:16586-16619`).
+- The "Destroy" entries call `despawnCap`, `despawnCas`, `despawnBomber`, `despawnSead`, `despawnDecoy`, `despawnStructure`, `despawnNavyArty`: the group is destroyed, the "one active flight" slot is freed, nothing is refunded (`zc:107958-107990`, `zc:108275`, `zc:108729`, `zc:109358`, `zc:109707`, `zc:109939`).
+- "Push" calls `pushSead` / `pushDecoy`, which run the stored `pushAction` once (the flight leaves its holding orbit and flies the attack route) and rebuild the menu (`zc:108699-108727`, `zc:108246-108273`).
+- Strategic bomber: `StrategicBomber.PushBlue(groupId)` starts the bombing route (`StartBomberAuftrag`), refusing with `STRATEGIC_BOMBER_ALREADY_PUSHING` / `…_NOT_ACTIVE`; `DestroyBlue` removes bomber and escort (`STRATEGIC_BOMBER_DESTROYED`) (`zc:3936-3975`, `zc:4101-4121`).
+- **Carrier navigation is not under Dynamic Control**: it is a submenu "Carrier Navigation" of `Stats and Settings`, blue only, rank-gated by `CarrierRankRequirement` (`refreshCarrierNavigationMenuForGroup` attaches it to `logistics.statsMenus[groupId]`, `zc:16178-16229`, `zc:16081-16096`).
+- Tanker control is rank-gated by the rank requirement of the tanker shop item (`_getTankerRequiredRank`) (`zc:13326`, `zc:16363-16370`, `Config:290-292`).
+
+### Purchased flights: what is spawned, how it is tasked, how it ends
+
+Common frame (all of `dynamiccas`, `dynamicsead`, `dynamicdecoy`, `dynamicbomb`, `dynamicstatic`; `spawnCapAt` is described in §6):
+
+- Templates are late-activated groups chosen by era: `DynamicCas_Template[_CW|_VT]`, `DynamicSead_Template[_CW|_VT]`, `DynamicDecoy_Template[_CW]`, `DynamicBomber_Template[_CW|_VT]`, `DynamicStructure_Template[_CW|_VT]`, `CAP_Template[_CW|_VT]` (`zc:107935`, `zc:108673`, `zc:108217`, `zc:109335`, `zc:109698`, `zc:105244`).
+- Ground start (`AIAttackTakeoffFromGround`): `_spawnDynamicSupportFromGround` picks a friendly airbase near the origin zone with enough free parking of the wanted terminal type (up to 8 attempts, each excluding the previous airbase), prepares the warehouse for the template's loadout (`_prepareBlueAiWarehouseSpawn`), and spawns with `SPAWN:NewFromTemplate():SpawnAtParkingSpot(homebase, spots, SPAWN.Takeoff.Hot)`, falling back to `SpawnAtAirbase` (`zc:107074-107136`).
+- Air start (fallback, or when ground start is off): the group is spawned at 7 620 m over the origin zone, pushed back `offsetNM` away from the target, heading to the target (`zc:108005-108015`, `zc:108160-108167`).
+- A validation runs 5 s (ground) or 8 s (air) after the spawn: if the group is not alive, a ground spawn is retried once as an air spawn; only a validated spawn settles the pending purchase (`_completePendingShopPurchase`) (`zc:107003-107072`).
+- Each flight registers a record in `DynamicSupportNative` with its messages and callbacks, and takes an "idle hold" on the target zone so that a dormant target zone stays awake while the flight is alive (`_beginPurchasedAttackHold`) (`zc:108062-108081`, `zc:37409-37432`).
+- The route carries script waypoint tasks (`WrappedAction` / `Script`) calling `DynamicSupportNative:ReportMissionStarted(name)` at the ingress or attack waypoint and `ReportMissionComplete(name)` at egress; these fire `onMissionStarted` and the "completed" message (`zc:108123-108130`, `zc:106380-106400`).
+- End of life: landing (message "… have landed", group removed), last unit lost ("… have been killed"), "Destroy" from the menu, or the target/origin zone becoming invalid before tasking; in all cases the "one active flight" flag is cleared and the Dynamic Control menu rebuilt (`zc:106402-106469`, `zc:107939-107956`).
+
+| Flight | Options at spawn | Tasking | Specific end / messages | Code |
+|---|---|---|---|---|
+| CAS | unlimited fuel, radio silence, ROE return fire, evade fire | 2 s after spawn `bc:EngageCasMission(target, group, WeaponExpend.ONE, nil, 27000 ft, homebase, …)`: a `Mission` route start → ingress → attack waypoint 14 NM short of the first target (fly-over) → egress → landing; the attack waypoint holds a `ComboTask` with one attack task per group/static name of `zone.built` (plus the zone warehouse), an en-route `EngageTargets` task on `Ground Units`, and ROE set to open fire | winchester (no A/G ammo left at the 30 s check) → RTB with "CAS group is Winchester"; `DYNAMIC_SUPPORT_CAS_SCRAMBLING` / `_LAUNCHED` at spawn | `zc:107991-108152`, `zc:36091-36276` |
+| SEAD | radio silence, ROE return fire, evade fire; altitude 28 000 ft by default | targets = units of the zone's groups with attribute `SAM TR`, `SAM SR`, `SR SAM`, `MR SAM`, `LR SAM` or `AAA` (all other units if none); `EngageCasMission(target, group, WeaponExpend.ALL, AnyAG, altitude − 1000, …)` with `targetNames` = those units, route speed 600 kt, no en-route task; in "push on command" mode the flight first orbits (ground start: 10 NM from the base toward the target at 25 000 ft until every aircraft is within 500 ft of that altitude) and reports "ready to PUSH" with an ETA | if the zone has no unit at all: flight destroyed after 5 s and **500 credits refunded** (`DYNAMIC_SUPPORT_NO_SEAD_TARGETS_REFUND`); at mission start the flight goes weapon free and the script **wakes the target SAMs** (emission on, alarm state red, MANTIS state forced to RED, ARM-defence capacity forced to 99 for 300 s) so that they radiate for the anti-radiation missiles | `zc:108779-108900`, `zc:108934-109024`, `zc:109105-109146`, `zc:109162-109270` |
+| Decoy (TALD) | radio silence, formation option 131074; altitude 30 000 ft by default | `bc:EngageDecoyMission`: route to a waypoint `attackOffsetNM` (default 20 NM) short of the zone centre carrying a `Bombing` task on the zone centre with `weaponType = 8589934592` (decoys), `expend = ALL`, group attack; same auto / on-command push and staging orbit as SEAD, with ETA messages | winchester = "All ducks away. Returning to base."; blue only (PvP: side 2 only) | `zc:108316-108540`, `zc:36002-36076` |
+| Bomber | radio silence, ROE return fire, reaction to threat evade fire | 2 s after spawn `StartBomberAuftrag(nil, group, targetZone, nil, 750 kt, {routeAltitudeFt = 25000, attackAltitudeFt = 25000, staticsLast = true, staticWeaponExpend = ONE…})`: despite the name it builds a raw `ComboTask` of `Bombing` tasks (`weaponType = AnyBomb`, `groupAttack = false`), one per **unit position** of every group of `zone.built`, then one per static and the zone warehouse (statics last) | ROE open fire at mission start; winchester → RTB "Bomber Group, returning to base" | `zc:109391-109620`, `zc:1500-1581`, `zc:1776-1853` |
+| Structure strike | radio silence, ROE return fire, evade fire | targets = living statics of `zone.built` plus the zone warehouse; the script counts the bombs carried (`unit:getAmmo()`, category BOMB) and sets the expend per target: ALL for one target, HALF for two, QUARTER for four, otherwise FOUR / TWO / ONE by bombs per aircraft per target; then `EngageCasMission(target, group, ONE, AnyBomb, 25000 ft, …)` with these per-target profiles | PvE blue only (single global state, no per-side record); winchester → RTB "Infrastructure Group is now RTB" | `zc:109719-109892` |
+
+- "Winchester" for all of them is the shared 30 s ammo poll of `DynamicSupportNative`; the RTB route is two waypoints (current point, then `WaypointAirLanding` at the home or nearest friendly airdrome) at 300 kt, set with `Controller:setTask({id = "Mission", …})` or `GROUP:Route` (`zc:109081-109096`, `zc:109054-109065`, `zc:109833-109846`).
+- Moose used: `SPAWN`, `GROUP` option setters (`OptionROE*`, `SetOption`, `SetOptionRadioSilence`, `CommandSetUnlimitedFuel`, `EnRouteTaskEngageTargets`), `COORDINATE:WaypointAir*`, `AIRBASE` parking queries; the tasks themselves are raw DCS task tables, not `AUFTRAG` (`zc:108045-108046`, `zc:36157`, `zc:36118`).
 
 ## 6. CAP auto-buy after loss (6.5.2)
 
@@ -372,16 +446,20 @@ Columns: price = `ShopPrices` (`Config:1771-1842`); rank = `ShopRankRequirements
 - `RankingSystem` (default `true`): when `false`, `reqRank` is never stored on shelf items and everyone sees the full shop (`Config:284-285`, `zc:19353-19357`).
 - `RankLoseWhenKilled` (`true`) / `RankLoseWhenKilledAmount` (100), `FriendlyFireRankPenalty` (500) (`Config:266-270`, `Config:287-288`).
 - `bc.rankThresholds` / `bc.rankNames` can be supplied to `BattleCommander:new` (they default only when absent) (`zc:17231-17232`).
-- Admin marker `addrank:<player>,<n>` adjusts a player's rank credits (parsing at `zc:28394`; handler not read).
+- Admin marker `addrank:<player>,<n>` (case-insensitive, `n` may be negative): `bc:addPlayerRankCredits(player, n)` on the record found by player **name**, shop menu of the player's group rebuilt, `PLAYER_PROMOTED` + `Rank.ogg` to his coalition if the rank went up, `ADMIN_RANK_SET` to the marker's coalition, mark removed; like the other marker commands it has no identity check (`zc:29097-29124`, `zc:44400-44408`).
 
 ### Mechanism
 
 - Rank credits are a separate counter from the coalition account: `record.credits` in the player's `RankSave` record, increased by exactly the amount redeemed at landing (`addPlayerRankCredits`), decreased by death / friendly-fire penalties, floored at 0 (`zc:44400-44408`, `zc:41895`, `zc:42237`, `zc:42668`).
 - `getPlayerRank` walks the threshold array and returns the highest index whose threshold is reached (0 when the player has no record) (`zc:44384-44393`).
 - Persistence: global table `RankSave = {players = {[ucid] = record}, legacyPlayers = {[name] = record}, playerAliases, version, …}` written to `<writedir>/Missions/Saves/Foothold_Ranks.lua` by `Utils.saveTable`, as part of the staged save job, only when `RankingSystem` is true (`zc:44332-44377`, `zc:44508`, `zc:44533`).
-- Identity: records are keyed by UCID (resolved with `net.get_player_list` / `net.get_name`; UCID lookup itself not read), with a name→UCID alias cache and a "legacy" name-keyed table for players never seen with a UCID (`zc:43358-43378`, `zc:43685-43700`, `zc:43446-43466`).
+- Identity: records are keyed by UCID, with a name→UCID alias cache and a "legacy" name-keyed table for players never seen with a UCID (`zc:43358-43378`, `zc:43446-43466`).
+- UCID resolution (`_syncRankSavePlayerIdentity(player, plist, force, pid)`): the player id is found by matching `net.get_name(pid) == playerName` over `net.get_player_list()` (or through the multicrew pid cache), then `ucid = net.get_player_info(pid, 'ucid')`; the result is cached in `_rankIdentityByPlayer[name] = {pid, ucid}` and `_rankNameByUcid[ucid] = name` (`zc:43685-43707`, `zc:43726`, `zc:43738`).
+- A forced sync (player spawn) also stamps the record's `lastSeen`; a player who comes back under a new name keeps his record, the old name being stored in `rankSave.playerAliases[oldName] = ucid` (`zc:43710-43713`, `zc:43727-43737`).
+- First sighting of a UCID "claims" the legacy data stored under the player's name: rank record, lifetime stats, EWRS and self-JTAC settings move from the name-keyed tables to the UCID-keyed ones; a name already owned by another UCID is not claimed (`_claimLegacyPlayerIdentity`, `zc:43467-43501`, `zc:43719-43742`).
+- All of this needs the `net.*` API from the mission scripting environment ; when no pid or no UCID is returned the function returns nil and the name-keyed legacy record is used (`zc:43704-43707`, `zc:43446-43466`).
 - The same file also stores each player's EWRS and self-JTAC settings (`_syncRankEwrsSettings`, `_syncRankSelfJtacSettings`, `zc:44360-44361`).
-- The rank file is independent of the campaign save, so ranks survive a campaign reset (the file path is separate, `zc:44334-44340`; reset behaviour itself not read, estimation).
+- The rank file is independent of the campaign save, so ranks survive a campaign reset: when a reset is pending (`bc._persistenceResetPending`, set when the campaign is won and restarts automatically with `AutoRestart`, or when a player confirms the coalition menu "Restart and reset"; the zone save is overwritten with an empty table at the same time), the staged save job runs in `rankOnly` mode and writes only `Foothold_Ranks.lua`, not the zone state (`zc:44334-44340`, `zc:44429-44447`, `zc:28112-28134`).
 
 ## 8. Statistics and leaderboards
 
@@ -415,16 +493,63 @@ Columns: price = `ShopPrices` (`Config:1771-1842`); rank = `ShopRankRequirements
 - Career counters are integer ids (`CAREER_STAT`, `CAREER_AIRCRAFT_METRIC`) stored in the rank record: `record.career[statId]` and `record.aircraft[aircraftId][metricId]` (`zc:12040-12078`, `zc:44085-44095`, `zc:40853-40857`).
 - Each metric has a ladder of up to 9 levels; the reward of level n is `{100, 250, 500, 1000, 2000, 3500, 5000, 7500, 10000}[n]`; friendly kills, ejections and pilot deaths have ladders but no reward (`zc:12080-12101`, `zc:44062-44083`).
 - Counters are fed from the reward handlers: kills (`recordCareerKillForCrew`), landings and carrier traps at redeem, ejections, deaths, fuel, supply and CTLD deliveries, rescues, purchases (`zc:42718`, `zc:41849-41864`, `zc:42144`, `zc:42175`, `WelcomeMessage.lua:2803-2808`, `zc:21504`).
-- Ladder definitions (titles, thresholds) are in `CAREER_GLOBAL_ACHIEVEMENTS` / `_careerAchievementLadder` (not read).
+- Ladder lookup: `_careerAchievementLadder(scope, subjectId, metricId)` returns `CAREER_GLOBAL_ACHIEVEMENTS[metricId]` for the player scope, and for the aircraft scope the per-aircraft override `CAREER_AIRCRAFT_ACHIEVEMENT_OVERRIDES[aircraftId][metricId]`, else `CAREER_AIRCRAFT_ACHIEVEMENTS[metricId]` (an empty table, so only overrides exist) (`zc:43906-43911`, `zc:12468-12469`).
+- A ladder is a list of `{threshold, title}`; the level index gives the reward (see above), so a 6-level ladder pays 100, 250, 500, 1000, 2000, 3500 (`zc:12167-12175`, `zc:12080-12090`).
+
+Global (per player) ladders, thresholds only (`zc:12167-12466`); each level has a humorous title (e.g. flight time: "Getting Settled" … "Please Go Outside"; air-kill streak: "Ace", "Air Master", "Own the Sky", "Untouchable"):
+
+| Metric (`CAREER_STAT`) | Thresholds |
+|---|---|
+| `FlightSeconds` | 20, 75, 200, 400, 750, 1000 hours |
+| `Takeoffs`, `Landings` | 10, 50, 100, 250, 500, 750 |
+| `CarrierTakeoffs` | 10, 50, 100, 250, 500, 1000 |
+| `ConventionalCarrierTraps` | 5, 25, 100, 250 |
+| `Ejections` (no reward) | 1, 10, 25, 50, 100, 250, 500 |
+| `PilotDeaths` (no reward) | 5, 10, 25, 50, 100, 250, 500 |
+| `FixedWingAirStreakBest` | 5, 10, 15, 20 |
+| `HelicopterAirStreakBest` | 1, 3, 5 |
+| `FuelReceivedLbs` | 10 000, 50 000, 100 000, 250 000, 500 000, 1 000 000, 5 000 000 |
+| `TotalKills` | 10, 50, 100, 250, 500, 1000, 2500, 5000, 10 000 |
+| `AirKills`, `HeloKills` | 5, 25, 50, 100, 250, 500, 1000 |
+| `FixedWingGroundKills` | 50, 100, 250, 500, 1000, 2500, 5000, 10 000 |
+| `HelicopterGroundKills` | 100, 250, 500, 1000, 2500, 5000 |
+| `SamKills` | 5, 20, 50, 100, 250, 500, 1000 |
+| `ShipKills` | 1, 10, 25, 50, 100, 200 |
+| `StructureKills` | 1, 10, 50, 100, 250 |
+| `DemolitionKills` | 1, 10, 25, 50, 100, 250 |
+| `InfantryKills` | 25, 100, 250, 500, 1000, 2500, 5000 |
+| `FriendlyKills` (no reward) | 1, 10, 50 |
+| `SupplyUnitsDelivered` | 10, 50, 100, 250, 500, 1000, 2500, 5000, 10 000 |
+| `ZoneSupplyUnits` | 10, 50, 100, 250, 500, 1000, 2500, 5000 |
+| `FarpSupplyUnits`, `WarehouseDeliveries` | 5, 25, 50, 100, 250, 500, 1000 |
+| `CtldBuilds` | 5, 25, 50, 100, 250, 500 |
+| `CtldUpgrades` | 1, 10, 25, 50, 100, 250, 500 |
+| `FarpsBuilt`, `TroopZoneUpgrades`, `PilotRescues`, `EnemyPilotCaptures` | 1, 10, 25, 50, 100, 250 |
+| `AirDefenseBuilt`, `TroopCaptures` | 1, 10, 25, 50, 100 |
+| `TroopDrops` | 10, 50, 100, 250, 500, 1000, 2500 |
+| `LifetimeSpent` | 5000, 10 000, 50 000, 100 000, 250 000, 500 000, 1 000 000, 5 000 000 credits |
+| `Purchases` | 10, 50, 100, 250, 500, 1000, 2500 |
+
+- Per-aircraft ladders: `CAREER_AIRCRAFT` maps 42 career aircraft ids to their DCS type names (e.g. id 1 "F/A-18 Hornet" = `FA-18C_hornet`, `FA-18E`…; rotary ids 101–110; warbirds 201–211) with `naval` / `rotary` flags (`zc:12112-12166`).
+- Every aircraft has a flight-time ladder at 5, 25, 50, 100, 250, 500 hours with aircraft-specific titles; a few have extra ladders on `TarawaLandings` (5, 10, 20, 35, 50), `CarrierLandings`, `TotalKills`, `SupplyUnitsDelivered`, `AirdroppedSupplyUnits`, `AirdroppedBuilds`, `AirdroppedAirDefenseBuilds`, `CtldBuilds`, `TroopDrops`, `PilotRescues`, `EnemyPilotCaptures`, `FuelReceivedLbs` (`zc:12469-12926`).
+- The public announcement is `CAREER_ACHIEVEMENT_PUBLIC_HEADER` + one `…_PUBLIC_LINE` per title with its context ("<aircraft>: <label> <value>") (`zc:43942-43951`, `zc:44004-44007`).
 
 ## 10. Joint missions (reward sharing parties)
 
-- `F10 > Missions > Joint missions >` "Request player", "Pending requests", "Status", "Leave", "Help" (label keys `JOINT_MENU_*`, menu creation at `zc:18653`).
+- `F10 > Missions > Joint missions >` "Request joint with player", "Pending joint requests", "Leave Joint mission", "Joint mission status", "Help" (label keys `JOINT_MENU_*`, `L10N:1592-1606`; menu creation at `zc:18653-18675`).
 - A party holds at most 4 players (`JOINT_MAX_MEMBERS`, `zc:18059`).
 - When a member completes a mission target, every living party member who is enrolled receives the full reward as well, and the stat is recorded as `<stat> (Joint mission)` (`zc:41330-41360`, `zc:41283-41314`).
 - For group targets with several killers, the reward is split between killers, then topped up to the full reward for killers who are in a party, and party members who did not kill get the full reward (`zc:41383-41413`).
 - A member who dies, ejects or respawns leaves the party (`JOINT_YOU_HAVE_LEFT`, `JOINT_PLAYER_DIED_LEFT`, `JOINT_LEFT_DUE_RESPAWN`) (`zc:41790-41801`, `zc:42187-42197`, `zc:41699-41710`).
-- Request/accept flow internals (`zc:18059-19200`) not read.
+- Request: "Request joint with player" lists the other players of the same side — solo players by name, existing parties as "Join <host>'s Party (n/4)" — paged by 9; selecting one calls `_jointRequestPlayer(groupId, target, side)` (`zc:18681-18812`, `L10N:1597`).
+- Refusals: requesting oneself (`JOINT_CANT_JOIN_OWN`), own party full (`JOINT_REQUEST_REQUESTER_BUSY`), target gone (`JOINT_REQUEST_NOT_AVAILABLE`), both already in a party (`JOINT_ALREADY_SHARING` if the same, else `JOINT_REQUEST_TARGET_BUSY`), target party full, or a request to that player still pending (`JOINT_REQUEST_ALREADY_SENT` with the remaining seconds) (`zc:19013-19054`).
+- A request is `jointRequests[side][target][requester] = {requesterGroupId, targetGroupId, side, expiresAt = now + 120}`; a `timer.scheduleFunction` at `expiresAt` deletes it and tells both players `JOINT_REQUEST_EXPIRED`; the requester gets `JOINT_REQUEST_SENT`, the target `JOINT_REQUEST_RECEIVED` for 30 s (`zc:19047-19092`).
+- Accept / decline: "Pending joint requests" shows one submenu "Request from <player>" with "Accept" and "Decline"; `_jointAcceptRequest` re-validates everything (not expired, both groups still owned by the same players, sizes), then either adds the requester to the target's party, adds the target to the requester's party, or creates a new party of two (`_jointCreateParty`); `_jointDenyRequest` deletes the request and tells the requester `JOINT_REQUEST_DENIED_BY` (`zc:18813-18904`, `zc:19096-19252`).
+- Parties are tables with a host and a member list, indexed by `jointPartiesByPlayer[player]`; "Leave Joint mission" calls `_jointLeave` (`zc:18142-18246`, `zc:18460-18486`).
+- Auto-rejoin: when a member becomes unavailable (death, respawn, slot change) the party and its living members are remembered for `jointRejoinGraceSeconds` (default 300 s); if he spawns again on the same side within that time, the party still exists with a free seat and at least one original member is alive in it, he is put back without a new request (`_jointRememberRejoin`, `_jointTryAutoRejoin`, `zc:18342-18400`).
+- Menus are refreshed by a queued worker (`_runJointMenuRefreshTick`) so that a change in the player list does not rebuild every group's menu at once (`zc:18911-18983`).
+- The in-game help states the scope: "Eligible party members receive mission credits. Regular kills are not shared. Valid for CAS, CAP, Bomb runway, and Strike missions. Only active, surviving party members receive Joint mission rewards." (`L10N:1619`).
+- An older "invite code" flow (4-digit code, labels `JOINT_MENU_INVITE`, `JOINT_CODE`, `JOINT_HELP`) still has its strings in the localisation file but the menu built in v6.5.3 only offers the request flow (`L10N:1585-1595`, `L10N:1620`, `zc:18659-18675`).
 
 ## 11. Player missions (`MissionCommander`)
 
@@ -453,24 +578,24 @@ Columns: price = `ShopPrices` (`Config:1771-1842`); rank = `ShopRankRequirements
 
 | Mission | Source of activation | Completion | Reward | Code |
 |---|---|---|---|---|
-| Attack zone (3 slots) | Director objective slots / `attackTarget1..3` set by the engine generator | target zone no longer red (captured or neutralised) | zone tag "Attack" on the map label; no direct `reward` field read | `Setup:6888-7228`, `zc:64183` |
+| Attack zone (3 slots) | Director objective slots / `attackTarget1..3` set by the engine generator | target zone no longer red (captured or neutralised) | none: zone tag "Attack" on the map label and the kill rewards only | `Setup:6888-7228`, `zc:64183` |
 | Resupply zone (2 slots) | `resupplyTarget1..2` chosen at random among friendly zones needing supply | zone no longer needs supply | per-delivery `Zone upgrade` rewards (§3.5) | `Setup:6575-6884`, `zc:63750`, `zc:63876` |
 | Capture zone | `captureTarget` | zone no longer neutral or capture pending | per-delivery `Zone capture` reward | `Setup:7232-7458`, `zc:64370` |
 | SEAD (slots) | Director SEAD slots (`RegisterDirectorSeadMission`) | all SAM targets of the slot destroyed or zone lost | pool = kills × 50, shared by weight between eligible participants | `Setup:7461-7632`, `zc:63506-63560`, `zc:62634` |
-| DEAD | `mc:registerDeadMissions()` | (not read) | (not read) | `Setup:7637-7640`, `zc:103458` |
-| Recon (slots) | Director recon slots; cancelled when the zone gets intel | a player flies the recon over the zone (detection not read) | 100 to the winner, joint-shared, stat `Recon mission` | `Setup:7646-7946`, `Setup:7911-7912` |
+| DEAD (3 slots) | `generateDEADMission()` every 120 s (300 s when a slot is filled): a red zone whose name contains `sam` or `defence`, with no radar SAM left, within 24 km of an attack target | zone no longer red, suspended, or it has SEAD targets again | none (only the kill rewards); zone tag "DEAD" | `Setup:7637-7640`, `zc:103458-103633`, `zc:64375-64560` |
+| Recon (3 slots) | Director recon slots; cancelled when the zone gets intel | a player aeroplane enters the target trigger zone and then leaves it alive (5 s round-robin poll) | 100 to the winner, joint-shared, stat `Recon mission`, then 10 min of zone intel and a 900 s cooldown on that zone | `Setup:7646-7946`, `Setup:7911-7919`, `zc:65120-65223` |
 | CAP | engine generator: at least one red air group airborne, players online, no cooldown; target = 2–8 kills depending on the player-count tier | first player to reach the kill count | `kills × 100` to the winner (joint-shared), then 900 s cooldown | `Setup:8322-8368`, `zc:65567-65606`, `zc:42780-42787` |
 | CAS (slots) | Director CAS slots (`RegisterDirectorCasMission`) | slot targets destroyed | pool = kills × 30, shared by weight | `Setup:8378-8545`, `zc:63362-63412`, `zc:62632` |
-| Runway strike (slots) | Director runway slots | (not read) | (not read) | `Setup:8739-8996` |
+| Runway strike (3 slots) | `generateRunwayStrikeMission(slot)`: a red airbase zone with a bombable runway, picked by the blue Director | one player bomb impact inside each runway zone of the airbase | 100 (one runway) or 200 (several), joint-shared, stat `Bomb runway`; the airbase's plane spawns are blocked 3300 s; 3000 s cooldown on the zone | `Setup:8739-8996`, `zc:62079-62284`, `zc:62287-62520` |
 | Destroy artillery | auto-tracked: every red `GroupCommander` with `mission == 'attack'`, `type == 'surface'`, `MissionType == 'ARTY'`, plus hand-written ones | registered group destroyed | `gc.Reward` or 250 | `zc:102746-102760`, `Setup:7952-8117` |
 | Destroy EWR (strike) | auto: each red EWR within 70 NM of a friendly zone is queued with a random 60–300 s delay, then started by the strike event | EWR group destroyed | 300 | `zc:102460-102465`, `zc:102804-102908` |
 | Destroy SCUDs | `evc` event respawns `Maykop-Scuds` and registers it; 2700 s cooldown | group destroyed | 100 | `Setup:6120-6216` |
 | Intercept cargo plane | `evc` event | plane shot down | 500 | `Setup:6254-6290` |
 | Destroy cargo / battle ships | `evc` event | ship destroyed | 500 | `Setup:6323-6370` |
-| Intercept bombers | `evc` event (red bomber raid) | bombers destroyed | (not read) | `Setup:6374-6410` |
+| Intercept bombers | `evc` event (red bomber raid, `StrategicBomber` state 1) | bombers destroyed or raid over | 500 (group target, flag `bomb`) | `Setup:6374-6420`, `zc:4160`, `Setup:3657` |
 | Intercept enemy airstrike | `evc` event, group `evt-attack` | group destroyed | 250 | `Setup:6478-6555` |
 | High-value strike targets (scenery, generals, warehouses) | strike events, each gated by which zones blue holds | scenery ≤ 50 % life, or group destroyed | 1000 / 500 | `Setup:9040-9700` |
-| Red mass attack defence | `autoTrackRedMassAttackMission` | (not read) | (not read) | `zc:103062` |
+| Red mass attack defence | `bc:triggerRedMassAttack()` (red shop item `redmassattack`) sets `ActiveMission["RedMassAttack"]` | no participating red group is alive any more | none (only the kill rewards) | `zc:103062-103090`, `zc:34445-34832`, `zc:35003-35025` |
 | Industry strike (PvP) | built in `MissionCommander:new` from zones' industry statics within 100 NM | statics destroyed | `min(1000, 300 × objects)` | `zc:102566-102742` |
 | Ground convoy escort | player lands/spawns in a zone that has an escort mission | convoy reaches and captures the target zone | 1000 shared between the escorting players (or to the coalition if none) | `Setup:2067-2100`, `Setup:8591-8700` |
 | Strategic bomber escort | buyer chose "Player escort" in the shop | bomber raid completes with qualified escorts | 1000 split between qualified players | `zc:3125-3158`, `Setup:3715` |
@@ -478,16 +603,66 @@ Columns: price = `ShopPrices` (`Config:1771-1842`); rank = `ShopRankRequirements
 - In PvE, the mission definitions close over setup-file globals (`attackTarget1`, `capMissionTarget`…); in PvP the same roles are driven by per-side "objective slots" (`bc.objectivesBySide[side].<role>Missions.slots[i].activation`), which is why `checkMissions` carries the long ownership checks (`zc:103763-103800`).
 - Start/end sounds are coalition sounds (`ding.ogg`, `cas.ogg`, `cancel.ogg`) played from `startAction` / `endAction` (`Setup:6201-6209`, `Setup:7093-7095`).
 
+### Attack, resupply and capture generators (detail)
+
+- State is a set of setup-file globals in PvE: `attackTarget1..3`, `resupplyTarget1..2`, `captureTarget`, plus `attackCombinedStart1/2`, `attackSuppressStart2`, `resupplyCombinedStart1/2`, `resupplySuppressStart2` used only to merge the start messages of two missions created in the same pass into one "Attack A and B" / "Resupply A and B" line (`Setup:6559-6570`, `Setup:7095-7102`).
+- Each generator is a free function of the engine called by a `timer.scheduleFunction` loop of the setup file that returns `time + 300` when a mission exists and `time + 120` otherwise; the attack loop starts 35 s after load, DEAD at 140 s, SEAD at 120 s (`Setup:9742-9747`, `Setup:9801-9824`).
+- `generateAttackMission()`: a zone is a valid attack target when it is red, active, not suspended, not hidden, and its name contains none of `hidden`, `sam`, `defence`; candidates are the red ends of every blue–red connection of `bc.connections` (`zc:63911`, `zc:64087-64102`, `zc:64112-64123`, `zc:64164-64167`).
+- `attackTarget1` is drawn at random among the candidates; `attackTarget2` is drawn among the red zones that share a blue neighbour with the first target (so both attacks are on the same front), else among all candidates (`zc:64172-64189`, `zc:64195-64256`).
+- `attackTarget3` only exists when the blue Director reports a "third attack demand" (`blueDirector:hasBlueThirdAttackDemand`), checked every 30 s; its creation immediately triggers the CAS, SEAD and runway generators so that the third front gets its support missions (`zc:64258-64267`, `Setup:9785-9794`).
+- The attack mission itself only tags the zone ("Attack" on the map label), plays `cas.ogg`, and ends (`cancel.ogg`, "attack ended") when the zone is no longer red or is suspended; it carries no `reward` (`Setup:7078-7128`).
+- `generateSupplyMission()`: needs more than one blue zone; preferred targets are the blue zones connected to a current attack target that need supply (`bc:_playerSupplyTargetNeedsSupply` = usable by the Director and "needs external supply" in the regular-supply model), otherwise any blue zone that needs supply; each of the two slots draws at random in the preferred pool, then in the fallback pool (`zc:63794-63801`, `zc:63823-63840`, `zc:63735-63773`, `zc:63640-63650`).
+- The resupply mission is active while the zone still needs supply; it has no start sound of its own beyond the message, and no `reward`: the players are paid per delivery (§3.5) (`Setup:6666-6671`, `Setup:6621`).
+- `generateCaptureMission()`: candidates are the zones of the shop bucket `neutral_capture_targets` with no capture pending, carriers excluded; the blue Director picks one with `selectMissionTarget('CAPTURE', candidates)` into `captureTarget` (`zc:64355-64371`).
+- Normandy has its own opening-phase logic (fixed "opening fronts" before the frontline rules apply) (`zc:64150-64163`); not analysed.
+
+### DEAD, runway strike, recon and red mass attack (detail)
+
+- DEAD: `bc:initDeadMissions()` creates `bc.deadMissions.slots[1..3] = {targetZone}` (`DEAD_MISSION_MAX_SLOTS = 3`), and `mc:registerDeadMissions()` tracks one mission per slot (`zc:62636-62652`, `zc:103602-103633`).
+- A DEAD candidate is a red, active zone whose lower-cased name contains one of `_deadMissionNamePatterns` (`sam`, `defence`; more on Syria and Kola), that is not already a SEAD slot target and for which `bc:HasSeadTargets(name)` is false (no radar SAM left, so only the "remains" of an air-defence zone qualify) (`zc:64375-64380`, `zc:64447-64465`).
+- Candidates must be within 24 000 m (`ZONE_DISTANCES`) of one of the current attack targets `attackTarget1..3`; if none is, the zones on both ends of every frontline connection are tried; the blue Director picks with `selectMissionTarget('DEAD', candidates, context)` (`zc:64419-64443`, `zc:64468-64511`).
+- The generator is a `timer.scheduleFunction` loop started 140 s after load, re-run every 300 s when a mission exists and every 120 s otherwise (`Setup:9812-9824`).
+- The mission only tags the zone (`addMissionTag(zone, "DEAD")`, map label refresh) and plays `ding.ogg` / `cancel.ogg`; there is no `reward` field and no registry, so the players only earn the normal kill rewards (`zc:103611-103621`).
+- `isActive`: zone still red, not suspended and still without SEAD targets (`zc:103622-103630`).
+- Runway strike: `bc.runwayMissions.slots[1..3]` hold `{target (airbase name), targetZone, hitZones, runwayNames, done, hits, need, bomberName, partnerName, completed, active, started}` (`zc:61961-61990`).
+- Target choice: red active airbase zones connected to blue (`ZONE_CONNECTED_TO_BLUE`) that have a "bombable runway" for the Director and are out of cooldown; score = 2 per red air group based there (+1 if it is a CAP group), plus a 5 / 3 / 0 bonus for the three closest to a blue zone; zones with more than two CAP groups are preferred; fallback = any such airbase within 60 NM; slot 3 is reserved for the airbase of the third attack target (`zc:62343-62357`, `zc:62364-62462`).
+- The runway zones come from Moose `AIRBASE:GetRunways()` (each runway has a polygon `zone`, a `heading` and `isLeft`), de-duplicated by runway designator so that both ends of a strip count once; `need` = number of distinct runways (`zc:62489-62512`).
+- Detection: a Moose `EVENT` object handles `EVENTS.Shot` only while a slot is active; for a shot by a player whose weapon is a bomb (`WEAPON:New(EventData.weapon):IsBomb()`), the weapon is tracked every 0.1 s (`WEAPON:StartTrack(0.1)`, `SetDistanceInterceptPoint(200)`) and `SetFuncImpact` receives the impact point (`zc:62048-62077`, `zc:62260-62281`).
+- An impact inside a runway zone (`ZONE:IsVec3InZone`) or within 10 m of its centre marks that runway `done`; with several runways the pilot gets "`<runway> HIT!`"; when `hits >= need` the slot is completed, `bc:blockRunwayPlaneSpawns(zone, 3300)` stops red aeroplanes from spawning there for 55 min, and the bomber gets `awardJointMissionReward(pilot, 2, need > 1 and 200 or 100, 'Bomb runway')` if he is enrolled (`zc:62193-62223`).
+- Moose `WEAPON` tracking is a `timer.scheduleFunction` that calls `Weapon:getPosition()` in a `pcall` at each step; when the call fails (the weapon no longer exists) the impact point is the terrain intercept point computed within `distIP` metres of the last position (`_GetIP`), else the last known position, and the impact callback fires once (`Moose:35135-35204`); it is the only use of that class in this theme.
+- End: message `SYRIA_BOMB_RUNWAY_END_SOLO/JOINT/COMPLETED`, or `…_CANCELED_ZONE` when the zone changed side; `RUNWAY_ZONE_COOLDOWN[zone] = now + 3000`; the slot is reset (`Setup:8936-8972`).
+- Recon: `bc.reconMissions.slots[1..3]` (`RECON_MISSION_MAX_SLOTS = 3`); `startReconMissionZoneTracker(zone)` builds once a Moose `SET_CLIENT` of active blue aeroplane clients (`FilterCoalitions("blue"):FilterCategories("plane"):FilterActive(true):FilterStart()`) and a Moose `ZONE:New(zoneName)` on the campaign trigger zone (`zc:62637-62638`, `zc:65085-65094`, `zc:65248-65271`).
+- One shared `timer.scheduleFunction` serves the slots in round-robin, one slot per run, every `5 s / number of active slots` (`RECON_MISSION_CHECK_PERIOD_SEC = 5`); for each alive client: inside the zone → `enteredBy[player] = true`; outside and previously inside → that player is the `winner` and the slot is `completed` (`zc:65181-65222`).
+- So the "recon run" is simply entering and leaving the zone alive in a fixed-wing aircraft; helicopters are not in the client set, and there is no altitude, speed or sensor condition (`zc:65087-65093`, `zc:65207-65219`).
+- Candidate zones exclude hidden zones, names containing `sam` / `defence`, zones with active intel or a JTAC drone, zones that hold a SAM, and zones inside the threat radius of a neighbouring long-range SAM (`ReconNeighborSamRadiusMeters`: SA-10 30 NM, SA-5 40 NM, HAWK, NASAMS, Patriot) (`zc:65295-65300`, `zc:65371-65383`).
+- `endAction` pays `awardJointMissionReward(winner, 2, 100, "Recon mission")`, announces `SYRIA_DYNAMIC_RECON_COMPLETED_SOLO/JOINT`, sets a 900 s cooldown on the zone and starts 10 min of zone intel (`startZoneIntel(target, 600, 2)`) (`Setup:7910-7920`).
+- Red mass attack: settings `redMassAttackSettings = {missionId = "RedMassAttack", minimumGroups = 4, limits = {CAP = 2, CAS = 2, SEAD = 1, RUNWAYSTRIKE = 1}, liveStates = {takeoff, inair}}` (`zc:34445-34464`).
+- `triggerRedMassAttack` builds, for every blue airbase zone, a plan of red air `GroupCommander`s per role in three pools: `live` (already flying to that zone), `assigned` (dormant, already targeting it), `retask` (dormant, within retask distance); a plan is eligible with at least 4 groups, at least one CAP and one strike group, and at least one group that has to be force-spawned; the best score wins, a Director-preferred target taking precedence (`zc:34501-34613`, `zc:35014-35018`).
+- Launch: dormant groups are spawned at once with `gc:forceSpawnNow(targetZone)` (a state snapshot is kept for rollback), at most one per source zone on the first pass; if the minimum is not met everything is rolled back and the purchase returns "not available now" (`zc:34731-34800`).
+- Blue is told `INTEL_MASS_ATTACK` ("Intel: The enemy is launching a mass attack on <zone>") with `Intel_short.ogg`; red gets `COMBAT_RED_MASS_ATTACK` (`zc:35020-35023`).
+- The tracked mission "Defend <zone>" (its description gives the number of attacking groups) is active while `isRedMassAttackMissionActive()` finds at least one participant group alive (`Group.getByName`, `getSize() > 0`), checked at each 15 s mission poll; it has no start message of its own and no reward (`zc:103065-103088`, `zc:34812-34832`).
+- The state is exported with the campaign save and restored after a restart (`_exportRedMassAttackMissionPersistence`, `scheduleRedMassAttackMissionRestore`, `zc:34834-35001`; bodies not read).
+
 ### Ground escort missions (accept flow)
 
 - Defined in the setup table `missions[zone] = {zone, missionGroup, menuTitle, missionTitle, TargetZone, radius, MissionType = "Escort", flag, ActivateZone}` (PvE only) (`Setup:2067-2100`).
 - `handleMission(zoneName, groupName, groupID, group)` is scheduled after a player **helicopter** spawns in a zone (PvE only, `_scheduleSpawnMissionHandle`, `zc:101053-101058`); if the mission can start, the group gets a top-level F10 submenu titled with the mission title containing "Accept" and "Deny" (`zc:104606-104706`).
 - "Accept": `mc:acceptMission` flags the tracked mission as accepted and running, optionally activates a hidden zone (`ActivateZone`), replaces the accept menu by a control menu for every tracked group, tells them who accepted, and 5 s later drops blue smoke next to the convoy (`zc:104638-104695`).
 - "Deny": marks the mission `denied` and removes the accept menu (`zc:104696-104709`).
-- Control menu entries: "Move", "Hold position", "Manual Hold", enable/disable forced hold, "Deploy smoke near the convoy", "Get Bearing to the Convoy", "Restart Mission", "Set up FARP?" (label keys `ESCORT_*`, `L10N:1987-1995`; handlers not read).
+- Control menu (`createControlMenuForGroup`, a top-level group submenu titled with the mission's `menuTitle`; label keys `ESCORT_*`, `L10N:1987-1995`): the convoy template is respawned and stopped (`trigger.action.groupStopMoving`) if it was not active, then the monitor and the auto-capture are armed (`zc:104380-104403`).
+  - "Move": if the convoy speed is above 1 m/s the crew answers "We're already on the move, <player>"; otherwise `trigger.action.groupContinueMoving(convoy)`, a random "CommandMove" sound and "Copy that <player>, moving." to every escorting group (`zc:104405-104449`).
+  - "Hold position": the mirror image with `trigger.action.groupStopMoving(convoy)` and `mission.wasStopped = true` (`zc:104451-104496`).
+  - "Deploy smoke near the convoy": blue `trigger.action.smoke` 10 m from the last living unit of the convoy (`zc:104499-104518`).
+  - "Get Bearing to the Convoy": bearing and distance in km from the player's lead unit to that unit (`zc:104520-104545`).
+  - "Manual Hold" > "Enable forced Hold" / "Disable forced Hold": sets the global `ManualHold`, which stops the convoy from resuming by itself when the area is clear; sound `OkRoggerThat.ogg` (`zc:104547-104572`).
+  - "Restart Mission" > Yes / No: destroys and respawns the convoy, removes the menus of every escorting group and rebuilds this one (`zc:104574-104601`).
+  - "Set up FARP?" > Yes / No appears only when the convoy reaches a scripted point (`PromptFarpSetup`): the convoy stops, "FARP deployment possible"; Yes builds a FARP at the convoy (`BuildFarpHere`) and resumes, No just resumes (`zc:104335-104375`).
+- Automatic halt: `monitorFlagForMission` attaches a Moose `ZONE_GROUP` of radius `mission.radius` to the convoy and runs `triggerZone:Trigger(SET_GROUP of alive red ground groups)`; when a red ground group enters (partly inside counts) the convoy is stopped and the escorts are told "enemy convoy heading toward us" if that group is moving, "Enemy checkpoint ahead … clear it out" if one of its units has the `Fortifications` attribute, or a random "halt" line; when the zone is empty again the convoy resumes (`GROUP:RouteResume`) unless `ManualHold` is set (`zc:104051-104185`).
+- Near the target zone `AutoHoldPosition` stops the convoy with "Nearing the target area, Clear it out" and forces `ManualHold` until the target zone fires its `lost` trigger (the zone has been neutralised), then the convoy continues (`zc:104283-104330`).
+- Capture: `ArmEscortAutoCapture` polls every 5 s (Moose `SCHEDULER`, first run at 2 s); once the target zone is neutral and part of the convoy is inside it, `zone:startPendingCapture(BLUE, {kind = "group", name, template, destroyOnFinish = true, stopGroup = true})` hands the convoy to the capture machinery (`zc:104187-104213`).
 - Failure: the convoy group is no longer active → `missionFail` returns true, "escort failed" message, menus removed, and `startOver` re-offers the mission 10 s later (`Setup:8605-8641`).
 - Success: target zone blue and active → 1000 credits split between the players of the tracked groups (purse + stat `Escort Mission`), convoy destroyed, and 30 s later the next leg is offered from the target zone (`Setup:8643-8697`).
-- No altitude choice was found in this ground-escort flow; the strategic bomber purchase offers "AI escort" or "Player escort" per origin zone (`zc:3553-3585`), and the free AI fighter escort for players is requested from `WelcomeMessage.lua` (`AddEscortRequestMenu`, `EscortTypeByPlayerType`, `PvPEscorts`; not read — altitude options, if any, are there, estimation).
+- No altitude choice was found in this ground-escort flow; the strategic bomber purchase offers "AI escort" or "Player escort" per origin zone (`zc:3553-3585`), and the free AI fighter escort for players is requested from `WelcomeMessage.lua` (`AddEscortRequestMenu`, `EscortTypeByPlayerType`, `PvPEscorts`): that is where the altitude choice lives, a "Request escort" menu offering same altitude, 2 000, 5 000 or 10 000 ft above the player (`WelcomeMessage.lua:1724-1739`; detail in note 06 §12).
 
 ### Display
 
@@ -519,7 +694,7 @@ F10 > Other
 │  ├─ Other support > [cost] item > zone > Orbit | Hot xxx > nn NM Leg
 │  └─ Budget overview                               (zc:22412)
 ├─ Dynamic Control                                  (zc:16425)
-│  └─ CAP / SEAD / Decoy / CAS / Bomber / Tankers / Carrier controls
+│  └─ Tankers Control / CAP Control / CAS, Bomber, SEAD, Decoy, strategic bomber, building strike, navy artillery entries (see §5)
 ├─ Missions                                         (zc:101490)
 │  ├─ Missions                                      (zc:101497)
 │  ├─ Strike missions > <mission>                   (zc:103235)

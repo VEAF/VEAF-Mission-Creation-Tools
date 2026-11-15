@@ -86,7 +86,7 @@ Scripts shipped in the Caucasus `.miz`: `AIEN.lua`, `EWRS.lua`, `Foothold Config
 ### Mechanism
 
 - Spawn at 6 000 m over the zone centre via `SPAWN:NewFromTemplate():SpawnFromCoordinate()`; `setTasks` applies `SetInvisible`, `SetImmortal`, `SetUnlimitedFuel`, `EPLRS`, then a `ComboTask` of `{id='FAC', params={frequency, modulation, callname, number, designation='Auto', datalink=true, priority=1}}` + `Orbit` circle at 6 000 m (`zc2:8162-8275`).
-- `jtacZones[zone] = {drone = <group name>}` records which zone has a 9-line drone; `CheckJtacStatus()` destroys the drone when its zone is no longer an active enemy zone (`setup:4412-4470`); it is called from two places in `ZoneCommander` (`zc2:50222`, `zc2:55422`), presumably the capture/disable paths — (estimation) for the caller context.
+- `jtacZones[zone] = {drone = <group name>}` records which zone has a 9-line drone; `CheckJtacStatus()` destroys the drone when its zone is no longer an active enemy zone (`setup:4412-4470`); it is called from two places in `ZoneCommander`: `disableZone` (the zone is switched off and set neutral, `zc2:50185`, `zc2:50216-50225`) and `_neutralizeEmptyBuiltZone` (the last defender of the zone has been destroyed and it turns neutral, `zc2:55294`, `zc2:55419-55424`).
 - `BattleCommander:_hasActiveJtacOnZone` answers "is a JTAC (either kind) on this zone" for other subsystems (`zc2:37190-37216`).
 - Everything the player hears is the DCS built-in FAC; Foothold writes no 9-line text itself.
 
@@ -141,7 +141,9 @@ The whole feature is Foothold code inside `LogisticCommander` (`zc2:98446-101025
 - Rescue flow: within 3 km the pilot answers ("We hear you! Request smoke if needed", bearing/distance info) and fires 3 flares; within 650 m "You're close now! I'm at your N o'clock. Land in a safe place, we will come to you" and 3 more flares; if the helicopter is on the ground within 650 m the survivor runs to it ("I'm coming to you. ETA n seconds") and boards within 20 m; alternatively a hover pickup: within the hover distance, below the hover height and under 5 m/s for the hover time, with "Forward/Right/Left/Back n m, descend n ft" guidance and a countdown (`zc2:100612-100692`, `zc2:100387-100440`, `zc2:100953-100996`, `zc2:97764-97766`, `loc:1846-1858`).
 - Boarding adds `PilotWeight` (80 kg) per pilot to the aircraft (`trigger.action.setUnitInternalCargo`) and prints "Pilot onboard [n/max]" (`zc2:98766`, `loc:1862`).
 - Drop-off: land in a friendly zone; "Pilots dropped off", and each rescued player gets his "Deaths" stat decremented (`zc2:98767-98774`).
-- The lost credits appear to be paid back at pick-up (message "[X] rescued [Y] +N credits. Land at any friendly zone to drop off.", `loc:1860`); the paying code inside `boardPilot` (`zc2:100440-100576`) was not read — (estimation).
+- The reward is paid at **pick-up**, to the **rescuer**: `boardPilot` adds `rewards.rescue` (default 200) plus the 75 % the ejected player had lost (`pilotData.lostCredits`) to the rescuer's purse (`bc:addContribution`), counts a `Pilot Rescue` stat and the career `PilotRescues`, zeroes `lostCredits` on the record (`rescueRewardPaid`), and tells the coalition "[X] rescued [Y] +N credits. Land at any friendly zone to drop off." (`CSAR_RESCUED_WITH_CREDITS`; plain `CSAR_RESCUED` when nothing is paid, e.g. the rescuer is not enrolled) (`zc2:100535-100560`, `loc:1860`).
+- So the ejected player does not get his credits back through a rescue: they move to the rescuer's purse and are banked when the rescuer lands (note 05 §3.2); the rescued player only gets his `Deaths` stat decremented at drop-off (`zc2:100540-100550`, `zc2:98767-98774`).
+- Boarding is refused at full capacity (`CSAR_AT_MAX_CAPACITY`); an enemy pilot boards within 50 m instead of the 20 m load distance and gives "enemy onboard" without credits at that point (`zc2:100516-100521`, `zc2:100563-100566`).
 - A player who ejects and lands **inside a friendly zone** is "landed safely" and gets the lost credits back; inside an enemy zone he gets a 60 s grace then is treated as in hostile territory, or "captured by enemy forces … Assumed dead" (`zc2:101926-101957`).
 - A survivor within 3 NM of a friendly zone or FARP runs home by himself at 3.6 m/s ("Ejected Pilot X is running toward Y"), and is completed on arrival ("is now home", credits recovered); a nearby helicopter can interrupt the run to pick him up (`zc2:99761-99811`, `zc2:99677-99743`, `zc2:100694-100728`, `loc:1837-1841`).
 - Enemy infantry: 25 % chance (Config) that 1–3 hostile infantry groups spawn 0.2–0.4 NM around a downed pilot who is outside any zone and within 20 NM of an enemy zone; 120 s later the coalition is told "Enemy forces have surrounded [X]. Hurry and save him" (`zc2:101977-102112`, `zc2:102196-102217`).
@@ -165,7 +167,11 @@ The whole feature is Foothold code inside `LogisticCommander` (`zc2:98446-101025
 - Main loop: `SCHEDULER:New(nil, self.update, {self}, 10, 10)` — every 10 s (`zc2:102276`); it prunes dead survivors (KIA message), refreshes beacons (re-emitted only if the point changed, checked every 25 s), then for each survivor × each eligible player aircraft computes distance and applies the thresholds above (`zc2:100237-100300`, `zc2:100757-101023`).
 - Adaptive polling: per survivor a `csarNextTick` (10 s beyond 3 km, 5 s inside, 3 s inside 650 m, 1 s when loading/hovering) and, when a helicopter is near, a dedicated fast `timer.scheduleFunction` loop every 3 s; the hover countdown has its own 2 s timer per (pilot, group) (`zc2:100997-101015`, `zc2:100912-100918`, `zc2:100410-100432`).
 - Messages are de-duplicated per (pilot, group) and clustered: a second survivor within 92 m and 20 s does not repeat the message (`zc2:100625-100638`).
-- Carrying: `carriedPilots[groupId]` count and `carriedPilotData[groupId]` manifest; if the rescuing aircraft is lost its manifest is cleared (`zc2:43062-43068`); functions named `_cloneCarriedPilotDataForEjection` / `carriedRescuedPilots` suggest the carried survivors are re-spawned when the rescuer's crew ejects (`zc2:98638-98676`, `zc2:101953-101957`) — (estimation).
+- Carrying: `carriedPilots[groupId]` count and `carriedPilotData[groupId]` manifest; if the rescuing aircraft is lost its manifest is cleared (`zc2:43062-43068`).
+- Re-ejection of carried pilots: when a rescuer ejects, `_handleRewardEjection` clones his manifest (`_cloneCarriedPilotDataForEjection`: a copy of each carried pilot record, without its hostile-group and grace fields) and attaches it as `carriedRescuedPilots` to the first eligible ejected crew member's record; the aircraft's manifest is then cleared (`zc2:98638-98666`, `zc2:42137-42153`, `zc2:41771-41809`).
+- When that crew member's parachute lands (`_handleLandingAfterEjection`), every carried pilot is re-spawned as his own `Downed Pilot` group on a small ring (radius 3–5 m, evenly spread headings) around the rescuer's survivor, bound to his original record (so his name is still on the marker; `lostCredits` is already 0 if the rescue reward was paid), put back in the CSAR queues and, if a friendly zone is near, sent running home (`zc2:102231-102265`).
+- This also happens when the rescuer himself produces no survivor (lands in a friendly zone, or the "no credits" dice says no): `skipMainPilot` keeps the function going only to spawn the passengers (`zc2:101953-101957`, `zc2:101969-101973`).
+- A carried enemy pilot is re-spawned only where enemy-pilot CSAR is possible (not near his own side's zone) (`zc2:102246-102248`).
 - Limit: the oldest survivors are removed beyond `Max_CSAR_At_Once` (`zc2:99960`); survivors are persisted and restored at restart (`zc2:100094`, `zc2:44890`).
 - Smoke/flare at pilot: blue smoke on the nearest survivor, flare bursts via `_signalPilotFlareBurst` (`zc2:98830-98958`).
 
@@ -195,7 +201,22 @@ The whole feature is Foothold code inside `LogisticCommander` (`zc2:98446-101025
 ### Mission-maker view
 
 - Globals `zoneIntelRefreshSec` (default 20, floor 5) and `zoneIntelStartupMessageDelaySec` (default 10) (`zc2:5567-5569`).
-- Classification of contacts is by **group-name patterns** (functions `_zoneIntelMatchLongSiteName`, `_zoneIntelIsArmorGroupName`, `_zoneIntelIsAAAGroupName`, …), so it depends on the template naming convention of the setup file (`zc2:5783-5825`, not read in detail).
+- Classification of contacts mixes unit facts and **group-name patterns**, so it depends on the template naming convention of the setup file (table below, `zc2:5783-5825`, `zc2:6240-6373`).
+
+| Category in the report | How a spawned group / static of `zone.built` falls into it | Code |
+|---|---|---|
+| Long-range SAM site (`SA-2`, `SA-3`, `SA-5`, `SA-6`, `SA-10`, `SA-11`, `HAWK`, `NASAMS`, `PATRIOT`) | a living unit whose "SAM family" (from the upgrade template's unit records, else `BattleCommander.ClassifySeadThreatFamily(groupName, typeName)`) is one of these; for a static, the name contains `red sam sa-10`, `-11`, `-6`, `-5`, `-3`, `-2` | `zc2:5700`, `zc2:6263-6292`, `zc2:5783-5791`, `zc2:6341-6356` |
+| "degraded" site | the site is alive but no living unit matches its tracking-radar type pattern (`CustomZone.samTrackerPatterns`: SA-2 `snr_75v`, SA-3 `snr s-125 tr`, SA-5 `rpc_5n62v`, SA-6 `kub 1s91 str`, SA-10 `40b6m tr`, SA-11 `9s18m1`, HAWK `hawk tr`, NASAMS `nasams_radar`, PATRIOT `patriot str`) | `zc2:5702-5712`, `zc2:6270-6273`, `zc2:6375-6382` |
+| SHORAD (Pantsir S1, SA-15, Tor M2, SA-19, SA-13, SA-9, SA-8, Avenger, Roland) | a living unit of a SAM family that has no tracker pattern; for a static, the name contains `red sam shorad pantsir`, `sa-15`, `tor m2`, `sa-19`, `sa-13`, `sa-9`, `sa-8` | `zc2:5701`, `zc2:6293-6296`, `zc2:5793-5802` |
+| Armor | group name contains `armour`, `armor`, `red mech group` or `red special` | `zc2:5804-5809`, `zc2:6301-6303` |
+| AAA | group name contains `aaa`; subtype from the living unit types: Flak (`ks-19`, `s-60`, or a `son_9` radar ever seen), Heavy AAA (`zsu_57_2`), Shilka, ZU-23, Other; a Flak group whose SON-9 is dead is "Flak radar destroyed" | `zc2:5811-5813`, `zc2:5976-6029`, `zc2:6304-6322` |
+| Artillery | group name contains `artillery` or `arty` | `zc2:5815-5818`, `zc2:6323-6325` |
+| Ground forces | group name starts with `enemy task forces` or `enemy ground forces`, or any other group that has a living MANPAD (type name, or its display name through `renameType`, contains `manpad`); the MANPAD flag is kept per group | `zc2:5820-5823`, `zc2:5959-5974`, `zc2:6326-6336` |
+| Structures | a living static that is neither a SAM site nor SHORAD; its display name is the tracked static's base name, else the nearest authored static of the zone (`zone.newStatics`, same type within 25 m, any type within 15 m), with trailing numbers and the word "Fixed" stripped | `zc2:6338-6365`, `zc2:5838-5891`, `zc2:5766-5776`, `zc2:5825-5836` |
+| Warehouse building | `zone.warehouseFacility.state` (`operational` / destroyed) | `zc2:6236-6238` |
+| Additional contacts | anything alive that matched nothing above, counted by base name | `zc2:6369-6372` |
+
+- A group named `blue sam aaa…` with no living AAA unit is silently ignored (`zc2:6299-6300`).
 
 ### Mechanism
 
@@ -208,7 +229,14 @@ The whole feature is Foothold code inside `LogisticCommander` (`zc2:98446-101025
 
 ### Reproduction notes
 
-- The snapshot/diff message builder (≈450 lines, `zc2:6203-6660`) is the bulk of the work: it counts units per category, tracks radar loss per SAM site and compares two snapshots.
+- The snapshot/diff message builder (≈450 lines, `zc2:6203-6665`) is the bulk of the work.
+- Snapshot (`_zoneIntelBuildSnapshot(zoneName, state, groupSamples, revealSamSites)`): `{longSites = {[site] = {alive, degraded}}, shorad = {[name] = count}, counts = {armor, artillery, ground, groundWithManpad, aaaTotal, aaaShilka, aaaHeavy, aaaFlak, aaaZu23, aaaOther, aaaFlakRadarDestroyed}, aaaFlakRadarByGroup, structures = {[name] = count}, additionalContacts = {[name] = count}, warehouse}` (`zc2:6204-6238`).
+- It walks an index of `zone.built` kept in the intel state (`state.builtIndex[name] = {builtIndex, cleanName, lowerName}`, re-synchronised at each pass), reads each group once per refresh through a shared `groupSamples` cache (`Group.getByName(name):getUnits()`, unit alive = `isExist()` and `getLife() >= 1`), and resolves the upgrade template of the group to get per-type unit records (attributes, SAM family, "critical SAM radar") (`zc2:5901-5957`, `zc2:6246-6277`).
+- With `revealSamSites`, each group holding a living SAM family is recorded for the "SAM MFD reveal" (`zone:_recordSamMfdReveal`) (`zc2:6282-6284`).
+- Startup message (`_zoneIntelBuildStartupMessage`): the categories in a fixed order, SAM sites listed by name with "(degraded)" where applicable (`zc2:6387-6417`, `zc2:6061-6093`).
+- Diff (`_zoneIntelBuildUpdateMessage(zone, old, new)`), in this order: warehouse state change; per long-range site destroyed / detected, then tracker lost ("TR destroyed; site degraded", "STR destroyed" for SA-6, "SnowDrift" for SA-11, "SR" for NASAMS) or repaired; SHORAD type gone / detected; count deltas for armor, Flak, heavy AAA, ZU-23, other AAA, artillery, ground forces — **losses only**, increases are not announced for these; Flak radars destroyed / repaired; MANPAD threat neutralised / identified; additional contacts and structures added or removed by name (`zc2:6446-6633`).
+- When the update contains only losses, a "remaining" recap is appended: remaining SAMs, remaining AAA line, remaining structures, remaining additional contacts (`zc2:6639-6663`).
+- No update is sent when nothing changed (`zc2:6635-6637`).
 - It is "omniscient": no detection model, it reads the zone's own spawn list.
 - Markers are per group, refreshed every 20 s only for zones with active intel.
 
@@ -223,7 +251,11 @@ The whole feature is Foothold code inside `LogisticCommander` (`zc2:98446-101025
 - "Move by Position" menus are commented out, replaced by marker commands (`zc2:16912-16913`).
 - Map markers `arcohere1` then `arcohere2` (or `texacohere1` / `texacohere2`): point 1 is drawn as a blue circle (250 m) with a text label "ARCO 1"; point 2 computes heading and leg from point 1 and sends the tanker; message "Arco moving, distance N NM. New racetrack: N NM leg, heading N°" (`zc2:28148-28352`, `loc:1952-1956`).
 - A reposition is refused with "Players currently near the tanker. Try again later." while a player is close to it (`zc2:105340-105366`).
-- The racetrack is drawn on the F10 map (`DrawDynamicTankerRacetrack`, `zc2:105861-105928`, not read in detail).
+- The racetrack is drawn on the F10 map as a grey "stadium" shape with a text label (`DrawDynamicTankerRacetrack`, `zc2:105861-105928`):
+  - the shape runs from the station point along the racetrack heading for `leg + 4 NM` (`DYNAMIC_TANKER_RACETRACK_LENGTH_BUFFER_NM`), is 6 NM wide (`…_WIDTH_NM`), and is shifted 2 NM to the side of the axis (`…_TURN_WIDTH_NM / 2`) so that it covers the turns; each end is a half-circle of 30 segments (`zc2:105806-105809`, `zc2:105871-105904`);
+  - it is drawn twice with `trigger.action.markupToAll(7, coalition, id, points…, color, fill, lineType, true, text)` (shape id 7 = freeform polygon): once as a 32 %-opaque grey fill with an invisible outline, once as an outline of line type 3 without fill; the call is built as a Lua string and run through `UTILS.DoString` because the number of points is variable (`zc2:105839-105858`, `zc2:105906-105917`);
+  - the label "ARCO", "TEXACO", or "ARCO / TEXACO" when both tankers fly the same racetrack (same base point within 0.1 NM, heading within 1°, leg within 0.1 NM) is a `trigger.action.textToAll` of size 16 placed at 30 % of the length (`zc2:105920-105927`, `zc2:105955-105963`, `zc2:105985-105999`);
+  - visible to everybody in PvE (coalition −1), to the owning side only in PvP; nothing is drawn for a plain orbit (leg 0); all mark ids of a tanker are removed and redrawn at each reposition (`RefreshDynamicTankerRacetrackDrawings`) (`zc2:105842-105845`, `zc2:105869`, `zc2:105815-105822`, `zc2:105965-105999`).
 
 ### Mission-maker view
 
@@ -274,15 +306,39 @@ The whole feature is Foothold code inside `LogisticCommander` (`zc2:98446-101025
 
 ## 8. CAP control and other purchased-flight control by players
 
-- Group F10 "CAP Control" exists while a purchased CAP flight (`dynamiccap`) is alive: "CAP: Reposition by Zone", "CAP: Reposition by Position", "CAP: Hold Racetrack", "CAP: Flightsweep", "CAP: Destroy", "CAP Help", plus an "Engage If Engaged / Engage All" toggle and "Stop CAP auto-buy" (`loc:34-35`, `loc:1874-1881`, `loc:1937-1938`; menu builder `bc:refreshDynamicControlMenusForBlue`, called by `buildCapControlMenu`, `zc2:107172-107174`; builder body not read — (estimation) for the exact tree).
+- "CAP Control" is a submenu of the group menu `F10 > Other > Dynamic Control`, present while a purchased CAP flight (`dynamiccap`) is active; `buildCapControlMenu()` simply calls `bc:refreshDynamicControlMenusForBlue()`, which calls `refreshDynamicControlMenuForGroup` for every live blue player group (and red ones in PvP) and for groups whose menu must be removed (`zc2:107172-107174`, `zc2:16232-16257`).
+- The Dynamic Control root is created only when a purchased flight or a tanker is active and the group has a human player; it is rebuilt only when a per-group signature string changes (`zc2:16276-16281`, `zc2:16340-16350`, `zc2:16418-16427`).
+- Exact tree of "CAP Control" (`zc2:16461-16625`, labels `loc:34`, `loc:1874-1881`):
+
+```
+Dynamic Control > CAP Control
+├─ Stop CAP auto-buy                 only for the buyer while an auto-buy order has replacements left (zc2:16462-16466)
+├─ CAP: Reposition by Zone           friendly zones (and neutral ones already captured), by waypoint number descending, "More" every 9
+│  └─ <zone> > Orbit | Hot 360 | Hot 045 | … | Hot 315 > 10 / 20 / 30 / 40 / 50 NM Leg      (zc2:16469-16540)
+├─ CAP: Reposition by Position       relative to the CAP's current position
+│  └─ Reposition 360 … 315 > 0 … 100 NM (step 10) > Orbit | Hot 360 … 315 > NM Leg         (zc2:16543-16580)
+├─ CAP Help                          prints the caphere1 / caphere2 marker help (zc2:16583-16585)
+├─ CAP: Hold Racetrack               ROE open fire, message "CAP is set to (Engage If Engaged)" (zc2:16586-16602)
+├─ CAP: Flightsweep                  ROE weapon free, message "CAP set to Engage All" (zc2:16603-16619)
+└─ CAP: Destroy                      despawnCap (zc2:16620-16625)
+```
+
+- "Engage If Engaged" and "Engage All" are therefore not a separate toggle: they are the messages of "Hold Racetrack" and "Flightsweep", which only change the flight's ROE (`GROUP:OptionROEOpenFire` / `OptionROEOpenFireWeaponFree`) (`zc2:16594-16600`, `zc2:16611-16617`, `loc:1937-1938`).
+- The zone handlers call `setCapRacetrack(zoneCoord, heading, leg, zoneName)` (orbit = heading 045, leg 0) and announce `DYNAMIC_CAP_EN_ROUTE_TO_ZONE` or `DYNAMIC_CAP_REPOSITIONING_ZONE`; the position handlers translate the CAP's coordinate by the chosen distance and bearing first (`zc2:16504-16535`, `zc2:16557-16578`).
+- The same root also carries, as direct commands, "CAS: Destroy", "Bomber: Destroy", "SEAD: Push" / "SEAD: Destroy", "DECOY: Push" / "DECOY: Destroy", "Building strike: Destroy", "Navy Artillery: Destroy", and the "Tankers Control" submenu (section 6); full tree in note 05 §5 (`zc2:16627-16691`).
 - Map markers `caphere1` / `caphere2` move the CAP exactly like the tankers (same handler, `kind = "cap"`, `setCapRacetrack`), without the rank or helicopter restriction but still requiring a human-crewed group of the owning side (`zc2:28154-28155`, `zc2:28224-28232`, `zc2:28318-28320`, `zc2:105747`).
-- Strategic bombers have their own dynamic control menu (`StrategicBomber.AddDynamicControlMenuForGroup`, `zc2:4195`) — not analysed here (AI flights theme).
+- Strategic bomber control menu (`StrategicBomber.AddDynamicControlMenuForGroup`, called from the Dynamic Control builder when a blue-purchased raid is active, `zc2:16656-16657`): a submenu named after the bomber (`StrategicBomber.GetDisplayName`) with "Push" (shown until the raid has been pushed) and "Destroy" (`zc2:4195-4223`, `loc:693-695`).
+  - "Push" → `StrategicBomber.PushBlue(groupId)`: refuses with `STRATEGIC_BOMBER_NOT_ACTIVE` or `STRATEGIC_BOMBER_ALREADY_PUSHING`, otherwise starts the bombing route of the holding bomber and its escort (`StartBomberAuftrag(cfg.missionId, cfg.template, st.targetZone, st.escortGroupName, …)`) (`zc2:3936-3975`).
+  - "Destroy" → `StrategicBomber.DestroyBlue(groupId)`: removes the raid (`DestroySide`) with `STRATEGIC_BOMBER_DESTROYED` (`zc2:4101-4121`).
+  - In PvP each handler first re-checks that the requesting group still exists on the owning side and that the raid state and monitor token are unchanged (`zc2:4203-4213`).
 - The purchased flights themselves are registered in `DynamicSupportNative` (section 15).
 
 ## 9. Map-marker commands (complete list)
 
 All are handled by one event handler created in `BattleCommander:startMonitorPlayerMarkers` (`zc2:28354-29290`), triggered on **mark change** (event id 26) for coalition 1 or 2; the marker text is the command; the marker is removed when the command succeeded (`zc2:28456`, `zc2:29246-29248`).
-In the branches read, no command checks the identity of the player (name, UCID, slot); the "admin" ones are only obscured by Swedish words, which are replaced by the configurable `AdminCommandAliases` when `AdminCommands == true` (`zc2:28355-28437`); the bodies of `debug`, `spawn`, `prepp`, `addshop`… were not read, so a guard inside them is not excluded — (estimation).
+No command checks the identity of the player (name, UCID, slot): over the whole handler (`zc2:28455-29260`) `event.initiator` is only used to address the reply to the right group, to read the buyer's rank for `buy:`, and to pick the FARP country, and no `net.*` call appears.
+The "admin" commands are only obscured by Swedish words; when `AdminCommands == true` these words stop working and are replaced by the configurable `AdminCommandAliases` (twelve actions: `addBlueFunds`, `addRedFunds`, `addZoneItems`, `buyWithoutRank`, `createFarp`, `captureNeutralBlue`, `captureNeutralRed`, `clearZone`, `upgradeZone`, `fullyUpgradeZone`, `restartMission`, `endMission`); an alias that is empty, collides with a built-in command or is defined twice is disabled (`zc2:28355-28437`, `zc2:28460-28475`).
+The plain-English debug commands (`debug`, `spawn`, `prepp`, `addshop`, `event`, `addrank:` …) stay available to anyone in both modes (`zc2:28369-28378`, `zc2:29097-29124`).
 
 | Marker text | Effect | Who / condition | Code |
 |---|---|---|---|
@@ -313,7 +369,7 @@ Zeus adds its own marker commands (section 13) and EWRS/WelcomeMessage add none.
 
 ### Player view
 
-- Group F10 "Carrier navigation" (label key `DYNAMIC_CARRIER_NAVIGATION`), shown when the feature is enabled and, with the ranking system on, when the player's rank ≥ `CarrierRankRequirement` (5): "Carrier info" (per carrier: ATC MHz, TACAN, callsign, ICLS channel, Link 4 MHz) and one "Sail to <area>" entry per available area ("More" submenus beyond 9) (`zc2:16081-16138`, `cfg:290-292`).
+- Group F10 `Stats and Settings > Carrier Navigation` (label key `DYNAMIC_CARRIER_NAVIGATION`; blue groups only; despite the key name it hangs under the stats menu `logistics.statsMenus[groupId]`, not under Dynamic Control, `zc2:16178-16229`), shown when the feature is enabled and, with the ranking system on, when the player's rank ≥ `CarrierRankRequirement` (5): "Carrier info" (per carrier: ATC MHz, TACAN, callsign, ICLS channel, Link 4 MHz) and one "Sail to <area>" entry per available area ("More" submenus beyond 9) (`zc2:16081-16138`, `cfg:290-292`).
 - Messages: "<carrier> moving to <area>", "area unavailable", "route failed", and — until the red carrier zone is cleared — "red carrier required" (`zc2:15986-16014`, `zc2:13549-13554`).
 - Coalition warnings before the carrier turns at the end of a racetrack leg (5 min and 1 min) (`zc2:15112-15137`).
 - Carrier areas are drawn/labelled on the F10 map ("Carrier: <label>") (`zc2:13905`, `zc2:14234`).
@@ -335,7 +391,13 @@ Zeus adds its own marker commands (section 13) and EWRS/WelcomeMessage add none.
 - Speed: periodic "speed check" (60 s after start, then every 30 min, 2 min after a move, 4 min after a turn) recomputes the ship speed so that wind over deck ≈ 24 kt: `targetSpeed = clamp(24 − natural headwind)` from `atmosphere.getWind` at 18 m, and re-applies the route if it differs by ≥ 1 kt; it also routes back a carrier found outside its area (`zc2:14949-14963`, `zc2:15012-15058`).
 - Radios: `SetFrequency` command on the ship unit for the ATC frequency (`zc2:13600-13606`); TACAN (`ActivateBeacon`, type 4, system 3), ICLS (`ActivateICLS`, type 131584), Link 4 (`ActivateLink4`) and ACLS (`ActivateACLS`) are sent by `WelcomeMessage.lua` `refreshBeacons()`, every hour (`SCHEDULER:New(nil, refreshBeacons, {}, 5, 3600)`) (`WM:788-926`).
 - Recovery tanker: `bc:spawnCarrierRecoveryTanker("Shell", "CVN-72", distNm)` respawns template `Shell` near the carrier with its radio settings — a plain respawn, not Moose `RECOVERYTANKER` (`zc2:15814-15843`).
-- Carrier state (area, lane, next station, speed, custom Tarawa route) is persisted and the ship is teleported back at restart (`zc2:15282-15330`, `zc2:15529`, `zc2:15638`).
+- Carrier persistence:
+  - state per carrier group `bc.carrierNavigation[groupName] = {groupName, area, lane, routeSourceArea, speedKt, nextStationIndex, transitioning, x, y, z, headingDeg, currentArea, units = {{name, type, x, y, z, headingDeg}…}, custom…}`; `_saveCarrierNavigationState` captures it when a route is applied, and `_exportCarrierNavigationPersistence` re-captures the live position and heading of every unit of every carrier group at each campaign save and returns `{version = 1, groups = {…}}` (`zc2:15218-15279`, `zc2:15282-15315`);
+  - at load the saved table is normalised (`_normalizeCarrierNavigationPersistence`), and "repaired": if several carriers share an area and at least one was saved inside it, a carrier saved outside the area (and not in transit) is snapped to a station point of its lane (`zc2:15317-15350`, `zc2:15393-15450`);
+  - restore (`_restoreCarrierNavigationGroup`): skipped while carrier navigation is still locked or the area no longer exists; the saved point is checked for water clearance and moved to the nearest clear point if needed; the first station to sail to is chosen from the saved heading and next-station index (the other station if the ship is within 2 NM of it) (`zc2:15638-15700`);
+  - the ship is not moved by a DCS teleport: `_carrierNavigationTeleportGroup` takes the group's template from `env.mission`, rewrites the unit positions (lead unit at the saved point and heading, escorts rotated around it by the heading difference), and **respawns the group under the same name** with `coalition.addGroup`, with the route already attached, the ATC frequency on the lead unit, and the group set invisible and immortal (`zc2:15453-15510`, `zc2:15529-15573`);
+  - because a respawn creates a new airbase object, the carrier's warehouse is re-bound (`STORAGE` patched with the new `Airbase.getByName(name):getWarehouse()`) and re-stocked with `checkWeaponsList(groupName)`; beacons have to be re-sent for the same reason (`zc2:15512-15527`, `zc2:15569-15571`, `WM:848-861`);
+  - Tarawa's free route (`customMode`, `customPoints`) is restored by `_restoreTarawaCustomNavigationGroup` only when `AllowTarawaToMoveFreely` is still true; otherwise the custom fields are dropped and Tarawa goes back to its area lane (`zc2:15641-15651`, `zc2:15576-15637`).
 - Tarawa custom route: `_carrierNavigationApplyTarawaCustomRoute("tarawa-stop" | "tarawa-racetrack", points, …)` (`zc2:14825-14878`).
 
 ### Reproduction notes
@@ -353,7 +415,7 @@ Its `static` table is **not** about static objects in general: it is `STATIC:Fin
 ### Player view
 
 - On spawn in a zone: a greeting "Welcome to <zone>, <rank> <name>, you are <callsign>, IFF <code>" (or "standby" when no callsign is free), and 60 s later a detailed message with wind, temperature, altimeter and active runway (airbase zones) or carrier radio line + BRC + wind over the deck (carrier zones); the wording differs for a first visit and a return ("welcome back") (`WM:1530-1628`).
-- F10 "Change callsign" group menu to pick another callsign family/number among the ones configured for the aircraft type (`WM:1630-1723`, body not read beyond the menu creation).
+- "Change callsign" menu: **defined but not offered in v6.5.3**. The builder `buildCallSignMenu()` exists (a Moose `MENU_GROUP` "Change callsign" with one submenu per callsign family configured for the aircraft type, listing the free `<family><n>` slots of the zone; picking one releases the player's previous slot, takes the new one, re-sends the greeting and the 60 s detailed message with the new callsign and IFF, and rebuilds the submenus; the whole menu removes itself after 60 s), but its only call is commented out (`--buildCallSignMenu()`), so players keep the automatically assigned callsign (`WM:1630-1680`, `WM:1682-1684`).
 - F10 "ATIS / Closest airfield" group menu (aeroplanes only): "Closest friendly airfield" and a submenu "ATIS information" with "Mother" (blue, when a carrier exists) and one entry per friendly airbase zone, sorted by waypoint number descending, "More" every 9 (`WM:1306-1341`).
 - "Closest friendly airfield": for Hornets/Tomcats each active carrier (distance NM, magnetic bearing, radio line or TACAN, BRC), then the nearest friendly airbase zone with distance, magnetic bearing, wind, altimeter, active runway with magnetic course (`WM:1191-1271`).
 - ATIS for a zone: "ATIS for <zone>: wind DDD at N kt, altimeter …, active runway NN (course DDD°M)", 20 s (`WM:1110-1130`, `WM:1156-1163`).
@@ -494,7 +556,7 @@ The Caucasus mission loads the short `Zeus.lua` (105 lines), not `zeus_Full_v2.1
 - The same tick wakes idle-suspended zones along the flight's footprint (`_idleWakeFootprint`) and finishes flights whose group disappeared (`zc2:106314-106350`).
 - Event hooks called from the BattleCommander handler: `HandleTakeoff` (airborne message, menu refresh), `HandleUnitLost` (last unit lost → "killed" message, optional CAP auto-rebuy via `_replaceLostPurchasedCap` when `AllowCapAutoBuyAfterLoss`), `HandleLanding` (`zc2:106402-106469`, `zc2:43070-43073`).
 - `ReportMissionStarted` / `ReportMissionComplete` are called by the flights' own task scripts (`zc2:106380-106400`).
-- No Moose; "Native" refers to the use of raw DCS groups and tasks instead of Moose OPS flightgroups (naming inference — (estimation)).
+- No Moose in the tracker itself; the flights it tracks are tasked with raw DCS task tables (`Controller:setTask({id = "Mission", …})`, `Bombing`, `ComboTask`), not with Moose OPS `FLIGHTGROUP` / `AUFTRAG` (only the navy-artillery item uses those), which is the likely meaning of "Native" (`zc2:109065`, `zc2:1503-1561`, `zc2:109950-110096`; the name itself is not explained in the code — (estimation)).
 
 ## 17. "Hunt": enemy fighters dispatched against a successful player
 
@@ -506,13 +568,33 @@ The Caucasus mission loads the short `Zeus.lua` (105 lines), not `zeus_Full_v2.1
 
 ## 18. `Splash_Damage_3.4.1_leka.lua`: Foothold customisations (brief)
 
-- Third-party "Splash Damage 3.4.1" script; the Foothold variant differs from `Splash_Damage_3.4.1_Default.lua` by about 370 changed lines.
-- The whole script only runs when `SplashDamage == true` (Config default `false`, `cfg:273`) or on the Normandy map, where it also forces `larger_explosions`, radius modifier 2, cascade scaling 2 and ordnance protection (diff, head of file).
-- Options changed: `dynamic_blast_radius_modifier = 1.5`, `cascade_scaling = 1.5`, `ordnance_protection = false`, `killfeed_enable = true`, `killfeed_lekas_foothold_integration = true`, `killfeed_lekas_contribution_delay = 0`.
-- Rewards for splash kills: each object found dead/damaged by splash is priced with `bc:objectToRewardPoints2(object, name)` (red objects only), queued in the killfeed table, then a timer applies `bc:addTempStat`, `bc:addContribution(player, 2, points)`, `bc:registerCasMissionKill`, `bc:registerSeadMissionKill` and `bc:registerMissionTargetKill` for players who have a contribution record.
-- Smoke/fire on damaged vehicles: the stock "all units" smoke/cook-off effects are kept, with a `processedSmoke` table that now expires per unit (retention window) so an effect is not replayed.
-- Weapon table: two entries added (`F16V_GBU53`, `F16V_GBU39`, explosive 25); weapons missing from the table are logged once per type; booster objects (`ZELL Booster`, `SPRD-99`) are ignored.
-- Line numbers are not cited here because the comparison was made on a diff of the two files, not on a read of the 4 932-line file; treat the detail as (estimation) beyond the option names and function calls quoted.
+- Third-party "Splash Damage 3.4.1" script (4 932 lines); the Foothold variant differs from `Splash_Damage_3.4.1_Default.lua` (4 824 lines) in about 80 diff hunks.
+- Citations below are line numbers in `Splash_Damage_3.4.1_leka.lua` (short name `SD`); "Default" is the value at the matching place of `Splash_Damage_3.4.1_Default.lua`.
+
+| Foothold customisation | Lines (`SD`) | Default file |
+|---|---|---|
+| The whole script is wrapped in `if SplashDamage == true or splashDamageIsNormandy then … end` (Config `SplashDamage` default `false`, `cfg:273`; always on for the Normandy theatre) | `SD:1-4`, `SD:4802` | runs unconditionally |
+| Header note "this is a 3.4.1 version for leka's foothold" and "Added in Lekas Foothold Integration to allow splash kills to count towards the points, killfeed is required" | `SD:18`, `SD:24` | absent |
+| `dynamic_blast_radius_modifier = 1.5` | `SD:76` | 2 |
+| `cascade_scaling = 1.5` | `SD:90` | 2 |
+| `ordnance_protection = false` | `SD:153` | true |
+| `killfeed_enable = true` ("required for lekas foothold") | `SD:218` | true (no Foothold remark) |
+| `killfeed_lekas_foothold_integration = true`, `killfeed_lekas_contribution_delay = 0` | `SD:220-221` | options absent |
+| Normandy override: `larger_explosions = true`, `dynamic_blast_radius_modifier = 2`, `cascade_scaling = 2`, `ordnance_protection = true` | `SD:286-292` | absent |
+| Weapon table: `F16V_GBU53`, `F16V_GBU39` (explosive 25) added | `SD:714-715` | absent |
+| A weapon missing from the table is logged once per type name (`reportedMissingWeapons`) instead of at every shot | `SD:1053`, `SD:3429-3433` | logged each time |
+| Shots whose weapon is `ZELL Booster` or `SPRD-99` are ignored | `SD:3308-3310` | absent |
+| `getFootholdRewardDataForObject(object, name)`: red objects only, `bc:objectToRewardPoints2` → stat name and points | `SD:1304-1323` | absent |
+| A splash-kill entry is queued only if it has a stat name and points, once per unit id | `SD:1325-1342` | queued without reward data |
+| `isFootholdRewardPlayer(name)`: `bc.playerContributions[2][name] ~= nil` | `SD:1344-1346` | absent |
+| Reward data attached where the script finds its victims: napalm scan (`scanUnitsForNapalm`), main weapon tracker (`track_wpns`), cluster bomblet hits (`CBUBombletHitExplosion`) | `SD:1547`, `SD:1576`, `SD:2866`, `SD:3827` | absent |
+| `processSplashKillfeed`: every 5 s while entries are queued (60 s otherwise) applies `bc:addTempStat`, `bc:addContribution(player, 2, points)`, `bc:registerCasMissionKill`, `bc:registerSeadMissionKill`, `bc:registerMissionTargetKill` (when the unit is in `MissionTargets`) for enrolled players, then drops the entry | `SD:3492-3532` | the same timer only expires old entries |
+| The processor timer is started at load, 60 s after start | `SD:4780-4783` | absent |
+| A real `S_EVENT_KILL` for a unit already queued as a splash kill removes the queued entry (no double pay) | `SD:4549-4559` | same de-duplication, used for the text feed only |
+| `processedSmoke[unitID]` holds an expiry time instead of `true`, extended by the effect duration, and a prune pass deletes expired entries, so the smoke/cook-off effect of a unit is not replayed and the table does not grow | `SD:1407-1410`, `SD:2065`, `SD:2119-2120`, `SD:2383-2384`, `SD:2418-2419` | `processedSmoke[unitID] = true`, never pruned |
+
+- What is unchanged: the stock "all units" smoke and cook-off effects, the blast-wave and cascade model, the radio-menu options of the original script (not listed here).
+- Splash rewards are blue-only (side 2 is hard-coded at `SD:1345` and `SD:3513`) and do not go through the engine's kill handler, so they feed the purse, the sortie stats and the CAS/SEAD/target missions but not the career kill counters (`SD:3511-3519`).
 
 ## 19. Help texts, radio information, weather
 

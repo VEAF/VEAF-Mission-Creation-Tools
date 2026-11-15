@@ -363,3 +363,64 @@ Une proposition à discuter, pas un plan ; chaque étape est un choix que David 
 7. **Les outils de confort** — EWRS, intel de zone, porte-avions « naviguer vers la zone », attribution de callsigns, chacun indépendant du reste.
 
 Le PRD met aujourd'hui hors périmètre la boutique, l'économie, les rangs, les événements, le Director, le tableau des tâches, le JTAC et les ravitailleurs à la demande ; les étapes 5 à 7 rouvriraient chacune une part de cela.
+
+## 11. Scénario : retirer Moose de Foothold et le remplacer par nos outils
+
+Question de David, 2026-11-15 : quelle est l'ampleur du chantier si l'on gardait Foothold tel quel et qu'on y remplaçait seulement Moose par les outils VMCT.
+Chiffres tirés de la note 09 et d'un relevé par fichier fait le même jour ; les tailles de code à écrire sont des estimations.
+
+### Ce qu'il faudrait toucher
+
+Environ 4 000 appels à Moose dans sept scripts : moteur 2 471, `Foothold CTLD.lua` 763, `WelcomeMessage.lua` 372, `Foothold_CTLD_Red.lua` 194, `EWRS.lua` 101, setup Caucase 93, `Zeus.lua` 26.
+`AIEN.lua` et `Splash_Damage_3.4.1_leka.lua` n'appellent pas Moose (grep, 0 occurrence hors commentaires).
+Les fichiers de setup des neuf autres cartes ont chacun leurs propres appels, non comptés.
+
+Nos outils n'offrent pas d'API compatible avec Moose : aucun `veaf*` ne répond à `GROUP:FindByName(x):GetCoordinate()`.
+Il y a donc deux façons de faire, et seule la première tient face au rythme de l'amont :
+
+- **une couche de compatibilité** (« Moose réduit ») : on réécrit, sur l'API DCS et nos modules, les seules fonctions de Moose que Foothold appelle — 112 membres statiques et environ 275 méthodes d'instance — sans toucher au code de Foothold ;
+- **réécrire les appels** dans le code de Foothold : 4 000 modifications dans 130 000 lignes, à refaire à chaque release amont.
+
+### Le chantier, par couche
+
+| Couche | Appels (environ) | Remplacement | Effort |
+|---|---|---|---|
+| Utilitaires (`UTILS` : conversions, `DeepCopy`, `Round`, distances) | 480 | fonctions pures, en partie dans `veaf.lua` | faible |
+| Messages, timers, menus (`MESSAGE`, `SCHEDULER`, `TIMER`, `MENU_GROUP*`) | 250 | `trigger.action.outText*`, `veafScheduler`, `missionCommands` | faible |
+| Enveloppes d'objets (`GROUP`, `UNIT`, `STATIC`, `AIRBASE`, `ZONE`, `SCENERY` ; `:GetName`, `:IsAlive`, `:GetCoordinate`…) | 1 600 | objets légers sur `Group`, `Unit`, `Airbase`… ; le piège est de reproduire exactement leur comportement sur un objet mort ou absent | moyen : beaucoup de petites fonctions dont Foothold dépend du détail |
+| `COORDINATE` et tâches (`WaypointAir*`, `Translate`, `Route`, `TaskLandAtVec2`, options ROE) | 550 | constructeurs de waypoints et de tâches DCS | moyen |
+| Ensembles (`SET_*`, `FilterStart`) | 300 | listes tenues par événements ou balayages ponctuels | faible à moyen |
+| Spawn (`SPAWN`, parking, registre `_DATABASE.Templates`) | 170 | copie de template avec alias, spawn au parking, rappels `OnSpawnGroup` ; `veafDcsSpawner` sait déjà appeler `coalition.addGroup` | moyen à fort : le choix des places de parking est la partie dure (note 03 §16) |
+| Entrepôts (`STORAGE`) | 120 | API entrepôt de DCS | faible |
+| Défense aérienne (`MANTIS`) | 3 sites, mais Foothold lit et modifie ses champs internes | Skynet via `veafSkynetIadsHelper` | moyen à fort : ce n'est pas le même comportement ; SAM cachés sur le MFD, révélation, zones de « scoot » et SHORAD sont à refaire et à régler |
+| OPS (`AUFTRAG`, `FLIGHTGROUP`, `NAVYGROUP`, `ARMYGROUP`) | 6 sites | tâches DCS brutes | moyen ; ou abandonner Hunter, le cuirassé, l'artillerie navale et les V1 |
+| CTLD (`CTLD`, `CTLD_CARGO` et la logistique de Foothold) | 1 000, et 11 900 lignes de Foothold écrites comme extensions du CTLD de Moose | porter toute la logistique sur notre CTLD 2 | **fort** |
+
+### Ce qui décide de l'ampleur : CTLD
+
+On ne peut pas garder le CTLD de Moose et retirer le reste : il repose sur le cœur de Moose (`BASE`, machines à états, `SET_*`, menus, `SCHEDULER`, base de données des unités).
+Et le Moose embarqué est déjà modifié pour Foothold : son CTLD appelle `bc:debit`, `priceOf` et des hooks du moteur (note 07 §1).
+Retirer Moose, c'est donc réécrire la logistique de Foothold sur CTLD 2 : prix et rangs, zones qui suivent le propriétaire, supplies de zone suivis physiquement, cargo d'entrepôt, kits de FARP, C-130J, espion et démolition, persistance des unités construites, CTLD rouge (note 07).
+Ce morceau-là ne se fait pas par une couche de compatibilité : CTLD 2 n'a pas le même modèle que le CTLD de Moose, et chaque release amont qui touche `Foothold CTLD.lua` serait à reporter à la main.
+
+### Le coût qui revient
+
+L'amont a publié 16 releases en quatre semaines et ajouté 12 500 lignes au moteur.
+Avec une couche de compatibilité, une mise à jour reste possible si l'on relance à chaque release le relevé de la note 09 pour voir quelles fonctions de Moose Lekaa a ajoutées, puis qu'on les écrit dans la couche.
+La logistique portée sur CTLD 2, elle, diverge à la première release qui touche `Foothold CTLD.lua`.
+Un fork doit rester sous GPL-3.0 et être publié comme tel.
+
+### Ce que ça rapporterait : inconnu
+
+Le moteur de Foothold est déjà en API DCS brute pour l'essentiel (note 02, recensement).
+Ce que Moose coûte vraiment à l'exécution — le chargement de 132 000 lignes et de sa base de données, son propre gestionnaire d'événements, les ensembles tenus à jour, les boucles de MANTIS et de CTLD — n'a jamais été mesuré.
+Le ticket 07 de ce lot prévoit justement la mesure (FPS par minute de DCSServerBot, profiler en mode `sample`).
+Sans elle, le chantier peut coûter plusieurs lots pour un gain nul.
+
+### Ordre de grandeur (estimation)
+
+- couche de compatibilité hors CTLD et MANTIS : de l'ordre de 3 000 à 5 000 lignes de Lua et leurs tests ;
+- MANTIS vers Skynet : un lot, plus des réglages en jeu ;
+- OPS : quelques jours, ou rien si l'on abandonne ces fonctionnalités ;
+- CTLD : un gros lot, du même ordre que les 11 900 lignes qu'il remplace, et la divergence avec l'amont qui va avec ;
+- à chaque release amont : un relevé, quelques fonctions à ajouter à la couche, et un report manuel de ce qui touche la logistique.

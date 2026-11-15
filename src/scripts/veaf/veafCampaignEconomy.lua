@@ -30,6 +30,7 @@ veafCampaignEconomy.PRICES = {
   illumination = 50,
   smoke = 50,
   cap = 400,
+  barcap = 400,
   tanker = 300,
   intel = 150,
   capture = 250,
@@ -44,6 +45,7 @@ veafCampaignEconomy.ITEMS = {
   { id = "smoke", zones = "enemy" },
   { id = "intel", zones = "enemy" },
   { id = "cap", zones = "own" },
+  { id = "barcap", zones = "enemy" },
   { id = "capture", zones = "neutral" },
   { id = "resupply", zones = "own" },
   { id = "tanker" },
@@ -345,6 +347,24 @@ veafCampaignEconomy.effects = {
       { zone = { x = center.x, y = center.z, radius = veafCampaignOps.CAP_RADIUS } },
       veafCampaignOps.CAP_ALTITUDE
     )
+    return spawned ~= nil, "campaign.shop.refused_spawn"
+  end,
+  barcap = function(zone)
+    local side = veafCampaign.playerSide()
+    local station, origin, distance, reach, measured = veafCampaignOps.barcapStation(side, zone)
+    if not station then
+      return false, "campaign.shop.refused_no_airfield"
+    end
+    local spawned = veafCampaignOps.spawnFlight(side, "cap", origin, "zone_defense", { zone = station }, veafCampaignOps.CAP_ALTITUDE)
+    if spawned then
+      tell(
+        measured and "campaign.shop.barcap" or "campaign.shop.barcap_assumed",
+        zone.name,
+        math.floor(distance / 1000),
+        math.floor(reach / 1000),
+        origin.name
+      )
+    end
     return spawned ~= nil, "campaign.shop.refused_spawn"
   end,
   capture = function(zone)

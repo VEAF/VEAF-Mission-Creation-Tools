@@ -35,3 +35,4 @@ In game: kill a unit, the balance rises; buy illumination over a zone.
 ## As built
 
 The settings are under `dynamic.economy`; the kill reward is split in `kill_ground` (10) and `kill_air` (30).
+A ninth item, the BARCAP, holds a CAP in front of an enemy zone out of its air defence's reach (David, 2026-11-15).

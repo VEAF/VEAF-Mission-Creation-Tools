@@ -2143,6 +2143,15 @@ veaf.i18nCatalog = {
   ["campaign.shop.item.smoke"] = { fr = "Fumigènes sur cibles", en = "Smoke on targets" },
   ["campaign.shop.item.intel"] = { fr = "Renseignement", en = "Intel" },
   ["campaign.shop.item.cap"] = { fr = "CAP amie", en = "Friendly CAP" },
+  ["campaign.shop.item.barcap"] = { fr = "BARCAP", en = "BARCAP" },
+  ["campaign.shop.barcap"] = {
+    fr = "BARCAP : en station à %d km de %s, hors de portée de ses défenses (%d km mesurés), au départ de %s.",
+    en = "BARCAP: on station %d km from %s, out of its air defence's reach (%d km measured), from %s.",
+  },
+  ["campaign.shop.barcap_assumed"] = {
+    fr = "BARCAP : en station à %d km de %s, hors de portée supposée de ses défenses (%d km estimés, zone non observée), au départ de %s.",
+    en = "BARCAP: on station %d km from %s, out of its air defence's assumed reach (%d km estimated, zone not observed), from %s.",
+  },
   ["campaign.shop.item.capture"] = { fr = "Hélico de capture", en = "Capture helicopter" },
   ["campaign.shop.item.resupply"] = { fr = "Hélico de ravitaillement", en = "Resupply helicopter" },
   ["campaign.shop.item.tanker"] = { fr = "Ravitailleur", en = "Tanker" },

@@ -719,4 +719,120 @@ function TestCampaignLiveSelfCheck:test_an_empty_board_is_not_a_fault_before_the
   luaunit.assertEquals(veafCampaignEconomy.selfCheck(verdict)[2], "KO campaign.check.tasks")
 end
 
+-- ---------------------------------------------------------------------------
+-- Take-off and BARCAP
+-- ---------------------------------------------------------------------------
+TestCampaignTakeoff = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+--- An airbase whose stands are those given: `{ index, type, taken }`.
+local function airbaseWithStands(stands)
+  local parking = {}
+  for _, stand in ipairs(stands) do
+    table.insert(parking, {
+      Term_Index = stand[1],
+      Term_Type = stand[2],
+      TO_AC = stand[3] or nil,
+      vTerminalPos = { x = 1000 + stand[1], y = 0, z = 2000 },
+    })
+  end
+  return {
+    getPoint = function()
+      return { x = 1000, y = 0, z = 2000 }
+    end,
+    getID = function()
+      return 23
+    end,
+    getParking = function()
+      return parking
+    end,
+  }
+end
+
+function TestCampaignTakeoff:test_a_flight_starts_hot_on_free_aircraft_stands()
+  -- a runway (16), a helicopter pad (40), a taken stand, then two free ones
+  local airbase = airbaseWithStands({ { 1, 16 }, { 2, 40 }, { 3, 72, true }, { 5, 72 }, { 4, 104 } })
+  local point, positions = veafCampaignOps.takeoffFrom(airbase, 2)
+  luaunit.assertEquals({ point.type, point.action, point.airdromeId }, { "TakeOffParkingHot", "From Parking Area Hot", 23 })
+  luaunit.assertEquals({ positions[1].parking, positions[2].parking }, { 4, 5 })
+  luaunit.assertEquals({ positions[1].x, positions[1].z }, { 1004, 2000 })
+end
+
+function TestCampaignTakeoff:test_too_few_free_stands_start_on_the_runway()
+  local airbase = airbaseWithStands({ { 5, 72 } })
+  local point, positions = veafCampaignOps.takeoffFrom(airbase, 2)
+  luaunit.assertEquals({ point.type, point.action }, { "TakeOff", "From Runway" })
+  luaunit.assertEquals(#positions, 2)
+  luaunit.assertNil(positions[1].parking)
+end
+
+function TestCampaignTakeoff:test_a_sortie_takes_off_from_its_airfield()
+  start()
+  local airbase = airbaseWithStands({ { 4, 72 }, { 5, 72 } })
+  Airbase.getByName = function()
+    return airbase
+  end
+  veafCampaignOps.maintainCaps("red")
+  local flight = self.flights[1]
+  luaunit.assertEquals(flight.params.takeoffPoint.type, "TakeOffParkingHot")
+  luaunit.assertEquals({ flight.group.units[1].parking, flight.group.units[2].parking }, { 4, 5 })
+  -- seated on the ground, not in the air
+  luaunit.assertEquals(flight.group.units[1].alt, land.getHeight({ x = 1004, y = 2000 }))
+end
+
+function TestCampaignTakeoff:test_a_strike_takes_off_then_flies_at_its_altitude()
+  local takeoff = { type = "TakeOffParkingHot", action = "From Parking Area Hot", airdromeId = 23 }
+  local route = veafAircraftSpawn.roles.campaign_strike.buildRoute({
+    spot = { x = 0, y = 10, z = 0 },
+    takeoffPoint = takeoff,
+    params = {
+      target = { x = 5000, y = 0, z = 6000 },
+      radius = 2000,
+      targetTypes = { "Ground Units" },
+      airdromeId = 23,
+      home = { x = 0, y = 0, z = 0 },
+      altitude = 2600,
+    },
+  })
+  luaunit.assertEquals(route[1].type, "TakeOffParkingHot")
+  luaunit.assertEquals(route[1].task.params.tasks[2].id, "EngageTargetsInZone")
+  luaunit.assertEquals(route[2].alt, 2600)
+end
+
+function TestCampaignTakeoff:test_a_barcap_holds_beyond_the_measured_air_defence()
+  start()
+  local senaki = veafCampaign.zones["Senaki"]
+  -- a live SA-11 launcher of Senaki's garrison, its missile reaching 35 km
+  dcs_mocks.addUnit("Senaki garrison #1", {
+    getAmmo = function()
+      return { { count = 4, desc = { category = Weapon.Category.MISSILE, rangeMaxAltMax = 35000 } } }
+    end,
+  })
+  local station, origin, distance, reach, measured = veafCampaignOps.barcapStation("blue", senaki)
+  luaunit.assertEquals(origin.name, "Kobuleti")
+  luaunit.assertEquals({ reach, measured }, { 35000, true })
+  luaunit.assertEquals(distance, 35000 + 15000 + 15000)
+  -- on the line from Senaki (x = 100000) back to Kobuleti (x = 0)
+  luaunit.assertEquals({ station.x, station.y, station.radius }, { 100000 - 65000, 0, 15000 })
+  dcs_mocks.removeUnit("Senaki garrison #1")
+end
+
+function TestCampaignTakeoff:test_a_sleeping_zone_s_reach_is_assumed()
+  start()
+  local senaki = veafCampaign.zones["Senaki"]
+  local _, _, _, reach, measured = veafCampaignOps.barcapStation("blue", senaki)
+  luaunit.assertEquals({ reach, measured }, { 20000, false })
+  senaki.entry.size.long_range_sam = true
+  _, _, _, reach = veafCampaignOps.barcapStation("blue", senaki)
+  luaunit.assertEquals(reach, 75000)
+end
+
+function TestCampaignTakeoff:test_a_barcap_is_bought_against_an_enemy_zone()
+  start({ air = { blue = { cap = AIRCRAFT } }, economy = { start_credits = 1000 } })
+  luaunit.assertTrue(veafCampaignEconomy.buy({ "barcap", "Senaki" }))
+  luaunit.assertEquals(self.flights[1].role, "zone_defense")
+  luaunit.assertEquals(self.flights[1].params.zone.x, 100000 - 50000)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 600)
+  luaunit.assertFalse(veafCampaignEconomy.buy({ "barcap", "Kobuleti" })) -- ours: a BARCAP is on an enemy zone
+end
+
 os.exit(luaunit.LuaUnit.run())

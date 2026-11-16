@@ -551,7 +551,7 @@ as « not shown free », and look in game before concluding that a place is wood
 *What it cost:* `veaf-tools dcs farp-spot` keeps only the points this query calls free: it can miss a usable spot.
 Neither what it lists nor what it leaves out has been checked by eye yet.
 
-### On Syria, `Disposition.getSimpleZones` does not see the forest of the Akamas peninsula {#disposition-blind-to-akamas-forest}
+### On Syria, `Disposition.getSimpleZones` does not see some forests (Akamas peninsula, Ceyhan) {#disposition-blind-to-akamas-forest}
 
 Measured **2026-11-12**.
 
@@ -564,15 +564,23 @@ Syria, on the Akamas peninsula (Cyprus):
 | `veaf-tools dcs clear-ground-check` on the Akamas range of the Syria Open Training | its vehicles **on clear ground** |
 | in game (David), a T-72 at (13404, -326775) | **in the middle of a wood** |
 
+A second forest, 8 km east of the Ceyhan FARP (Turkey, near MGRS YF69):
+
+| Asked | Answer |
+|---|---|
+| `veaf-tools dcs clear-ground-check` on the whole Syria Open Training, 2026-11-12 | 11 vehicles off clear ground, all of them sanctuary groups: the 8 vehicles of the Ceyhan helicopter range, around (218900, 11100), **on clear ground** |
+| in game (David, 2026-11-15), the same range, unmoved | **in the middle of a forest** |
+
 So on Syria a clean `clear-ground-check` — "0 vehicles in the scenery" — proves nothing where the
-probe is blind. Which other forests of the map it misses is not measured.
+probe is blind. Two forests are measured; which others of the map it misses is not.
 
 **What to do:** On Syria, after `clear-ground-check`, look at the placed vehicles in game (F10 view, or smoke on
 each position) before trusting a range or a defence in a wooded area.
 
 *What it cost:* The Akamas firing range of the Syria Open Training stood in the trees, reported by a player on the
 VEAF Discord (thread 1570181686451507230); it was moved to the Polis plain and checked by smoke in
-game (VEAF-Open-Training-Mission-Syria-v6 `bee652e`, 2026-11-12).
+game (VEAF-Open-Training-Mission-Syria-v6 `bee652e`, 2026-11-12). The Ceyhan helicopter range of the
+same mission stood in a forest too, reported by David after flying it (2026-11-15).
 
 ### An air start with a single waypoint flies north, whatever its unit's `heading` {#air-start-flies-toward-its-second-point}
 

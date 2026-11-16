@@ -335,9 +335,11 @@ class TestAPersistentCampaign:
     """Found on the Syria campaign (2026-11-16): its mission deck read "1/10" and "no enemy air activity"."""
 
     @staticmethod
-    def _campaign() -> CampaignDefinition:
+    def _campaign(**dynamic: object) -> CampaignDefinition:
         raw = copy.deepcopy(VALID)
         raw["campaign"].update(mode="persistent", objectives=[])
+        if dynamic:
+            raw["dynamic"] = dynamic
         campaign, issues = parse_campaign(raw)
         assert campaign is not None, issues
         return campaign
@@ -352,3 +354,9 @@ class TestAPersistentCampaign:
         flow = "\n".join("\n".join(slide) for slide in deck if "Déroulement" in slide[0])
         assert "Aviation ennemie active" in flow
         assert "au départ de ses bases : Senaki" in flow
+
+    def test_no_bomber_raid_announced_when_the_campaign_has_none(self, tmp_path: Path) -> None:
+        deck = _deck(tmp_path, self._campaign(bombers={"enabled": False}))
+        flow = "\n".join("\n".join(slide) for slide in deck if "Déroulement" in slide[0])
+        assert "Aviation ennemie active" in flow
+        assert "bombardiers" not in flow

@@ -161,10 +161,12 @@ class TestWhereAPageEnds:
         assert len(paginate(Page("Situation", [Block("Contexte", ("Un paragraphe.",))]))) == 1
 
 
-def _persistent_deck(tmp_path: Path, **dynamic: object) -> list[list[str]]:
+def _persistent_deck(tmp_path: Path, keep_objectives: bool = False, **dynamic: object) -> list[list[str]]:
     """The deck of the reference campaign played as one persistent mission, red's depot a factory."""
     raw = copy.deepcopy(VALID)
-    raw["campaign"].update(mode="persistent", objectives=[])
+    raw["campaign"]["mode"] = "persistent"
+    # the depot turned factory can no longer be destroyed `as logistics`: only the capture is kept
+    raw["campaign"]["objectives"] = [{"capture": ["Senaki"]}] if keep_objectives else []
     raw["zones"][2]["kind"] = "factory"
     if dynamic:
         raw["dynamic"] = dynamic
@@ -196,6 +198,14 @@ class TestAPersistentCampaign:
         slides = {slide[0]: "\n".join(slide[1:]) for slide in _persistent_deck(tmp_path)[1:]}
         objectives = slides["5. Objectifs de la campagne"]
         assert "gagnée quand l'ennemi ne tient plus aucune zone" in objectives
+
+    def test_declared_objectives_are_no_condition_of_victory(self, tmp_path: Path) -> None:
+        # the runtime judges a persistent campaign on the zones held only
+        deck = _persistent_deck(tmp_path, keep_objectives=True)
+        slides = {slide[0]: "\n".join(slide[1:]) for slide in deck[1:]}
+        objectives = slides["5. Objectifs de la campagne"]
+        assert "gagnée quand l'ennemi ne tient plus aucune zone" in objectives
+        assert "– prendre et tenir" not in objectives
 
     def test_the_tasks_are_standing_orders(self, tmp_path: Path) -> None:
         titles = [slide[0] for slide in _persistent_deck(tmp_path)[1:]]

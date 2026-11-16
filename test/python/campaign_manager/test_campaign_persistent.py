@@ -346,3 +346,14 @@ class TestTheStrategicSituation:
 
     def test_the_zones_go_by_the_name_the_players_read(self) -> None:
         assert "Tenu par les rouges : Base de Senaki" in self._text()
+
+    def test_objectives_met_do_not_win_a_persistent_campaign(self) -> None:
+        campaign = _persistent()
+        state = initial_state(campaign)
+        state.zones["Senaki"].owner = "blue"
+        state.zones["Gudauta depot"].owner = "blue"
+        with language("fr"):
+            text = strategic_situation(campaign, state)
+        assert "La campagne est gagnée." not in text
+        assert "[x]" not in text and "[ ]" not in text
+        assert "gagnée quand l'ennemi ne tient plus aucune zone" in text

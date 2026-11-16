@@ -297,8 +297,9 @@ def _objectives_page(campaign: CampaignDefinition, state: CampaignState, prose: 
         key = "capture" if objective.kind == "capture" else "destroy"
         conditions.append(t(f"campaign.deck.victory.{key}", zones=_labels(campaign, objective.zones)))
     if campaign.mode == "persistent":
-        # one mission that runs until a side holds nothing: no deadline, no count of missions left
-        victory: tuple[str, ...] = (t("campaign.deck.victory.persistent"), *conditions)
+        # one mission that runs until a side holds nothing: no deadline, no count of missions left, and
+        # declared objectives are no condition, the runtime judging on the zones held only
+        victory: tuple[str, ...] = (t("campaign.deck.victory.persistent"),)
     else:
         left = max(campaign.missions - state.mission, 0)
         victory = (
@@ -330,6 +331,16 @@ def _roe_page(prose: BriefingProse | None) -> Page | None:
 
 
 def _mission_page(campaign: CampaignDefinition, prose: BriefingProse | None, mission: int) -> Page | None:
+    """The coming mission's page of `briefing.yaml`, its tasks one block each.
+
+    Args:
+        campaign: The validated campaign: a persistent one titles its tasks as standing orders.
+        prose: `briefing.yaml`, or ``None``.
+        mission: The coming mission's number.
+
+    Returns:
+        The page, or ``None`` when `briefing.yaml` has none for that mission.
+    """
     page = prose.missions.get(mission) if prose else None
     if page is None:
         return None
@@ -345,6 +356,12 @@ def _live_front(campaign: CampaignDefinition) -> tuple[str, ...]:
 
     The defaults are the runtime's (`veafCampaign.lua`): red attacks and resupplies, bombers fly,
     resources count. Only what the campaign turns off is left out.
+
+    Args:
+        campaign: The validated persistent campaign.
+
+    Returns:
+        The annex's lines on the living front.
     """
     dynamic = campaign.dynamic
     enemy = enemy_of(campaign.player_side)

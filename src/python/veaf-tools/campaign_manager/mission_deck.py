@@ -246,7 +246,9 @@ def _flow_page(
     bases = [zone.label for zone in campaign.zones if zone.location.airfield and state.zones[zone.name].owner == enemy]
     if campaign.mode == "persistent" and bases:
         # a persistent campaign's enemy flies CAP, strikes and raids on its own, from the fields it holds
-        air.append(t("campaign.mission_deck.air_persistent", airfields=_join(bases)))
+        bombers = (campaign.dynamic.get("bombers") or {}).get("enabled", True)  # the runtime's default
+        key = "campaign.mission_deck.air_persistent" if bombers else "campaign.mission_deck.air_persistent_no_bombers"
+        air.append(t(key, airfields=_join(bases)))
     blocks.append(Block(t("campaign.mission_deck.heading.air"), tuple(air) or (t("campaign.mission_deck.no_air"),)))
     defences = [
         line(zone.label, _after_colon(enemy_picture(campaign, state, zone)))

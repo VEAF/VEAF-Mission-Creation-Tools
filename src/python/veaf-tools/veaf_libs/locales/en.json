@@ -1717,6 +1717,7 @@
   "campaign.mission_deck.qra_scaled": "The enemy reinforces its alert against a large package.",
   "campaign.mission_deck.no_air": "No enemy air activity reported.",
   "campaign.mission_deck.air_persistent": "Enemy air force active: CAP over its front, CAS and SEAD strikes, bomber raids, out of its airfields: {airfields}.",
+  "campaign.mission_deck.air_persistent_no_bombers": "Enemy air force active: CAP over its front, CAS and SEAD strikes, out of its airfields: {airfields}.",
   "campaign.mission_deck.escort_defences": "Every enemy position has its own escort air defence: stay high or go through fast.",
   "campaign.mission_deck.refuelling": "Air-to-air refuelling: {tankers}.",
   "campaign.mission_deck.diversion": "Diversion fields: {fields}.",

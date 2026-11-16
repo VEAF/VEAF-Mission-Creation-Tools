@@ -53,7 +53,14 @@ def _ascii_capitals(text: str) -> str:
 
 
 def _first_word(name: str) -> str:
-    """The first word of a name that is not a one- or two-letter article: ``Al-Safira`` → ``SAFIRA``."""
+    """The first word of a name longer than two letters, an article skipped: ``Al-Safira`` → ``SAFIRA``.
+
+    Args:
+        name: The zone's name.
+
+    Returns:
+        The word, in capitals and without accents; the first one when none is longer than two letters.
+    """
     words = _ascii_capitals(name).split("_")
     return next((word for word in words if len(word) > 2), words[0])
 

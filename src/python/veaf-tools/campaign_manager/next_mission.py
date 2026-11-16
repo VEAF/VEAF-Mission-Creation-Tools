@@ -180,7 +180,7 @@ def strategic_situation(campaign: CampaignDefinition, state: CampaignState) -> s
     """Write the factual part of the next mission's strategic briefing, in the current language.
 
     The front, what changed in the last mission, the enemy's state, the objectives and the missions
-    left. The narrative — what the enemy intends, what is asked of the players — is not here.
+    left; for a persistent campaign, how it is won instead of the objectives and the missions left. The narrative — what the enemy intends, what is asked of the players — is not here.
 
     Args:
         campaign: The validated campaign.
@@ -228,16 +228,16 @@ def strategic_situation(campaign: CampaignDefinition, state: CampaignState) -> s
         else:
             lines.append(t("campaign.briefing.enemy_zone", zone=zone.label, strength=strength))
     lines += ["", t("campaign.briefing.objectives")]
+    if persistent:
+        # the runtime judges a persistent campaign on the zones held only: its objectives decide nothing
+        lines.append(t("campaign.briefing.outcome.persistent"))
+        return "\n".join(lines) + "\n"
     for objective, met in evaluate_objectives(campaign, state):
         mark = "[x]" if met else "[ ]"
         labels = ", ".join(campaign.zone(name).label for name in objective.zones)
         lines.append(f"{mark} {t(f'campaign.objective.{objective.kind}', zones=labels)}")
-    result = outcome(campaign, state)
-    if persistent and result != "won":
-        lines.append(t("campaign.briefing.outcome.persistent"))
-    else:
-        left = max(campaign.missions - state.mission, 0)
-        lines.append(t(f"campaign.briefing.outcome.{result}", left=left))
+    left = max(campaign.missions - state.mission, 0)
+    lines.append(t(f"campaign.briefing.outcome.{outcome(campaign, state)}", left=left))
     return "\n".join(lines) + "\n"
 
 

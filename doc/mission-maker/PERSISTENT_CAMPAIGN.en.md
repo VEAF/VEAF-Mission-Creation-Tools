@@ -123,7 +123,9 @@ Only one zone wakes per 10-second beat, so the whole front does not appear in on
   Its patrol circle (40 km at most) stops 15 km short of our zones' air defence reach; when even a 5 km circle would be in their reach, it does not fly: it does not throw itself at our SAMs.
 - **Strikes**: every `air.strike_seconds` (900 s), a CAS strike (on the zone with the most units) or a SEAD strike (on the one with the most air defence), in turn, on a zone bordering the enemy's territory.
 - They **take off** from the nearest enemy airfield, hot on free stands (shelters first, open stands after; a large aircraft, bomber or transport, never in a shelter), or from the runway when there are not enough; no airfield, no sortie. So do the CAP, the BARCAP and the Hunter.
-  Nothing takes off from an airfield within the measured reach of an enemy air defence (a Patriot would shoot the aircraft down while they climb): the sortie leaves from another airfield, or does not leave, and `dcs.log` says so (`[CAMPAIGN DECISION] nothing of red takes off from [Senaki]: it is under the air defence of [Kobuleti]`).
+  Nothing takes off from an airfield within `takeoff_threat_range` (40 km) of an enemy air defence whose reach was measured (a Patriot would shoot the aircraft down while they climb); the reach DCS gives is the missile's against a high target, much longer than the range at which the SAM sees an aircraft taking off, hence this cap, an estimation to tune.
+  A **SEAD** flight takes off all the same: putting that defence out is its job, and what it destroys frees the field for the strikes.
+  Otherwise the sortie leaves from another airfield, or does not leave, and `dcs.log` says so (`[CAMPAIGN DECISION] nothing of red takes off from [Senaki]: it is under the air defence of [Kobuleti]`).
   `air.max_flights` (4) flights in the air at most per side.
 - **Hunter**: a player on a kill streak (between 8 and 16 on the ground, or between 4 and 8 in the air, drawn once per life) then has a 10 % chance at every kill to have two enemy fighters scrambled at that player, whose side is told.
 
@@ -388,6 +390,7 @@ A `KO` line is enough to know where to look.
 | `wake_radius` | 60000 | metres: an enemy player this close wakes a zone |
 | `ground_wake_radius` | 10000 | metres: an enemy ground group that is no garrison, this close, wakes a zone; vehicles placed in the editor wake nothing |
 | `reach_wake_margin` | 20000 | metres: an enemy aircraft this far beyond a zone's air defence reach wakes it |
+| `takeoff_threat_range` | 40000 | metres: nothing but a SEAD takes off this close to an enemy air defence measured |
 | `front_depth` | 40000 | metres: a zone this close to the front line drawn on the map is always awake |
 | `sleep_seconds` | 600 | a zone with no player near it for this long goes back to sleep |
 | `max_awake_zones` | 12 | zones of the rear awake at once (the front and the targets of sorties do not count) |

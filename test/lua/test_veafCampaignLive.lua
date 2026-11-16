@@ -802,10 +802,11 @@ function TestCampaignTakeoff:test_a_sortie_takes_off_from_its_airfield()
 end
 
 function TestCampaignTakeoff:test_nothing_takes_off_from_a_field_under_an_enemy_defence_measured()
-  -- 2026-11-16: the whole raid package of Senaki, under Kobuleti's Patriot, lost within 70 s of the take-off
-  start()
+  -- 2026-11-16: the whole raid package of Senaki, under Kobuleti's Patriot, lost within 70 s of the take-off.
+  -- Senaki is 100 km from Kobuleti here: a take-off threat range of 150 km puts it under.
+  start({ takeoff_threat_range = 150000 })
   local senaki, kobuleti = veafCampaign.zones["Senaki"], veafCampaign.zones["Kobuleti"]
-  kobuleti.entry.reach = 120000 -- measured while Kobuleti was awake: Senaki, 100 km away, is under it
+  kobuleti.entry.reach = 120000 -- measured while Kobuleti was awake
   luaunit.assertEquals(veafCampaignOps.coveringEnemy("red", senaki), "Kobuleti")
   luaunit.assertFalse(veafCampaignOps.canTakeOffFrom("red", senaki))
   luaunit.assertNil(veafCampaignOps.nearestOwnZone("red", kobuleti, true))
@@ -815,6 +816,25 @@ function TestCampaignTakeoff:test_nothing_takes_off_from_a_field_under_an_enemy_
   -- out of its reach, it does
   kobuleti.entry.reach = 80000
   luaunit.assertTrue(veafCampaignOps.canTakeOffFrom("red", senaki))
+end
+
+function TestCampaignTakeoff:test_a_long_reach_grounds_only_within_the_takeoff_threat_range()
+  -- 2026-11-16: the Patriot's reach as DCS gives it grounded every red field, Sukhumi 120 km away included
+  start()
+  local senaki, kobuleti = veafCampaign.zones["Senaki"], veafCampaign.zones["Kobuleti"]
+  kobuleti.entry.reach = 160000
+  luaunit.assertTrue(veafCampaignOps.canTakeOffFrom("red", senaki)) -- 100 km, beyond the default 40 km
+end
+
+function TestCampaignTakeoff:test_a_sead_takes_off_under_the_defence_it_is_there_to_put_out()
+  -- David, 2026-11-16: what it destroys frees the field for the strikes
+  start({ takeoff_threat_range = 150000 })
+  local senaki, kobuleti = veafCampaign.zones["Senaki"], veafCampaign.zones["Kobuleti"]
+  kobuleti.entry.reach = 120000
+  luaunit.assertFalse(veafCampaignOps.canTakeOffFrom("red", senaki, "cas"))
+  luaunit.assertTrue(veafCampaignOps.canTakeOffFrom("red", senaki, "sead"))
+  luaunit.assertEquals(veafCampaignOps.nearestOwnZone("red", kobuleti, true, "sead").name, "Senaki")
+  luaunit.assertNil(veafCampaignOps.nearestOwnZone("red", kobuleti, true, "cas"))
 end
 
 function TestCampaignTakeoff:test_an_assumed_reach_grounds_nobody()

@@ -65,6 +65,7 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   wake_radius = 60000, -- metres: an enemy player's aircraft this close wakes a zone's garrison
   ground_wake_radius = 10000, -- metres: an enemy ground group that is no garrison (convoy, troops, spawn) this close too
   reach_wake_margin = 20000, -- metres: an enemy aircraft this far beyond a zone's air defence reach wakes it
+  takeoff_threat_range = 40000, -- metres: no take-off (but a SEAD's) this close to an enemy air defence measured
   front_depth = 40000, -- metres: a zone this close to the front line drawn on the map is always awake
   sleep_seconds = 600, -- a zone nobody has come near for this long goes back to sleep
   max_awake_zones = 12, -- zones whose garrison is in the world at once, nearest the players first

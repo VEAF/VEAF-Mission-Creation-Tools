@@ -247,9 +247,11 @@ function veafCampaignOps.supplyTarget(side)
 end
 
 --- The enemy zone whose air defence covers a zone's centre, by the reach measured (or remembered from the
---- last time it was awake); nil when none does. An assumed reach does not count: it would ground a side on a
---- guess. What takes off from a field under it is shot down while it climbs (2026-11-16: the whole raid
---- package of Senaki, under Kobuleti's Patriot, lost within 70 s of the take-off).
+--- last time it was awake), cut to `takeoff_threat_range`; nil when none does. An assumed reach does not count:
+--- it would ground a side on a guess. What takes off from a field under it is shot down while it climbs
+--- (2026-11-16: the whole raid package of Senaki, 38 km from Kobuleti's Patriot, lost within 70 s of the
+--- take-off). The cut: the reach DCS gives is the missile's against a high target, and grounded every red
+--- field, Sukhumi 120 km away included; an aircraft climbing out is seen much closer (an estimation, to tune).
 --- @param side string the zone's side
 --- @param zone table
 --- @return string|nil the enemy zone's name
@@ -258,6 +260,7 @@ function veafCampaignOps.coveringEnemy(side, zone)
   for _, other in ipairs(veafCampaign.zoneList) do
     if other.placed and other.entry.owner == enemy and other.entry.garrison then
       local reach, measured = veafCampaignOps.threatRange(other)
+      reach = math.min(reach, veafCampaign.setting("takeoff_threat_range"))
       if measured and distance2d(zone:getCenter(), other:getCenter()) <= reach then
         return other.name
       end
@@ -267,15 +270,17 @@ function veafCampaignOps.coveringEnemy(side, zone)
 end
 
 --- Whether a side's aircraft may take off from an airfield zone: it has an airbase and no enemy air defence
---- covers it. A field refused is logged with the defence that covers it.
+--- covers it. A SEAD flight takes off all the same: putting that defence out is its job, and what it destroys
+--- frees the field for the strikes (David, 2026-11-16). A field refused is logged with the defence covering it.
 --- @param side string
 --- @param zone table
+--- @param role string|nil the flight's role: "sead" ignores the defence
 --- @return boolean
-function veafCampaignOps.canTakeOffFrom(side, zone)
+function veafCampaignOps.canTakeOffFrom(side, zone, role)
   if not zone.entry.airbase then
     return false
   end
-  local covering = veafCampaignOps.coveringEnemy(side, zone)
+  local covering = role ~= "sead" and veafCampaignOps.coveringEnemy(side, zone)
   if covering then
     veafCampaign.debug("DECISION", "nothing of %s takes off from [%s]: it is under the air defence of [%s]", side, zone.name, covering)
     return false
@@ -284,15 +289,15 @@ function veafCampaignOps.canTakeOffFrom(side, zone)
 end
 
 --- The side's zone a helicopter leaves from: the nearest to the target, the target itself excepted. With
---- `airfieldsOnly`, the nearest airfield its aircraft may take off from (`canTakeOffFrom`).
-function veafCampaignOps.nearestOwnZone(side, target, airfieldsOnly)
+--- `airfieldsOnly`, the nearest airfield its aircraft may take off from (`canTakeOffFrom`, for `role`).
+function veafCampaignOps.nearestOwnZone(side, target, airfieldsOnly, role)
   local best, bestDistance = nil, nil
   for _, zone in ipairs(veafCampaign.zoneList) do
     if
       zone.placed
       and zone ~= target
       and zone.entry.owner == side
-      and (not airfieldsOnly or veafCampaignOps.canTakeOffFrom(side, zone))
+      and (not airfieldsOnly or veafCampaignOps.canTakeOffFrom(side, zone, role))
     then
       local d = distance2d(zone:getCenter(), target:getCenter())
       if not bestDistance or d < bestDistance then
@@ -1031,7 +1036,7 @@ function veafCampaignOps.launchStrike(side, now)
   if not target and role == "sead" then
     role, target = "cas", veafCampaignOps.strikeTarget(side, "cas")
   end
-  local origin = target and veafCampaignOps.nearestOwnZone(side, target, true)
+  local origin = target and veafCampaignOps.nearestOwnZone(side, target, true, role)
   if not (target and origin) then
     veafCampaign.debug(
       "DECISION",
@@ -1739,6 +1744,7 @@ function veafCampaignOps.reportAirDefences()
         end
       end
       if units > 0 then
+        local reach, measured = veafCampaignOps.threatRange(zone)
         local parts = {}
         for _, typeName in ipairs(order) do
           local entry = byType[typeName]
@@ -1746,12 +1752,14 @@ function veafCampaignOps.reportAirDefences()
         end
         veafCampaign.debug(
           "AIRDEF",
-          "[%s] %s: %d missiles left on %d air defence units (%s)",
+          "[%s] %s: %d missiles left on %d air defence units (%s), reach %d km%s",
           zone.name,
           tostring(zone.entry.owner),
           total,
           units,
-          table.concat(parts, ", ")
+          table.concat(parts, ", "),
+          math.floor(reach / 1000),
+          measured and "" or " (assumed)"
         )
       end
     end

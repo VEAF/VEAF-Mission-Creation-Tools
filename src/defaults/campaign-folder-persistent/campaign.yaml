@@ -61,6 +61,7 @@ dynamic:
   ground_wake_radius: 10000
   reach_wake_margin: 20000
   front_depth: 40000
+  takeoff_threat_range: 40000
   sleep_seconds: 600
   max_awake_zones: 12
   attacks: [red]

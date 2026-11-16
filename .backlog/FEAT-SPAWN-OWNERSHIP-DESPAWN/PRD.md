@@ -1,6 +1,6 @@
 # FEAT-SPAWN-OWNERSHIP-DESPAWN — Each pilot can remove what he spawned, from the F10 menu
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 David, 2026-11-10, while correcting the Open Training conduct sheet (FEAT-OPEN-TRAINING-KNEEBOARD): "it would be good to remember, per pilot, the things he spawned (except combat zones, which handle that very well) so that he can despawn them from the radio menu".
 
@@ -33,9 +33,9 @@ The conduct sheet now asks pilots to clean *their* combat zones by deactivating 
 
 | # | Ticket | Status |
 |---|---|---|
-| 01 | [Record each marker-spawned group with its author](tickets/01-record-spawns.md) | ⬜ |
-| 02 | [F10 menu: list and remove one's own items](tickets/02-f10-remove-menu.md) | ⬜ |
-| 03 | [Pilot guide, OT commands/conduct sheets, CHANGELOG, demo mission step](tickets/03-doc-and-sheets.md) | ⬜ |
+| 01 | [Record each marker-spawned group with its author](tickets/01-record-spawns.md) | ✅ |
+| 02 | [F10 menu: list and remove one's own items](tickets/02-f10-remove-menu.md) | ✅ |
+| 03 | [Pilot guide, OT commands/conduct sheets, CHANGELOG, demo mission step](tickets/03-doc-and-sheets.md) | ✅ |
 
 Lua runtime (`src/scripts/veaf/`), luaunit tests with the DCS mocks; read `docs/agents/dcs-runtime-traps.md` and the F10 menu id recycling trap before rebuilding a menu.
 One branch, one PR.

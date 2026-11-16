@@ -1,6 +1,6 @@
 # 02 — F10 menu: list and remove one's own items
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

@@ -1,6 +1,6 @@
 # 03 — Pilot guide, OT sheets, CHANGELOG, demo step
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

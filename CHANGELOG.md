@@ -89,6 +89,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **A persistent campaign's briefings speak of a persistent campaign** (FEAT-DYNAMIC-CAMPAIGN, found building the Syria campaign): the campaign deck, the mission deck and the strategic situation that becomes the DCS briefing no longer read "10 missions", "1/10", "missions left", an empty enemy reserve or what happens "between two missions".
   They give the starting situation, victory when the enemy holds no zone left, the tasks as standing orders, the factories instead of reserves, an enemy air force active from its airfields, and an annex on the living front that leaves out what `dynamic:` turns off; the strategic situation names the zones by their `display_name`.
   A waypoint key skips a leading article (`Al-Safira` is `SAFIRA`, no longer `AL`), and the strategic map's labels stay inside the picture and clear of each other.
+- **The persistent campaign's enemy CAP follows the fighters, and an escort in the shop** (FEAT-DYNAMIC-CAMPAIGN, after Foothold and the first server evening on Syria): the enemy CAP is sized on the players' fighters in the air, none flying when only helicopters and attack airplanes are up; it is placed over the front zone nearest those fighters, and takes the next one when the nearest is under our SAMs (Idlib under Hatay's Hawk grounded it all evening).
+  It engages helicopters and attack airplanes only on a draw of `air.cap_helicopter_chance` (25 %), the Hunter never chases them, and a refused CAP is logged once instead of every 10 s.
+  The shop sells an escort for the buyer's own group: the DCS escort task for an airplane, a CAP circle that follows a helicopter.
 
 ## [6.36.0] — 2026-11-05
 

@@ -121,15 +121,17 @@ Une seule zone se réveille à chaque battement de 10 s, pour ne pas faire appar
 
 ## L'aviation ennemie {#air}
 
-- **CAP** : l'ennemi tient en l'air une CAP par tranche de `air.cap_per_players` (3) joueurs du [niveau d'opposition](scripts/veafQraManager.md#opposition-level), au moins une, au-dessus de sa zone du front la plus proche des joueurs.
-  Son cercle de patrouille (40 km au plus) s'arrête 15 km avant la portée des défenses antiaériennes de nos zones ; quand même un cercle de 5 km serait à leur portée, elle ne part pas : elle ne vient pas se jeter dans nos SAM.
+- **CAP** : l'ennemi tient en l'air une CAP par tranche de `air.cap_per_players` (3) joueurs du [niveau d'opposition](scripts/veafQraManager.md#opposition-level), au-dessus de sa zone du front la plus proche de nos chasseurs.
+  Ce niveau suit les **chasseurs** en l'air : les joueurs qui emportent un missile air-air à guidage radar (le suivi `air_to_air`, mis d'office quand la mission ne suit rien d'autre). Hélicoptères et avions d'attaque (A-10, Su-25, AV-8B…) ne comptent pas : quand aucun chasseur ne vole, aucune CAP ne décolle.
+  Son cercle de patrouille (40 km au plus) s'arrête 15 km avant la portée des défenses antiaériennes de nos zones ; quand même un cercle de 5 km serait à leur portée, elle prend la zone du front suivante, et ne part pas si aucune ne convient : elle ne vient pas se jeter dans nos SAM.
+  Elle engage nos avions de combat ; un hélicoptère ou un avion d'attaque qu'elle détecte n'est engagé que sur un tirage de `air.cap_helicopter_chance` (25 %), fait une fois par appareil, comme l'option `InvisibleA10` de Foothold.
 - **Frappes** : toutes les `air.strike_seconds` (900 s), une frappe CAS (sur la zone qui a le plus d'unités) ou SEAD (sur celle qui a le plus de défense antiaérienne), en alternance, sur une zone qui borde le territoire ennemi.
 - Elles **décollent** de l'aérodrome ennemi le plus proche, moteur chaud sur des parkings libres (les abris d'abord, les places ouvertes ensuite ; un gros avion, bombardier ou transport, jamais dans un abri), ou de la piste quand il n'y en a pas assez ; sans aérodrome, pas de sortie. Il en va de même pour la CAP, la BARCAP et le Hunter.
   Rien ne décolle d'un aérodrome à moins de `takeoff_threat_range` (40 km) d'une défense antiaérienne ennemie dont la portée a été mesurée (un Patriot abattrait les avions pendant qu'ils montent) ; la portée que donne DCS est celle du missile contre une cible haute, bien plus longue que celle à laquelle le SAM voit un avion qui décolle, d'où ce plafond, une estimation à régler.
   Une **SEAD** décolle quand même : éteindre cette défense est son travail, et ce qu'elle détruit libère le terrain pour les frappes.
   Sinon la sortie part d'un autre aérodrome, ou ne part pas, et `dcs.log` le dit (`[CAMPAIGN DECISION] nothing of red takes off from [Senaki]: it is under the air defence of [Kobuleti]`).
   `air.max_flights` (4) vols en l'air au plus par camp.
-- **Hunter** : un joueur qui enchaîne les victoires (entre 8 et 16 au sol, ou entre 4 et 8 en l'air, tiré une fois par vie) a ensuite 10 % de chances à chaque victoire de voir décoller deux chasseurs ennemis contre ce joueur ; son camp est prévenu.
+- **Hunter** : un joueur en chasseur qui enchaîne les victoires (entre 8 et 16 au sol, ou entre 4 et 8 en l'air, tiré une fois par vie) a ensuite 10 % de chances à chaque victoire de voir décoller deux chasseurs ennemis contre ce joueur ; son camp est prévenu.
 
 Les avions se déclarent par type et chargement **par son nom** dans l'éditeur de mission ; les outils vérifient l'un et l'autre et en tirent les pylônes, si bien que la mission n'a besoin d'aucun modèle d'avion.
 
@@ -173,12 +175,13 @@ Un achat refusé (plus de cible, rien à portée) ne coûte rien.
 | Hélico de capture | un hélicoptère qui va prendre une zone neutre | 250 |
 | Hélico de ravitaillement | un hélicoptère qui va ravitailler une de nos zones abîmées | 200 |
 | Raid de bombardiers | un [raid combiné](#bombers) — BARCAP, SEAD, bombardier — sur une zone ennemie, ses bâtiments d'abord | 1300 |
+| Escorte de mon groupe | deux chasseurs pour le groupe de l'acheteur, qui partent en l'air au-dessus de notre aérodrome le plus proche : un avion reçoit la tâche d'escorte de DCS ; un hélicoptère, trop lent pour des chasseurs, une CAP de 15 km au-dessus de lui, déplacée quand il a avancé de 8 km. Dans le menu de chaque pilote | 300 |
 | Ravitailleur | fait réapparaître le ravitailleur que nomme `economy.tanker` (un asset de la mission) ; absent sans lui | 300 |
 
 La BARCAP se tient sur l'axe entre la zone ennemie et notre aérodrome le plus proche, au premier point hors de portée de **toutes** les défenses ennemies (pas seulement celles de la zone visée) plus 15 km, et garde un cercle de 15 km ; quand aucun point de l'axe n'est hors de portée, elle tient au-dessus de son aérodrome.
 La portée se mesure sur les missiles que portent les unités de la zone quand elle est éveillée ; une zone endormie est supposée porter à 75 km si sa classe a un SAM longue portée, 20 km sinon, et le message le dit.
 
-Les prix se changent dans `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `tanker`, et `assault` pour l'ordre d'assaut de F10 → Campagne → Assaut, 300).
+Les prix se changent dans `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `escort`, `tanker`, et `assault` pour l'ordre d'assaut de F10 → Campagne → Assaut, 300).
 Ce que les joueurs achètent se paie en crédits, jamais sur les [ressources](#resources).
 
 ## Le tableau des tâches {#tasks}
@@ -407,7 +410,7 @@ Une ligne `KO` suffit à dire où regarder.
 | `helicopter` | `{red: Mi-8MT, blue: UH-1H}` | le type de l'hélicoptère de chaque camp |
 | `supply_crate` | `Zone supplies` | le nom de la caisse CTLD 2 qui ravitaille |
 | `hunter` | `{enabled: true, ground_kills: 8, air_kills: 4, chance: 10}` | le Hunter |
-| `air` | voir [l'aviation ennemie](#air) | `strike_seconds` (900), `max_flights` (4), `cap_per_players` (3), et les avions de chaque camp |
+| `air` | voir [l'aviation ennemie](#air) | `strike_seconds` (900), `max_flights` (4), `cap_per_players` (3), `cap_helicopter_chance` (25), et les avions de chaque camp |
 | `economy` | voir [la boutique](#shop) | `start_credits`, `kill_ground`, `kill_air`, `capture`, `delivery`, `prices`, `tanker`, `credits_per_point` (6), `demolition` (50), `warehouse_delivery` (50) |
 | `tasks` | voir [les tâches](#tasks) | `count`, `refresh_seconds`, `air_kills`, `rewards` (`attack`, `capture`, `resupply`, `air`, `intercept`) |
 | `intel` | voir [le renseignement](#intel) | `hidden`, `seconds`, `overflight_altitude`, `spy_troops`, `spy_range` |

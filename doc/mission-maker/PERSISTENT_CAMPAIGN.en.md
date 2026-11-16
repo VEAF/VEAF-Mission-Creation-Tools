@@ -121,15 +121,17 @@ Only one zone wakes per 10-second beat, so the whole front does not appear in on
 
 ## Enemy air {#air}
 
-- **CAP**: the enemy keeps one CAP up per `air.cap_per_players` (3) players of the [opposition level](scripts/veafQraManager.en.md#opposition-level), at least one, over its front zone nearest the players.
-  Its patrol circle (40 km at most) stops 15 km short of our zones' air defence reach; when even a 5 km circle would be in their reach, it does not fly: it does not throw itself at our SAMs.
+- **CAP**: the enemy keeps one CAP up per `air.cap_per_players` (3) players of the [opposition level](scripts/veafQraManager.en.md#opposition-level), over its front zone nearest our fighters.
+  That level follows the **fighters** in the air: the players carrying a radar-guided air-to-air missile (the `air_to_air` follow, set by default when the mission follows nothing else). Helicopters and attack airplanes (A-10, Su-25, AV-8B…) do not count: when no fighter flies, no CAP takes off.
+  Its patrol circle (40 km at most) stops 15 km short of our zones' air defence reach; when even a 5 km circle would be in their reach, it takes the next front zone, and does not fly when none suits: it does not throw itself at our SAMs.
+  It engages our combat airplanes; a helicopter or an attack airplane it detects is engaged only on a draw of `air.cap_helicopter_chance` (25 %), made once per aircraft, as Foothold's `InvisibleA10` option.
 - **Strikes**: every `air.strike_seconds` (900 s), a CAS strike (on the zone with the most units) or a SEAD strike (on the one with the most air defence), in turn, on a zone bordering the enemy's territory.
 - They **take off** from the nearest enemy airfield, hot on free stands (shelters first, open stands after; a large aircraft, bomber or transport, never in a shelter), or from the runway when there are not enough; no airfield, no sortie. So do the CAP, the BARCAP and the Hunter.
   Nothing takes off from an airfield within `takeoff_threat_range` (40 km) of an enemy air defence whose reach was measured (a Patriot would shoot the aircraft down while they climb); the reach DCS gives is the missile's against a high target, much longer than the range at which the SAM sees an aircraft taking off, hence this cap, an estimation to tune.
   A **SEAD** flight takes off all the same: putting that defence out is its job, and what it destroys frees the field for the strikes.
   Otherwise the sortie leaves from another airfield, or does not leave, and `dcs.log` says so (`[CAMPAIGN DECISION] nothing of red takes off from [Senaki]: it is under the air defence of [Kobuleti]`).
   `air.max_flights` (4) flights in the air at most per side.
-- **Hunter**: a player on a kill streak (between 8 and 16 on the ground, or between 4 and 8 in the air, drawn once per life) then has a 10 % chance at every kill to have two enemy fighters scrambled at that player, whose side is told.
+- **Hunter**: a player flying a fighter on a kill streak (between 8 and 16 on the ground, or between 4 and 8 in the air, drawn once per life) then has a 10 % chance at every kill to have two enemy fighters scrambled at that player, whose side is told.
 
 Aircraft are declared by type and loadout **by the name** the Mission Editor gives it; the tools check both and turn them into pylons, so the mission needs no aircraft template.
 
@@ -173,12 +175,13 @@ A purchase refused (no target left, nothing in reach) costs nothing.
 | Capture helicopter | a helicopter that goes and takes a neutral zone | 250 |
 | Resupply helicopter | a helicopter that goes and resupplies one of our damaged zones | 200 |
 | Bomber raid | a [combined raid](#bombers) — BARCAP, SEAD, bomber — on an enemy zone, its buildings first | 1300 |
+| Escort for my group | two fighters for the buyer's group, starting in the air over our nearest airfield: an airplane gets the DCS escort task; a helicopter, too slow for fighters, a 15 km CAP over it, moved when it has gone 8 km. In each pilot's menu | 300 |
 | Tanker | respawns the tanker `economy.tanker` names (an asset of the mission); absent without it | 300 |
 
 The BARCAP holds on the axis between the enemy zone and our nearest airfield, at the first point out of the reach of **every** enemy air defence (not only the target zone's) plus 15 km, and guards a 15 km circle; when no point of the axis is out of reach, it holds over its airfield.
 The reach is measured on the missiles the zone's units carry when it is awake; a sleeping zone is assumed to reach 75 km when its class has a long-range SAM, 20 km otherwise, and the message says so.
 
-Prices change in `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `tanker`, and `assault` for the assault order of F10 → Campaign → Assault, 300).
+Prices change in `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `escort`, `tanker`, and `assault` for the assault order of F10 → Campaign → Assault, 300).
 What the players buy is paid in credits, never from the [resources](#resources).
 
 ## The task board {#tasks}
@@ -407,7 +410,7 @@ A `KO` line is enough to know where to look.
 | `helicopter` | `{red: Mi-8MT, blue: UH-1H}` | each side's helicopter type |
 | `supply_crate` | `Zone supplies` | the name of the CTLD 2 crate that resupplies |
 | `hunter` | `{enabled: true, ground_kills: 8, air_kills: 4, chance: 10}` | the Hunter |
-| `air` | see [enemy air](#air) | `strike_seconds` (900), `max_flights` (4), `cap_per_players` (3), and each side's aircraft |
+| `air` | see [enemy air](#air) | `strike_seconds` (900), `max_flights` (4), `cap_per_players` (3), `cap_helicopter_chance` (25), and each side's aircraft |
 | `economy` | see [the shop](#shop) | `start_credits`, `kill_ground`, `kill_air`, `capture`, `delivery`, `prices`, `tanker`, `credits_per_point` (6), `demolition` (50), `warehouse_delivery` (50) |
 | `tasks` | see [the tasks](#tasks) | `count`, `refresh_seconds`, `air_kills`, `rewards` (`attack`, `capture`, `resupply`, `air`, `intercept`) |
 | `intel` | see [intelligence](#intel) | `hidden`, `seconds`, `overflight_altitude`, `spy_troops`, `spy_range` |

@@ -827,7 +827,7 @@ déplace lui-même hors du décor. Même déroulé que `clear-ground-sweep` : `d
 consignes, attente.
 
 Un « 0 véhicule dans le décor » ne vaut que ce que voit la sonde de DCS, et elle ne voit pas toutes les forêts : sur Syria, elle n'a trouvé aucun arbre sur la péninsule d'Akamas, où un T-72 jugé dégagé était en plein bois (limitation connue `disposition-blind-to-akamas-forest`, mesurée le 12/11/2026).
-Là où la carte est boisée, regardez les véhicules en jeu (vue F10, ou une fumée sur chaque position) avant de conclure.
+Là où la carte est boisée, lancez aussi [`forest-check`](#forest-check), qui lit les forêts dans les fichiers de la carte, et regardez les véhicules en jeu (vue F10, ou une fumée sur chaque position) avant de conclure.
 
 | Nom | Type | Obligatoire | Description |
 |---|---|---|---|
@@ -850,6 +850,33 @@ Là où la carte est boisée, regardez les véhicules en jeu (vue F10, ou une fu
 ```
 
 *Alias plat : `veaf-tools clear-ground-check`*
+
+### `veaf-tools dcs forest-check` {#forest-check}
+
+Liste les véhicules au sol d'une mission construite qui sont **dans une forêt**, d'après les fichiers de la carte installée avec DCS.
+Le jeu n'est pas lancé : la commande lit les forêts là où la vue F10 « Map » les prend pour les dessiner, dans `Mods\terrains\<carte>\surface\<carte>.surface5`, et ne charge que les morceaux de carte autour des véhicules ; elle répond en quelques secondes.
+Les positions sont lues dans le `.miz` ; les marqueurs de combat zone (`#command`) ne sont pas vérifiés, leur groupe est dessiné au runtime.
+
+C'est le complément de [`clear-ground-check`](#clear-ground-check) là où la sonde de DCS ne voit pas les arbres : sur Syria, elle disait dégagés le champ de tir d'Akamas et celui des hélicoptères de Ceyhan, tous deux en plein bois ; `forest-check` les trouve tous les deux (limitation connue `disposition-blind-to-akamas-forest`).
+Elle ne voit que les forêts : les bâtiments, les villes et les arbres isolés restent l'affaire de `clear-ground-check`.
+
+Le dossier de DCS est celui que DCS a inscrit dans le registre de Windows ; `--dcs-dir` en donne un autre (le dossier qui contient `Mods`).
+
+| Nom | Type | Obligatoire | Description |
+|---|---|---|---|
+| `MISSION` | `str` | oui | Le .miz à vérifier. Il est lu, jamais chargé dans DCS. |
+
+| Options | Type | Défaut | Description |
+|---|---|---|---|
+| `--dcs-dir` | `str` | *(registre de Windows)* | Le dossier d'installation de DCS (celui qui contient Mods). |
+| `--report` | `str` | *(aucun)* | Écrire aussi le rapport en JSON dans ce fichier. |
+| `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
+
+```powershell
+.\veaf-tools.exe dcs forest-check build\MaMission.miz
+```
+
+*Alias plat : `veaf-tools forest-check`*
 
 ### `veaf-tools dcs scenery-objects` {#scenery-objects}
 

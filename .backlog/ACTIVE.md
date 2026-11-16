@@ -6,10 +6,6 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [FEAT-FOREST-CHECK](FEAT-FOREST-CHECK/PRD.md) · 🔄
-
-Read where a DCS map has forests from its `.surface5` file, without the game, and `veaf-tools dcs forest-check <mission.miz>` to list the vehicles standing in one. From the Akamas and Ceyhan ranges of the Syria Open Training, placed in woods the scenery probe does not see (2026-11-16).
-
 ## 🧑 Waiting for a human
 
 ### [FIX-OPEN-TRAINING-PILOT-FEEDBACK](FIX-OPEN-TRAINING-PILOT-FEEDBACK/PRD.md) · 🧑

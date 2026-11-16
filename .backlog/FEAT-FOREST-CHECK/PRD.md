@@ -1,6 +1,6 @@
 # FEAT-FOREST-CHECK — Read where a DCS map has forests, without the game
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Problem
 

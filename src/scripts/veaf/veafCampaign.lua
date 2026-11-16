@@ -2444,10 +2444,13 @@ function veafCampaign.writeState()
       veaf.loggers.get(veafCampaign.Id):error("cannot write the campaign state to %s: %s", target, tostring(openError))
       return false
     end
-    -- buffered: a full disk often shows up only at close, so both answers count (issue #1146)
+    -- buffered: a full disk often shows up only at close, so both answers count (issue #1146). Only an error,
+    -- or an explicit false, is a failure: inside DCS a write that worked can answer nothing at all (measured
+    -- 2026-11-16, every save logged as failed with no error while the file was written whole, so the state
+    -- itself was never written and every reload fell back on the temporary)
     local written, writeError = file:write(content)
     local closed, closeError = file:close()
-    if not (written and closed) then
+    if written == false or closed == false or writeError ~= nil or closeError ~= nil then
       veaf.loggers.get(veafCampaign.Id):error("cannot write the campaign state to %s: %s", target, tostring(writeError or closeError))
       return false
     end

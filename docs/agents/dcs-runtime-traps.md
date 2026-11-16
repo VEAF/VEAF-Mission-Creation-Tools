@@ -1075,6 +1075,21 @@ FIX-BUNDLE-LOCAL-LIMIT. In a hand-written `mission-script.lua`, keep state in a 
 *What it cost:* *Kolkhida* mission 1, rebuilt from `develop` the afternoon it was to be flown, loaded no VEAF
 module; no test had ever run the concatenated bundle.
 
+### Inside DCS, a file write or close that worked can return nothing {#io-write-that-worked-can-answer-nothing}
+
+Measured **2026-11-16**.
+
+Standard Lua 5.1 answers `file:write` with the file and `file:close` with `true`, and `nil` plus a
+message on failure. Inside a DCS mission, on 2026-11-16, a persistent campaign's save checked both
+answers for truth and logged every save as failed — `cannot write the campaign state … : nil`, no
+error message at all — while the file it wrote was there, whole (32 kB). Which of the two calls
+answered nothing was not isolated.
+
+**What to do:** Treat as a failure only an error message or an explicit `false`, never a missing answer.
+
+*What it cost:* The campaign's state file itself was never written, only its temporary: every reload fell back on
+the temporary, and the self-check's save line read KO. Fixed in FEAT-DYNAMIC-CAMPAIGN's V1.5.
+
 ### `weapon:getTarget()` can return an object with no `isExist` method {#weapon-gettarget-object-with-no-isexist}
 
 Measured **2026-10-12**.

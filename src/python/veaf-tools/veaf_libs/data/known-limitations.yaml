@@ -214,6 +214,23 @@ limitations:
     None needed for the front: zones and garrisons come back. Restart a server between two sorties
     when it matters.
 
+- id: io-write-that-worked-can-answer-nothing
+  kind: dcs
+  area: scripting
+  title: "Inside DCS, a file write or close that worked can return nothing"
+  measured: "2026-11-16"
+  symptom: |
+    Standard Lua 5.1 answers `file:write` with the file and `file:close` with `true`, and `nil` plus a
+    message on failure. Inside a DCS mission, on 2026-11-16, a persistent campaign's save checked both
+    answers for truth and logged every save as failed — `cannot write the campaign state … : nil`, no
+    error message at all — while the file it wrote was there, whole (32 kB). Which of the two calls
+    answered nothing was not isolated.
+  workaround: |
+    Treat as a failure only an error message or an explicit `false`, never a missing answer.
+  cost: |
+    The campaign's state file itself was never written, only its temporary: every reload fell back on
+    the temporary, and the self-check's save line read KO. Fixed in FEAT-DYNAMIC-CAMPAIGN's V1.5.
+
 - id: persistent-campaign-v15-unmeasured-in-game
   kind: tool
   area: runtime

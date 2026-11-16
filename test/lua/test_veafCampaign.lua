@@ -693,10 +693,16 @@ local function fakeFileSystem(self, options)
           return nil, "No space left on device"
         end
         table.insert(chunks, text)
+        if options.answersNothing then
+          return -- what DCS's io did on 2026-11-16 for a write that worked
+        end
         return file
       end
       file.close = function()
         this.files[path] = table.concat(chunks)
+        if options.answersNothing then
+          return
+        end
         if options.closeFails then
           -- buffered: a full disk shows up at close, with what was flushed left behind
           this.files[path] = table.concat(chunks):sub(1, 10)
@@ -832,6 +838,15 @@ function TestVeafCampaignStateFile:test_a_failed_write_keeps_the_previous_state(
   luaunit.assertEquals(self.removed, {})
   luaunit.assertEquals(self.renames, {})
   luaunit.assertEquals(self.files[PATH], PREVIOUS_STATE)
+end
+
+function TestVeafCampaignStateFile:test_a_write_that_answers_nothing_has_worked()
+  -- inside DCS a successful write can return nothing: every save of a persistent campaign was logged as failed
+  -- and the state file itself was never written, only its temporary (measured 2026-11-16)
+  fakeFileSystem(self, { answersNothing = true })
+  luaunit.assertTrue(veafCampaign.writeState())
+  luaunit.assertEquals(#self.renames, 1)
+  luaunit.assertTrue(veafCampaign.lastWriteOk)
 end
 
 function TestVeafCampaignStateFile:test_a_failed_close_keeps_the_previous_state()

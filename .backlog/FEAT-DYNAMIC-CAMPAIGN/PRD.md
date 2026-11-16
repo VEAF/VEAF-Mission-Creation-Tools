@@ -37,7 +37,8 @@ Section numbers point to the detailed notes under [`foothold-analysis/`](foothol
 | V1 | Hunter: two enemy fighters scrambled against a player on a kill streak | 03 §8 |
 | V1 | Spy team: a CTLD troop that walks into an enemy zone and reveals it for an hour (feeds the intelligence line above) | 07 §10 |
 | V1.5 | Strategic bombers: an escorted red raid to intercept; a blue raid bought in the shop | 03 §12 |
-| V1.5 | Demolition team: CTLD sappers who blow up a zone's structures | 07 §10 |
+| V1.5 | **Zone kinds** (David, 2026-11-16): factories, air bases, naval bases… each played its own way. A factory is a set of statics (its buildings): it makes sense to demolish it, and destroying it costs the enemy something. An air base makes no sense to demolish: it is captured, after its defences are destroyed. Today every zone is the same — an airfield or a point, a garrison of vehicles, taken by ground presence — and `kind: logistics` is the only kind | 01 §1, §5; 07 §27–§29 |
+| V1.5 | Demolition team: CTLD sappers who blow up a zone's structures — needs the zone kinds above: only a kind made of statics, such as a factory, has anything to blow up | 07 §10 |
 | CTLD | C-130J air-dropped crates that build themselves: a feature of our CTLD 2, not of this lot | 07 §13 |
 | left out | Trains (Normandy only) | 07 §30 |
 | left out | PvP, splash damage, EWRS, ten languages | — |

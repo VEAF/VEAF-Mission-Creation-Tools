@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-OPEN-TRAINING-PILOT-FEEDBACK](FIX-OPEN-TRAINING-PILOT-FEEDBACK/PRD.md) · ✅
+
+David's notes after flying the Open Trainings. QNH in hPa and inHg everywhere (#1280); a real helicopter hard tier (Tor, Tunguska, Osa) in the six Open Trainings; the radio menu order was already done by FEAT-RADIO-MENU-ORDER. The training ranges stand out of the forests: Ceyhan moved and checked in game on Syria, then `forest-check` run on the six Open Trainings (2026-11-16) — Akamas and Karpas on Syria, three groups on Caucasus, the three jungle ranges of Marianas (44 groups into clearings) moved; Falklands, Persian Gulf and Sinai had nothing to move. Reaches the players with the next VMCT release and `Publish-OT`.
+
 ### [FEAT-FOREST-CHECK](FEAT-FOREST-CHECK/PRD.md) · ✅
 
 Forests read from a DCS map's `.surface5` file without the game, and `veaf-tools dcs forest-check <mission.miz>` to list the vehicles standing in one (#1285). A point counts as forest only when the forest is the overlay drawn on top there: Agana's airfield on Marianas WWII, checked on David's F10 captures, is drawn over a forest texture. Validated on David's six Syria places and on the parking stands of the eleven maps (2026-11-16).

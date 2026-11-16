@@ -899,14 +899,15 @@ veafAircraftSpawn.roles.campaign_escort = {
 }
 
 --- What a raid on a side's zones would hit: its factories with a building standing first, by how many stand;
---- else its zone with the most garrison units alive.
+--- else its zone with the most garrison units alive. Only a zone some airfield of the side can reach counts
+--- (`raidOrigin`): a target with no field far enough would send nothing, raid after raid.
 --- @param side string the side that sends the raid
 --- @return table|nil the target zone
 function veafCampaignOps.raidTarget(side)
   local enemy = veafCampaign.enemyOf(side)
   local best, bestValue = nil, 0
   for _, zone in ipairs(veafCampaign.zoneList) do
-    if zone.placed and zone.entry.owner == enemy then
+    if zone.placed and zone.entry.owner == enemy and veafCampaignOps.raidOrigin(side, zone) then
       local standing = zone:structuresStanding()
       local value = standing > 0 and 1000 + standing or zone:countUnits()
       if value > bestValue then

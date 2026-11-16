@@ -903,11 +903,20 @@ end
 TestCampaignBombers = { setUp = setUpSuite, tearDown = tearDownSuite }
 
 function TestCampaignBombers:test_a_raid_aims_at_a_factory_first()
-  start({}, function(d)
+  start({ bombers = { min_distance = 40000 } }, function(d)
     d.zones[2].kind = "factory"
   end)
   luaunit.assertEquals(veafCampaignOps.raidTarget("red").name, "Poti")
   luaunit.assertEquals(veafCampaignOps.raidTarget("blue").name, "Tkvarcheli")
+end
+
+function TestCampaignBombers:test_a_target_no_airfield_can_reach_is_passed_over()
+  start({ bombers = { min_distance = 90000 } }, function(d)
+    d.zones[2].kind = "factory" -- Poti, 50 km from Senaki, red's only airfield: too near; Kobuleti, 100 km, is not
+  end)
+  luaunit.assertEquals(veafCampaignOps.raidTarget("red").name, "Kobuleti")
+  start({ bombers = { min_distance = 500000 } })
+  luaunit.assertNil(veafCampaignOps.raidTarget("red"))
 end
 
 function TestCampaignBombers:test_it_leaves_from_the_nearest_airfield_far_enough()

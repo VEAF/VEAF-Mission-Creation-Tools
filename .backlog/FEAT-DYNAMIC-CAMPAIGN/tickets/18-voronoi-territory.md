@@ -1,6 +1,6 @@
 # 18 — Territory cells (Voronoi) tinted by owner
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human — built and tested outside DCS in #1282 (2026-11-16); the in-game check of the test mission is David's
 
 PRD row "Territory cells (Voronoi)"; analysis note 01 §14 (the mechanism, rewritten here: Foothold's code is GPL-3.0).
 

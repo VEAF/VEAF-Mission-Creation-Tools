@@ -6,11 +6,11 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [FEAT-DYNAMIC-CAMPAIGN](FEAT-DYNAMIC-CAMPAIGN/PRD.md) · 🔄
-
-A Foothold-like persistent campaign built on VMCT alone, on the multi-mission campaign's bricks. V1 merged into the integration branch `feature/dynamic-campaign` (#1276): persistent mode, dormancy, a front that moves on its own, AI supply helicopters, enemy air, credits and shop, a task board, intelligence. V1 checked in game by David; the V1.5 is being built (tickets 11 to 19: zone kinds, resources and production, the supply network, paid spawns, demolition team, warehouse stocks, strategic bombers, territory cells), then the server measurement (ticket 10); the integration branch goes to `develop` on David's call.
-
 ## 🧑 Waiting for a human
+
+### [FEAT-DYNAMIC-CAMPAIGN](FEAT-DYNAMIC-CAMPAIGN/PRD.md) · 🧑
+
+A Foothold-like persistent campaign built on VMCT alone, on the multi-mission campaign's bricks. V1 merged into the integration branch `feature/dynamic-campaign` (#1276): persistent mode, dormancy, a front that moves on its own, AI supply helicopters, enemy air, credits and shop, a task board, intelligence. V1 checked in game by David; the V1.5 merged into it in #1282 and waits for David's in-game check (tickets 11 to 19: zone kinds, resources and production, the supply network, paid spawns, demolition team, warehouse stocks, strategic bombers, territory cells), then the server measurement (ticket 10); the integration branch goes to `develop` on David's call.
 
 ### [FEAT-MISSION-WIND-CHECK](FEAT-MISSION-WIND-CHECK/PRD.md) · 🧑
 

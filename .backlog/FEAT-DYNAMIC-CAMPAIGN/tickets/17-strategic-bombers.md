@@ -1,6 +1,6 @@
 # 17 — Strategic bombers: an escorted red raid, a blue raid bought
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human — built and tested outside DCS in #1282 (2026-11-16); the in-game check of the test mission is David's
 
 PRD row "Strategic bombers"; analysis note 03 §12.
 

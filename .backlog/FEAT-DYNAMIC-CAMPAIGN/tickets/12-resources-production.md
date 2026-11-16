@@ -1,6 +1,6 @@
 # 12 — Resources for the AI: one stock per side, prices, production
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human — built and tested outside DCS in #1282 (2026-11-16); the in-game check of the test mission is David's
 
 PRD row "Resources for the AI, credits for the players" (David, 2026-11-16); analysis note 07 §26.
 

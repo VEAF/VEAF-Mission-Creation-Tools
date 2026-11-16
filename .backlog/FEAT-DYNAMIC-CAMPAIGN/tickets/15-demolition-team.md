@@ -1,6 +1,6 @@
 # 15 — Demolition team: sappers who blow up a factory
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human — built and tested outside DCS in #1282 (2026-11-16); the in-game check of the test mission is David's
 
 PRD row "Demolition team"; analysis note 07 §10. Needs ticket 11: only a factory has buildings to blow up.
 

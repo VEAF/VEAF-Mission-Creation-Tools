@@ -270,6 +270,23 @@ Fumigènes, fusées, dessins, destruction, téléportation et mission master res
 Un alias en lot (`-arty1`) se paie comme ses alias : sa batterie est facturée, même si le mot de passe n'est vérifié qu'une fois.
 Ce qu'un script fait apparaître (une combat zone, une commande que l'interpréteur lit dans un nom posé dans l'éditeur, les sorties de la campagne elle-même) n'est pas l'action d'une personne et ne se paie pas ici.
 
+### Les commandes réservées {#reserved-commands}
+
+Certaines commandes seraient de la triche dans une campagne persistante : elle les réserve au niveau **admin** (celui du fichier des pilotes VEAF), quel que soit leur niveau ailleurs.
+
+| Réservées aux admins | Ce qu'elles font |
+|---|---|
+| `-shell`, `-cesar`, `-flak`, `_spawn bomb` | des explosions où l'on veut |
+| `-destroy`, `_destroy` | détruire les unités autour du marqueur |
+| `-tanker`, `-tankerhere`, `_teleport`, `_move … teleport` | téléporter un groupe ou le ravitailleur |
+| `-zonestart`, `-zonestop`, `-airstart`, `-airstop` | activer ou arrêter une combat zone ou une vague aérienne |
+| `-send`, `-play`, `_radio` | diffuser un message ou un son à tout le serveur |
+| `-light`, `_spawn flare` | de l'éclairage gratuit, que la boutique vend |
+
+**`-cas` est désactivée** : une zone CAS d'entraînement n'a pas de sens dans une campagne.
+Le reste garde le niveau de son module : fumigènes, signaux, points nommés, balises, dessins, altitude du ravitailleur, commandes de l'artillerie posée.
+Une mission dont la sécurité est coupée (une copie de test) laisse tout passer, sauf `-cas`.
+
 ## L'équipe de démolition {#demolition}
 
 Le groupe de troupes CTLD 2 **« Sappers »** (`demolition.troops`), déposé par le camp des joueurs, marche vers l'usine ennemie dont les bâtiments sont à moins de `demolition.range` (5 km) de son point de dépose.

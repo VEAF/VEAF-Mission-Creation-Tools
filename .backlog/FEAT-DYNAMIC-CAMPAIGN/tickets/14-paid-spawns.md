@@ -27,6 +27,10 @@ Free: the commands that put no unit into play (smoke, flares, drawings, destroy,
 
 A batch alias (`-arty1`) bypasses the password it has already checked for the pilot who dropped it; until this lot, that bypass also meant "a script asked", so its battery was free. `scripted` now travels through `veafShortcuts` apart from the bypass (David, 2026-11-16).
 
+## Reserved and disabled commands (David, 2026-11-16)
+
+What would be cheating in a persistent campaign is reserved to admins there, through a marker policy the campaign sets on `veafCommands` (`markerPolicy`, asked for a player's marker only): `-shell`, `-cesar`, `-flak`, `_spawn bomb`, `-destroy`, `_destroy`, `-tanker`, `-tankerhere`, `_teleport`, `_move … teleport`, `-zonestart`, `-zonestop`, `-airstart`, `-airstop`, `-send`, `-play`, `_radio`, `-light`, `_spawn flare`. `-cas` and `_cas` are turned off: a dynamic CAS training zone makes no sense in a campaign. Other missions keep their levels.
+
 ## How
 
 `veafSpawn.executeCommand` asks an optional `veafSpawn.spawnGate(key, options, requester)` before the command's handler runs, and tells `veafSpawn.spawnPaid(...)` what it spawned; outside a persistent campaign nothing is set and nothing changes.

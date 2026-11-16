@@ -270,6 +270,23 @@ Smoke, flares, drawings, destroy, teleport and mission master stay free: they pu
 A batch alias (`-arty1`) is paid like its aliases: its battery is charged, though the password is checked only once.
 What a script spawns (a combat zone, a command the interpreter reads from a name placed in the editor, the campaign's own sorties) is no person's action and is not paid here.
 
+### Reserved commands {#reserved-commands}
+
+Some commands would be cheating in a persistent campaign: it reserves them to the **admin** level (the one of the VEAF pilots file), whatever their level elsewhere.
+
+| Reserved to admins | What they do |
+|---|---|
+| `-shell`, `-cesar`, `-flak`, `_spawn bomb` | explosions wherever one likes |
+| `-destroy`, `_destroy` | destroy the units around the marker |
+| `-tanker`, `-tankerhere`, `_teleport`, `_move … teleport` | teleport a group or the tanker |
+| `-zonestart`, `-zonestop`, `-airstart`, `-airstop` | start or stop a combat zone or an air wave |
+| `-send`, `-play`, `_radio` | broadcast a message or a sound to the whole server |
+| `-light`, `_spawn flare` | free illumination, which the shop sells |
+
+**`-cas` is turned off**: a CAS training zone makes no sense in a campaign.
+Everything else keeps its module's level: smoke, signals, named points, beacons, drawings, the tanker's altitude, the commands of an artillery battery already placed.
+A mission with security off (a test copy) lets everything through, `-cas` excepted.
+
 ## The demolition team {#demolition}
 
 The CTLD 2 troop group **"Sappers"** (`demolition.troops`), dropped by the players' side, walks to the enemy factory whose buildings are within `demolition.range` (5 km) of where it was dropped.

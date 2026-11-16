@@ -1130,6 +1130,58 @@ function TestCampaignTerritory:test_off_nothing_is_drawn()
 end
 
 -- ---------------------------------------------------------------------------
+-- The players' markers in a persistent campaign (David, 2026-11-16)
+-- ---------------------------------------------------------------------------
+TestCampaignMarkerPolicy = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+function TestCampaignMarkerPolicy:test_cheats_are_for_admins_cas_is_off_the_rest_untouched()
+  local expected = {
+    ["-shell"] = "ADMIN",
+    ["-cesar, radius 50"] = "ADMIN",
+    ["-flak"] = "ADMIN",
+    ["-destroy"] = "ADMIN",
+    ["-tanker"] = "ADMIN",
+    ["-tankerhere Texaco"] = "ADMIN",
+    ["-zonestart, name x"] = "ADMIN",
+    ["-airstop"] = "ADMIN",
+    ["-send hello"] = "ADMIN",
+    ["-light"] = "ADMIN",
+    ["_spawn bomb, power 500"] = "ADMIN",
+    ["_SPAWN FLARE"] = "ADMIN",
+    ["_destroy, radius 100"] = "ADMIN",
+    ["_teleport, name x"] = "ADMIN",
+    ["_move tanker, teleport, name x"] = "ADMIN",
+    ["_radio transmit, message x"] = "ADMIN",
+    ["-cas"] = "disabled",
+    ["-cas!30"] = "disabled",
+    ["_cas, disperse"] = "disabled",
+  }
+  for text, policy in pairs(expected) do
+    luaunit.assertEquals(veafCampaignLogistics.markerPolicy(text), policy, text)
+  end
+  for _, text in ipairs({
+    "-smoke",
+    "-signal",
+    "-tankerlow",
+    "-tankerhigh",
+    "-armor, side blue",
+    "_spawn group, name x",
+    "_move tanker, alt 6000",
+    "RDV ici",
+    "-point here",
+  }) do
+    luaunit.assertNil(veafCampaignLogistics.markerPolicy(text), text)
+  end
+end
+
+function TestCampaignMarkerPolicy:test_the_campaign_sets_it()
+  veafCommands = { SECURITY_CHECKS = {} }
+  start()
+  luaunit.assertEquals(veafCommands.markerPolicy, veafCampaignLogistics.markerPolicy)
+  veafCommands = nil
+end
+
+-- ---------------------------------------------------------------------------
 -- Self-check
 -- ---------------------------------------------------------------------------
 TestCampaignV15SelfCheck = { setUp = setUpSuite, tearDown = tearDownSuite }

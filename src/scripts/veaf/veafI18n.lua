@@ -2190,6 +2190,14 @@ veaf.i18nCatalog = {
   },
 
   -- FEAT-DYNAMIC-CAMPAIGN V1.5
+  ["command.disabled_here"] = {
+    fr = "%s : cette commande est désactivée dans cette mission.",
+    en = "%s: this command is turned off in this mission.",
+  },
+  ["command.reserved_here"] = {
+    fr = "%s : dans cette mission, cette commande est réservée au niveau %s.",
+    en = "%s: in this mission, this command is reserved to the %s level.",
+  },
   ["campaign.map_factory"] = { fr = " · usine %d/%d", en = " · factory %d/%d" },
   ["campaign.map_depot"] = { fr = " · dépôt", en = " · depot" },
   ["campaign.shop.item.assault"] = { fr = "Assaut", en = "Assault" },

@@ -73,6 +73,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Production reaches the zones hop by hop along the connections of the side's own zones, a hop touching a depot at half time, so capturing a node cuts or delays the network.
   Every VEAF spawn command a person drops is paid for the units it made, unit by unit — in credits for the players' side, from the resources for the other — whole, into debt if need be, after which the side spawns nothing more until its balance is above zero again; a batch alias such as `-arty1` is paid too.
   Weapon stocks survive a restart and are moved by players in helicopters or transports, the enemy sends escorted bomber raids (the players buy their own, and an intercept task is posted), and the F10 map is tinted by territory with the front drawn between the sides.
+  A persistent campaign reserves to admins the markers that would be cheating there (explosions, destroy, teleport, broadcast, combat-zone activation, free illumination) and turns `-cas` off.
   `campaign next` reports the interpreter commands a persistent campaign's mission holds: they spawn afresh at every restart, outside the save, and belong in `campaign.yaml` as zones and garrisons.
   New runtime module `veafCampaignLogistics`; every setting under `dynamic:` with its default in *Persistent campaign*.
 

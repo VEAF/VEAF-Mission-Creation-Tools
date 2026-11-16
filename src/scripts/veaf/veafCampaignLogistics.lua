@@ -49,6 +49,37 @@ veafCampaignLogistics.SPAWN_COMMANDS = {
   logistic = true,
 }
 
+--- The markers a persistent campaign reserves to admins: what would be cheating there — explosions, destroying,
+--- teleporting, broadcasting, activating designed content, free illumination the shop sells (David,
+--- 2026-11-16). Aliases by name, commands by their first words.
+veafCampaignLogistics.ADMIN_MARKERS = {
+  ["-shell"] = true,
+  ["-cesar"] = true,
+  ["-flak"] = true,
+  ["-destroy"] = true,
+  ["-tanker"] = true,
+  ["-tankerhere"] = true,
+  ["-zonestart"] = true,
+  ["-zonestop"] = true,
+  ["-airstart"] = true,
+  ["-airstop"] = true,
+  ["-send"] = true,
+  ["-play"] = true,
+  ["-light"] = true,
+  ["_spawn bomb"] = true,
+  ["_spawn flare"] = true,
+  ["_destroy"] = true,
+  ["_teleport"] = true,
+  ["_radio"] = true,
+}
+
+--- The markers a persistent campaign turns off: a dynamic CAS training zone makes no sense in it (David,
+--- 2026-11-16).
+veafCampaignLogistics.DISABLED_MARKERS = {
+  ["-cas"] = true,
+  ["_cas"] = true,
+}
+
 --- How near the buildings' row the sappers plant their charges, in metres.
 veafCampaignLogistics.PLANT_DISTANCE = 200
 
@@ -533,6 +564,31 @@ function veafCampaignLogistics.paidSurvivors()
   return worth
 end
 
+--- The policy a persistent campaign sets on the players' markers (`veafCommands.markerPolicy`): "disabled",
+--- "ADMIN", or nil for the module's own level. The first word decides — an alias, or a command with, for
+--- `_spawn`, its kind; `_move` only when it teleports.
+--- @param text string the marker's text
+--- @return string|nil
+function veafCampaignLogistics.markerPolicy(text)
+  local lower = type(text) == "string" and text:lower() or ""
+  local word = lower:match("^%s*([%-_][%w_]+)")
+  if not word then
+    return nil
+  end
+  if veafCampaignLogistics.DISABLED_MARKERS[word] then
+    return "disabled"
+  end
+  local kind = lower:match("^%s*_spawn%s+([%w]+)")
+  if
+    veafCampaignLogistics.ADMIN_MARKERS[word]
+    or (kind and veafCampaignLogistics.ADMIN_MARKERS["_spawn " .. kind])
+    or (word == "_move" and lower:find("teleport", 1, true))
+  then
+    return "ADMIN"
+  end
+  return nil
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Demolition teams (ticket 15)
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -986,6 +1042,9 @@ function veafCampaignLogistics.initialize()
   if veafSpawn then
     veafSpawn.spawnGate = veafCampaignLogistics.spawnGate
     veafSpawn.spawnPaid = veafCampaignLogistics.spawnPaid
+  end
+  if veafCommands then
+    veafCommands.markerPolicy = veafCampaignLogistics.markerPolicy
   end
   table.insert(veafCampaign.beatHooks, veafCampaignLogistics.beat)
   table.insert(veafCampaign.selfChecks, veafCampaignLogistics.selfCheck)

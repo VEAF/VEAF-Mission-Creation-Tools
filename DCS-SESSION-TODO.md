@@ -59,6 +59,17 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R55. The Marianas WWII airfields, under the trees or not — **no pilot**
+
+[`FEAT-FOREST-CHECK`](.backlog/FEAT-FOREST-CHECK/PRD.md), ticket 03.
+`forest-check` puts a third of the Marianas WWII parking spots in a forest, against none or almost none on the ten other maps.
+
+**Prepare**: any mission on MarianaIslandsWWII, empty is enough.
+
+1. F10 view, "Map" mode, then the Sat view, on three stands (mission x, y): Agana #40 (-811, -1606), Orote #34 (-4991, -17056), Airfield 3 #82 (174307, 91592).
+   - **Trees on the stands** (green dotted area on the Map view, canopy on the Sat view): the reader is right; turn the limitation `forest-check-unexplained-on-marianas-wwii` into a dated `kind: dcs` entry and close ticket 03.
+   - **Open ground**: the reader is wrong on that map; open a fix lot, starting from the forest meshes of Agana compared with the F10 drawing.
+
 ### R54. What the combat log records of a real fight — **two pilots, one of them in a helicopter with a gun**
 
 [`FEAT-COMBAT-LOG`](.backlog/FEAT-COMBAT-LOG/PRD.md), ticket 03.

@@ -281,7 +281,7 @@ On every run, `campaign next` writes into the mission's `mission.yaml`:
 `campaign next` writes the mission's `src/waypoints.yaml` from its objectives, instead of keeping the template's example: one waypoint per zone the mission's tasks name in `briefing.yaml` (else the campaign's objectives), at the zone's centre, in the tasks' order, for the players' side.
 
 - **On the ground**, for planes and helicopters alike (`RADIO`, 0 m): the objective is on the ground, and that is where a targeting pod or a weapon slaved to the steerpoint looks. Planes and helicopters share the waypoint; the mission briefing writes "ground".
-- **The name** is the zone's first word, in capitals and without accents: *Khobi depot* becomes `KHOBI`. Two zones starting with the same word keep their whole names (`SENAKI_NORTH`).
+- **The name** is the zone's first word, in capitals and without accents: *Khobi depot* becomes `KHOBI`. A leading article of one or two letters is skipped: *Al-Safira* becomes `SAFIRA`. Two zones starting with the same word keep their whole names (`SENAKI_NORTH`).
 - **The build adds `BULLSEYE`** to every flight plan.
 
 Once edited, the file is yours: it carries the fingerprint of what `campaign next` wrote, and a second `campaign next` rewrites it only while that fingerprint matches.

@@ -3,7 +3,7 @@
 DCS's scenery probe (``Disposition.getSimpleZones``, behind ``veaf-tools dcs clear-ground-check``) is
 blind to some forests: on Syria it answered "clear" for the Akamas and Ceyhan ranges, both standing in
 woods (``known-limitations.yaml``, ``disposition-blind-to-akamas-forest``). The F10 map draws those
-forests, and so does this module, from the same data: the ``Trees`` meshes of
+forests, and so does this module, from the same data: the ``Trees`` or ``Forest`` meshes of
 ``Mods/terrains/<map>/surface/<map>.surface5``.
 
 **The file, as measured on Syria (DCS 2.9, 2026-11-16).** ``landscape5::Surface5File``, not encrypted,
@@ -14,8 +14,9 @@ and ends with its base vertex buffer ``Pbase`` (f32 x 3, relative to the origin)
 group of named arrays followed by its material; a named array is
 ``<u32 len><name><u16 type><u16 element size><u32 flag><u64 byte count><u48 offset into the pool>``.
 A forest mesh has no vertex of its own: its ``baseIndex`` array indexes the node's ``Pbase``, and its
-``TRI`` array indexes its ``baseIndex``. Its material, ``Simple5.1`` / ``Trees``, is followed by a
-parameter count, two u32, two bytes and its bounding box (six f32, relative to the node origin).
+``TRI`` array indexes its ``baseIndex``. Its material (shader, then kind ``Trees`` or ``Forest``) is
+followed by a parameter count, two u32, two bytes and its bounding box (six f32, relative to the node
+origin). The same layout was found on the eleven maps installed on 2026-11-16.
 
 **Axes.** World ``x`` is mission ``x`` (north), world ``z`` is mission ``y`` (east); ``y`` is height,
 unused here. Checked against six places David knows in game, on Syria: the three in a wood are inside a
@@ -40,7 +41,12 @@ _MAGIC = b"landscape5::Surface5File"
 _MAGIC_AT = 0x24
 _POOL_START_AT = 0x08
 _NODE_MATRIX = re.compile(re.escape(struct.pack("<12f", 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0)))
-_TREES_MATERIAL = struct.pack("<I", 9) + b"Simple5.1" + struct.pack("<I", 5) + b"Trees"
+#: A forest material: ``<u32 len><shader><u32 len><kind>``. The shader varies by map (``Simple5.1`` on
+#: Syria and Afghanistan, ``CaucasusSimple5.1``, ``HardSplat5.1`` on Normandy...), the kind is ``Trees``
+#: or ``Forest``; the arrays before it are laid out the same way on every map installed (2026-11-16).
+_FOREST_MATERIAL = re.compile(
+    rb"([\x05-\x20])\x00\x00\x00([A-Za-z]+[0-9]\.[0-9])(\x05\x00\x00\x00Trees|\x06\x00\x00\x00Forest)"
+)
 _PBASE = struct.pack("<I", 5) + b"Pbase"
 #: How far before a forest material its arrays are looked for. A group of arrays is a few hundred bytes.
 _GROUP_WINDOW = 1024
@@ -203,18 +209,19 @@ class SurfaceForests:
         nodes = [m.start() for m in _NODE_MATRIX.finditer(data, 0, pool)]
         meshes: list[_ForestMesh] = []
         node = -1
-        at = data.find(_TREES_MATERIAL, 0, pool)
-        while at >= 0:
+        for material in _FOREST_MATERIAL.finditer(data, 0, pool):
+            if material.group(1)[0] != len(material.group(2)):
+                continue
+            at = material.start()
             while node + 1 < len(nodes) and nodes[node + 1] < at:
                 node += 1
-            mesh = self._mesh_at(at, nodes, node)
+            mesh = self._mesh_at(at, material.end(), nodes, node)
             if mesh is not None:
                 meshes.append(mesh)
-            at = data.find(_TREES_MATERIAL, at + len(_TREES_MATERIAL), pool)
         return meshes
 
-    def _mesh_at(self, at: int, nodes: list[int], node: int) -> _ForestMesh | None:
-        """Locate the forest mesh whose material starts at *at*, or ``None`` for the material table."""
+    def _mesh_at(self, at: int, end: int, nodes: list[int], node: int) -> _ForestMesh | None:
+        """Locate the forest mesh whose material spans ``[at, end)``, or ``None`` for the material table."""
         data = self._map
         start = max(0, at - _GROUP_WINDOW)
         triangles = self._last_array(b"TRI", start, at)
@@ -222,12 +229,12 @@ class SurfaceForests:
             return None
         base_index = self._last_array(b"baseIndex", start, at)
         node_end = nodes[node + 1] if node + 1 < len(nodes) else self._pool
-        pbase_at = data.find(_PBASE, at, node_end)
+        pbase_at = data.find(_PBASE, end, node_end)
         if base_index is None or pbase_at < 0:
             raise SurfaceFormatError(f"{self.path}: forest mesh at {at} without its baseIndex or its node's Pbase")
         vertices = self._array_at(pbase_at, len(b"Pbase"))[0]
         origin_x, _origin_y, origin_z = struct.unpack_from("<3f", data, nodes[node] + 48)
-        box_at = at + len(_TREES_MATERIAL) + 14
+        box_at = end + 14
         lo_x, _lo_y, lo_z, hi_x, _hi_y, hi_z = struct.unpack_from("<6f", data, box_at)
         return _ForestMesh(
             origin_x,
@@ -347,3 +354,67 @@ def surface_file_for_theatre(theatre: str, dcs_dir: Path | None = None) -> Path:
         f"no {theatre} map file (Mods/terrains/*/surface/*.surface5) found in: {looked}; "
         "give the DCS install folder with --dcs-dir"
     )
+
+
+@dataclass(frozen=True)
+class UnitInForest:
+    """A ground vehicle standing in a forest."""
+
+    group: str
+    unit: str
+    x: float
+    y: float
+
+
+@dataclass
+class ForestReport:
+    """What ``forest-check`` found in a mission."""
+
+    theatre: str
+    surface_file: str
+    units_checked: int
+    in_forest: list[UnitInForest]
+    markers_skipped: int
+
+    @property
+    def groups(self) -> dict[str, int]:
+        """How many vehicles of each group stand in a forest."""
+        counts: dict[str, int] = {}
+        for unit in self.in_forest:
+            counts[unit.group] = counts.get(unit.group, 0) + 1
+        return counts
+
+    def to_dict(self) -> dict[str, object]:
+        """Serialise to a JSON-ready dict."""
+        return {
+            "theatre": self.theatre,
+            "surface_file": self.surface_file,
+            "units_checked": self.units_checked,
+            "units_in_forest": len(self.in_forest),
+            "groups_in_forest": self.groups,
+            "markers_skipped": self.markers_skipped,
+            "units": [vars(unit) for unit in self.in_forest],
+        }
+
+
+def check_mission_forests(miz_path: Path, dcs_dir: Path | None = None) -> ForestReport:
+    """List the ground vehicles of a mission that stand in a forest, from the map files of DCS.
+
+    Args:
+        miz_path: The built mission. Its positions are read, nothing is launched.
+        dcs_dir: The DCS install; ``None`` to ask the registry.
+
+    Returns:
+        The report.
+
+    Raises:
+        FileNotFoundError: If the mission's map is not installed where looked.
+        SurfaceFormatError: If the map file is not one this reader understands.
+    """
+    from veaf_libs.clear_ground_check import ground_units  # noqa: PLC0415  (pulls the miz reader in)
+
+    theatre, units, markers = ground_units(miz_path)
+    surface = surface_file_for_theatre(theatre, dcs_dir)
+    with SurfaceForests(surface) as forests:
+        found = [UnitInForest(group, unit, x, y) for group, unit, x, y in units if forests.in_forest(x, y)]
+    return ForestReport(theatre, str(surface), len(units), found, markers)

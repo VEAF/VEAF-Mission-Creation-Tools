@@ -26,6 +26,8 @@ class TreesMesh:
 
     base_index: list[int]
     triangles: list[tuple[int, int, int]]
+    shader: bytes = b"Simple5.1"
+    kind: bytes = b"Trees"
 
 
 @dataclass
@@ -71,7 +73,7 @@ def build_surface(nodes: list[Node], *, decl_table: bool = False) -> bytes:
             flat = [i for tri in mesh.triangles for i in tri]
             b.array(b"TRI", 6, 12, struct.pack(f"<{len(flat)}I", *flat), more=False)
             b.meta += b"\xfb\xff\x00\x00\x02\x00\x00\x00"
-            b.meta += struct.pack("<I", 9) + b"Simple5.1" + struct.pack("<I", 5) + b"Trees"
+            b.meta += struct.pack("<I", len(mesh.shader)) + mesh.shader + struct.pack("<I", len(mesh.kind)) + mesh.kind
             used = [node.vertices[i] for i in mesh.base_index if i < len(node.vertices)]
             lo = [min(v[k] for v in used) for k in range(3)]
             hi = [max(v[k] for v in used) for k in range(3)]
@@ -149,6 +151,32 @@ def test_each_node_uses_its_own_origin_and_vertices(tmp_path: Path) -> None:
         assert not forests.in_forest(-49950.0, -79990.0)  # the other half of that square
 
 
+@pytest.mark.parametrize(
+    ("shader", "kind"),
+    [(b"Simple5.1", b"Trees"), (b"CaucasusSimple5.1", b"Forest"), (b"HardSplat5.1", b"Forest")],
+)
+def test_every_forest_material_measured_is_read(tmp_path: Path, shader: bytes, kind: bytes) -> None:
+    """Syria and Afghanistan say ``Trees``; Caucasus, Normandy, Germany and the others say ``Forest``."""
+    square = Node(
+        origin=SQUARE.origin,
+        vertices=SQUARE.vertices,
+        trees=[TreesMesh(base_index=[1, 2, 3, 4], triangles=[(0, 1, 2), (0, 2, 3)], shader=shader, kind=kind)],
+    )
+    with SurfaceForests(_write(tmp_path, [square])) as forests:
+        assert forests.in_forest(10600.0, 20700.0)
+
+
+def test_another_kind_of_mesh_is_not_a_forest(tmp_path: Path) -> None:
+    field = Node(
+        origin=SQUARE.origin,
+        vertices=SQUARE.vertices,
+        trees=[TreesMesh(base_index=[1, 2, 3, 4], triangles=[(0, 1, 2), (0, 2, 3)], kind=b"Field")],
+    )
+    with SurfaceForests(_write(tmp_path, [field])) as forests:
+        assert forests.mesh_count == 0
+        assert not forests.in_forest(10600.0, 20700.0)
+
+
 def test_the_material_table_is_not_a_mesh(tmp_path: Path) -> None:
     with SurfaceForests(_write(tmp_path, [SQUARE], decl_table=True)) as forests:
         assert forests.mesh_count == 1
@@ -224,3 +252,53 @@ def test_no_install_found_says_where_it_looked(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr("veaf_libs.dcs_forests.registered_dcs_dirs", list)
     with pytest.raises(FileNotFoundError, match="--dcs-dir"):
         surface_file_for_theatre("Syria")
+
+
+def _forest_mission(tmp_path: Path) -> tuple[Path, Path]:
+    """A Caucasus mission with one group in the square forest, one out of it, and a marker in it."""
+    from mission_tools.miz_tools import create_miz  # noqa: PLC0415
+    from veaf_libs.blank_mission import generate_blank_mission  # noqa: PLC0415
+    from veaf_mission_mcp.add_group import add_group  # noqa: PLC0415
+
+    dcs = _install(tmp_path, "Caucasus", "Caucasus")
+    surface = dcs / "Mods" / "terrains" / "Caucasus" / "surface" / "Caucasus.surface5"
+    surface.write_bytes(build_surface([SQUARE]))
+    miz = create_miz(tmp_path / "m.miz", generate_blank_mission("Caucasus"))
+    common = {"coalition": "red", "country_id": 0, "country_name": "Russia", "category": "vehicle"}
+    add_group(
+        miz,
+        name="in-the-wood",
+        position={"x": 10600, "y": 20700},
+        units=[{"type": "BTR-80", "count": 2}],
+        keep_position=True,
+        **common,
+    )
+    add_group(
+        miz,
+        name="in-the-open",
+        position={"x": 15000, "y": 20700},
+        units=[{"type": "BTR-80", "count": 3}],
+        keep_position=True,
+        **common,
+    )
+    add_group(
+        miz,
+        name="marker",
+        position={"x": 10600, "y": 20700},
+        units=[{"type": "Soldier M4", "name": '#command="-sa10"'}],
+        keep_position=True,
+        **common,
+    )
+    return miz, dcs
+
+
+def test_the_mission_check_lists_the_vehicles_in_a_forest(tmp_path: Path) -> None:
+    from veaf_libs.dcs_forests import check_mission_forests  # noqa: PLC0415
+
+    miz, dcs = _forest_mission(tmp_path)
+    report = check_mission_forests(miz, dcs)
+    assert report.theatre == "Caucasus"
+    assert report.units_checked == 5
+    assert report.groups == {"in-the-wood": 2}
+    assert report.markers_skipped == 1
+    assert report.to_dict()["units_in_forest"] == 2

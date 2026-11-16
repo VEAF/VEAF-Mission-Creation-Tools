@@ -1587,7 +1587,8 @@ function TestCampaignSecondRaid:test_a_release_tells_what_the_aircraft_has_left(
     },
   })
   -- the count also keeps DCS from folding two identical lines into one
-  luaunit.assertEquals(#logged("releases FAB_250, 7000 m from its aim, 31 left"), 1)
+  -- and where it fires from (2026-11-16: 33 releases logged 50 km from the aim where David saw them on the target)
+  luaunit.assertEquals(#logged("releases FAB_250, 7000 m from its aim, near [Kobuleti] 7 km, 31 left"), 1)
 end
 
 function TestCampaignSecondRaid:test_a_flight_just_spawned_is_not_lost_while_dcs_has_not_registered_it()

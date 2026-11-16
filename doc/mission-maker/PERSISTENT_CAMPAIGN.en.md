@@ -369,7 +369,7 @@ While the campaign is being tuned, `dynamic.debug` (on by default) writes in `dc
 | Tag | What it says |
 |---|---|
 | `[CAMPAIGN DECISION]` | every decision of the AI and its reason: a sortie sent, or not (no target, no airfield, no room left, nothing to pay with — with the price and the stock); a raid's package |
-| `[CAMPAIGN FLIGHT]` | the fate of every campaign aircraft: a weapon released (with its distance to the aim and what it has left), a kill or a loss and by whom, a landing, a raid leaving its hold |
+| `[CAMPAIGN FLIGHT]` | the fate of every campaign aircraft: a weapon released (with its distance to the aim, the nearest zone and what it has left), a kill or a loss and by whom, a landing, a raid leaving its hold |
 | `[CAMPAIGN AIRDEF]` | every `debug_status_seconds` (300 s): for each zone, its air defence units and the missiles they have left, empty launchers included |
 | `[CAMPAIGN SUPPLY]` | the network's deliveries ordered, arrived, lost |
 | `[CAMPAIGN ZONE]` | zones captured and turned neutral |

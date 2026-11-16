@@ -369,7 +369,7 @@ Pendant la mise au point, `dynamic.debug` (activé par défaut) écrit dans `dcs
 | Repère | Ce qu'il dit |
 |---|---|
 | `[CAMPAIGN DECISION]` | chaque décision de l'IA et sa raison : sortie envoyée, ou non (pas de cible, pas de terrain, plus de place, pas de quoi payer — avec le prix et le stock) ; composition d'un raid |
-| `[CAMPAIGN FLIGHT]` | le sort de chaque avion de la campagne : largage (avec sa distance au point visé et ce qu'il lui reste), victoire ou perte et par qui, atterrissage, départ d'un raid de son point d'attente |
+| `[CAMPAIGN FLIGHT]` | le sort de chaque avion de la campagne : largage (avec sa distance au point visé, la zone la plus proche et ce qu'il lui reste), victoire ou perte et par qui, atterrissage, départ d'un raid de son point d'attente |
 | `[CAMPAIGN AIRDEF]` | toutes les `debug_status_seconds` (300 s) : pour chaque zone, ses unités de défense antiaérienne et les missiles qui leur restent, lanceurs vides compris |
 | `[CAMPAIGN SUPPLY]` | livraisons du réseau commandées, arrivées, perdues |
 | `[CAMPAIGN ZONE]` | zones prises et neutralisées |

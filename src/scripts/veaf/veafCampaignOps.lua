@@ -1654,12 +1654,23 @@ function veafCampaignOps.onFlightEvent(event)
         end
       end
     end
+    -- and where it fires from: 33 releases logged 50 km from the aim where David saw them on the target (2026-11-16)
+    local near, nearDistance = nil, nil
+    if type(point) == "table" then
+      for _, zone in ipairs(veafCampaign.zoneList) do
+        local d = zone.placed and distance2d(point, zone:getCenter())
+        if d and (not nearDistance or d < nearDistance) then
+          near, nearDistance = zone.name, d
+        end
+      end
+    end
     veafCampaign.debug(
       "FLIGHT",
-      "%s releases %s%s%s",
+      "%s releases %s%s%s%s",
       describe(event.initiator),
       tostring(weapon),
       away and string.format(", %d m from its aim", away) or "",
+      near and string.format(", near [%s] %d km", near, math.floor(nearDistance / 1000)) or "",
       left and string.format(", %d left", left) or ""
     )
   elseif id == world.event.S_EVENT_KILL and (flight or victim) then

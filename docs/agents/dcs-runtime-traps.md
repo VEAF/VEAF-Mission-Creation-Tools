@@ -574,8 +574,11 @@ A second forest, 8 km east of the Ceyhan FARP (Turkey, near MGRS YF69):
 So on Syria a clean `clear-ground-check` — "0 vehicles in the scenery" — proves nothing where the
 probe is blind. Two forests are measured; which others of the map it misses is not.
 
-**What to do:** On Syria, after `clear-ground-check`, look at the placed vehicles in game (F10 view, or smoke on
-each position) before trusting a range or a defence in a wooded area.
+**What to do:** On Syria, after `clear-ground-check`, look at the placed vehicles in game before trusting a range or a
+defence in a wooded area. The F10 map in its "Map" mode draws the forests the probe misses (green,
+dotted with trees; fields are beige with red borders): one capture of it around the placed units
+settles the question, and its cursor readout gives the mission coordinates to place by. The forests
+come from the `Trees` meshes of the map's `surface/<map>.surface5`, not yet readable by the tools.
 
 *What it cost:* The Akamas firing range of the Syria Open Training stood in the trees, reported by a player on the
 VEAF Discord (thread 1570181686451507230); it was moved to the Polis plain and checked by smoke in

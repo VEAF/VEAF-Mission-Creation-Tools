@@ -27,5 +27,8 @@ It is the same defect as the Akamas range (moved 2026-11-12): on Syria the DCS p
 - Syria: the whole Ceyhan family (three trigger zones, every target and marker of the three tiers, the Reaper 1 orbit, the F10 circle and label) moved by one vector, from 8.8 km east of FARP Ceyhan to 8.7 km due south of it, centre (212316, 2506), in the plain between Körkuyu and Kurtkulağı (`tools/fix_ceyhan_range.py` of the Syria repository). OpenStreetMap shows farmland at both places, the old one included, so it says nothing about DCS's trees: the new place waits for David's look in game.
 - Syria, in passing: the F10 circle and label of the Akamas range had stayed at its old place when the range moved on 2026-11-12; they now sit on its zones.
 - The other theatres: no Mission Editor vehicle of a training zone moved; the new hard-tier launchers are `#command` markers, which `clear-ground-check` does not read and which the runtime settles itself. The check of every training zone needs DCS running, so it waits for David.
+- Syria, checked in game (2026-11-16): the first new place, due south of the FARP, stood in a forest too, seen on the F10 map, which draws the forests the probe misses.
+  The range moved a second time, onto the open hills east of Körkuyu, 10.7 km south-east of FARP Ceyhan (`tools/move_ceyhan_open.py`, Syria `37a9086`), picked on David's F10 capture set to 9.28 m per pixel; his F10 capture of the activated hard tier shows every unit on open ground.
+- The known limitation now says the F10 map in "Map" mode shows those forests.
 
-Waiting for David: the look in game at the Ceyhan range, then `clear-ground-check` on the five other Open Trainings.
+Waiting for David: `clear-ground-check` on the five other Open Trainings.

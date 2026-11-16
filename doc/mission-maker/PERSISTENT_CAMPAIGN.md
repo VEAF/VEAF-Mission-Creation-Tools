@@ -250,7 +250,7 @@ F10 → Campagne → **Réseau d'approvisionnement** donne aux joueurs leur stoc
 
 ## Les spawns payants {#paid-spawns}
 
-Dans une campagne persistante, toute commande de spawn VEAF passée par une personne — un marqueur `_spawn`, `-armor`, `-cap`, un convoi, une caisse, par l'interpréteur aussi, game masters compris — se paie :
+Dans une campagne persistante, toute commande de spawn VEAF qu'une personne pose en marqueur — `_spawn`, `-armor`, `-cap`, un convoi, une caisse, game masters compris — se paie :
 
 - **en crédits** quand elle fait apparaître des unités pour le camp des joueurs ;
 - **sur les ressources** de l'autre camp sinon ;
@@ -269,7 +269,7 @@ Dans une campagne persistante, toute commande de spawn VEAF passée par une pers
 | `cargo` | 50 | | `logistic` | 100 |
 
 Fumigènes, fusées, dessins, destruction, téléportation et mission master restent gratuits ; une catégorie mise à 0 aussi.
-Ce qu'un script fait apparaître (une combat zone, les sorties de la campagne elle-même) n'est pas l'action d'une personne et ne se paie pas ici.
+Ce qu'un script fait apparaître (une combat zone, une commande que l'interpréteur lit dans un nom posé dans l'éditeur, les sorties de la campagne elle-même) n'est pas l'action d'une personne et ne se paie pas ici.
 
 ## L'équipe de démolition {#demolition}
 

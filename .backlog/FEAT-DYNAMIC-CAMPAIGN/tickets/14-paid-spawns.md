@@ -6,7 +6,7 @@ PRD row "VEAF spawn commands paid in credits" and player experience point 9 (Dav
 
 ## What
 
-In a persistent campaign every VEAF spawn command a person issues — `_spawn`, `-armor`, `-cap`, convoys, crates, by marker or by the interpreter, game masters included — is paid:
+In a persistent campaign every VEAF spawn command a person issues — `_spawn`, `-armor`, `-cap`, convoys, crates, dropped as a marker, game masters included — is paid:
 
 - **in credits** when it spawns for the players' side;
 - **from the resources** of the side it spawns for otherwise — red, which has no players (David, 2026-11-16);
@@ -15,7 +15,7 @@ In a persistent campaign every VEAF spawn command a person issues — `_spawn`, 
 - charged only when the command actually spawned something;
 - what survives joins its side's resources at the next load (ticket 12).
 
-A spawn a script makes (a combat zone, the campaign's own sorties) is not a person's action and is not charged here; the campaign's sorties pay their own way (ticket 12).
+A spawn a script makes (a combat zone, a command the interpreter reads from a name placed in the editor — veafCommands calls it trusted —, the campaign's own sorties) is not a person's action and is not charged here; the campaign's sorties pay their own way (ticket 12).
 The players' assault order (Campaign → Assault) is a purchase too: `economy.prices.assault` (300 credits).
 
 ## Defaults (credits or points)

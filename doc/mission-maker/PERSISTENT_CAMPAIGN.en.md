@@ -250,7 +250,7 @@ F10 → Campaign → **Supply network** gives the players their stock, their pro
 
 ## Paid spawns {#paid-spawns}
 
-In a persistent campaign, every VEAF spawn command a person issues — a `_spawn` marker, `-armor`, `-cap`, a convoy, a crate, through the interpreter too, game masters included — is paid:
+In a persistent campaign, every VEAF spawn command a person drops as a marker — `_spawn`, `-armor`, `-cap`, a convoy, a crate, game masters included — is paid:
 
 - **in credits** when it spawns units for the players' side;
 - **from the resources** of the other side otherwise;
@@ -269,7 +269,7 @@ In a persistent campaign, every VEAF spawn command a person issues — a `_spawn
 | `cargo` | 50 | | `logistic` | 100 |
 
 Smoke, flares, drawings, destroy, teleport and mission master stay free; so does a category set to 0.
-What a script spawns (a combat zone, the campaign's own sorties) is no person's action and is not paid here.
+What a script spawns (a combat zone, a command the interpreter reads from a name placed in the editor, the campaign's own sorties) is no person's action and is not paid here.
 
 ## The demolition team {#demolition}
 

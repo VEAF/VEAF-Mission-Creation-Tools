@@ -158,7 +158,7 @@ A purchase refused (no target left, nothing in reach) costs nothing.
 | Bomber raid | a [combined raid](#bombers) — BARCAP, SEAD, bomber — on an enemy zone, its buildings first | 1300 |
 | Tanker | respawns the tanker `economy.tanker` names (an asset of the mission); absent without it | 300 |
 
-The BARCAP holds on the axis between the enemy zone and our nearest airfield, at its air defence's reach plus 15 km, and guards a 15 km circle.
+The BARCAP holds on the axis between the enemy zone and our nearest airfield, at the first point out of the reach of **every** enemy air defence (not only the target zone's) plus 15 km, and guards a 15 km circle; when no point of the axis is out of reach, it holds over its airfield.
 The reach is measured on the missiles the zone's units carry when it is awake; a sleeping zone is assumed to reach 75 km when its class has a long-range SAM, 20 km otherwise, and the message says so.
 
 Prices change in `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `tanker`, and `assault` for the assault order of F10 → Campaign → Assault, 300).
@@ -314,11 +314,14 @@ The cargo is lost with the aircraft, and with the server: it is not saved.
 ## Strategic bombers {#bombers}
 
 Every `bombers.seconds` (3,600 s), the enemy sends a **combined raid** at the players' zone with the most to hit: a factory first, else the zone with the most units, among those one of its airfields can reach.
-Everything starts in the air from the enemy airfield nearest the target that is at least `bombers.min_distance` (80 km) from it, to leave the players time to intercept:
+Everything **takes off** from the enemy airfield nearest the target that is at least `bombers.min_distance` (80 km) from it, to leave the players time to intercept, like every campaign aircraft:
 
-1. a **BARCAP** holds the axis, out of the target's air defence reach;
-2. a **SEAD** flight goes ahead, at the zone whose air defence covers the target (when one does);
-3. the **bomber** follows `bombers.package_delay` (180 s) later; it does not react to threats nor jettison its bombs: it presses on to the target.
+1. a **BARCAP** holds the axis, out of the reach of every enemy air defence (see the [BARCAP](#shop));
+2. a **SEAD** flight, at the zone whose air defence covers the target (when one does), and the **bomber** meet at a hold point on the target's axis, the first point out of the defences' reach plus 15 km (over their airfield when there is none);
+3. once both circle there, the SEAD pushes to the target, and the bomber `bombers.package_delay` (30 s) behind it, on the same axis; when the SEAD was shot down on the way, the bomber pushes alone. Neither circles the hold point longer than 20 minutes.
+
+The bomber attacks along the axis it comes in on; it does not react to threats nor jettison its bombs: it presses on to the target.
+With no defence to put out, no SEAD and no hold: the bomber flies straight to the target.
 
 No escort by default: the BARCAP holds the approach, and the last leg is the players' interception window; `bombers.escort: true` gives it one back.
 The package is paid whole, from the resources, or does not leave.
@@ -390,7 +393,7 @@ A `KO` line is enough to know where to look.
 | `network` | see [the network](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3) |
 | `demolition` | see [demolition](#demolition) | `troops` (`Sappers`), `range` (5000), `fuse` (120) |
 | `warehouse` | see [the stocks](#warehouses) | `enabled` (true), `load` (10) |
-| `bombers` | see [the bombers](#bombers) | `enabled` (true), `seconds` (3600), `min_distance` (80000), `escort` (false), `package_delay` (180) |
+| `bombers` | see [the bombers](#bombers) | `enabled` (true), `seconds` (3600), `min_distance` (80000), `escort` (false), `package_delay` (30) |
 | `debug` | see [the debugging log](#debug-log) | `true` while testing |
 | `debug_status_seconds` | 300 | seconds between two status lines of the log |
 | `territory` | see [territory](#territory) | `enabled` (true), `margin` (70000), `hatch_spacing` (3000), `hatch_length` (2500) |
@@ -407,7 +410,7 @@ These are written and tested outside DCS, not yet measured in game:
 - the spy team walking to its zone;
 - a garrison disappearing and reappearing as a player passes;
 - a factory's buildings placed on open ground, and raised again under the captor's flag;
-- the bomber's `Bombing` task, its "no reaction to threats" and "no jettison" options, and the timing of the combined raid;
+- the bomber's `Bombing` task, its attack axis, its "no reaction to threats" and "no jettison" options, and the combined raid's common hold point (flags `campaign raid <n> sead` / `bomber`);
 - the sappers' charges, strong enough for a building, and the team out of their blast;
 - an unlimited warehouse's stocks, which `getInventory` may report without counting them;
 - the territory tint, made of triangles, on the F10 map.

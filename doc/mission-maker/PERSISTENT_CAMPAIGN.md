@@ -158,7 +158,7 @@ Un achat refusé (plus de cible, rien à portée) ne coûte rien.
 | Raid de bombardiers | un [raid combiné](#bombers) — BARCAP, SEAD, bombardier — sur une zone ennemie, ses bâtiments d'abord | 1300 |
 | Ravitailleur | fait réapparaître le ravitailleur que nomme `economy.tanker` (un asset de la mission) ; absent sans lui | 300 |
 
-La BARCAP se tient sur l'axe entre la zone ennemie et notre aérodrome le plus proche, à la portée de ses défenses plus 15 km, et garde un cercle de 15 km.
+La BARCAP se tient sur l'axe entre la zone ennemie et notre aérodrome le plus proche, au premier point hors de portée de **toutes** les défenses ennemies (pas seulement celles de la zone visée) plus 15 km, et garde un cercle de 15 km ; quand aucun point de l'axe n'est hors de portée, elle tient au-dessus de son aérodrome.
 La portée se mesure sur les missiles que portent les unités de la zone quand elle est éveillée ; une zone endormie est supposée porter à 75 km si sa classe a un SAM longue portée, 20 km sinon, et le message le dit.
 
 Les prix se changent dans `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `tanker`, et `assault` pour l'ordre d'assaut de F10 → Campagne → Assaut, 300).
@@ -314,11 +314,14 @@ Le chargement est perdu avec l'appareil, et avec le serveur : il n'est pas sauve
 ## Les bombardiers stratégiques {#bombers}
 
 Toutes les `bombers.seconds` (3 600 s), l'ennemi envoie un **raid combiné** sur la zone des joueurs qui a le plus à frapper : une usine d'abord, sinon la zone qui a le plus d'unités, parmi celles qu'un de ses aérodromes peut atteindre.
-Tout part en vol de l'aérodrome ennemi le plus proche de la cible qui en est au moins à `bombers.min_distance` (80 km), pour laisser aux joueurs le temps d'intercepter :
+Tout **décolle** de l'aérodrome ennemi le plus proche de la cible qui en est au moins à `bombers.min_distance` (80 km), pour laisser aux joueurs le temps d'intercepter, comme tous les avions de la campagne :
 
-1. une **BARCAP** tient l'axe, hors de portée des défenses antiaériennes de la cible ;
-2. un vol **SEAD** part devant, contre la zone dont la défense antiaérienne couvre la cible (s'il y en a une) ;
-3. le **bombardier** suit, `bombers.package_delay` (180 s) plus tard ; il ne réagit pas à la menace et ne largue pas ses bombes en secours : il va jusqu'à la cible.
+1. une **BARCAP** tient l'axe, hors de portée de toutes les défenses antiaériennes ennemies (voir la [BARCAP](#shop)) ;
+2. un vol **SEAD**, contre la zone dont la défense antiaérienne couvre la cible (s'il y en a une), et le **bombardier** se retrouvent sur un point d'attente, sur l'axe de la cible, au premier point hors de portée des défenses plus 15 km (au-dessus de leur aérodrome s'il n'y en a pas) ;
+3. quand les deux y tournent, la SEAD repart vers la cible, et le bombardier `bombers.package_delay` (30 s) derrière elle, sur le même axe ; si la SEAD a été abattue en route, le bombardier repart seul. Aucun ne tourne plus de 20 minutes au point d'attente.
+
+Le bombardier attaque dans l'axe d'où il arrive ; il ne réagit pas à la menace et ne largue pas ses bombes en secours : il va jusqu'à la cible.
+Sans défense à éteindre, pas de SEAD ni d'attente : le bombardier va droit sur la cible.
 
 Pas d'escorte par défaut : la BARCAP tient l'approche, et la fin du trajet est la fenêtre d'interception des joueurs ; `bombers.escort: true` lui en rend une.
 Le paquet se paie tout entier, sur les ressources, ou ne part pas.
@@ -390,7 +393,7 @@ Une ligne `KO` suffit à dire où regarder.
 | `network` | voir [le réseau](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3) |
 | `demolition` | voir [la démolition](#demolition) | `troops` (`Sappers`), `range` (5000), `fuse` (120) |
 | `warehouse` | voir [les stocks](#warehouses) | `enabled` (true), `load` (10) |
-| `bombers` | voir [les bombardiers](#bombers) | `enabled` (true), `seconds` (3600), `min_distance` (80000), `escort` (false), `package_delay` (180) |
+| `bombers` | voir [les bombardiers](#bombers) | `enabled` (true), `seconds` (3600), `min_distance` (80000), `escort` (false), `package_delay` (30) |
 | `debug` | voir [le journal de mise au point](#debug-log) | `true` pendant les essais |
 | `debug_status_seconds` | 300 | intervalle entre deux lignes d'état du journal |
 | `territory` | voir [le territoire](#territory) | `enabled` (true), `margin` (70000), `hatch_spacing` (3000), `hatch_length` (2500) |
@@ -407,7 +410,7 @@ Ces points sont écrits et testés hors de DCS, pas encore mesurés en jeu :
 - l'équipe espion qui marche jusqu'à sa zone ;
 - la disparition et la réapparition d'une garnison au passage d'un joueur ;
 - les bâtiments d'une usine posés sur un terrain dégagé, et relevés sous le drapeau du preneur ;
-- la tâche `Bombing` du bombardier, ses options « pas de réaction à la menace » et « pas de largage de secours », et la coordination du raid combiné ;
+- la tâche `Bombing` du bombardier, son axe d'attaque, ses options « pas de réaction à la menace » et « pas de largage de secours », et le point d'attente commun du raid combiné (drapeaux `campaign raid <n> sead` / `bomber`) ;
 - les charges des sapeurs, assez fortes pour un bâtiment, et l'équipe hors de leur souffle ;
 - les stocks d'un entrepôt illimité, que `getInventory` rapporte peut-être sans les compter ;
 - la teinte du territoire, faite de triangles, sur la carte F10.

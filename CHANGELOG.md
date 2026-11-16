@@ -75,7 +75,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Weapon stocks survive a restart and are moved by players in helicopters or transports, the enemy sends escorted bomber raids (the players buy their own, and an intercept task is posted), and the F10 map is tinted by territory with the front drawn between the sides.
   A persistent campaign reserves to admins the markers that would be cheating there (explosions, destroy, teleport, broadcast, combat-zone activation, free illumination) and turns `-cas` off.
   `campaign next` reports the interpreter commands a persistent campaign's mission holds: they spawn afresh at every restart, outside the save, and belong in `campaign.yaml` as zones and garrisons.
-  A raid is a combined package — a BARCAP out of the defence's reach, SEAD ahead, then the bomber, which presses on without jettisoning — paid whole, the shop's included; the enemy's CAP stops short of the players' air defence.
+  A raid is a combined package — a BARCAP out of every enemy air defence's reach, a SEAD and a bomber that take off, meet at a hold point and push 30 s apart on the same axis, the bomber pressing on without jettisoning — paid whole, the shop's included; the enemy's CAP stops short of the players' air defence.
   `dynamic.debug`, on while the campaign is tuned, writes every AI decision and its reason, the fate of every campaign aircraft and a periodic status to `dcs.log`.
   A batch alias's commands (`-arty1`) now answer the pilot who dropped it, in every mission: they were silent as if a script had asked.
   New runtime module `veafCampaignLogistics`; every setting under `dynamic:` with its default in *Persistent campaign*.

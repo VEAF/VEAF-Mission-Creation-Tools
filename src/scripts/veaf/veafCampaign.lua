@@ -95,7 +95,7 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   network = { hop_seconds = 600, isolated_seconds = 3600, depot_store = 4, max_deliveries = 3 },
   demolition = { troops = "Sappers", range = 5000, fuse = 120 },
   warehouse = { enabled = true, load = 10 },
-  bombers = { enabled = true, seconds = 3600, min_distance = 80000, escort = false, package_delay = 180 },
+  bombers = { enabled = true, seconds = 3600, min_distance = 80000, escort = false, package_delay = 30 },
   territory = { enabled = true, margin = 70000, hatch_spacing = 3000, hatch_length = 2500 },
   -- the testing period: every decision of the AI and its reason in dcs.log, a status every
   -- `debug_status_seconds`, the fate of every campaign aircraft (David, 2026-11-16); off once trusted

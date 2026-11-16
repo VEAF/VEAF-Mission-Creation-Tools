@@ -75,11 +75,24 @@ veafCampaignOps.ESCORT_START_OFFSET = { x = -600, z = 600, alt = 300 }
 --- Seconds after which a raid still out is over, landed or not.
 veafCampaignOps.RAID_TIMEOUT = 7200
 
+--- A raid's SEAD and bomber take off, then meet at a hold point before they push (David, 2026-11-16): how near it
+--- a flight counts as holding, in metres; how long it holds at most, in seconds, before it goes on alone — a
+--- partner lost on the way does not keep it circling for ever; how far beyond it the attack begins, in metres.
+veafCampaignOps.HOLD_REACHED = 15000
+veafCampaignOps.HOLD_SECONDS = 1200
+veafCampaignOps.PUSH_DISTANCE = 2000
+
+--- The step at which a line is walked to find where it leaves the enemy's air defence, in metres.
+veafCampaignOps.REACH_STEP = 1000
+
+--- Numbers the raids' hold flags; never reset, so that a flag raised for a raid is never another's.
+veafCampaignOps.raidSerial = veafCampaignOps.raidSerial or 0
+
 --- The supply helicopters sent, and the flights launched: records the self-check counts.
 veafCampaignOps.helicopters = {}
 veafCampaignOps.flights = {}
 
---- The bomber raids: `{ name, escort, side, target, purchased, startedAt, done, outcome }`.
+--- The bomber raids: `{ name, escort, sead, side, target, purchased, startedAt, hold, done, outcome }`.
 veafCampaignOps.raids = {}
 
 --- When each side sends its next raid.
@@ -489,10 +502,41 @@ function veafCampaignOps.strikeTarget(side, role)
   return best
 end
 
+--- An orbit at a raid's hold point, until its flag is raised or `HOLD_SECONDS` have passed.
+--- @param hold table `{ x, z, flag }`
+local function holdTask(hold, altitude, speed)
+  return {
+    id = "ControlledTask",
+    params = {
+      task = { id = "Orbit", params = { pattern = "Circle", altitude = altitude, speed = speed } },
+      stopCondition = { userFlag = hold.flag, duration = veafCampaignOps.HOLD_SECONDS },
+    },
+  }
+end
+
+--- Where a raid's flight leaves its hold for its target: `PUSH_DISTANCE` beyond the hold, toward the target.
+local function pushPoint(hold, target)
+  local dx, dz = target.x - hold.x, target.z - hold.z
+  local length = math.max(1, math.sqrt(dx * dx + dz * dz))
+  local step = math.min(veafCampaignOps.PUSH_DISTANCE, length)
+  return { x = hold.x + dx / length * step, z = hold.z + dz / length * step }
+end
+
+--- The azimuth from one point to another, in radians from north, as DCS's tasks take it.
+local function azimuth(from, to)
+  local angle = math.atan2(to.z - from.z, to.x - from.x)
+  if angle < 0 then
+    angle = angle + 2 * math.pi
+  end
+  return angle
+end
+
 --- A strike: start over the home airfield, engage the role's targets in the zone's circle, orbit there
---- for `STRIKE_ORBIT_SECONDS`, then land at home.
+--- for `STRIKE_ORBIT_SECONDS`, then land at home. A raid's SEAD first holds at its hold point until its flag is
+--- raised, and engages nothing before it leaves it.
 ---
---- `params`: `target` (vec3), `radius` (m), `targetTypes`, `airdromeId`, `home` (vec3).
+--- `params`: `target` (vec3), `radius` (m), `targetTypes`, `airdromeId`, `home` (vec3), `hold` (`{ x, z, flag }`,
+--- optional).
 veafAircraftSpawn.roles.campaign_strike = {
   buildRoute = function(context)
     local params, spot = context.params, context.spot
@@ -531,10 +575,21 @@ veafAircraftSpawn.roles.campaign_strike = {
         stopCondition = { duration = veafCampaignOps.STRIKE_ORBIT_SECONDS },
       },
     }
-    local route = {
-      point(spot.x, spot.z, { roe, engage }),
-      point(params.target.x, params.target.z, { orbit }),
-    }
+    local route
+    if params.hold then
+      local push = pushPoint(params.hold, params.target)
+      route = {
+        point(spot.x, spot.z, {}),
+        point(params.hold.x, params.hold.z, { holdTask(params.hold, altitude, speed) }),
+        point(push.x, push.z, { roe, engage }),
+        point(params.target.x, params.target.z, { orbit }),
+      }
+    else
+      route = {
+        point(spot.x, spot.z, { roe, engage }),
+        point(params.target.x, params.target.z, { orbit }),
+      }
+    end
     if context.takeoffPoint then
       -- started on the ground: the take-off point first, carrying the tasks the first point had
       local takeoff = veaf.deepCopy(context.takeoffPoint)
@@ -723,14 +778,55 @@ function veafCampaignOps.threatRange(zone)
   return size.long_range_sam and veafCampaignOps.ASSUMED_LONG_RANGE or veafCampaignOps.ASSUMED_SHORT_RANGE, false
 end
 
---- Where a BARCAP on an enemy zone holds: on the line from the zone to the side's nearest airfield zone,
---- beyond the zone's air defence by `BARCAP_MARGIN`, its guarded circle included.
+--- The point of a line, from an enemy zone toward a side's airfield, nearest the enemy zone that is out of every
+--- enemy zone's air defence by `clearance` — not only the zone's own (2026-11-16: a BARCAP held out of its target's
+--- reach was shot down by the Patriot of the zone next to it). The airfield's end when no point of the line is.
+--- @param side string the side flying there
+--- @param from table the enemy zone's centre (vec3)
+--- @param to table the airfield's centre (vec3)
+--- @param clearance number metres beyond the reach
+--- @return table the point `{ x, z }`
+--- @return number its distance from `from`, metres
+function veafCampaignOps.edgeOfReach(side, from, to, clearance)
+  local enemy = veafCampaign.enemyOf(side)
+  local threats = {}
+  for _, zone in ipairs(veafCampaign.zoneList) do
+    if zone.placed and zone.entry.owner == enemy and zone.entry.garrison then
+      table.insert(threats, { center = zone:getCenter(), reach = veafCampaignOps.threatRange(zone) + clearance })
+    end
+  end
+  local length = distance2d(from, to)
+  local ux, uz = 0, 0
+  if length > 0 then
+    ux, uz = (to.x - from.x) / length, (to.z - from.z) / length
+  end
+  local d = 0
+  while d < length do
+    local point = { x = from.x + ux * d, z = from.z + uz * d }
+    local clear = true
+    for _, threat in ipairs(threats) do
+      if distance2d(point, threat.center) < threat.reach then
+        clear = false
+        break
+      end
+    end
+    if clear then
+      return point, d
+    end
+    d = d + veafCampaignOps.REACH_STEP
+  end
+  return { x = to.x, z = to.z }, length
+end
+
+--- Where a BARCAP on an enemy zone holds: on the line from the zone to the side's nearest airfield zone, out of
+--- every enemy air defence by `BARCAP_MARGIN`, its guarded circle included; over its own airfield when no point
+--- of the line is.
 --- @param side string the side flying it
 --- @param zone table the enemy zone
 --- @return table|nil the guarded zone `{ x, y = easting, radius }`
 --- @return table|nil the airfield zone it leaves from
 --- @return number the distance from the enemy zone's centre, metres
---- @return number the air defence's reach, metres
+--- @return number the enemy zone's air defence reach, metres
 --- @return boolean whether that reach was measured
 function veafCampaignOps.barcapStation(side, zone)
   local origin = veafCampaignOps.nearestOwnZone(side, zone, true)
@@ -738,11 +834,9 @@ function veafCampaignOps.barcapStation(side, zone)
     return nil
   end
   local reach, measured = veafCampaignOps.threatRange(zone)
-  local from, to = zone:getCenter(), origin:getCenter()
-  local length = math.max(1, distance2d(from, to))
-  local distance = reach + veafCampaignOps.BARCAP_MARGIN + veafCampaignOps.BARCAP_RADIUS
-  local ux, uz = (to.x - from.x) / length, (to.z - from.z) / length
-  local station = { x = from.x + ux * distance, y = from.z + uz * distance, radius = veafCampaignOps.BARCAP_RADIUS }
+  local point, distance =
+    veafCampaignOps.edgeOfReach(side, zone:getCenter(), origin:getCenter(), veafCampaignOps.BARCAP_MARGIN + veafCampaignOps.BARCAP_RADIUS)
+  local station = { x = point.x, y = point.z, radius = veafCampaignOps.BARCAP_RADIUS }
   return station, origin, distance, reach, measured
 end
 
@@ -876,9 +970,10 @@ local function pressOn()
   }
 end
 
---- A bomber: starts in the air, bombs the target point with all it carries, overflies it, lands at home.
+--- A bomber: takes off, holds at its hold point until its flag is raised when it has one, bombs the target point
+--- with all it carries along its axis of approach, overflies it, lands at home.
 ---
---- `params`: `target` (vec3), `airdromeId`, `home` (vec3).
+--- `params`: `target` (vec3), `airdromeId`, `home` (vec3), `hold` (`{ x, z, flag }`, optional).
 veafAircraftSpawn.roles.campaign_bomber = {
   buildRoute = function(context)
     local params, spot = context.params, context.spot
@@ -900,6 +995,9 @@ veafAircraftSpawn.roles.campaign_bomber = {
       end
       return wp
     end
+    -- the attack comes along the axis it flies in on: left free, the AI chose its own and a Tu-22M3 went the
+    -- long way round, into the SAMs (2026-11-16)
+    local from = params.hold and pushPoint(params.hold, params.target) or { x = spot.x, z = spot.z }
     local bombing = {
       id = "Bombing",
       params = {
@@ -910,7 +1008,8 @@ veafAircraftSpawn.roles.campaign_bomber = {
         groupAttack = true,
         altitude = altitude,
         altitudeEnabled = true,
-        directionEnabled = false,
+        direction = azimuth(from, params.target),
+        directionEnabled = true,
       },
     }
     local tasks = { weaponsFree() }
@@ -918,11 +1017,25 @@ veafAircraftSpawn.roles.campaign_bomber = {
       table.insert(tasks, option)
     end
     table.insert(tasks, bombing)
-    local route = {
-      point(spot.x, spot.z, tasks),
-      point(params.target.x, params.target.z, {}),
-      point(params.home.x, params.home.z, {}, { type = "Land", action = "Landing", airdromeId = params.airdromeId }),
-    }
+    local home = point(params.home.x, params.home.z, {}, { type = "Land", action = "Landing", airdromeId = params.airdromeId })
+    local route
+    if params.hold then
+      route = {
+        point(spot.x, spot.z, {}),
+        point(params.hold.x, params.hold.z, { holdTask(params.hold, altitude, veafCampaignOps.BOMBER_SPEED) }),
+        point(from.x, from.z, tasks),
+        point(params.target.x, params.target.z, {}),
+        home,
+      }
+    else
+      route = { point(spot.x, spot.z, tasks), point(params.target.x, params.target.z, {}), home }
+    end
+    if context.takeoffPoint then
+      -- started on the ground: the take-off point first, carrying the tasks the first point had
+      local takeoff = veaf.deepCopy(context.takeoffPoint)
+      takeoff.task = route[1].task
+      route[1] = takeoff
+    end
     return route, { task = "Ground Attack" }
   end,
   afterSpawn = function() end,
@@ -969,6 +1082,11 @@ veafAircraftSpawn.roles.campaign_escort = {
         task = comboTask({}),
       },
     }
+    if context.takeoffPoint then
+      local takeoff = veaf.deepCopy(context.takeoffPoint)
+      takeoff.task = route[1].task
+      route[1] = takeoff
+    end
     return route, { task = "Escort" }
   end,
   afterSpawn = function() end,
@@ -1041,10 +1159,12 @@ function veafCampaignOps.raidPrice(side, withSead)
   return price
 end
 
---- Send a raid package at a zone (David, 2026-11-16): a BARCAP holding the axis out of the defence's reach, a
---- SEAD flight ahead against the air defence covering the target, and the bomber `bombers.package_delay` after
---- it — with an escort only when `bombers.escort` is on. All of it is paid or none: the AI's from its resources,
---- the players' in credits (`purchased`). Every flight starts in the air over the origin.
+--- Send a raid package at a zone (David, 2026-11-16): a BARCAP holding the axis out of the defences' reach, a
+--- SEAD flight against the air defence covering the target, and the bomber — with an escort only when
+--- `bombers.escort` is on. All of it is paid or none: the AI's from its resources, the players' in credits
+--- (`purchased`). Every flight takes off from the origin (David: from the ground, like every campaign flight);
+--- with a SEAD, the SEAD and the bomber meet at a hold point out of the defences' reach, then the SEAD pushes and
+--- the bomber `bombers.package_delay` after it, on the same axis (`followRaid`).
 --- @param side string the side sending it
 --- @param target table the zone
 --- @param purchased boolean|nil
@@ -1083,14 +1203,18 @@ function veafCampaignOps.sendRaid(side, target, purchased)
     from = origin.name,
     purchased = purchased or nil,
     startedAt = now,
-    bomberAt = now + (defence and veafCampaign.setting("bombers", "package_delay") or 0),
     airdromeId = airbase and airbase:getID(),
   }
   local station = veafCampaignOps.barcapStation(side, target)
   if station and veafCampaignOps.aircraft(side, "cap") then
-    record.barcap = veafCampaignOps.spawnFlight(side, "cap", origin, "zone_defense", { zone = station }, veafCampaignOps.CAP_ALTITUDE, true)
+    record.barcap = veafCampaignOps.spawnFlight(side, "cap", origin, "zone_defense", { zone = station }, veafCampaignOps.CAP_ALTITUDE)
   end
   if defence then
+    veafCampaignOps.raidSerial = veafCampaignOps.raidSerial + 1
+    local hold = veafCampaignOps.edgeOfReach(side, target:getCenter(), origin:getCenter(), veafCampaignOps.BARCAP_MARGIN)
+    record.hold = { x = hold.x, z = hold.z }
+    record.seadFlag = string.format("campaign raid %d sead", veafCampaignOps.raidSerial)
+    record.bomberFlag = string.format("campaign raid %d bomber", veafCampaignOps.raidSerial)
     record.sead = veafCampaignOps.spawnFlight(side, "sead", origin, "campaign_strike", {
       target = defence:getCenter(),
       radius = defence.entry.radius or 2000,
@@ -1098,10 +1222,11 @@ function veafCampaignOps.sendRaid(side, target, purchased)
       airdromeId = record.airdromeId,
       home = origin:getCenter(),
       task = "SEAD",
-    }, veafCampaignOps.STRIKE_ALTITUDE, true)
+      hold = { x = hold.x, z = hold.z, flag = record.seadFlag },
+    }, veafCampaignOps.STRIKE_ALTITUDE)
     record.seadOn = defence.name
   end
-  if record.bomberAt <= now and not veafCampaignOps.spawnRaidBomber(record) then
+  if not veafCampaignOps.spawnRaidBomber(record) then
     return nil
   end
   if not purchased then
@@ -1111,18 +1236,18 @@ function veafCampaignOps.sendRaid(side, target, purchased)
   veafCampaignOps.counters.raids = veafCampaignOps.counters.raids + 1
   veafCampaign.keepAwake(target, veafCampaignOps.RAID_TIMEOUT)
   logger():info(
-    "%s raid package on [%s] from [%s]: BARCAP [%s], SEAD [%s] on [%s], bomber at +%d s",
+    "%s raid package on [%s] from [%s]: BARCAP [%s], SEAD [%s] on [%s], bomber [%s]",
     side,
     target.name,
     origin.name,
     tostring(record.barcap),
     tostring(record.sead),
     tostring(record.seadOn),
-    record.bomberAt - now
+    tostring(record.name)
   )
   veafCampaign.debug(
     "DECISION",
-    "%s raid on [%s] from [%s] (%d km), package %d points: BARCAP %s, SEAD %s on [%s], bomber in %d s, escort %s",
+    "%s raid on [%s] from [%s] (%d km), package %d points: BARCAP %s, SEAD %s on [%s], hold %s, escort %s",
     side,
     target.name,
     origin.name,
@@ -1131,7 +1256,7 @@ function veafCampaignOps.sendRaid(side, target, purchased)
     tostring(record.barcap),
     tostring(record.sead),
     tostring(record.seadOn),
-    record.bomberAt - now,
+    record.hold and string.format("%d km out of the target", math.floor(distance2d(record.hold, target:getCenter()) / 1000)) or "none",
     tostring(veafCampaign.setting("bombers", "escort"))
   )
   local defender = veafCampaign.SIDES[target.entry.owner]
@@ -1152,7 +1277,10 @@ function veafCampaignOps.spawnRaidBomber(record)
   end
   local aim = target:isFactory() and target:structuresCenter() or target:getCenter()
   local params = { target = aim, airdromeId = record.airdromeId, home = origin:getCenter() }
-  record.name = veafCampaignOps.spawnFlight(record.side, "bomber", origin, "campaign_bomber", params, veafCampaignOps.BOMBER_ALTITUDE, true)
+  if record.hold then
+    params.hold = { x = record.hold.x, z = record.hold.z, flag = record.bomberFlag }
+  end
+  record.name = veafCampaignOps.spawnFlight(record.side, "bomber", origin, "campaign_bomber", params, veafCampaignOps.BOMBER_ALTITUDE)
   if not record.name then
     return false
   end
@@ -1162,13 +1290,13 @@ function veafCampaignOps.spawnRaidBomber(record)
       groupId = group:getID(),
       airdromeId = record.airdromeId,
       home = params.home,
-      -- beside and above its bomber, not inside it: both start in the air over the same field
+      -- beside and above its bomber, not inside it, when a field DCS does not know starts both in the air
       startOffset = veafCampaignOps.ESCORT_START_OFFSET,
-    }, veafCampaignOps.BOMBER_ALTITUDE, true)
+    }, veafCampaignOps.BOMBER_ALTITUDE)
   end
   veafCampaign.debug(
     "FLIGHT",
-    "%s bomber [%s] airborne over [%s] for [%s] (aim x=%d z=%d), escort %s",
+    "%s bomber [%s] takes off from [%s] for [%s] (aim x=%d z=%d), escort %s",
     record.side,
     record.name,
     record.from,
@@ -1190,25 +1318,58 @@ function veafCampaignOps.raidUnderway(side)
   return nil
 end
 
---- Follow one raid: its bomber leaves when its time comes; gone, it is a raid shot down; landed, or out too
---- long, it is over.
+--- Whether a raid's flight holds: in the air within `HOLD_REACHED` of the hold point.
+local function holding(unit, hold)
+  return unit and unit:inAir() and distance2d(unit:getPoint(), hold) <= veafCampaignOps.HOLD_REACHED
+end
+
+--- A raid's push from its hold: once the bomber holds and its SEAD too — or the SEAD is lost —, the SEAD's flag
+--- is raised, then the bomber's `bombers.package_delay` after it, so that the bomber comes in right behind.
+local function pushFromHold(raid, bomber, now)
+  if not raid.pushedAt and holding(bomber, raid.hold) then
+    local sead = raid.sead and liveUnit(raid.sead)
+    if not sead then
+      raid.pushedAt, raid.bomberPushAt = now, now
+      veafCampaign.debug("FLIGHT", "raid on [%s]: no SEAD left, the bomber pushes alone", raid.target)
+    elseif holding(sead, raid.hold) then
+      trigger.action.setUserFlag(raid.seadFlag, 1)
+      raid.pushedAt = now
+      raid.bomberPushAt = now + veafCampaign.setting("bombers", "package_delay")
+      veafCampaign.debug(
+        "FLIGHT",
+        "raid on [%s]: the SEAD pushes on [%s], the bomber %d s behind",
+        raid.target,
+        tostring(raid.seadOn),
+        raid.bomberPushAt - now
+      )
+    end
+  end
+  if raid.bomberPushAt and not raid.bomberPushed and now >= raid.bomberPushAt then
+    trigger.action.setUserFlag(raid.bomberFlag, 1)
+    raid.bomberPushed = true
+    veafCampaign.debug("FLIGHT", "raid on [%s]: the bomber pushes", raid.target)
+  end
+end
+
+--- Follow one raid: its SEAD and bomber push from their hold together; the bomber gone, it is a raid shot down;
+--- landed once it has flown, or out too long, it is over.
 function veafCampaignOps.followRaid(raid, now)
   if raid.done then
     return
   end
-  if not raid.name then
-    if now >= (raid.bomberAt or now) and not veafCampaignOps.spawnRaidBomber(raid) then
-      raid.done, raid.outcome = true, "aborted"
-      veafCampaign.debug("FLIGHT", "raid on [%s]: its bomber could not be spawned", raid.target)
-    end
-    return
-  end
   local unit = liveUnit(raid.name)
+  local flying = unit and unit:inAir()
+  if flying then
+    raid.airborne = true
+  end
+  if unit and raid.hold then
+    pushFromHold(raid, unit, now)
+  end
   if not unit then
     raid.done, raid.outcome = true, "destroyed"
     veafCampaignOps.counters.raidsDestroyed = veafCampaignOps.counters.raidsDestroyed + 1
     logger():info("bomber raid [%s] on [%s] destroyed", raid.name, raid.target)
-  elseif (not unit:inAir() and now - raid.startedAt > 300) or now - raid.startedAt > veafCampaignOps.RAID_TIMEOUT then
+  elseif (raid.airborne and not flying) or now - raid.startedAt > veafCampaignOps.RAID_TIMEOUT then
     raid.done, raid.outcome = true, "home"
     destroyGroup(raid.name)
     logger():info("bomber raid [%s] on [%s] is over", raid.name, raid.target)

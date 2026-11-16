@@ -951,22 +951,127 @@ function TestCampaignBombers:test_the_red_raid_is_a_paid_package_announced_and_p
   luaunit.assertEquals(#self.flights, 2)
 end
 
-function TestCampaignBombers:test_a_target_under_air_defence_gets_sead_first_and_the_bomber_after()
+--- Put a raid's flight at a point, in the air or not.
+local function flightAt(name, point, inAir)
+  dcs_mocks.addGroup(name, {
+    getUnits = function()
+      return { unitAt(point, { inAir = inAir }) }
+    end,
+    getID = function()
+      return 77
+    end,
+  })
+end
+
+function TestCampaignBombers:test_the_whole_package_takes_off_from_the_ground()
+  start({ bombers = { min_distance = 50000, escort = true } }, function(d)
+    d.zones[1].garrison[1].units[1].type = "SA-11 Buk LN 9A310M1"
+  end)
+  veafCampaignLogistics.stocks.red = 1000
+  local airStarts = {}
+  local spawnFlight = veafCampaignOps.spawnFlight
+  veafCampaignOps.spawnFlight = function(side, aircraftRole, origin, roleName, params, altitude, airStart)
+    table.insert(airStarts, airStart == true)
+    return spawnFlight(side, aircraftRole, origin, roleName, params, altitude, airStart)
+  end
+  veafCampaignOps.sendRaid("red", veafCampaign.zones["Kobuleti"])
+  veafCampaignOps.spawnFlight = spawnFlight
+  -- BARCAP, SEAD, bomber and escort: none of them starts in the air (David, 2026-11-16)
+  luaunit.assertEquals(airStarts, { false, false, false, false })
+end
+
+function TestCampaignBombers:test_the_sead_and_the_bomber_hold_together_then_push_the_bomber_behind()
   start({ bombers = { min_distance = 50000 } }, function(d)
     d.zones[1].garrison[1].units[1].type = "SA-11 Buk LN 9A310M1"
   end)
   veafCampaignLogistics.stocks.red = 1000
+  local flags = {}
+  local setUserFlag = trigger.action.setUserFlag
+  trigger.action.setUserFlag = function(flag, value)
+    flags[flag] = value
+  end
   dcs_mocks.currentTime = 1000
   local raid = veafCampaignOps.sendRaid("red", veafCampaign.zones["Kobuleti"])
-  luaunit.assertEquals(rolesFlown(self), { "zone_defense", "campaign_strike" })
+  -- all of it at once, and paid at once
+  luaunit.assertEquals(rolesFlown(self), { "zone_defense", "campaign_strike", "campaign_bomber" })
   luaunit.assertEquals(self.flights[2].params.task, "SEAD")
   luaunit.assertEquals(raid.seadOn, "Kobuleti")
-  luaunit.assertEquals(veafCampaignLogistics.stock("red"), 1000 - 100 - 60 - 60) -- all of it, at once
-  veafCampaignOps.followRaid(raid, 1179)
-  luaunit.assertNil(raid.name)
-  veafCampaignOps.followRaid(raid, 1180)
-  luaunit.assertEquals(rolesFlown(self), { "zone_defense", "campaign_strike", "campaign_bomber" })
-  luaunit.assertNotNil(raid.name)
+  luaunit.assertEquals(veafCampaignLogistics.stock("red"), 1000 - 100 - 60 - 60)
+  -- both hold at the same point on the axis, out of Kobuleti's and Poti's reach (20 km assumed, 15 km margin)
+  local seadHold, bomberHold = self.flights[2].params.hold, self.flights[3].params.hold
+  luaunit.assertEquals({ seadHold.x, seadHold.z }, { 85000, 0 })
+  luaunit.assertEquals({ bomberHold.x, bomberHold.z }, { 85000, 0 })
+  luaunit.assertNotEquals(seadHold.flag, bomberHold.flag)
+  -- the bomber is on the ground, the SEAD on its way: nobody pushes
+  flightAt(raid.name, { x = 100000 }, false)
+  flightAt(raid.sead, { x = 110000 }, true)
+  veafCampaignOps.followRaid(raid, 1100)
+  luaunit.assertEquals(flags, {})
+  luaunit.assertNil(raid.outcome)
+  -- the bomber holds, the SEAD not yet: still nobody
+  flightAt(raid.name, { x = 86000 }, true)
+  veafCampaignOps.followRaid(raid, 1200)
+  luaunit.assertEquals(flags, {})
+  -- both hold: the SEAD pushes, the bomber `package_delay` after it
+  flightAt(raid.sead, { x = 84000 }, true)
+  veafCampaignOps.followRaid(raid, 1300)
+  luaunit.assertEquals(flags, { [seadHold.flag] = 1 })
+  veafCampaignOps.followRaid(raid, 1329)
+  luaunit.assertNil(flags[bomberHold.flag])
+  veafCampaignOps.followRaid(raid, 1330)
+  luaunit.assertEquals(flags[bomberHold.flag], 1)
+  trigger.action.setUserFlag = setUserFlag
+end
+
+function TestCampaignBombers:test_with_its_sead_shot_down_the_bomber_pushes_alone()
+  start({ bombers = { min_distance = 50000 } }, function(d)
+    d.zones[1].garrison[1].units[1].type = "SA-11 Buk LN 9A310M1"
+  end)
+  veafCampaignLogistics.stocks.red = 1000
+  local flags = {}
+  local setUserFlag = trigger.action.setUserFlag
+  trigger.action.setUserFlag = function(flag, value)
+    flags[flag] = value
+  end
+  local raid = veafCampaignOps.sendRaid("red", veafCampaign.zones["Kobuleti"])
+  flightAt(raid.name, { x = 85000 }, true)
+  dcs_mocks.addGroup(raid.sead, {
+    getUnits = function()
+      return {}
+    end,
+  })
+  veafCampaignOps.followRaid(raid, 100)
+  luaunit.assertEquals(flags[self.flights[3].params.hold.flag], 1)
+  trigger.action.setUserFlag = setUserFlag
+end
+
+function TestCampaignBombers:test_a_raid_on_the_ground_is_not_over_until_it_has_flown()
+  start({ bombers = { min_distance = 50000 } })
+  local raid = veafCampaignOps.sendRaid("red", veafCampaign.zones["Kobuleti"])
+  flightAt(raid.name, { x = 100000 }, false)
+  veafCampaignOps.followRaid(raid, 1000)
+  luaunit.assertNil(raid.outcome)
+  flightAt(raid.name, { x = 50000 }, true)
+  veafCampaignOps.followRaid(raid, 1100)
+  flightAt(raid.name, { x = 100000 }, false)
+  veafCampaignOps.followRaid(raid, 3000)
+  luaunit.assertEquals(raid.outcome, "home")
+end
+
+function TestCampaignBombers:test_the_barcap_holds_out_of_every_enemy_air_defence()
+  start(nil, function(d)
+    d.zones[3].x = 200000 -- Senaki
+  end)
+  -- Kobuleti's own reach would put it at 50 km, over Poti; Poti's puts it 50 km beyond
+  local station, origin = veafCampaignOps.barcapStation("red", veafCampaign.zones["Kobuleti"])
+  luaunit.assertEquals(origin.name, "Senaki")
+  luaunit.assertEquals({ station.x, station.y }, { 100000, 0 })
+  -- no point of the axis is out of reach — a long-range battery at Poti covers Senaki: it holds over its own field
+  start(nil, function(d)
+    d.zones[2].size.long_range_sam = true
+  end)
+  station = veafCampaignOps.barcapStation("red", veafCampaign.zones["Kobuleti"])
+  luaunit.assertEquals({ station.x, station.y }, { 100000, 0 })
 end
 
 function TestCampaignBombers:test_the_escort_flies_only_when_asked_and_starts_beside_its_bomber()
@@ -1061,6 +1166,54 @@ function TestCampaignBombers:test_the_bomber_route_bombs_then_lands_at_home()
   luaunit.assertEquals(tasks[4].params.point, { x = 100, y = 200 })
   luaunit.assertEquals(route[3].type, "Land")
   luaunit.assertEquals(route[3].airdromeId, 5)
+end
+
+function TestCampaignBombers:test_the_bomber_takes_off_holds_then_bombs_along_its_axis()
+  start()
+  local takeoffPoint = { x = 0, y = 0, alt = 0, type = "TakeOffParkingHot", action = "From Parking Area Hot", airdromeId = 5 }
+  local route = veafAircraftSpawn.roles.campaign_bomber.buildRoute({
+    spot = { x = 0, y = 7000, z = 0 },
+    takeoffPoint = takeoffPoint,
+    params = {
+      target = { x = -40000, z = 0 },
+      airdromeId = 5,
+      home = { x = 0, z = 0 },
+      hold = { x = -10000, z = 0, flag = "raid 1 bomber" },
+    },
+  })
+  luaunit.assertEquals(route[1].type, "TakeOffParkingHot")
+  -- it orbits at the hold until its flag is raised
+  local hold = route[2].task.params.tasks[1]
+  luaunit.assertEquals({ route[2].x, route[2].y }, { -10000, 0 })
+  luaunit.assertEquals(hold.id, "ControlledTask")
+  luaunit.assertEquals(hold.params.stopCondition.userFlag, "raid 1 bomber")
+  -- then bombs, coming from the hold: due south
+  local tasks = route[3].task.params.tasks
+  luaunit.assertEquals(tasks[4].id, "Bombing")
+  luaunit.assertTrue(tasks[4].params.directionEnabled)
+  luaunit.assertAlmostEquals(tasks[4].params.direction, math.pi, 1e-6)
+  luaunit.assertEquals(route[#route].type, "Land")
+end
+
+function TestCampaignBombers:test_the_sead_holds_then_engages_from_its_push_point()
+  start()
+  local route = veafAircraftSpawn.roles.campaign_strike.buildRoute({
+    spot = { x = 0, y = 2500, z = 0 },
+    params = {
+      target = { x = -40000, z = 0 },
+      radius = 2000,
+      targetTypes = { "Air Defence" },
+      airdromeId = 5,
+      home = { x = 0, z = 0 },
+      hold = { x = -10000, z = 0, flag = "raid 1 sead" },
+    },
+  })
+  -- nothing engaged before the hold, where it orbits until its flag is raised
+  luaunit.assertEquals(#route[1].task.params.tasks, 0)
+  luaunit.assertEquals(route[2].task.params.tasks[1].params.stopCondition.userFlag, "raid 1 sead")
+  local engage = route[3].task.params.tasks[2]
+  luaunit.assertEquals(engage.id, "EngageTargetsInZone")
+  luaunit.assertEquals({ route[4].x, route[4].y }, { -40000, 0 })
 end
 
 -- ---------------------------------------------------------------------------

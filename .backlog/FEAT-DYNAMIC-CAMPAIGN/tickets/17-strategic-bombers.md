@@ -31,3 +31,16 @@ The first raid in game flew into the blue SAM umbrella over Ozurgeti: the Tu-22M
 - The bomber does not react to threats (`REACTION_ON_THREAT` = `NO_REACTION`) nor jettison (`PROHIBIT_JETT`).
 - Paid whole or not at all; the shop's raid is the same package, 1300 credits (220 points at 6 credits a point).
 - The enemy's CAP circle stops `BARCAP_MARGIN` short of the players' air defence reach, `CAP_MIN_RADIUS` (5 km) at least.
+
+## Take-off and a common hold (David, 2026-11-16, after the second raid in game)
+
+The second raid (Senaki → Ozurgeti, SEAD on Kobuleti's Patriot) came apart: the SEAD, spawned in the air with its missiles reaching 30 km, fired at once; the bomber, spawned 180 s later heading north, went the long way round by the north-west and arrived minutes after the SEAD, the defences resupplied meanwhile, and was shot down; the BARCAP, held out of the target's reach only, lost a MiG-29 to Kobuleti's Patriot.
+David: every campaign flight takes off from the ground, the raid too — starting it in the air was a choice of mine, never his.
+
+- The BARCAP, SEAD, bomber and escort take off like every campaign flight.
+- The SEAD and the bomber meet at a hold point on the target's axis, the first point out of every enemy air defence by `BARCAP_MARGIN` (over their airfield when none is), and orbit there until their user flag is raised, `HOLD_SECONDS` (1200 s) at most.
+- Once both hold, the SEAD's flag is raised, the bomber's `bombers.package_delay` (now 30 s) later; a SEAD lost on the way lets the bomber push alone. The SEAD engages nothing before it leaves the hold.
+- The bomber's `Bombing` task takes the axis it comes in on (`direction`), instead of leaving the AI to choose.
+- The BARCAP's station is out of every enemy zone's reach (`edgeOfReach`), not only the target's.
+- A raid is over when its bomber lands **after having flown**: on the ground at the start, it is not "home".
+- Unchanged, decided: the network's 60 s repair of Kobuleti came from the test mission's `hop_seconds: 120`; with the default 600 s a repair takes at least five minutes.

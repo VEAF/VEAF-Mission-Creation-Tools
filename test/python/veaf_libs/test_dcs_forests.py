@@ -216,30 +216,40 @@ def test_a_file_that_is_not_a_surface5_is_refused(tmp_path: Path) -> None:
         SurfaceForests(path)
 
 
-def _install(tmp_path: Path, folder: str, stem: str) -> Path:
-    surface = tmp_path / "DCS" / "Mods" / "terrains" / folder / "surface"
-    surface.mkdir(parents=True)
-    (surface / f"{stem}.surface5").write_bytes(b"")
+def _install(tmp_path: Path, folder: str, stem: str, declared_id: str | None = None) -> Path:
+    terrain = tmp_path / "DCS" / "Mods" / "terrains" / folder
+    (terrain / "surface").mkdir(parents=True)
+    (terrain / "surface" / f"{stem}.surface5").write_bytes(b"")
+    if declared_id is not None:
+        # The two lines of a real entry.lua that name the theatre (GermanyColdWar's, 2026-11-16).
+        (terrain / "entry.lua").write_text(
+            f'theatre =\n{{\n\t[\'id\'] = "{declared_id}";\n}}\nlocal self_ID = "{declared_id}";\n', encoding="utf-8"
+        )
     return tmp_path / "DCS"
 
 
 @pytest.mark.parametrize(
-    ("theatre", "folder", "stem"),
+    ("theatre", "folder", "stem", "declared_id"),
     [
-        ("Syria", "Syria", "Syria"),
-        ("SinaiMap", "Sinai", "SinaiMap"),  # the theatre is named after the file, not the folder
-        ("Normandy", "Normandy", "Normandy1944s"),  # and here after the folder, not the file
-        ("syria", "Syria", "Syria"),
+        ("Syria", "Syria", "Syria", "Syria"),
+        ("GermanyCW", "GermanyColdWar", "GermanyColdWar", "GermanyCW"),  # only entry.lua says GermanyCW
+        ("MarianaIslandsWWII", "MarianasWWII", "MarianasWWII", "MarianaIslandsWWII"),
+        ("SinaiMap", "Sinai", "SinaiMap", None),  # no entry.lua: the file name
+        ("Normandy", "Normandy", "Normandy1944s", None),  # no entry.lua: the folder name
+        ("syria", "Syria", "Syria", "Syria"),
     ],
 )
-def test_the_surface_file_is_found_by_folder_or_file_name(tmp_path: Path, theatre: str, folder: str, stem: str) -> None:
-    dcs = _install(tmp_path, folder, stem)
+def test_the_surface_file_is_found_by_declared_id_folder_or_file_name(
+    tmp_path: Path, theatre: str, folder: str, stem: str, declared_id: str | None
+) -> None:
+    dcs = _install(tmp_path, folder, stem, declared_id)
     assert find_surface_file(dcs, theatre) == dcs / "Mods" / "terrains" / folder / "surface" / f"{stem}.surface5"
 
 
-def test_a_theatre_not_installed_has_no_surface_file(tmp_path: Path) -> None:
-    dcs = _install(tmp_path, "Syria", "Syria")
-    assert find_surface_file(dcs, "Caucasus") is None
+@pytest.mark.parametrize("theatre", ["Caucasus", ""])
+def test_a_theatre_not_installed_has_no_surface_file(tmp_path: Path, theatre: str) -> None:
+    dcs = _install(tmp_path, "Syria", "Syria")  # no entry.lua: its declared id is unknown, not ""
+    assert find_surface_file(dcs, theatre) is None
 
 
 def test_the_install_comes_from_the_registry_when_not_given(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

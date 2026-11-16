@@ -20,6 +20,11 @@ The forests are the `Trees` meshes (shader `Simple5.1`) of `Mods/terrains/<map>/
 
 Checked against the ground truth David gave, on Syria: the old Ceyhan range (219000, 11000), (212316, 2506) and the Akamas T-72 (13404, -326775) fall inside a forest triangle; the open hills at (212916, 9506), the Ceyhan FARP (221016, 2506) and the current Akamas range (14640, -314461) do not.
 
+## Every map
+
+The same layout is on the eleven maps installed on 2026-11-16; only the material name changes (`Simple5.1`/`Trees` on Syria and Afghanistan, `CaucasusSimple5.1`/`Forest`, `HardSplat5.1`/`Forest` on Normandy...). The theatre a mission names is the `id` of the terrain's `entry.lua` (`GermanyCW` in folder `GermanyColdWar`).
+Checked against the parking spots VMCT ships: none or almost none in a forest on ten maps, against 3 to 36% of the same spots moved 3 km. Marianas WWII puts 164 of 534 in a forest, unexplained: known limitation `forest-check-unexplained-on-marianas-wwii`.
+
 ## Solution
 
 1. `veaf_libs/dcs_forests.py`: a reader that indexes the `Trees` meshes of a `.surface5` file by bounding box and loads only the meshes around the points asked, and answers "is this mission point in a forest".
@@ -36,5 +41,5 @@ A separate command rather than a forest test inside `clear-ground-check`: the fo
 
 | # | Ticket | Status |
 |---|---|---|
-| 01 | [Surface5 forest reader](tickets/01-surface5-forest-reader.md) | 🔄 |
-| 02 | [`dcs forest-check` command, doc and limitation](tickets/02-forest-check-command.md) | ⬜ |
+| 01 | [Surface5 forest reader](tickets/01-surface5-forest-reader.md) | ✅ |
+| 02 | [`dcs forest-check` command, doc and limitation](tickets/02-forest-check-command.md) | ✅ |

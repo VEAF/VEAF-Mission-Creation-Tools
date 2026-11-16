@@ -1499,6 +1499,21 @@ limitations:
     `veaf-tools dcs farp-spot` keeps only the points this query calls free: it can miss a usable spot.
     Neither what it lists nor what it leaves out has been checked by eye yet.
 
+- id: forest-check-unexplained-on-marianas-wwii
+  kind: tool
+  area: spawning
+  title: "`forest-check` puts a third of the Marianas WWII parking spots in a forest, unexplained"
+  theatres: [MarianaIslandsWWII]
+  symptom: |
+    Measured on 2026-11-16, the parking spots VMCT ships for each theatre (`data/parking/*.json`) tested
+    with `veaf_libs.dcs_forests`: none in a forest on Syria, Caucasus, Normandy, TheChannel, Afghanistan
+    and MarianaIslands, 0.2 to 2.3% on GermanyCW, PersianGulf, SinaiMap and Falklands — against 3 to 36%
+    for the same spots moved 3 km. On MarianaIslandsWWII, 164 of 534 spots fall in a forest polygon, most
+    of them on two airfields (39 of 41, 34 of 35). Whether the 1944 map draws its dispersal areas under
+    trees, or the reader misses something on that map, has not been looked at in game.
+  workaround: |
+    On MarianaIslandsWWII, take a `forest-check` answer as a hint, and look at the vehicles in game.
+
 - id: disposition-blind-to-akamas-forest
   kind: dcs
   area: spawning

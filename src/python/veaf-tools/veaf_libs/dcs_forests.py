@@ -57,6 +57,7 @@ _TRI_TO_MATERIAL_MAX = 32
 _CELL = 256.0
 
 _TERRAINS = Path("Mods") / "terrains"
+_ENTRY_ID = re.compile(r"""\[\s*['"]id['"]\s*\]\s*=\s*"([^"]+)\"""")
 _REGISTRY_KEYS = (r"Software\Eagle Dynamics\DCS World", r"Software\Eagle Dynamics\DCS World OpenBeta")
 
 
@@ -290,8 +291,9 @@ class SurfaceForests:
 def find_surface_file(dcs_dir: Path, theatre: str) -> Path | None:
     """The ``.surface5`` file of a theatre in a DCS install.
 
-    The theatre name a mission carries is the terrain's folder (``Syria``, ``Normandy``) or its file
-    (``SinaiMap``, in folder ``Sinai``); both are tried, ignoring case.
+    The theatre name a mission carries is the ``id`` the terrain's ``entry.lua`` declares: ``GermanyCW``
+    in folder ``GermanyColdWar``, ``SinaiMap`` in folder ``Sinai``. The folder and file names are tried
+    too, ignoring case, for a terrain whose ``entry.lua`` cannot be read.
 
     Args:
         dcs_dir: The DCS install (the folder holding ``Mods``).
@@ -302,13 +304,24 @@ def find_surface_file(dcs_dir: Path, theatre: str) -> Path | None:
     """
     wanted = theatre.casefold()
     terrains = dcs_dir / _TERRAINS
-    if not terrains.is_dir():
+    if not wanted or not terrains.is_dir():
         return None
     for folder in sorted(terrains.iterdir()):
+        names = {folder.name.casefold(), _declared_id(folder).casefold()}
         for surface in sorted((folder / "surface").glob("*.surface5")):
-            if wanted in (folder.name.casefold(), surface.stem.casefold()):
+            if wanted in names or wanted == surface.stem.casefold():
                 return surface
     return None
+
+
+def _declared_id(folder: Path) -> str:
+    """The theatre id a terrain's ``entry.lua`` declares (``['id'] = "GermanyCW"``), or ``""``."""
+    try:
+        text = (folder / "entry.lua").read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return ""
+    found = _ENTRY_ID.search(text)
+    return found.group(1) if found else ""
 
 
 def registered_dcs_dirs() -> list[Path]:

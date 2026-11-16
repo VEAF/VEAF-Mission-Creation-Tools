@@ -92,7 +92,13 @@ def test_the_persistent_example_is_valid_without_a_single_warning() -> None:
     campaign, issues = load_campaign(PERSISTENT / CAMPAIGN_FILE)
     assert issues == []
     assert campaign is not None
-    assert (campaign.mode, len(campaign.zones)) == ("persistent", 8)
+    assert (campaign.mode, len(campaign.zones)) == ("persistent", 11)
+    assert {zone.name: zone.kind for zone in campaign.zones if zone.kind} == {
+        "Ozurgeti": "factory",
+        "Supsa": "depot",
+        "Samtredia": "depot",
+        "Tkibuli": "factory",
+    }
 
 
 def test_the_persistent_example_starts_asleep_with_its_live_play(tmp_path: Path) -> None:
@@ -119,7 +125,7 @@ dofile("{mocks}/dcs_mocks.lua")
 for _, m in ipairs({{"veaf","veafI18n","veafScheduler","veafMath","veafGeo","veafMissionDb","veafDcsSpawner",
   "dcsUnits","veafUnits","veafCasMission","veafEventHandler","veafRadio","veafNamedPoints"}}) do dofile("{src}/" .. m .. ".lua") end
 veafAircraftSpawn = {{ roles = {{}} }}
-for _, m in ipairs({{"veafCampaign","veafCampaignOps","veafCampaignEconomy"}}) do dofile("{src}/" .. m .. ".lua") end
+for _, m in ipairs({{"veafCampaign","veafCampaignOps","veafCampaignEconomy","veafCampaignLogistics"}}) do dofile("{src}/" .. m .. ".lua") end
 Airbase.getByName = function(name) return {{ getPoint = function() return {{ x = 1, y = 0, z = 2 }} end, getID = function() return 1 end }} end
 {data_line.strip()}
 assert(veafCampaign.initialize())
@@ -127,9 +133,11 @@ local drawn = 0
 for _, zone in ipairs(veafCampaign.zoneList) do
   if zone.entry.garrison then drawn = drawn + 1 end
 end
-print(#veafCampaign.zoneList, drawn, #dcs_mocks.groupsAdded, veafCampaignEconomy.credits, #veafCampaign.beatHooks)
+print(#veafCampaign.zoneList, drawn, #dcs_mocks.groupsAdded, veafCampaignEconomy.credits, #veafCampaign.beatHooks,
+  #dcs_mocks.staticsAdded, veafCampaignLogistics.stock("red"))
 """
     )
     assert result.returncode == 0, result.stderr
-    # seven garrisons drawn, none spawned (every zone asleep), the economy and the sorties started
-    assert result.stdout.split() == ["8", "7", "0", "500", "2"]
+    # ten garrisons drawn, none spawned (every zone asleep), the logistics, the sorties and the economy
+    # started; the two factories' buildings are in the world, statics that cost no AI
+    assert result.stdout.split() == ["11", "10", "0", "500", "3", "6", "500"]

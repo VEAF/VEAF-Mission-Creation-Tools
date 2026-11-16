@@ -100,6 +100,9 @@ def campaign_next(
         console.print(t("cmd.campaign_next.name", name=report.name))
         if report.security_restored:
             console.print(t("cmd.campaign_next.security_restored"))
+        if report.interpreter_commands:
+            commands = ", ".join(report.interpreter_commands)
+            console.print(f"[yellow]⚠[/]  {t('cmd.campaign_next.interpreter_commands', commands=commands)}")
         console.print(t("cmd.campaign_next.waypoints" if report.waypoints else "cmd.campaign_next.waypoints_kept"))
         if report.conditions:
             weather = report.conditions.weather

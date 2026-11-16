@@ -12,7 +12,9 @@
   Une zone neutre se prend en y tenant le terrain : des unités au sol d'un seul camp y restent `capture_seconds` (120 s par défaut) — troupes ou caisse CTLD 2, convoi, groupe `_spawn`, véhicule Combined Arms, hélicoptère **posé**.
   La nouvelle garnison apparaît aussitôt.
 - **Les slots suivent les bases** : un aérodrome pris passe dans le camp du preneur, avec ses slots dynamiques.
-- **Le front bouge tout seul** : l'ennemi [contre-attaque](#front), renforce ses zones par hélicoptère, et envoie CAP et frappes.
+- **Le front bouge tout seul** : l'ennemi [contre-attaque](#front), renforce ses zones par hélicoptère, et envoie CAP, frappes et [bombardiers](#bombers).
+- **L'ennemi paie ce qu'il envoie** avec les [ressources](#resources) que font ses usines : détruire ses [usines](#zone-kinds) ou couper son [réseau d'approvisionnement](#network) finit par clouer sa CAP au sol.
+- **La carte est teintée** par camp, chaque zone tenant le [territoire](#territory) le plus proche d'elle, et le front se lit entre les deux couleurs.
 - **Le menu F10 → Autres → Campagne** donne la situation, les crédits, les tâches, le renseignement et la boutique.
 - **La partie se termine** quand un camp ne tient plus aucune zone : victoire si c'est l'ennemi, défaite si c'est nous.
   C'est annoncé à tous, et la campagne repart de zéro au prochain chargement de la mission.
@@ -61,8 +63,13 @@ Puis on construit la mission du dossier `missions\mission-01\mission` comme n'im
 `campaign next` relancé sur le même dossier la met à jour sans toucher au reste du travail fait dedans.
 `campaign apply` n'a pas d'usage ici : il n'y a pas de « entre deux missions ».
 
-`campaign next` ajoute aussi au `ctld-config.yaml` de la mission ce que les joueurs transportent pour la campagne : la caisse **« Zone supplies »** (une par camp) et le groupe de troupes **« Spy »** (un homme).
+`campaign next` ajoute aussi au `ctld-config.yaml` de la mission ce que les joueurs transportent pour la campagne : la caisse **« Zone supplies »** (une par camp), le groupe de troupes **« Spy »** (un homme) et le groupe **« Sappers »** (deux hommes, l'[équipe de démolition](#demolition)).
 Il impose enfin la vue F10 « fog of war » (`mission.forced_options.f10_view: fog_of_war`) : un pilote ne voit que les ennemis que son camp a détectés, et la force d'une garnison s'apprend par la [reconnaissance](#intel). Une vue déjà choisie dans `mission.yaml` est gardée.
+
+**Pas de commande d'interpréteur dans une campagne persistante.**
+Une unité nommée `#veafInterpreter["…"]` dans l'éditeur refait apparaître ses unités à chaque démarrage de la mission : en campagne persistante, elles reviennent neuves après chaque redémarrage du serveur, leurs pertes oubliées, sans que personne les paie.
+Ce que la campagne doit tenir se déclare dans `campaign.yaml`, en zone avec sa garnison (une liste explicite `garrison:` si la composition compte) : la zone est sauvegardée avec ses pertes, et le [réseau](#network) la reconstruit aux frais de son camp.
+`campaign next` signale les commandes d'interpréteur qu'il trouve dans la mission.
 
 ## La sauvegarde {#save}
 
@@ -72,10 +79,11 @@ La mission écrit son état toutes les `save_seconds` (60 s) et en fin de missio
 <Saved Games>\DCS\Missions\Saves\<nom de la campagne>\persistent.state
 ```
 
-Au démarrage, elle relit ce fichier : chaque zone reprend son camp, sa garnison avec ses pertes et sa capture en cours ; les crédits et le renseignement en cours reviennent aussi.
+Au démarrage, elle relit ce fichier : chaque zone reprend son camp, sa garnison avec ses pertes et sa capture en cours, une usine ses bâtiments debout ou détruits, un aérodrome ses stocks d'armement ; les crédits, les ressources de chaque camp et le renseignement en cours reviennent aussi.
 Une zone ajoutée à `campaign.yaml` depuis part de son état déclaré ; une zone retirée est ignorée, et le journal le dit.
 
 Ce qui **n'est pas** repris après un redémarrage : les avions, hélicoptères et convois en route. Ils sont perdus, les zones et les garnisons non ; les survivants d'un convoi payé sur une réserve y retournent.
+Ce qui survit rentre au bercail : un convoi d'assaut, un spawn payé encore debout ou une livraison du réseau en route au moment de l'arrêt rendent leur prix aux ressources de leur camp au chargement suivant.
 
 Le fichier est un tableau Lua lu sans aucun accès : il ne peut rien exécuter.
 Il faut que `io` et `lfs` soient ouverts dans le `MissionScripting.lua` du serveur, ce qui est le cas sur les serveurs VEAF.
@@ -87,8 +95,20 @@ La campagne repart de son état déclaré au prochain chargement de la mission ;
 ## Les zones en sommeil {#dormancy}
 
 Loin des joueurs, une zone n'a aucune unité dans le monde : sa garnison n'est qu'une ligne de la sauvegarde, avec ses pertes.
-Elle apparaît quand un avion de joueur arrive à moins de `wake_radius` (60 km) ou qu'une sortie la vise, exactement comme elle était, et disparaît quand personne n'est venu depuis `sleep_seconds` (600 s).
-Au plus `max_awake_zones` (12) zones sont éveillées à la fois, les plus proches des joueurs d'abord, et une seule se réveille à chaque battement de 10 s, pour ne pas faire apparaître tout le front d'un coup.
+Elle réapparaît exactement comme elle était :
+
+- **toujours**, si elle est à moins de `front_depth` (40 km) de la ligne de front tracée sur la carte, ou si elle est reliée à une zone d'un autre camp, ou si une sortie la vise : l'ennemi qui contourne trouve du monde ;
+- quand un **avion de joueur ennemi** arrive à moins de `wake_radius` (60 km), ou à portée de sa défense antiaérienne plus `reach_wake_margin` (20 km) quand cette portée va plus loin ;
+- quand un **avion ennemi en vol**, IA comprise, arrive à portée de sa défense antiaérienne plus `reach_wake_margin` : un SAM longue portée se réveille donc bien plus tôt qu'une zone qui n'a que des canons ;
+- quand un **groupe au sol ennemi** qui n'est pas une garnison (convoi, troupes déposées, spawn) arrive à moins de `ground_wake_radius` (10 km).
+
+Seuls les ennemis d'une zone la réveillent ; les véhicules posés dans l'éditeur et les avions pas encore activés ne réveillent rien.
+La portée d'une défense est celle de ses missiles, lue dans DCS pendant que la zone est éveillée et retenue dans la sauvegarde ; une zone jamais vue éveillée a une portée supposée (75 km avec un SAM longue portée, 20 km sinon).
+Elle disparaît quand personne n'est venu depuis `sleep_seconds` (600 s), sauf près du front.
+
+Au plus `max_awake_zones` (12) zones de l'arrière sont éveillées à la fois ; le front et les cibles de sorties ne comptent pas.
+Quand la limite est atteinte, une zone voulue par un joueur prend la place d'une zone voulue seulement par une IA, ou d'une zone voulue par un joueur plus lointain ; entre zones voulues par des IA, la première garde sa place, pour que des avions qui passent ne fassent pas apparaître et disparaître les zones en boucle.
+Une seule zone se réveille à chaque battement de 10 s, pour ne pas faire apparaître tout le front d'un coup.
 
 ## Un front qui bouge tout seul {#front}
 
@@ -100,8 +120,12 @@ Au plus `max_awake_zones` (12) zones sont éveillées à la fois, les plus proch
 ## L'aviation ennemie {#air}
 
 - **CAP** : l'ennemi tient en l'air une CAP par tranche de `air.cap_per_players` (3) joueurs du [niveau d'opposition](scripts/veafQraManager.md#opposition-level), au moins une, au-dessus de sa zone du front la plus proche des joueurs.
+  Son cercle de patrouille (40 km au plus) s'arrête 15 km avant la portée des défenses antiaériennes de nos zones ; quand même un cercle de 5 km serait à leur portée, elle ne part pas : elle ne vient pas se jeter dans nos SAM.
 - **Frappes** : toutes les `air.strike_seconds` (900 s), une frappe CAS (sur la zone qui a le plus d'unités) ou SEAD (sur celle qui a le plus de défense antiaérienne), en alternance, sur une zone qui borde le territoire ennemi.
-- Elles **décollent** de l'aérodrome ennemi le plus proche, moteur chaud sur des parkings libres, ou de la piste quand il n'y en a pas assez ; sans aérodrome, pas de sortie. Il en va de même pour la CAP, la BARCAP et le Hunter.
+- Elles **décollent** de l'aérodrome ennemi le plus proche, moteur chaud sur des parkings libres (les abris d'abord, les places ouvertes ensuite ; un gros avion, bombardier ou transport, jamais dans un abri), ou de la piste quand il n'y en a pas assez ; sans aérodrome, pas de sortie. Il en va de même pour la CAP, la BARCAP et le Hunter.
+  Rien ne décolle d'un aérodrome à moins de `takeoff_threat_range` (40 km) d'une défense antiaérienne ennemie dont la portée a été mesurée (un Patriot abattrait les avions pendant qu'ils montent) ; la portée que donne DCS est celle du missile contre une cible haute, bien plus longue que celle à laquelle le SAM voit un avion qui décolle, d'où ce plafond, une estimation à régler.
+  Une **SEAD** décolle quand même : éteindre cette défense est son travail, et ce qu'elle détruit libère le terrain pour les frappes.
+  Sinon la sortie part d'un autre aérodrome, ou ne part pas, et `dcs.log` le dit (`[CAMPAIGN DECISION] nothing of red takes off from [Senaki]: it is under the air defence of [Kobuleti]`).
   `air.max_flights` (4) vols en l'air au plus par camp.
 - **Hunter** : un joueur qui enchaîne les victoires (entre 8 et 16 au sol, ou entre 4 et 8 en l'air, tiré une fois par vie) a ensuite 10 % de chances à chaque victoire de voir décoller deux chasseurs ennemis contre ce joueur ; son camp est prévenu.
 
@@ -146,12 +170,14 @@ Un achat refusé (plus de cible, rien à portée) ne coûte rien.
 | BARCAP | une CAP de notre camp tenue devant une zone ennemie, hors de portée de ses défenses, pour couvrir les hélicoptères et les avions qui vont la frapper | 400 |
 | Hélico de capture | un hélicoptère qui va prendre une zone neutre | 250 |
 | Hélico de ravitaillement | un hélicoptère qui va ravitailler une de nos zones abîmées | 200 |
+| Raid de bombardiers | un [raid combiné](#bombers) — BARCAP, SEAD, bombardier — sur une zone ennemie, ses bâtiments d'abord | 1300 |
 | Ravitailleur | fait réapparaître le ravitailleur que nomme `economy.tanker` (un asset de la mission) ; absent sans lui | 300 |
 
-La BARCAP se tient sur l'axe entre la zone ennemie et notre aérodrome le plus proche, à la portée de ses défenses plus 15 km, et garde un cercle de 15 km.
+La BARCAP se tient sur l'axe entre la zone ennemie et notre aérodrome le plus proche, au premier point hors de portée de **toutes** les défenses ennemies (pas seulement celles de la zone visée) plus 15 km, et garde un cercle de 15 km ; quand aucun point de l'axe n'est hors de portée, elle tient au-dessus de son aérodrome.
 La portée se mesure sur les missiles que portent les unités de la zone quand elle est éveillée ; une zone endormie est supposée porter à 75 km si sa classe a un SAM longue portée, 20 km sinon, et le message le dit.
 
-Les prix se changent dans `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `tanker`).
+Les prix se changent dans `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `tanker`, et `assault` pour l'ordre d'assaut de F10 → Campagne → Assaut, 300).
+Ce que les joueurs achètent se paie en crédits, jamais sur les [ressources](#resources).
 
 ## Le tableau des tâches {#tasks}
 
@@ -163,6 +189,7 @@ F10 → Autres → Campagne → **Tâches** : `tasks.count` (3) tâches à la fo
 | Prendre une zone neutre qui nous borde | elle est à nous | 300 |
 | Ravitailler notre zone la plus abîmée | elle est au complet | 200 |
 | Supériorité aérienne | `tasks.air_kills` (2) aéronefs abattus | 200 |
+| Intercepter les bombardiers ennemis en route | le bombardier est abattu ; retirée s'il rentre | 400 |
 
 Une tâche dont la cible est passée à l'ennemi est retirée, sans récompense.
 
@@ -177,9 +204,183 @@ La garnison d'une zone ennemie est **inconnue** des joueurs (« force inconnue �
 Une zone reconnue affiche sa force sur la carte, et F10 → Autres → Campagne → **Renseignement** donne sa composition, défense antiaérienne en tête.
 `intel.hidden: false` montre toutes les garnisons à tout le monde.
 
+## Usines et dépôts {#zone-kinds}
+
+Une zone se déclare d'une sorte, `kind:`, en plus de son emplacement :
+
+| Sorte | Comment elle se joue |
+|---|---|
+| aucune, sur un aérodrome | un **aérodrome** : il se prend, ses slots suivent |
+| aucune, sur un point | un **avant-poste** : une garnison |
+| `factory` | une **usine** : quelques bâtiments et une petite garnison ; elle fait les [ressources](#resources) de son camp tant que ses bâtiments tiennent |
+| `depot` | un **dépôt** : il accélère le [réseau d'approvisionnement](#network) et en garde une réserve |
+
+```yaml
+zones:
+  - { name: Tkibuli, at: { lat: 42.350, lon: 42.998 }, size: outpost, side: red, kind: factory }
+  - { name: Samtredia, at: { lat: 42.165, lon: 42.335 }, size: outpost, side: red, kind: depot }
+```
+
+Les bâtiments d'une usine se tirent une fois, au premier démarrage : `factory.buildings` (3) parmi `factory.types` (`Workshop A`, `Tech combine`, `Tech hangar A`), alignés à 60 m l'un de l'autre sur un terrain dégagé de la zone.
+Ce sont des statics : ils restent dans le monde même quand la zone dort.
+La carte compte ceux qui tiennent, « usine 2/3 ».
+On les détruit à la bombe ou avec l'[équipe de démolition](#demolition) ; une usine se prend aussi comme n'importe quelle zone, et ce qui en tient travaille alors pour son nouveau camp.
+Une livraison (caisse, troupes, hélicoptère) dans une usine dont la garnison est complète relève un bâtiment.
+
+## Les ressources de l'IA {#resources}
+
+Chaque camp a **un stock de points de ressources** (`resources.start`, 500), sauvegardé avec la campagne, et **tout ce que l'IA met en jeu se paie dessus** au prix de ses unités : la garnison d'une zone prise, un renforcement par le [réseau](#network), un convoi d'assaut, un hélicoptère de ravitaillement, une CAP, une frappe, le Hunter, un [raid de bombardiers](#bombers).
+Un stock vide n'envoie plus rien : une sortie ne part que si le stock reste au-dessus de `resources.reserve` (100) une fois payée, pour que l'IA garde de quoi relever ses zones.
+Une zone prise que son camp ne peut pas payer reçoit une garnison symbolique.
+Un [spawn payé](#paid-spawns) peut faire passer le stock sous zéro : l'IA ne paie alors plus rien, sortie ni renfort, jusqu'à ce que la production le remonte.
+
+**La production** s'ajoute à chaque battement : une production de fond, `resources.background_per_hour` (30 points par heure), même sans usine, de quoi tenir tout juste une base ; et chaque usine, `factory.per_hour` (120) multiplié par la part de ses bâtiments debout.
+
+**Le prix d'une unité** se lit dans la base des unités de DCS, d'après ce qu'elle est :
+
+| Unité | Points |
+|---|---|
+| fantassin | 1 |
+| véhicule non armé | 2 |
+| blindé de transport, véhicule de combat d'infanterie | 4 |
+| char | 6 |
+| artillerie | 5 |
+| AAA, défense courte portée | 4 |
+| SAM courte portée | 8 |
+| élément de SAM moyenne ou longue portée | 15 |
+| hélicoptère | 15 |
+| avion | 30 |
+| bombardier | 100 |
+| tout le reste | 5 |
+
+`resources.prices` change le prix d'un type : `{ "T-72B": 7 }`.
+Ce sont des valeurs de départ, qui se régleront sur un serveur : une usine paie à peu près une contre-attaque et une CAP par heure.
+
+Les crédits restent ceux des joueurs : ce qu'ils achètent ne sort pas des ressources, et ce qui survit d'un achat s'y ajoute au chargement suivant.
+`resources.enabled: false` rend l'IA gratuite et illimitée, comme avant.
+
+## Le réseau d'approvisionnement {#network}
+
+Les usines d'un camp nourrissent ses zones de proche en proche, le long des liaisons, et seulement à travers les zones du camp : une zone ennemie ou neutre coupe le chemin, et le reste du réseau est servi par un détour, plus tard.
+
+- **Un saut** d'une zone à la suivante prend `network.hop_seconds` (600 s) ; **un saut qui touche un dépôt** la moitié : usine → base → base fait deux sauts pleins, usine → dépôt → base un seul.
+- **Un dépôt** garde une réserve de `network.depot_store` (4) livraisons, pleine tant qu'une usine l'atteint : coupé de ses usines, il nourrit encore les zones autour de lui le temps de la vider.
+- **Une zone abîmée**, d'un camp comme de l'autre, commande une livraison, payée sur les ressources à la commande ; son premier groupe touché revient au complet après le délai de la zone ; `network.max_deliveries` (3) livraisons d'un camp en route à la fois. Une zone perdue entre-temps ne reçoit rien.
+  Les joueurs qui font de la logistique vont plus vite : une caisse, des troupes ou un hélicoptère renforcent sur-le-champ, sans attendre le réseau ni le payer.
+- **Une zone coupée** de toute usine et de tout dépôt est encore servie, sur la production de fond, au bout de `network.isolated_seconds` (3 600 s).
+
+F10 → Campagne → **Réseau d'approvisionnement** donne aux joueurs leur stock, leur production, et pour chacune de leurs zones son délai ou « coupée du réseau ».
+
+## Les spawns payants {#paid-spawns}
+
+Dans une campagne persistante, toute commande de spawn VEAF qu'une personne pose en marqueur — `_spawn`, `-armor`, `-cap`, un convoi, une caisse, game masters compris — se paie :
+
+- **en crédits** quand elle fait apparaître des unités pour le camp des joueurs ;
+- **sur les ressources** de l'autre camp sinon ;
+- au prix **des unités qu'elle a fait apparaître**, une par une, au [barème des ressources](#resources) : une section blindée tirée au hasard coûte ce qu'elle a tiré, deux chars et un VCI font 6 + 6 + 4 = 16 points ;
+- le camp des joueurs paie `economy.credits_per_point` (6) crédits par point : ces 16 points font 96 crédits ;
+- le prix n'est connu qu'une fois les unités tirées : le spawn passe donc toujours **en entier** — multiplicateur compris — et se paie au prix exact, quitte à faire passer le camp **dans le rouge** ;
+- un camp à zéro ou dans le rouge ne fait plus apparaître rien : la commande est refusée avant le spawn, avec son solde, jusqu'à ce que le solde repasse au-dessus de zéro ; un gain rembourse d'abord la dette.
+
+Fumigènes, fusées, dessins, destruction, téléportation et mission master restent gratuits : ils ne mettent aucune unité en jeu.
+Un alias en lot (`-arty1`) se paie comme ses alias : sa batterie est facturée, même si le mot de passe n'est vérifié qu'une fois.
+Ce qu'un script fait apparaître (une combat zone, une commande que l'interpréteur lit dans un nom posé dans l'éditeur, les sorties de la campagne elle-même) n'est pas l'action d'une personne et ne se paie pas ici.
+
+### Les commandes réservées {#reserved-commands}
+
+Certaines commandes seraient de la triche dans une campagne persistante : elle les réserve au niveau **admin** (celui du fichier des pilotes VEAF), quel que soit leur niveau ailleurs.
+
+| Réservées aux admins | Ce qu'elles font |
+|---|---|
+| `-shell`, `-cesar`, `-flak`, `_spawn bomb` | des explosions où l'on veut |
+| `-destroy`, `_destroy` | détruire les unités autour du marqueur |
+| `-tanker`, `-tankerhere`, `_teleport`, `_move … teleport` | téléporter un groupe ou le ravitailleur |
+| `-zonestart`, `-zonestop`, `-airstart`, `-airstop` | activer ou arrêter une combat zone ou une vague aérienne |
+| `-send`, `-play`, `_radio` | diffuser un message ou un son à tout le serveur |
+| `-light`, `_spawn flare` | de l'éclairage gratuit, que la boutique vend |
+
+**`-cas` est désactivée** : une zone CAS d'entraînement n'a pas de sens dans une campagne.
+Le reste garde le niveau de son module : fumigènes, signaux, points nommés, balises, dessins, altitude du ravitailleur, commandes de l'artillerie posée.
+La même règle vaut pour une commande qu'un pilote passe à distance.
+Une mission dont la sécurité est coupée (une copie de test) laisse tout passer, sauf `-cas`.
+
+## L'équipe de démolition {#demolition}
+
+Le groupe de troupes CTLD 2 **« Sappers »** (`demolition.troops`), déposé par le camp des joueurs, marche vers l'usine ennemie dont les bâtiments sont à moins de `demolition.range` (5 km) de son point de dépose.
+Arrivé à 200 m des bâtiments, il pose ses charges sur tous ceux qui tiennent, le dit, et repart vers son point de dépose.
+Les charges sautent `demolition.fuse` (120 s) plus tard, même si l'équipe a été tuée entre-temps.
+Chaque bâtiment détruit rapporte `economy.demolition` (50) crédits, et l'usine produit d'autant moins.
+Sans usine ennemie à portée, l'équipe le dit et reste sur place.
+
+## Les stocks d'armement {#warehouses}
+
+Les stocks d'armement de chaque aérodrome de la campagne, lus à chaque sauvegarde, sont remis à l'identique au redémarrage ; un stock illimité est laissé tel quel.
+La campagne ne rend aucun entrepôt limité ni illimité : c'est le choix de l'éditeur de mission.
+
+Les joueurs déplacent du stock d'un terrain à l'autre, en hélicoptère ou en avion de transport :
+
+1. posé sur un aérodrome de la coalition, F10 → Campagne → Entrepôt → **Charger de l'armement** prend `warehouse.load` (10) de chaque arme de l'entrepôt (moins s'il en a moins) ;
+2. posé sur un **autre** aérodrome de la coalition, **Décharger l'armement** dépose exactement ce qui est à bord, et rapporte `economy.warehouse_delivery` (50) crédits, une fois par terrain pour chaque vol ;
+3. **Armement à bord** dit ce qu'on transporte.
+
+Le chargement est perdu avec l'appareil, et avec le serveur : il n'est pas sauvegardé.
+`warehouse.enabled: false` retire le menu et la remise des stocks.
+
+## Les bombardiers stratégiques {#bombers}
+
+Toutes les `bombers.seconds` (3 600 s), l'ennemi envoie un **raid combiné** sur la zone des joueurs qui a le plus à frapper : une usine d'abord, sinon la zone qui a le plus d'unités, parmi celles qu'un de ses aérodromes peut atteindre.
+Tout **décolle** de l'aérodrome ennemi le plus proche de la cible qui en est au moins à `bombers.min_distance` (80 km), pour laisser aux joueurs le temps d'intercepter, comme tous les avions de la campagne :
+
+1. une **BARCAP** tient l'axe, hors de portée de toutes les défenses antiaériennes ennemies (voir la [BARCAP](#shop)) ;
+2. un vol **SEAD**, contre la zone dont la défense antiaérienne couvre la cible (s'il y en a une), et le **bombardier** se retrouvent sur un point d'attente, sur l'axe de la cible, au premier point hors de portée des défenses plus 15 km (au-dessus de leur aérodrome s'il n'y en a pas) ;
+3. quand les deux y tournent, montés à leur altitude (à 1 000 m près) et à moins de 15 km du point (le rayon d'un cercle d'attente), la SEAD repart vers la cible, et le bombardier `bombers.package_delay` (30 s) derrière elle, sur le même axe ; si la SEAD a été abattue en route, le bombardier repart seul. Aucun ne tourne plus de 20 minutes au point d'attente.
+
+Le bombardier vole à la vitesse de la SEAD, pour rester derrière elle, et largue tout son emport d'une passe, en tapis de 100 m sur la cible ; il ne réagit pas à la menace et ne largue pas ses bombes en secours : il va jusqu'à la cible.
+Après la cible, il repart sur 20 km par l'axe d'où il est venu, celui que sa SEAD a dégagé, avant de rentrer à sa base.
+Sans défense à éteindre, pas de SEAD ni d'attente : le bombardier va droit sur la cible.
+
+Pas d'escorte par défaut : la BARCAP tient l'approche, et la fin du trajet est la fenêtre d'interception des joueurs ; `bombers.escort: true` lui en rend une.
+Le paquet se paie tout entier, sur les ressources, ou ne part pas.
+Les joueurs en sont prévenus aussitôt, et le [tableau des tâches](#tasks) affiche une tâche d'interception.
+Un seul raid d'un camp en l'air à la fois.
+
+Les joueurs achètent le même paquet à la [boutique](#shop) : **Raid de bombardiers**, sur une zone ennemie.
+
+Les bombardiers se déclarent comme les autres avions, rôle `bomber` :
+
+```yaml
+dynamic:
+  air:
+    red:
+      bomber: { type: Tu-22M3, loadout: "FAB-500*33", count: 1 }
+    blue:
+      bomber: { type: B-1B, loadout: "Mk-84*24", count: 1 }
+```
+
+## Le territoire {#territory}
+
+Chaque zone tient la part de la carte plus proche d'elle que de toute autre zone (sa cellule de Voronoï), teintée sur la carte F10 de la couleur de son camp, gris pour une zone neutre ; une ligne sombre court entre deux cellules de camps différents : c'est le front, souligné de chaque côté par de petites hachures obliques de la couleur du camp, bien visibles là où la teinte est pâle.
+La carte ne se redessine que quand une zone change de camp.
+`territory.margin` (70 km) prolonge les cellules au-delà des zones du bord ; `territory.hatch_spacing` (3 000 m) et `territory.hatch_length` (2 500 m) règlent l'écart et la longueur des hachures ; `territory.enabled: false` retire la teinte.
+
+## Le journal de mise au point {#debug-log}
+
+Pendant la mise au point, `dynamic.debug` (activé par défaut) écrit dans `dcs.log` ce que fait la campagne, en lignes faciles à chercher :
+
+| Repère | Ce qu'il dit |
+|---|---|
+| `[CAMPAIGN DECISION]` | chaque décision de l'IA et sa raison : sortie envoyée, ou non (pas de cible, pas de terrain, plus de place, pas de quoi payer — avec le prix et le stock) ; composition d'un raid |
+| `[CAMPAIGN FLIGHT]` | le sort de chaque avion de la campagne : largage (avec sa distance au point visé, la zone la plus proche et ce qu'il lui reste), victoire ou perte et par qui, atterrissage, départ d'un raid de son point d'attente |
+| `[CAMPAIGN AIRDEF]` | toutes les `debug_status_seconds` (300 s) : pour chaque zone, ses unités de défense antiaérienne et les missiles qui leur restent, lanceurs vides compris |
+| `[CAMPAIGN SUPPLY]` | livraisons du réseau commandées, arrivées, perdues |
+| `[CAMPAIGN ZONE]` | zones prises et neutralisées |
+| `[CAMPAIGN STATUS]` | toutes les `debug_status_seconds` (300 s) : par camp, zones, stock et production, livraisons en route, vols en l'air, raid en cours, et les crédits des joueurs |
+
+`debug: false` l'éteint, une fois la campagne sûre.
+
 ## Contrôler une mission en jeu {#self-check}
 
-F10 → Autres → Campagne → **Auto-contrôle (admin)** affiche une ligne `OK` ou `KO` par mécanisme : zones placées, sauvegarde relue et écrite, issue, dormance, captures, hélicoptères, aviation, crédits, tâches, renseignement.
+F10 → Autres → Campagne → **Auto-contrôle (admin)** affiche une ligne `OK` ou `KO` par mécanisme : zones placées, sauvegarde relue et écrite, issue, dormance, captures, usines, territoire, ressources des deux camps, réseau (livraisons et zones coupées), spawns payants, sapeurs, entrepôts, hélicoptères, aviation, bombardiers, crédits, tâches, renseignement.
 Une ligne `KO` suffit à dire où regarder.
 
 ## Tous les réglages {#settings}
@@ -187,9 +388,13 @@ Une ligne `KO` suffit à dire où regarder.
 | Clé de `dynamic:` | Par défaut | Ce qu'elle règle |
 |---|---|---|
 | `save_seconds` | 60 | intervalle entre deux sauvegardes |
-| `wake_radius` | 60000 | mètres : un joueur aussi près réveille une zone |
+| `wake_radius` | 60000 | mètres : un joueur ennemi aussi près réveille une zone |
+| `ground_wake_radius` | 10000 | mètres : un groupe au sol ennemi qui n'est pas une garnison, aussi près, réveille une zone ; les véhicules posés dans l'éditeur ne réveillent rien |
+| `reach_wake_margin` | 20000 | mètres : un avion ennemi aussi loin au-delà de la portée de la défense d'une zone la réveille |
+| `takeoff_threat_range` | 40000 | mètres : rien d'autre qu'une SEAD ne décolle aussi près d'une défense ennemie mesurée |
+| `front_depth` | 40000 | mètres : une zone aussi près de la ligne de front tracée sur la carte est toujours éveillée |
 | `sleep_seconds` | 600 | une zone sans joueur près d'elle depuis ce temps se rendort |
-| `max_awake_zones` | 12 | zones éveillées à la fois |
+| `max_awake_zones` | 12 | zones de l'arrière éveillées à la fois (le front et les cibles de sorties ne comptent pas) |
 | `attacks` | `[red]` | les camps qui contre-attaquent seuls |
 | `attack_seconds` | 900 | intervalle entre deux contre-attaques d'un camp |
 | `max_convoys` | 2 | convois d'assaut d'un camp sur la route |
@@ -201,9 +406,18 @@ Une ligne `KO` suffit à dire où regarder.
 | `supply_crate` | `Zone supplies` | le nom de la caisse CTLD 2 qui ravitaille |
 | `hunter` | `{enabled: true, ground_kills: 8, air_kills: 4, chance: 10}` | le Hunter |
 | `air` | voir [l'aviation ennemie](#air) | `strike_seconds` (900), `max_flights` (4), `cap_per_players` (3), et les avions de chaque camp |
-| `economy` | voir [la boutique](#shop) | `start_credits`, `kill_ground`, `kill_air`, `capture`, `delivery`, `prices`, `tanker` |
-| `tasks` | voir [les tâches](#tasks) | `count`, `refresh_seconds`, `air_kills`, `rewards` (`attack`, `capture`, `resupply`, `air`) |
+| `economy` | voir [la boutique](#shop) | `start_credits`, `kill_ground`, `kill_air`, `capture`, `delivery`, `prices`, `tanker`, `credits_per_point` (6), `demolition` (50), `warehouse_delivery` (50) |
+| `tasks` | voir [les tâches](#tasks) | `count`, `refresh_seconds`, `air_kills`, `rewards` (`attack`, `capture`, `resupply`, `air`, `intercept`) |
 | `intel` | voir [le renseignement](#intel) | `hidden`, `seconds`, `overflight_altitude`, `spy_troops`, `spy_range` |
+| `resources` | voir [les ressources](#resources) | `enabled` (true), `start` (500), `background_per_hour` (30), `reserve` (100), `prices` |
+| `factory` | voir [les usines](#zone-kinds) | `buildings` (3), `per_hour` (120), `types` |
+| `network` | voir [le réseau](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3) |
+| `demolition` | voir [la démolition](#demolition) | `troops` (`Sappers`), `range` (5000), `fuse` (120) |
+| `warehouse` | voir [les stocks](#warehouses) | `enabled` (true), `load` (10) |
+| `bombers` | voir [les bombardiers](#bombers) | `enabled` (true), `seconds` (3600), `min_distance` (80000), `escort` (false), `package_delay` (30) |
+| `debug` | voir [le journal de mise au point](#debug-log) | `true` pendant les essais |
+| `debug_status_seconds` | 300 | intervalle entre deux lignes d'état du journal |
+| `territory` | voir [le territoire](#territory) | `enabled` (true), `margin` (70000), `hatch_spacing` (3000), `hatch_length` (2500) |
 
 Les plafonds sont prudents par défaut ; ils se règleront d'après ce que tiennent les serveurs.
 
@@ -212,9 +426,13 @@ Les plafonds sont prudents par défaut ; ils se règleront d'après ce que tienn
 Ces points sont écrits et testés hors de DCS, pas encore mesurés en jeu :
 
 - un hélicoptère IA qui se pose dans une zone (les pièges connus de DCS sur un poser scripté sont dans [les pièges du runtime DCS](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/agents/dcs-runtime-traps.md)) ;
-- les avions qui décollent d'un parking libre (le stand donné par `getParking()` est-il celui où DCS les pose ?) ;
 - les frappes CAS et SEAD et leur retour ;
 - l'équipe espion qui marche jusqu'à sa zone ;
-- la disparition et la réapparition d'une garnison au passage d'un joueur.
+- la disparition et la réapparition d'une garnison au passage d'un joueur ;
+- les bâtiments d'une usine posés sur un terrain dégagé, et relevés sous le drapeau du preneur ;
+- la tâche `CarpetBombing` du bombardier, ses options « pas de réaction à la menace » et « pas de largage de secours », et le point d'attente commun du raid combiné (drapeaux `campaign raid <n> sead` / `bomber`) ;
+- les charges des sapeurs, assez fortes pour un bâtiment, et l'équipe hors de leur souffle ;
+- les stocks d'un entrepôt illimité, que `getInventory` rapporte peut-être sans les compter ;
+- la teinte du territoire, faite de triangles, sur la carte F10.
 
 Voir aussi la [référence du module `veafCampaign`](scripts/veafCampaign.md).

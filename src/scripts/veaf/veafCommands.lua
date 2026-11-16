@@ -194,11 +194,40 @@ function veafCommands.isAllowed(entry, event, bypassSecurity)
   return check(event and event.idx or nil) == true
 end
 
+--- Set by a mission that restricts some markers beyond their module's own level, nil otherwise: a persistent
+--- campaign reserves to admins what would be cheating there, and turns off what makes no sense in it
+--- (FEAT-DYNAMIC-CAMPAIGN, David 2026-11-16). `markerPolicy(text) -> nil | "ADMIN" | "disabled"`. Only a
+--- player's marker is asked: the interpreter's commands are the mission maker's.
+veafCommands.markerPolicy = nil
+
+--- Whether a player's marker passes the mission's policy; a refusal is told to whoever placed it.
+---@return boolean
+function veafCommands.allowedByPolicy(event)
+  local policy = veafCommands.markerPolicy and event and veafCommands.markerPolicy(event.text)
+  if not policy then
+    return true
+  end
+  local requester = veaf.getRequesterCoalition and veaf.getRequesterCoalition(event) or nil
+  if policy == "disabled" then
+    veaf.reportToPilot(veaf.t("command.disabled_here", tostring(event.text)), 15, requester)
+    return false
+  end
+  local check = veafCommands.SECURITY_CHECKS[policy]
+  if check and check(event.idx) == true then
+    return true
+  end
+  veaf.reportToPilot(veaf.t("command.reserved_here", tostring(event.text), policy), 15, requester)
+  return false
+end
+
 --- Dispatch a DCS marker event through the registry.
 -- Called by the single central veafMarkers handler registered in initialize().
 -- @return bool  true if a handler consumed the event (mark will be removed by caller)
 function veafCommands.dispatchMarker(eventPos, event)
   veaf.loggers.get(veafCommands.Id):debug("dispatchMarker(text=[%s])", tostring(event.text))
+  if not veafCommands.allowedByPolicy(event) then
+    return true -- refused, and told: the marker is consumed
+  end
   for _, entry in ipairs(veafCommands.commandHandlers) do
     -- Recognition BEFORE security. Checking first meant every handler whose tier the pilot lacked
     -- printed a refusal for a command it would never have handled: a marker reading "RDV ici" earned

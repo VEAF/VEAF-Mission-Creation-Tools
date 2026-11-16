@@ -176,10 +176,20 @@ class TestZones:
         raw["zones"][0]["side"] = "neutral"
         assert _errors(raw) == []
 
+    @pytest.mark.parametrize("kind", ["factory", "depot"])
+    def test_a_persistent_campaign_s_kinds_are_accepted(self, kind: str) -> None:
+        raw = copy.deepcopy(VALID)
+        raw["zones"][0]["kind"] = kind
+        campaign, issues = parse_campaign(raw)
+        assert campaign is not None, issues
+        assert campaign.zones[0].kind == kind
+
     def test_an_unknown_kind_is_reported(self) -> None:
         raw = copy.deepcopy(VALID)
         raw["zones"][0]["kind"] = "casino"
-        assert t("campaign.issue.unknown_kind", zone="Kobuleti", kind="casino", known="logistics") in _errors(raw)
+        assert t(
+            "campaign.issue.unknown_kind", zone="Kobuleti", kind="casino", known="logistics, factory, depot"
+        ) in _errors(raw)
 
     def test_an_unknown_garrison_entry_is_reported(self) -> None:
         raw = copy.deepcopy(VALID)

@@ -59,6 +59,7 @@ local _moduleOrder = {
   "veafCampaign",
   "veafCampaignOps",
   "veafCampaignEconomy",
+  "veafCampaignLogistics",
   "veafMissionFlightPlanEditor",
 }
 

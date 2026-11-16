@@ -26,8 +26,9 @@ COALITIONS: tuple[str, ...] = ("blue", "red")
 ERAS: tuple[str, ...] = ("MODERN", "COLD_WAR", "WW2")
 
 #: What a zone can be besides a garrisoned position. A logistics zone feeds its side's reserve
-#: between missions (ticket 06).
-ZONE_KINDS: tuple[str, ...] = ("logistics",)
+#: between missions (ticket 06). In a persistent campaign (FEAT-DYNAMIC-CAMPAIGN ticket 11) a factory
+#: is a few buildings that make its owner's resources, and a depot speeds and stores its supply network.
+ZONE_KINDS: tuple[str, ...] = ("logistics", "factory", "depot")
 
 #: How a campaign is played: mission after mission (`episodic`, FEAT-MULTI-MISSION-CAMPAIGN), or as one
 #: mission that runs on a server, saves itself and reloads where it stopped (`persistent`,

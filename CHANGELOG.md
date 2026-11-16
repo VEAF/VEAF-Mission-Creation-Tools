@@ -67,6 +67,26 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Everything is set in a `dynamic:` block, whose aircraft are declared by DCS type and loadout name and resolved into pylons by the tools; **Campaign → Self-check (admin)** gives one OK/KO line per mechanism.
   New page: *Persistent campaign*; an example ships in `src/defaults/campaign-folder-persistent/`.
 
+- **The persistent campaign's V1.5: an economy of war for the AI** (FEAT-DYNAMIC-CAMPAIGN tickets 11 to 18).
+  A zone can be a `factory` — a few buildings that make its side's resources while they stand, demolished by bombs or by a CTLD 2 sapper team, captured like any zone — or a `depot`.
+  Each side has one stock of resource points, made by a background production and its factories, and everything the AI puts into play is paid from it at a price per unit type: garrisons of captured zones, reinforcements, convoys, helicopters, CAP, strikes, the Hunter and bomber raids; an empty stock sends nothing.
+  Production reaches the zones hop by hop along the connections of the side's own zones, a hop touching a depot at half time, so capturing a node cuts or delays the network.
+  Every VEAF spawn command a person drops is paid for the units it made, unit by unit — in credits for the players' side, from the resources for the other — whole, into debt if need be, after which the side spawns nothing more until its balance is above zero again; a batch alias such as `-arty1` is paid too.
+  Weapon stocks survive a restart and are moved by players in helicopters or transports, the enemy sends escorted bomber raids (the players buy their own, and an intercept task is posted), and the F10 map is tinted by territory with the front drawn between the sides.
+  A persistent campaign reserves to admins the markers that would be cheating there (explosions, destroy, teleport, broadcast, combat-zone activation, free illumination) and turns `-cas` off.
+  `campaign next` reports the interpreter commands a persistent campaign's mission holds: they spawn afresh at every restart, outside the save, and belong in `campaign.yaml` as zones and garrisons.
+  A raid is a combined package — a BARCAP out of every enemy air defence's reach, a SEAD and a bomber that take off, meet at a hold point once climbed and push 30 s apart on the same axis at the same speed, the bomber carpet-bombing in one pass and pressing on without jettisoning — paid whole, the shop's included; the enemy's CAP stops short of the players' air defence.
+  `dynamic.debug`, on while the campaign is tuned, writes every AI decision and its reason, the fate of every campaign aircraft (what it has left at each release), a periodic status and each zone's missiles left to `dcs.log`.
+  The enemy sends no CAP where even its smallest circle is under the players' SAMs; a flight just spawned is no longer taken for lost before DCS registers it, which sent and paid a second CAP of the same name.
+  Campaign fighters take the shelters before the open stands and a large aircraft never a shelter, as groups lined up on Senaki's open stands deadlocked on the taxiway; a raid keeps the zone its SEAD attacks awake as well as its target; a zone within `front_depth` (40 km) of the front line drawn on the map is always awake and a zone of the rear wakes for its enemies only — a player within 60 km, an aircraft in the air within its air defence's reach plus `reach_wake_margin` (20 km), a ground group that is no garrison within `ground_wake_radius` (10 km) — the reach measured in DCS kept in the save, and AI-wanted zones no longer swap in a loop under `max_awake_zones`; nothing but a SEAD takes off within `takeoff_threat_range` (40 km) of an enemy air defence measured, as Kobuleti's Patriot shot a whole raid down over Senaki; the `[CAMPAIGN AIRDEF]` line gives each zone's reach.
+  A raid's flights count as holding within 15 km of their hold point, the radius of their circle, and its bomber neither reacts to a threat nor jettisons from its take-off on, not only from its push point: a Tu-22M3 circled until its orbit ran out, its push never given.
+  A raid's bomber lays a 100 m carpet of bigger bombs (FAB-500 for the Tu-22M3, Mk-84 for the B-1B): a 1 km carpet of FAB-250 hit only the town around the factory. A raid's SEAD gets its targets from its take-off, weapons held until its push: given only at its push point, it flew over its target without a shot.
+  After its target, a raid's bomber flies 20 km back the way it came before it turns home: going straight home, a Tu-22M3 flew on over Kobuleti and was shot down.
+  A convoy under fire no longer sends its trucks to a rally point in the water, or across it: the blue trucks drowned in the lagoon by Poti; with water all around, the convoy holds where it stands.
+  A new mission starts with civil traffic, birds and random failures off, as the VEAF Foothold missions.
+  A batch alias's commands (`-arty1`) now answer the pilot who dropped it, in every mission: they were silent as if a script had asked.
+  New runtime module `veafCampaignLogistics`; every setting under `dynamic:` with its default in *Persistent campaign*.
+
 ## [6.36.0] — 2026-11-05
 
 ### Documentation

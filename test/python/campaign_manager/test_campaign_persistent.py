@@ -19,7 +19,13 @@ from campaign_manager.campaign_manager import initial_state, parse_campaign, sav
 from campaign_manager.campaign_worker import CampaignWorker
 from campaign_manager.dynamic_settings import DEFAULT_AIR
 from campaign_manager.models import CampaignDefinition
-from campaign_manager.next_mission import add_campaign_cargo, hide_enemies_on_the_map, mission_data
+from campaign_manager.next_mission import (
+    add_campaign_cargo,
+    hide_enemies_on_the_map,
+    interpreter_commands,
+    mission_data,
+    prepare_next_mission,
+)
 from veaf_libs.mission_validator import ERROR, ValidationIssue
 
 
@@ -72,11 +78,30 @@ class TestTheDynamicBlock:
         block = {
             "save_seconds": 30,
             "wake_radius": 50000,
+            "ground_wake_radius": 8000,
+            "reach_wake_margin": 15000,
+            "front_depth": 30000,
+            "takeoff_threat_range": 50000,
             "attacks": ["red"],
             "helicopter": {"red": "Mi-8MT"},
             "supply_crate": "Zone supplies",
             "economy": {"start_credits": 800, "prices": {"jtac": 300}},
             "intel": {"hidden": False},
+            "resources": {
+                "enabled": True,
+                "start": 800,
+                "background_per_hour": 10,
+                "reserve": 50,
+                "prices": {"T-72B": 7},
+            },
+            "factory": {"buildings": 4, "per_hour": 90, "types": ["Workshop A"]},
+            "network": {"hop_seconds": 300, "isolated_seconds": 1800, "depot_store": 2, "max_deliveries": 1},
+            "demolition": {"troops": "Sapeurs", "range": 4000, "fuse": 90},
+            "warehouse": {"enabled": False, "load": 5},
+            "bombers": {"enabled": True, "seconds": 1800, "min_distance": 60000, "escort": True, "package_delay": 120},
+            "debug": False,
+            "debug_status_seconds": 600,
+            "territory": {"enabled": True, "margin": 50000},
         }
         dynamic = _persistent(dynamic=block).dynamic
         for key, value in block.items():
@@ -87,6 +112,10 @@ class TestTheDynamicBlock:
         [
             ({"wake_radius": 0}, "dynamic.wake_radius"),
             ({"wake_radius": True}, "dynamic.wake_radius"),
+            ({"ground_wake_radius": 0}, "dynamic.ground_wake_radius"),
+            ({"reach_wake_margin": -1}, "dynamic.reach_wake_margin"),
+            ({"front_depth": 0}, "dynamic.front_depth"),
+            ({"takeoff_threat_range": 0}, "dynamic.takeoff_threat_range"),
             ({"attacks": ["green"]}, "dynamic.attacks"),
             ({"helicopter": {"red": "MiG-29A"}}, "dynamic.helicopter"),
             ({"economy": {"start_credits": -1}}, "dynamic.economy.start_credits"),
@@ -94,6 +123,13 @@ class TestTheDynamicBlock:
             ({"hunter": {"chance": 150}}, "dynamic.hunter.chance"),
             ({"intel": "yes"}, "dynamic.intel"),
             ({"weather": 1}, "dynamic.weather"),
+            ({"resources": {"start": -5}}, "dynamic.resources.start"),
+            ({"resources": {"prices": {"T-72B": "cheap"}}}, "dynamic.resources.prices"),
+            ({"factory": {"types": []}}, "dynamic.factory.types"),
+            ({"network": {"hop_seconds": 0}}, "dynamic.network.hop_seconds"),
+            ({"economy": {"credits_per_point": 0}}, "dynamic.economy.credits_per_point"),
+            ({"debug": "yes"}, "dynamic.debug"),
+            ({"territory": {"enabled": "yes"}}, "dynamic.territory.enabled"),
         ],
     )
     def test_a_bad_setting_is_named(self, block: dict[str, Any], setting: str) -> None:
@@ -199,21 +235,20 @@ class TestTheCampaignCargo:
         path.write_text(yaml.safe_dump(document), encoding="utf-8")
         return path
 
-    def test_the_supply_crate_and_the_spy_team_are_added(self, tmp_path: Path) -> None:
+    def test_the_supply_crate_and_the_spy_and_demolition_teams_are_added(self, tmp_path: Path) -> None:
         path = self._ctld(tmp_path)
-        assert add_campaign_cargo(tmp_path, {}) == ["Zone supplies", "Spy"]
+        assert add_campaign_cargo(tmp_path, {}) == ["Zone supplies", "Spy", "Sappers"]
         facing = yaml.safe_load(path.read_text(encoding="utf-8"))["mm_facing"]
         crates = facing["spawnableCrates"]["Campaign"]
         assert [(c["desc"], c["side"]) for c in crates] == [("Zone supplies", 2), ("Zone supplies", 1)]
         assert facing["spawnableCrates"]["Combat Vehicles"][0]["desc"] == "LAV"
         assert {"name": "Spy", "inf": 1} in facing["loadableGroups"]
+        assert {"name": "Sappers", "inf": 2} in facing["loadableGroups"]
 
     def test_the_names_follow_the_settings(self, tmp_path: Path) -> None:
         self._ctld(tmp_path)
-        assert add_campaign_cargo(tmp_path, {"supply_crate": "Caisse", "intel": {"spy_troops": "Espion"}}) == [
-            "Caisse",
-            "Espion",
-        ]
+        dynamic = {"supply_crate": "Caisse", "intel": {"spy_troops": "Espion"}, "demolition": {"troops": "Sapeurs"}}
+        assert add_campaign_cargo(tmp_path, dynamic) == ["Caisse", "Espion", "Sapeurs"]
 
     def test_a_second_run_adds_nothing(self, tmp_path: Path) -> None:
         self._ctld(tmp_path)
@@ -250,3 +285,40 @@ class TestTheF10View:
         assert (
             yaml.safe_load(path.read_text(encoding="utf-8"))["mission"]["forced_options"]["f10_view"] == "allies_only"
         )
+
+
+class TestTheInterpreterInAPersistentCampaign:
+    """What the interpreter spawns comes back whole at every restart, outside the save (David, 2026-11-16)."""
+
+    def _mission(self, folder: Path) -> Path:
+        (folder / "src" / "mission").mkdir(parents=True, exist_ok=True)
+        # the mission file escapes the name's quotes, as DCS writes it
+        (folder / "src" / "mission" / "mission").write_text(
+            r'["name"] = "#veafInterpreter[\"-samLR\"]",' + "\n" + r'["name"] = "plain",' + "\n"
+            r'["name"] = "#veafInterpreter[\"_spawn armoredPlatoon\"]",' + "\n",
+            encoding="utf-8",
+        )
+        (folder / "src" / "spawn-groups.yaml").write_text("- name: '#veafInterpreter[\"-samLR\"]'\n", encoding="utf-8")
+        (folder / "src" / "scripts").mkdir(exist_ok=True)
+        (folder / "src" / "scripts" / "veaf-config.lua").write_text('veafInterpreter["x"] = 1\n', encoding="utf-8")
+        return folder
+
+    def test_its_commands_are_found_each_once(self, tmp_path: Path) -> None:
+        assert interpreter_commands(self._mission(tmp_path)) == ["-samLR", "_spawn armoredPlatoon"]
+
+    def test_a_mission_without_any_has_none(self, tmp_path: Path) -> None:
+        assert interpreter_commands(tmp_path) == []
+
+    def test_campaign_next_reports_them_for_a_persistent_campaign_only(self, tmp_path: Path) -> None:
+        template = mission_template(tmp_path)
+        # in a YAML source only: the template's mission file is a real one, which campaign next reads
+        (template / "src" / "spawn-groups.yaml").write_text(
+            "- name: '#veafInterpreter[\"-samLR\"]'\n", encoding="utf-8"
+        )
+        persistent = _persistent()
+        report = prepare_next_mission(persistent, initial_state(persistent), tmp_path, tmp_path / "m1")
+        assert report.interpreter_commands == ["-samLR"]
+        episodic, _ = _parse()
+        assert episodic is not None
+        report = prepare_next_mission(episodic, initial_state(episodic), tmp_path, tmp_path / "m2")
+        assert report.interpreter_commands == []

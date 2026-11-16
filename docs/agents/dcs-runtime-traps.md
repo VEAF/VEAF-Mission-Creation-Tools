@@ -482,6 +482,27 @@ DCS reports as `RUNWAY`) therefore places vehicles on runways, taxiways and park
 **What to do:** To keep something off an airfield, refuse the `RUNWAY` surface for each unit's own position
 (`veafCampaign.isOnConcrete`), not only for the group's anchor: a group spreads its units around it.
 
+### AI groups starting hot on Senaki-Kolkhi's open stands deadlock on the taxiway {#ai-groups-deadlock-on-senaki-open-stands}
+
+Measured **2026-11-16**.
+
+Senaki-Kolkhi's free stands with the lowest `Term_Index`, 2 to 6, are open stands (`Term_Type` 104)
+lined on the strip that leads to the runway threshold; 7 to 69 are mostly shelters (68). DCS seats
+a group added by script on the stand its unit's `parking` asks for. Measured through dcs-bridge:
+
+| Stands | Result |
+|---|---|
+| 2-6 imposed: 2 MiG-29A, 2 MiG-27K, 1 Tu-22M3, three groups | deadlocked on the strip |
+| none imposed (DCS chooses): MiG-29A on 2 and 4, Tu-22M3 on 6, MiG-27K in shelters 14/15 | the MiG-27K leave; the MiG-29A and the Tu-22M3 deadlocked 7 min and more |
+| MiG-29A in shelters 15/16, Tu-22M3 alone on 6 | all take off |
+
+Nothing is raised or logged: the aircraft just stop, 70 m apart.
+
+**What to do:** Seat fighters in shelters first and keep the open stands for aircraft too large for a shelter
+(`getParking` gives no stand size, so they are listed by type). The campaign does so since then.
+
+*What it cost:* The dynamic campaign's raid package (BARCAP, SEAD, bomber) never left Senaki.
+
 ### A client helicopter placed on an aircraft stand is seated elsewhere when the player takes the slot {#client-helicopter-on-an-aircraft-stand-is-seated-elsewhere}
 
 Measured **2026-10-10**.
@@ -1031,6 +1052,22 @@ the latter (`VeafCampaignZone:groundHolders`). Expect a few percent of slack bey
 distance: the convoy took Poti, was not found in it, and a 24-unit garrison was drawn from blue's
 reserve under it (`a-captured-zone-may-draw-a-garrison-under-its-convoy`).
 
+### A ground group sent off road to a point in the water, or across it, drives in and drowns {#ground-vehicles-drive-into-water-off-road}
+
+Measured **2026-11-16**.
+
+A blue assault convoy met a red one by Poti, on the dynamic test campaign. The ground AI split its
+unarmed vehicles off and sent them, `Off Road`, to a rally point chosen away from the enemy and out
+of its sight. The point lay in the lagoon north of the town: the trucks drove straight in and drowned
+(David's F10 capture). DCS neither refuses the waypoint nor routes around the water, and logs
+nothing.
+
+**What to do:** Before giving a ground group an off-road waypoint, check the straight line to it with
+`land.getSurfaceType`, every 50 m, end included: `WATER` or `SHALLOW_WATER` anywhere, pick another
+point. The convoy ground AI does so since then (`veafGroundAI.isDryDrive`).
+
+*What it cost:* A whole column of trucks lost without a shot, in front of the players.
+
 ### A ground group ordered "On Road" where no road leads stands still, with no message {#on-road-route-with-no-path-stands-still}
 
 Measured **2026-10-28**.
@@ -1074,6 +1111,21 @@ FIX-BUNDLE-LOCAL-LIMIT. In a hand-written `mission-script.lua`, keep state in a 
 
 *What it cost:* *Kolkhida* mission 1, rebuilt from `develop` the afternoon it was to be flown, loaded no VEAF
 module; no test had ever run the concatenated bundle.
+
+### Inside DCS, a file write or close that worked can return nothing {#io-write-that-worked-can-answer-nothing}
+
+Measured **2026-11-16**.
+
+Standard Lua 5.1 answers `file:write` with the file and `file:close` with `true`, and `nil` plus a
+message on failure. Inside a DCS mission, on 2026-11-16, a persistent campaign's save checked both
+answers for truth and logged every save as failed — `cannot write the campaign state … : nil`, no
+error message at all — while the file it wrote was there, whole (32 kB). Which of the two calls
+answered nothing was not isolated.
+
+**What to do:** Treat as a failure only an error message or an explicit `false`, never a missing answer.
+
+*What it cost:* The campaign's state file itself was never written, only its temporary: every reload fell back on
+the temporary, and the self-check's save line read KO. Fixed in FEAT-DYNAMIC-CAMPAIGN's V1.5.
 
 ### `weapon:getTarget()` can return an object with no `isExist` method {#weapon-gettarget-object-with-no-isexist}
 

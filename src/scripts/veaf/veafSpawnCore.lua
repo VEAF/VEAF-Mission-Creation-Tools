@@ -143,6 +143,13 @@ veafSpawn.traceMarkerId = 3727
 -- Registry mapping option-key strings to handler functions registered by sub-modules.
 veafSpawn.commandHandlers = {} -- ordered list: { {key=string, fn=function}, ... }
 
+--- Set by a persistent campaign (FEAT-DYNAMIC-CAMPAIGN ticket 14), nil otherwise: asked before a person's
+--- command runs, `spawnGate(key, options, requesterCoalition) -> boolean` says whether it may run (asked once,
+--- before the first copy of a multiplied command), and `spawnPaid(key, options, groupName, requesterCoalition)`
+--- charges each copy the units it made, into debt if need be.
+veafSpawn.spawnGate = nil
+veafSpawn.spawnPaid = nil
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -374,10 +381,12 @@ function veafSpawn.executeCommand(
         -- Dispatch to registered command handler (ordered list, first match wins)
         local _handler = nil
         local _security = nil
+        local _key = nil
         for _, _entry in ipairs(veafSpawn.commandHandlers) do
           if options[_entry.key] then
             _handler = _entry.fn
             _security = _entry.security
+            _key = _entry.key
             break
           end
         end
@@ -391,12 +400,21 @@ function veafSpawn.executeCommand(
               return
             end
           end
+          -- a person's spawn may have to be paid for (a persistent campaign, FEAT-DYNAMIC-CAMPAIGN ticket 14):
+          -- the balance is asked once, before the first copy, so that a multiplied command is accepted or
+          -- refused whole, never in part; each copy is then charged for the units it made
+          if i == 1 and veafSpawn.spawnGate and not scripted and not veafSpawn.spawnGate(_key, options, requesterCoalition) then
+            return
+          end
           local _g, _done, _abort = _handler(eventPos, options, coalition, markId, bypassSecurity)
           if _abort then
             return
           end
           if _g then
             spawnedGroup = _g
+            if veafSpawn.spawnPaid and not scripted then
+              veafSpawn.spawnPaid(_key, options, _g, requesterCoalition)
+            end
           end
           if _done then
             routeDone = _done

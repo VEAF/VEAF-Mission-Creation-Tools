@@ -207,11 +207,47 @@ limitations:
     The save of a persistent campaign (FEAT-DYNAMIC-CAMPAIGN) keeps each zone's owner, garrison and
     losses, its capture in progress, the credits and the intelligence. It does not keep the AI flights,
     supply helicopters and assault convoys on their way: after a restart they are gone, their side
-    sends new ones on its cadence, and a convoy's survivors go back to its side's reserve. The scenery destroyed is recorded in the save but not destroyed
-    again at start.
+    sends new ones on its cadence, and a convoy's survivors go back to its side's reserve and, since the
+    V1.5, their price to its resources. The weapons a player carries from one warehouse to another are
+    lost too. The scenery destroyed is recorded in the save but not destroyed again at start.
   workaround: |
     None needed for the front: zones and garrisons come back. Restart a server between two sorties
     when it matters.
+
+- id: io-write-that-worked-can-answer-nothing
+  kind: dcs
+  area: scripting
+  title: "Inside DCS, a file write or close that worked can return nothing"
+  measured: "2026-11-16"
+  symptom: |
+    Standard Lua 5.1 answers `file:write` with the file and `file:close` with `true`, and `nil` plus a
+    message on failure. Inside a DCS mission, on 2026-11-16, a persistent campaign's save checked both
+    answers for truth and logged every save as failed — `cannot write the campaign state … : nil`, no
+    error message at all — while the file it wrote was there, whole (32 kB). Which of the two calls
+    answered nothing was not isolated.
+  workaround: |
+    Treat as a failure only an error message or an explicit `false`, never a missing answer.
+  cost: |
+    The campaign's state file itself was never written, only its temporary: every reload fell back on
+    the temporary, and the self-check's save line read KO. Fixed in FEAT-DYNAMIC-CAMPAIGN's V1.5.
+
+- id: persistent-campaign-v15-unmeasured-in-game
+  kind: tool
+  area: runtime
+  title: "A persistent campaign's bombers, sappers, warehouse stocks and territory tint are not measured in game yet"
+  symptom: |
+    The V1.5 of the persistent campaign (FEAT-DYNAMIC-CAMPAIGN tickets 11 to 18) is tested outside DCS
+    only. Not measured in game: whether the bomber's `Bombing` task (weapon flag `2147485694`, any bomb)
+    makes it drop on the target point and the `Escort` task keeps its escort with it; whether a sapper
+    charge (`trigger.action.explosion`, the building's life or 200 at least) destroys a factory building and
+    leaves the team, 600 m away, unhurt; what `Warehouse:getInventory` reports for an unlimited warehouse,
+    which the campaign skips only when the count is a million or more; whether a factory's buildings,
+    respawned under a new owner's country, replace the previous ones; and whether the territory, drawn as
+    free-form triangles with `markupToAll(7, …)`, fills as expected on the F10 map.
+  workaround: |
+    Read **Campaign → Self-check (admin)** in game: its factories, sappers, warehouses, bombers and
+    territory lines count what happened. Turn a mechanism off in `dynamic:` (`bombers.enabled`,
+    `warehouse.enabled`, `territory.enabled`) if it misbehaves.
 
 - id: transport-mission-menu-piles-up-in-french
   kind: tool
@@ -1437,6 +1473,47 @@ limitations:
   cost: |
     Wrong F10 commands fired in multiplayer, among them a CTLD smoke instead of a troop embark
     (VEAF/CTLD#257).
+
+- id: ground-vehicles-drive-into-water-off-road
+  kind: dcs
+  area: ground-ai
+  title: "A ground group sent off road to a point in the water, or across it, drives in and drowns"
+  measured: "2026-11-16"
+  symptom: |
+    A blue assault convoy met a red one by Poti, on the dynamic test campaign. The ground AI split its
+    unarmed vehicles off and sent them, `Off Road`, to a rally point chosen away from the enemy and out
+    of its sight. The point lay in the lagoon north of the town: the trucks drove straight in and drowned
+    (David's F10 capture). DCS neither refuses the waypoint nor routes around the water, and logs
+    nothing.
+  workaround: |
+    Before giving a ground group an off-road waypoint, check the straight line to it with
+    `land.getSurfaceType`, every 50 m, end included: `WATER` or `SHALLOW_WATER` anywhere, pick another
+    point. The convoy ground AI does so since then (`veafGroundAI.isDryDrive`).
+  cost: |
+    A whole column of trucks lost without a shot, in front of the players.
+
+- id: ai-groups-deadlock-on-senaki-open-stands
+  kind: dcs
+  area: spawning
+  title: "AI groups starting hot on Senaki-Kolkhi's open stands deadlock on the taxiway"
+  measured: "2026-11-16"
+  symptom: |
+    Senaki-Kolkhi's free stands with the lowest `Term_Index`, 2 to 6, are open stands (`Term_Type` 104)
+    lined on the strip that leads to the runway threshold; 7 to 69 are mostly shelters (68). DCS seats
+    a group added by script on the stand its unit's `parking` asks for. Measured through dcs-bridge:
+
+    | Stands | Result |
+    |---|---|
+    | 2-6 imposed: 2 MiG-29A, 2 MiG-27K, 1 Tu-22M3, three groups | deadlocked on the strip |
+    | none imposed (DCS chooses): MiG-29A on 2 and 4, Tu-22M3 on 6, MiG-27K in shelters 14/15 | the MiG-27K leave; the MiG-29A and the Tu-22M3 deadlocked 7 min and more |
+    | MiG-29A in shelters 15/16, Tu-22M3 alone on 6 | all take off |
+
+    Nothing is raised or logged: the aircraft just stop, 70 m apart.
+  workaround: |
+    Seat fighters in shelters first and keep the open stands for aircraft too large for a shelter
+    (`getParking` gives no stand size, so they are listed by type). The campaign does so since then.
+  cost: |
+    The dynamic campaign's raid package (BARCAP, SEAD, bomber) never left Senaki.
 
 - id: client-helicopter-on-an-aircraft-stand-is-seated-elsewhere
   kind: dcs

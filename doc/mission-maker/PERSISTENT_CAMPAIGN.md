@@ -336,6 +336,7 @@ Tout **décolle** de l'aérodrome ennemi le plus proche de la cible qui en est a
 3. quand les deux y tournent, montés à leur altitude (à 1 000 m près) et à moins de 15 km du point (le rayon d'un cercle d'attente), la SEAD repart vers la cible, et le bombardier `bombers.package_delay` (30 s) derrière elle, sur le même axe ; si la SEAD a été abattue en route, le bombardier repart seul. Aucun ne tourne plus de 20 minutes au point d'attente.
 
 Le bombardier vole à la vitesse de la SEAD, pour rester derrière elle, et largue tout son emport d'une passe, en tapis de 100 m sur la cible ; il ne réagit pas à la menace et ne largue pas ses bombes en secours : il va jusqu'à la cible.
+Après la cible, il repart sur 20 km par l'axe d'où il est venu, celui que sa SEAD a dégagé, avant de rentrer à sa base.
 Sans défense à éteindre, pas de SEAD ni d'attente : le bombardier va droit sur la cible.
 
 Pas d'escorte par défaut : la BARCAP tient l'approche, et la fin du trajet est la fenêtre d'interception des joueurs ; `bombers.escort: true` lui en rend une.

@@ -336,6 +336,7 @@ Everything **takes off** from the enemy airfield nearest the target that is at l
 3. once both circle there, climbed to their altitude (within 1,000 m) and within 15 km of the point (a holding circle's radius), the SEAD pushes to the target, and the bomber `bombers.package_delay` (30 s) behind it, on the same axis; when the SEAD was shot down on the way, the bomber pushes alone. Neither circles the hold point longer than 20 minutes.
 
 The bomber flies at the SEAD's speed, to stay behind it, and drops its whole load in one pass, in a 100 m carpet on the target; it does not react to threats nor jettison its bombs: it presses on to the target.
+After the target, it flies 20 km back along the axis it came in on, which its SEAD cleared, before it turns home.
 With no defence to put out, no SEAD and no hold: the bomber flies straight to the target.
 
 No escort by default: the BARCAP holds the approach, and the last leg is the players' interception window; `bombers.escort: true` gives it one back.

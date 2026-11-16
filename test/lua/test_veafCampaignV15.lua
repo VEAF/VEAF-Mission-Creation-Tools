@@ -1200,8 +1200,14 @@ function TestCampaignBombers:test_the_bomber_route_bombs_then_lands_at_home()
   luaunit.assertEquals({ tasks[4].params.x, tasks[4].params.y }, { 100, 200 })
   luaunit.assertEquals(tasks[4].params.expend, "All")
   luaunit.assertEquals(tasks[4].params.carpetLength, veafCampaignOps.CARPET_LENGTH)
-  luaunit.assertEquals(route[3].type, "Land")
-  luaunit.assertEquals(route[3].airdromeId, 5)
+  -- over the target, then back the way it came before it turns home (David, 2026-11-16: it went on over
+  -- Kobuleti and was shot down)
+  luaunit.assertEquals({ route[2].x, route[2].y }, { 100, 200 })
+  local back = math.min(veafCampaignOps.EGRESS_DISTANCE, math.sqrt(99 ^ 2 + 198 ^ 2))
+  luaunit.assertAlmostEquals(math.sqrt((route[3].x - 100) ^ 2 + (route[3].y - 200) ^ 2), back, 0.01)
+  luaunit.assertTrue(route[3].x < 100 and route[3].y < 200, "toward where it came from")
+  luaunit.assertEquals(route[4].type, "Land")
+  luaunit.assertEquals(route[4].airdromeId, 5)
 end
 
 function TestCampaignBombers:test_the_bomber_takes_off_holds_then_bombs_from_its_push_point()
@@ -1237,6 +1243,9 @@ function TestCampaignBombers:test_the_bomber_takes_off_holds_then_bombs_from_its
   local tasks = route[3].task.params.tasks
   luaunit.assertEquals({ route[3].x, route[3].y }, { -12000, 0 })
   luaunit.assertEquals(tasks[4].id, "CarpetBombing")
+  -- over the target, then back along the axis it came in on, which its SEAD cleared, before it turns home
+  luaunit.assertEquals({ route[4].x, route[4].y }, { -40000, 0 })
+  luaunit.assertEquals({ route[5].x, route[5].y }, { -40000 + veafCampaignOps.EGRESS_DISTANCE, 0 })
   luaunit.assertEquals(route[#route].type, "Land")
 end
 

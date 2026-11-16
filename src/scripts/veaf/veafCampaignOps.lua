@@ -112,6 +112,11 @@ veafCampaignOps.HOLD_REACHED = 15000
 veafCampaignOps.HOLD_SECONDS = 1200
 veafCampaignOps.PUSH_DISTANCE = 2000
 
+--- How far back along its axis of approach a bomber flies after the target before it turns home, in metres: going
+--- straight home from the target, a Tu-22M3 went on over Kobuleti and was shot down (David, 2026-11-16). Back the
+--- way it came, it flies where its SEAD cleared the defences.
+veafCampaignOps.EGRESS_DISTANCE = 20000
+
 --- How far below its cruise altitude a raid's flight may still be and hold, in metres: a flight still climbing
 --- out of its field does not hold (2026-11-16: with the hold over the field, both pushed straight after take-off).
 veafCampaignOps.HOLD_ALTITUDE_SLACK = 1000
@@ -1145,6 +1150,12 @@ veafAircraftSpawn.roles.campaign_bomber = {
     end
     table.insert(tasks, bombing)
     local home = point(params.home.x, params.home.z, {}, { type = "Land", action = "Landing", airdromeId = params.airdromeId })
+    -- the egress: back the way it came, `EGRESS_DISTANCE` from the target, before it turns home
+    local inbound = params.hold and from or { x = spot.x, z = spot.z }
+    local dx, dz = inbound.x - params.target.x, inbound.z - params.target.z
+    local length = math.sqrt(dx * dx + dz * dz)
+    local back = math.min(veafCampaignOps.EGRESS_DISTANCE, length)
+    local egress = length > 0 and point(params.target.x + dx / length * back, params.target.z + dz / length * back, {}) or nil
     local route
     if params.hold then
       route = {
@@ -1154,11 +1165,14 @@ veafAircraftSpawn.roles.campaign_bomber = {
         point(params.hold.x, params.hold.z, { holdTask(params.hold, altitude, params.speed or veafCampaignOps.BOMBER_SPEED) }),
         point(from.x, from.z, tasks),
         point(params.target.x, params.target.z, {}),
-        home,
       }
     else
-      route = { point(spot.x, spot.z, tasks), point(params.target.x, params.target.z, {}), home }
+      route = { point(spot.x, spot.z, tasks), point(params.target.x, params.target.z, {}) }
     end
+    if egress then
+      table.insert(route, egress)
+    end
+    table.insert(route, home)
     if context.takeoffPoint then
       -- started on the ground: the take-off point first, carrying the tasks the first point had
       local takeoff = veaf.deepCopy(context.takeoffPoint)

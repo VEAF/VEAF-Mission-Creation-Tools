@@ -14,6 +14,7 @@ from campaign_manager.models import CampaignDefinition
 from campaign_manager.strategic_map import render_strategic_map, zone_position
 from PIL import Image
 from veaf_libs import map_tiles
+from veaf_libs.map_labels import intersects
 from veaf_libs.map_tiles import USER_AGENT, http_fetch, render_base_map, world_pixel
 
 
@@ -122,3 +123,25 @@ class TestTheStrategicMap:
             campaign, initial_state(campaign), tmp_path / "map.png", cache_dir=tmp_path, fetch=Tiles(None)
         )
         assert report.offline and report.path.is_file()
+
+
+class TestTheLabels:
+    """Found on the Syria campaign (2026-11-16): `Kuweires` and `Usine d'armement d'Al-Safira`, at the map's
+    eastern edge, ran off the picture, every label being drawn right of its circle."""
+
+    def test_a_label_at_the_edge_stays_inside_and_none_overlap(self, tmp_path: Path) -> None:
+        raw = copy.deepcopy(VALID)
+        raw["zones"][2]["display_name"] = "Un dépôt au nom vraiment très long, tout à l'est"
+        raw["zones"][2]["at"] = {"lat": 42.3, "lon": 43.5}
+        campaign, issues = parse_campaign(raw)
+        assert campaign is not None, issues
+        report = render_strategic_map(
+            campaign, initial_state(campaign), tmp_path / "map.png", cache_dir=tmp_path, fetch=Tiles(None)
+        )
+        width, height = Image.open(report.path).size
+        assert len(report.labels) == len(campaign.zones)
+        for left, top, right, bottom in report.labels:
+            assert 0 <= left and right <= width and 0 <= top and bottom <= height
+        for index, a in enumerate(report.labels):
+            for b in report.labels[index + 1 :]:
+                assert not intersects(a, b), (a, b)

@@ -241,8 +241,15 @@ def _flow_page(
             )
         )
     qra = _qra_line(campaign, picture)
-    blocks.append(Block(t("campaign.mission_deck.heading.air"), (qra or t("campaign.mission_deck.no_air"),)))
     enemy = enemy_of(campaign.player_side)
+    air = [qra] if qra else []
+    bases = [zone.label for zone in campaign.zones if zone.location.airfield and state.zones[zone.name].owner == enemy]
+    if campaign.mode == "persistent" and bases:
+        # a persistent campaign's enemy flies CAP, strikes and raids on its own, from the fields it holds
+        bombers = (campaign.dynamic.get("bombers") or {}).get("enabled", True)  # the runtime's default
+        key = "campaign.mission_deck.air_persistent" if bombers else "campaign.mission_deck.air_persistent_no_bombers"
+        air.append(t(key, airfields=_join(bases)))
+    blocks.append(Block(t("campaign.mission_deck.heading.air"), tuple(air) or (t("campaign.mission_deck.no_air"),)))
     defences = [
         line(zone.label, _after_colon(enemy_picture(campaign, state, zone)))
         for zone in campaign.zones
@@ -293,7 +300,9 @@ def _write_cover(
     slide = deck.slides.add_slide(deck.slide_layouts[6])
     frame = _frame(slide, _MARGIN, Emu(1700000), Emu(6800000), Emu(3200000))
     operation = (prose.operation if prose and prose.operation else campaign.name).upper()
-    _run(frame.paragraphs[0], f"{operation} {mission}/{campaign.missions}", 40, bold=True)
+    # a persistent campaign is one mission: no "1/10"
+    count = "" if campaign.mode == "persistent" else f" {mission}/{campaign.missions}"
+    _run(frame.paragraphs[0], f"{operation}{count}", 40, bold=True)
     _run(
         frame.add_paragraph(),
         page.title if page else t("campaign.mission_deck.untitled", mission=mission),

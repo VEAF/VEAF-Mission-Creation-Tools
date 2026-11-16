@@ -234,18 +234,35 @@ def _military_page(campaign: CampaignDefinition, state: CampaignState, prose: Br
     player = campaign.player_side
     enemy = enemy_of(player)
     enemy_lines = [_zone_line(zone, enemy_picture(campaign, state, zone)) for zone in _zones_of(campaign, state, enemy)]
-    depots = [zone.name for zone in _zones_of(campaign, state, enemy) if zone.kind == "logistics"]
-    enemy_lines.append(
-        t("campaign.deck.enemy_reserve_fed", depots=_labels(campaign, depots))
-        if depots
-        else t("campaign.deck.enemy_reserve")
-    )
+    if campaign.mode == "persistent":
+        # no reserve between missions: what a side commits comes out of its factories, as it goes
+        factories = [zone.name for zone in _zones_of(campaign, state, enemy) if zone.kind == "factory"]
+        enemy_lines.append(
+            t("campaign.deck.enemy_production", factories=_labels(campaign, factories))
+            if factories
+            else t("campaign.deck.enemy_production_unknown")
+        )
+    else:
+        depots = [zone.name for zone in _zones_of(campaign, state, enemy) if zone.kind == "logistics"]
+        enemy_lines.append(
+            t("campaign.deck.enemy_reserve_fed", depots=_labels(campaign, depots))
+            if depots
+            else t("campaign.deck.enemy_reserve")
+        )
     for paragraph in prose.text("situation", "enemy_course_of_action") if prose else ():
         enemy_lines.append(t("campaign.deck.enemy_course_of_action", text=_after_colon(paragraph)))
     friendly_lines = [
         _zone_line(zone, friendly_picture(campaign, zone) + ".") for zone in _zones_of(campaign, state, player)
     ]
-    friendly_lines.append(t("campaign.deck.friendly_reserve", reserve=reserve_text(state.sides[player].reserve)))
+    if campaign.mode == "persistent":
+        factories = [zone.name for zone in _zones_of(campaign, state, player) if zone.kind == "factory"]
+        friendly_lines.append(
+            t("campaign.deck.friendly_production", factories=_labels(campaign, factories))
+            if factories
+            else t("campaign.deck.friendly_production_none")
+        )
+    else:
+        friendly_lines.append(t("campaign.deck.friendly_reserve", reserve=reserve_text(state.sides[player].reserve)))
     friendly_lines += [f"– {paragraph}" for paragraph in (prose.text("situation", "friendly") if prose else ())]
     blocks = [
         Block(t("campaign.deck.heading.enemy"), tuple(enemy_lines), OWNER_COLOURS[enemy]),
@@ -279,12 +296,17 @@ def _objectives_page(campaign: CampaignDefinition, state: CampaignState, prose: 
     for objective in campaign.objectives:
         key = "capture" if objective.kind == "capture" else "destroy"
         conditions.append(t(f"campaign.deck.victory.{key}", zones=_labels(campaign, objective.zones)))
-    left = max(campaign.missions - state.mission, 0)
-    victory = (
-        t("campaign.deck.victory.by", missions=campaign.missions),
-        *conditions,
-        t("campaign.deck.victory.left", left=left),
-    )
+    if campaign.mode == "persistent":
+        # one mission that runs until a side holds nothing: no deadline, no count of missions left, and
+        # declared objectives are no condition, the runtime judging on the zones held only
+        victory: tuple[str, ...] = (t("campaign.deck.victory.persistent"),)
+    else:
+        left = max(campaign.missions - state.mission, 0)
+        victory = (
+            t("campaign.deck.victory.by", missions=campaign.missions),
+            *conditions,
+            t("campaign.deck.victory.left", left=left),
+        )
     blocks.append(Block(t("campaign.deck.heading.victory"), victory))
     return Page(t("campaign.deck.title.objectives"), blocks)
 
@@ -308,15 +330,72 @@ def _roe_page(prose: BriefingProse | None) -> Page | None:
     return Page(t("campaign.deck.title.roe"), blocks) if blocks else None
 
 
-def _mission_page(prose: BriefingProse | None, mission: int) -> Page | None:
+def _mission_page(campaign: CampaignDefinition, prose: BriefingProse | None, mission: int) -> Page | None:
+    """The coming mission's page of `briefing.yaml`, its tasks one block each.
+
+    Args:
+        campaign: The validated campaign: a persistent one titles its tasks as standing orders.
+        prose: `briefing.yaml`, or ``None``.
+        mission: The coming mission's number.
+
+    Returns:
+        The page, or ``None`` when `briefing.yaml` has none for that mission.
+    """
     page = prose.missions.get(mission) if prose else None
     if page is None:
         return None
     blocks = [Block(f"{index}. {task.title}", task.text) for index, task in enumerate(page.tasks, 1)]
+    if campaign.mode == "persistent":
+        # the one mission runs for weeks: its tasks are the standing orders, not an evening's
+        return Page(t("campaign.deck.title.mission_persistent", title=page.title), blocks)
     return Page(t("campaign.deck.title.mission", mission=mission, title=page.title), blocks)
 
 
+def _live_front(campaign: CampaignDefinition) -> tuple[str, ...]:
+    """What the enemy does on its own in a persistent campaign, as the `dynamic:` block leaves it.
+
+    The defaults are the runtime's (`veafCampaign.lua`): red attacks and resupplies, bombers fly,
+    resources count. Only what the campaign turns off is left out.
+
+    Args:
+        campaign: The validated persistent campaign.
+
+    Returns:
+        The annex's lines on the living front.
+    """
+    dynamic = campaign.dynamic
+    enemy = enemy_of(campaign.player_side)
+    lines = []
+    if enemy in dynamic.get("attacks", ["red"]):
+        lines.append(t("campaign.deck.annex.live_attacks"))
+    if enemy in dynamic.get("supply", ["red"]):
+        lines.append(t("campaign.deck.annex.live_supply"))
+    lines.append(t("campaign.deck.annex.live_air"))
+    if (dynamic.get("bombers") or {}).get("enabled", True):
+        lines.append(t("campaign.deck.annex.live_bombers"))
+    if (dynamic.get("resources") or {}).get("enabled", True):
+        lines.append(t("campaign.deck.annex.live_resources"))
+    lines.append(t("campaign.deck.annex.live_shop"))
+    return tuple(lines)
+
+
 def _annex_page(campaign: CampaignDefinition, state: CampaignState) -> Page:
+    if campaign.mode == "persistent":
+        return Page(
+            t("campaign.deck.title.annex"),
+            [
+                Block(
+                    t("campaign.deck.heading.annex_capture"),
+                    (
+                        t("campaign.deck.annex.neutral"),
+                        t("campaign.deck.annex.capture", minutes=max(campaign.capture_seconds // 60, 1)),
+                        t("campaign.deck.annex.garrison_persistent"),
+                    ),
+                ),
+                Block(t("campaign.deck.heading.annex_live"), _live_front(campaign)),
+                Block(t("campaign.deck.heading.annex_continuity"), (t("campaign.deck.annex.continuity_persistent"),)),
+            ],
+        )
     rules = campaign.rules
     output = rules.logistics_output
     capture = (
@@ -430,7 +509,9 @@ def _write_cover(
     )
     _run(
         frame.add_paragraph(),
-        t("campaign.deck.cover_line", theatre=campaign.theatre, missions=campaign.missions, mission=mission),
+        t("campaign.deck.cover_line_persistent", theatre=campaign.theatre)
+        if campaign.mode == "persistent"
+        else t("campaign.deck.cover_line", theatre=campaign.theatre, missions=campaign.missions, mission=mission),
         16,
         italic=True,
         colour=_GREY,
@@ -496,7 +577,7 @@ def campaign_deck(
         _objectives_page(campaign, state, prose),
         _concept_page(prose),
         _roe_page(prose),
-        _mission_page(prose, mission),
+        _mission_page(campaign, prose, mission),
     ]
     sections = [page for page in numbered if page is not None]
     for number, page in enumerate(sections, 1):

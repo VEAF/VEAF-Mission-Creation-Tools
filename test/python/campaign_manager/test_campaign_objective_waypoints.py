@@ -101,6 +101,17 @@ class TestTheKeys:
             "Dépôt d'Ochamchire": "DEPOT",
         }
 
+    def test_a_leading_article_is_not_the_name(self) -> None:
+        # Found on the Syria campaign (2026-11-16): `Al-Safira` gave the steerpoint `AL`.
+        names = ("Al-Safira", "Jisr al-Shughur", "Le Havre", "Al")
+        zones = [CampaignZone(name, ZoneLocation(lat=36.0, lon=37.0), "outpost", "red") for name in names]
+        assert waypoint_keys(zones) == {
+            "Al-Safira": "SAFIRA",
+            "Jisr al-Shughur": "JISR",
+            "Le Havre": "HAVRE",
+            "Al": "AL",
+        }
+
 
 class TestTheFile:
     def test_campaign_next_replaces_the_templates_example(self, tmp_path: Path) -> None:

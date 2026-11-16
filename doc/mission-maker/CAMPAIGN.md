@@ -281,7 +281,7 @@ Le build ajoute sa date après le nom (`…_NoMizedit_20261015.miz`) : le filtre
 `campaign next` écrit le `src/waypoints.yaml` de la mission à partir de ses objectifs, au lieu de garder l'exemple du template : un waypoint par zone que nomment les tâches de la mission dans `briefing.yaml` (à défaut, les objectifs de la campagne), au centre de la zone, dans l'ordre des tâches, pour le camp des joueurs.
 
 - **Au sol**, pour les avions comme pour les hélicoptères (`RADIO`, 0 m) : l'objectif est au sol, et c'est là que regardent une nacelle de désignation ou une arme asservie au steerpoint. Avions et hélicoptères partagent le même waypoint ; le briefing de mission écrit « sol ».
-- **Le nom** est le premier mot de la zone, en majuscules et sans accent : *Khobi depot* devient `KHOBI`. Deux zones qui commencent par le même mot gardent leur nom entier (`SENAKI_NORTH`).
+- **Le nom** est le premier mot de la zone, en majuscules et sans accent : *Khobi depot* devient `KHOBI`. Un article de tête d'une ou deux lettres est sauté : *Al-Safira* devient `SAFIRA`. Deux zones qui commencent par le même mot gardent leur nom entier (`SENAKI_NORTH`).
 - **Le build ajoute `BULLSEYE`** à chaque plan de vol.
 
 Une fois modifié, le fichier est à vous : il porte l'empreinte de ce que `campaign next` a écrit, et un second `campaign next` ne le réécrit que tant qu'elle correspond.

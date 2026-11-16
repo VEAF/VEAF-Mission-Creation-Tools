@@ -86,6 +86,9 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   A new mission starts with civil traffic, birds and random failures off, as the VEAF Foothold missions.
   A batch alias's commands (`-arty1`) now answer the pilot who dropped it, in every mission: they were silent as if a script had asked.
   New runtime module `veafCampaignLogistics`; every setting under `dynamic:` with its default in *Persistent campaign*.
+- **A persistent campaign's briefings speak of a persistent campaign** (FEAT-DYNAMIC-CAMPAIGN, found building the Syria campaign): the campaign deck, the mission deck and the strategic situation that becomes the DCS briefing no longer read "10 missions", "1/10", "missions left", an empty enemy reserve or what happens "between two missions".
+  They give the starting situation, victory when the enemy holds no zone left, the tasks as standing orders, the factories instead of reserves, an enemy air force active from its airfields, and an annex on the living front that leaves out what `dynamic:` turns off; the strategic situation names the zones by their `display_name`.
+  A waypoint key skips a leading article (`Al-Safira` is `SAFIRA`, no longer `AL`), and the strategic map's labels stay inside the picture and clear of each other.
 
 ## [6.36.0] — 2026-11-05
 

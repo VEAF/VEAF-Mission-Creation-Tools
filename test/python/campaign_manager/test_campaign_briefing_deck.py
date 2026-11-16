@@ -159,3 +159,75 @@ class TestWhereAPageEnds:
 
     def test_a_page_that_fits_stays_one_page(self) -> None:
         assert len(paginate(Page("Situation", [Block("Contexte", ("Un paragraphe.",))]))) == 1
+
+
+def _persistent_deck(tmp_path: Path, keep_objectives: bool = False, **dynamic: object) -> list[list[str]]:
+    """The deck of the reference campaign played as one persistent mission, red's depot a factory."""
+    raw = copy.deepcopy(VALID)
+    raw["campaign"]["mode"] = "persistent"
+    # the depot turned factory can no longer be destroyed `as logistics`: only the capture is kept
+    raw["campaign"]["objectives"] = [{"capture": ["Senaki"]}] if keep_objectives else []
+    raw["zones"][2]["kind"] = "factory"
+    if dynamic:
+        raw["dynamic"] = dynamic
+    campaign, issues = parse_campaign(raw)
+    assert campaign is not None, issues
+    with language("fr"):
+        report = campaign_deck(
+            campaign,
+            initial_state(campaign),
+            _prose(campaign),
+            tmp_path / "mission-01",
+            cache_dir=tmp_path / "tiles",
+            fetch=_offline,
+        )
+    return _slides(report.path)
+
+
+class TestAPersistentCampaign:
+    """Found on the Syria campaign (2026-11-16): its deck spoke of ten missions and of what happens between two."""
+
+    def test_no_count_of_missions(self, tmp_path: Path) -> None:
+        text = "\n".join("\n".join(slide) for slide in _persistent_deck(tmp_path))
+        assert "Caucasus — campagne persistante" in text
+        assert "8 missions" not in text
+        assert "Missions restantes" not in text
+        assert "au terme de la mission" not in text
+
+    def test_the_victory_is_holding_every_zone(self, tmp_path: Path) -> None:
+        slides = {slide[0]: "\n".join(slide[1:]) for slide in _persistent_deck(tmp_path)[1:]}
+        objectives = slides["5. Objectifs de la campagne"]
+        assert "gagnée quand l'ennemi ne tient plus aucune zone" in objectives
+
+    def test_declared_objectives_are_no_condition_of_victory(self, tmp_path: Path) -> None:
+        # the runtime judges a persistent campaign on the zones held only
+        deck = _persistent_deck(tmp_path, keep_objectives=True)
+        slides = {slide[0]: "\n".join(slide[1:]) for slide in deck[1:]}
+        objectives = slides["5. Objectifs de la campagne"]
+        assert "gagnée quand l'ennemi ne tient plus aucune zone" in objectives
+        assert "– prendre et tenir" not in objectives
+
+    def test_the_tasks_are_standing_orders(self, tmp_path: Path) -> None:
+        titles = [slide[0] for slide in _persistent_deck(tmp_path)[1:]]
+        assert "8. Ordres en cours — La porte de Poti" in titles
+
+    def test_the_reserves_are_the_factories(self, tmp_path: Path) -> None:
+        slides = {slide[0]: "\n".join(slide[1:]) for slide in _persistent_deck(tmp_path)[1:]}
+        military = slides["2. Situation militaire"]
+        assert "Réserves" not in military
+        assert "sortirait de ses usines (Gudauta depot)" in military
+
+    def test_the_annex_tells_the_live_front_not_the_turn(self, tmp_path: Path) -> None:
+        annex = "\n".join(_persistent_deck(tmp_path)[-1])
+        assert "Entre deux missions" not in annex
+        assert "blindé(s)" not in annex
+        assert "Le front vivant" in annex
+        assert "contre-attaque" in annex
+        assert "bombardiers" in annex
+        assert "se sauvegarde" in annex
+        assert "payée sur ses ressources" in annex
+
+    def test_the_annex_drops_what_the_campaign_turned_off(self, tmp_path: Path) -> None:
+        annex = "\n".join(_persistent_deck(tmp_path, attacks=[], bombers={"enabled": False})[-1])
+        assert "contre-attaque" not in annex
+        assert "bombardiers" not in annex

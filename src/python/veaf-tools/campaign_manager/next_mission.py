@@ -180,7 +180,7 @@ def strategic_situation(campaign: CampaignDefinition, state: CampaignState) -> s
     """Write the factual part of the next mission's strategic briefing, in the current language.
 
     The front, what changed in the last mission, the enemy's state, the objectives and the missions
-    left. The narrative — what the enemy intends, what is asked of the players — is not here.
+    left; for a persistent campaign, how it is won instead of the objectives and the missions left. The narrative — what the enemy intends, what is asked of the players — is not here.
 
     Args:
         campaign: The validated campaign.
@@ -190,9 +190,15 @@ def strategic_situation(campaign: CampaignDefinition, state: CampaignState) -> s
         Plain text, one fact per line.
     """
     mission = state.mission + 1
-    lines = [t("campaign.briefing.header", mission=mission, missions=campaign.missions), ""]
+    persistent = campaign.mode == "persistent"
+    header = (
+        t("campaign.briefing.header_persistent")
+        if persistent
+        else t("campaign.briefing.header", mission=mission, missions=campaign.missions)
+    )
+    lines = [header, ""]
     for side in (*COALITIONS, "neutral"):
-        held = [zone.name for zone in campaign.zones if state.zones[zone.name].owner == side]
+        held = [zone.label for zone in campaign.zones if state.zones[zone.name].owner == side]
         if held:
             lines.append(t(f"campaign.briefing.held.{side}", zones=", ".join(held)))
     if state.history:
@@ -201,28 +207,35 @@ def strategic_situation(campaign: CampaignDefinition, state: CampaignState) -> s
         lines += [f"- {describe_change(change)}" for change in last["changes"]] or [t("campaign.briefing.quiet")]
     enemy = enemy_of(campaign.player_side)
     reserve = state.sides[enemy].reserve
-    lines += [
-        "",
-        t(
-            "campaign.briefing.enemy_reserve",
-            armor=reserve.get("armor", 0),
-            air_defense=reserve.get("air_defense", 0),
-            transport=reserve.get("transport", 0),
-        ),
-    ]
+    lines.append("")
+    # a persistent side with no reserve declared draws for free: "0 blindés" would be a lie
+    if not persistent or enemy in campaign.declared_reserves:
+        lines.append(
+            t(
+                "campaign.briefing.enemy_reserve",
+                armor=reserve.get("armor", 0),
+                air_defense=reserve.get("air_defense", 0),
+                transport=reserve.get("transport", 0),
+            )
+        )
     for zone in campaign.zones:
         zone_state = state.zones[zone.name]
         if zone_state.owner != enemy:
             continue
         strength = garrison_strength(zone_state.garrison)
         if strength is None:
-            lines.append(t("campaign.briefing.enemy_zone_unknown", zone=zone.name))
+            lines.append(t("campaign.briefing.enemy_zone_unknown", zone=zone.label))
         else:
-            lines.append(t("campaign.briefing.enemy_zone", zone=zone.name, strength=strength))
+            lines.append(t("campaign.briefing.enemy_zone", zone=zone.label, strength=strength))
     lines += ["", t("campaign.briefing.objectives")]
+    if persistent:
+        # the runtime judges a persistent campaign on the zones held only: its objectives decide nothing
+        lines.append(t("campaign.briefing.outcome.persistent"))
+        return "\n".join(lines) + "\n"
     for objective, met in evaluate_objectives(campaign, state):
         mark = "[x]" if met else "[ ]"
-        lines.append(f"{mark} {t(f'campaign.objective.{objective.kind}', zones=', '.join(objective.zones))}")
+        labels = ", ".join(campaign.zone(name).label for name in objective.zones)
+        lines.append(f"{mark} {t(f'campaign.objective.{objective.kind}', zones=labels)}")
     left = max(campaign.missions - state.mission, 0)
     lines.append(t(f"campaign.briefing.outcome.{outcome(campaign, state)}", left=left))
     return "\n".join(lines) + "\n"

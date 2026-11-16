@@ -41,9 +41,9 @@ LIBRARY_MODULES: frozenset[str] = frozenset({"AIRSPAWN", "GEO", "I18N", "MATH", 
 #: initialised after it (FEAT-OPPOSITION-SCALES-WITH-PLAYERS), so it holds no place in the order.
 ROOT_BLOCK_MODULES: frozenset[str] = frozenset({"OPPOSITION"})
 
-#: Modules another module starts: ``veafCampaign.initialize`` starts the persistent campaign's sorties
+#: Modules another module starts: ``veafCampaign.initialize`` starts the persistent campaign's logistics, sorties
 #: and economy (FEAT-DYNAMIC-CAMPAIGN), so the mission's configuration only ever names ``CAMPAIGN``.
-STARTED_BY_A_MODULE: frozenset[str] = frozenset({"CAMPAIGNECO", "CAMPAIGNOPS"})
+STARTED_BY_A_MODULE: frozenset[str] = frozenset({"CAMPAIGNECO", "CAMPAIGNLOG", "CAMPAIGNOPS"})
 
 #: Modules known to initialise themselves at load time, on purpose. Both are read from the top
 #: level of other modules' files, so waiting for an init pass would be too late.

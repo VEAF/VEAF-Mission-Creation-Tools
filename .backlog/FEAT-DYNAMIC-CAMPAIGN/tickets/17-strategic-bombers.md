@@ -63,6 +63,7 @@ Measured in game through dcs-bridge (side session of PR #1289). The raid deadloc
 
 - `takeoffFrom` takes shelters (`SHELTER_STAND_TYPE` 68) first, then open stands by `Term_Index`; an aircraft of `LARGE_AIRCRAFT` never takes a shelter (`getParking` gives no stand size). DCS honours the imposed stand (measured).
 - `sendRaid` keeps the SEAD's zone awake for `RAID_TIMEOUT` too.
-- `wakerPoints`: any aircraft in the air (AI or player, either side) within `wake_radius`, and any ground group that is neither a garrison (`unitIndex`) nor present at initialize (`builtGroups`: a vehicle the mission maker parked would keep its zone awake forever) within `ground_wake_radius` (10 km). The nearest waker of any kind comes first under `max_awake_zones`, a player first at the same distance.
+- `wakerPoints`: any aircraft in the air (AI or player, either side) within `wake_radius`, and any ground group that is neither a garrison (`unitIndex`) nor present at the first dormancy pass (`builtGroups`: a vehicle the mission maker parked would keep its zone awake forever; not at initialize, since veafGrass spawns the FARPs' vehicles 2 s later) within `ground_wake_radius` (10 km). The nearest waker of any kind comes first under `max_awake_zones`, a player first at the same distance.
+- A late-activated aircraft wakes nothing: DCS answers `isExist()` and `inAir()` true before its activation, so `isActive()` is checked.
 - Unchanged, decided: a spectator or game master slot wakes nothing.
 - To measure in game: the cost of the pass over every group every beat.

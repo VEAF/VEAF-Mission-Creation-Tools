@@ -2764,8 +2764,9 @@ function veafCampaign.playerPoints()
   return points
 end
 
---- The names of the ground groups in the world, both sides: at initialize, the ones the mission was built
---- with, which never wake a zone (a vehicle parked by the mission maker would keep its zone awake forever).
+--- The names of the ground groups in the world, both sides: at the first dormancy pass, the ones the mission
+--- was built with, which never wake a zone (a vehicle parked by the mission maker would keep its zone awake
+--- forever). Not at initialize: the FARPs' vehicles (veafGrass) and the interpreter's groups come 1-2 s later.
 --- @return table name → true
 function veafCampaign.groundGroupNames()
   local names = {}
@@ -2779,10 +2780,11 @@ function veafCampaign.groundGroupNames()
   return names
 end
 
---- The first living unit of a group, or nil.
+--- The first living unit of a group, or nil. A late-activated group answers `isExist()` and `inAir()`
+--- true before it is activated: only `isActive()` tells (docs/agents/dcs-runtime-traps.md).
 local function firstUnit(group)
   for _, unit in ipairs(group and group.getUnits and group:getUnits() or {}) do
-    if unit and unit.isExist and unit:isExist() then
+    if unit and unit.isExist and unit:isExist() and unit:isActive() then
       return unit
     end
   end
@@ -2835,6 +2837,7 @@ end
 --- @param now number the mission time
 function veafCampaign.updateDormancy(now)
   local points = veafCampaign.playerPoints()
+  veafCampaign.builtGroups = veafCampaign.builtGroups or veafCampaign.groundGroupNames()
   local air, ground = veafCampaign.wakerPoints()
   local radius, delay = veafCampaign.setting("wake_radius"), veafCampaign.setting("sleep_seconds")
   local groundRadius = veafCampaign.setting("ground_wake_radius")
@@ -3016,7 +3019,7 @@ function veafCampaign.initialize()
   veafCampaign.convoys, veafCampaign.pendingAssaults, veafCampaign.assaultPath = {}, {}, nil
   veafCampaign.nextAttack, veafCampaign.over, veafCampaign.savedParts = {}, nil, {}
   veafCampaign.beatHooks, veafCampaign.selfChecks = {}, {}
-  veafCampaign.builtGroups = veafCampaign.groundGroupNames()
+  veafCampaign.builtGroups = nil -- taken at the first dormancy pass
   veafCampaign.counters = {
     structuresLost = 0,
     territoryDrawings = 0,

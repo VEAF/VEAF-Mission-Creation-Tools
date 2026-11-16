@@ -162,6 +162,9 @@ local function worldGroups(groups)
           inAir = function()
             return spec.inAir == true
           end,
+          isActive = function()
+            return spec.active ~= false
+          end,
           getName = function()
             return spec.unit or (spec.name .. " #1")
           end,
@@ -557,9 +560,29 @@ function TestCampaignDormancy:test_an_ai_aircraft_in_the_air_wakes_the_zone_not_
   luaunit.assertTrue(veafCampaign.zones["Senaki"].awake)
 end
 
+function TestCampaignDormancy:test_a_late_activated_aircraft_wakes_nothing()
+  -- DCS answers isExist() and inAir() true for a group not yet activated (dcs-runtime-traps.md)
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  worldGroups({ { name = "qra", category = Group.Category.AIRPLANE, x = 52000, inAir = true, active = false } })
+  veafCampaign.updateDormancy(100)
+  luaunit.assertFalse(veafCampaign.zones["Senaki"].awake)
+end
+
+function TestCampaignDormancy:test_a_ground_group_spawned_just_after_initialize_counts_as_built()
+  -- the FARPs' vehicles (veafGrass) come 2 s after the module initializes
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  worldGroups({ { name = "FARP vehicles", category = Group.Category.GROUND, x = 52000 } })
+  veafCampaign.updateDormancy(100)
+  luaunit.assertFalse(veafCampaign.zones["Senaki"].awake)
+end
+
 function TestCampaignDormancy:test_a_convoy_wakes_the_zone_within_the_ground_radius()
   veafCampaign.data = persistentData()
   veafCampaign.initialize()
+  worldGroups({})
+  veafCampaign.updateDormancy(90) -- the mission as built: nothing on the ground
   worldGroups({ { name = "convoy", category = Group.Category.GROUND, x = 61000 } }) -- 11 km from Senaki
   veafCampaign.updateDormancy(100)
   luaunit.assertFalse(veafCampaign.zones["Senaki"].awake)
@@ -571,6 +594,8 @@ end
 function TestCampaignDormancy:test_a_garrison_does_not_wake_its_neighbour()
   veafCampaign.data = persistentData()
   veafCampaign.initialize()
+  worldGroups({})
+  veafCampaign.updateDormancy(90) -- the mission as built: nothing on the ground
   veafCampaign.unitIndex["Poti garrison #1"] = veafCampaign.zones["Poti"]
   worldGroups({ { name = "Poti garrison", category = Group.Category.GROUND, x = 52000 } })
   veafCampaign.updateDormancy(100)

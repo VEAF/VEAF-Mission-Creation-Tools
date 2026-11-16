@@ -206,6 +206,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafGrass.lua` | Grass runway initialization |
 | `test_veafHelicopterSpawn.lua` | Helicopter spawned from a marker: landed by the ground path, `HELICOPTER` category, the alias's loadout, `orbit` and `transport` tasks |
 | `test_veafSpawn.lua` | Spawn commands, mark text analysis, laser freq conversion |
+| `test_veafSpawnOwnership.lua` | What each pilot's markers spawned, and the F10 menu that removes it |
 | `test_veafSpawnParser.lua` | Deterministic spawn mark-text parsing (`markTextAnalysis`) |
 | `test_veafCommands.lua` | Command registry: priority ordering and dispatch |
 | `test_veafI18n.lua` | Lua runtime i18n layer (`veaf.t`, `veafI18n` catalog) |

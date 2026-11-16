@@ -529,6 +529,7 @@ DCS's ATC is off: announce yourself on the airfield's VHF when taxiing, taking o
 Do not line up behind an aircraft taking off; vacate the runway as soon as you land.
 A combat zone another pilot started is theirs: ask before stopping or clearing it.
 Clean up YOUR combat zones by deactivating them before you leave.
+Remove YOUR spawns before you leave: F10 menu › VEAF › SPAWN › My spawns.
 ```
 
 **"Commands" sheet**:
@@ -547,6 +548,7 @@ Tiers: [open] everyone · [VEAF pilot] a pilot the server knows · [trusted] a t
 -jtac (laser 1688), -smoke (option color), -tacan: designation, a visual mark, a beacon [open]
 -point <name>: name a point (a convoy's destination) [open]
 -destroy: removes what is within 100 m of the marker [trusted]
+F10 › VEAF › SPAWN › My spawns: remove what your markers spawned, all of it or one by one [open]
 _spawn unit, name <DCS type>, multiplier 4: one precise type, where -armor draws at random [VEAF pilot]
 
 Options: side red/blue, defense 0-5, armor 0-5, size.

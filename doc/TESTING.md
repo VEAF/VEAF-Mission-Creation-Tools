@@ -206,6 +206,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafGrass.lua` | Initialisation de pistes en herbe |
 | `test_veafHelicopterSpawn.lua` | Hélicoptère créé par marqueur : posé par le chemin sol, catégorie `HELICOPTER`, armement de l'alias, tâches `orbit` et `transport` |
 | `test_veafSpawn.lua` | Commandes spawn, analyse de texte marqueur, conversion fréquence laser |
+| `test_veafSpawnOwnership.lua` | Ce que les marqueurs de chaque pilote ont fait apparaître, et le menu F10 qui le retire |
 | `test_veafSpawnParser.lua` | Parsing déterministe du texte marqueur de spawn (`markTextAnalysis`) |
 | `test_veafCommands.lua` | Registre de commandes : ordonnancement par priorité et dispatch |
 | `test_veafI18n.lua` | Couche i18n runtime Lua (`veaf.t`, catalogue `veafI18n`) |

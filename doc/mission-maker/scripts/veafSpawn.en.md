@@ -352,6 +352,15 @@ _destroy, unitname Tank-1
 
 With neither `unitname` nor `name`, the command clears the circle: check the name before you validate the marker.
 
+### Each pilot removes his own spawns {#own-spawns}
+
+The runtime remembers, for each pilot, the groups his markers spawned: alias or raw command (`_spawn`, `_cas`, convoy, FARP, FOB…), filed under the marker's author.
+He removes them himself from **F10 → VEAF → SPAWN → My spawns → [his name]**, all at once or one marker at a time; the [pilot guide](../../pilot/GUIDE.en.md#remove-your-spawns) describes the menu.
+
+Nothing to configure: the menu comes with the module, under the *SPAWN* menu (it is not shown when `veafSpawn.HideRadioMenu` hides that menu).
+What a script, a combat zone or a combat mission spawns belongs to nobody and is not listed.
+Removing is open to everyone, with no level: a pilot can always remove what he made himself; `-destroy` stays reserved to trusted members.
+
 ### Teleport a group
 
 ```

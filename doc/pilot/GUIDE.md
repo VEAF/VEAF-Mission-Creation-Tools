@@ -213,6 +213,25 @@ _spawn flare, power 1000000, shells 5
 _spawn bomb, power 500, shells 3
 ```
 
+### Retirer ce que vous avez fait apparaître {#remove-your-spawns}
+
+La mission retient ce que **vos** marqueurs ont fait apparaître : un alias (`-sa6`, `-armor`, `-convoy`, `-farp`…), une commande brute (`_spawn`, `_cas`…).
+Vous le retirez vous-même depuis **F10 → VEAF → APPARITION → Mes spawns → [votre nom]** :
+
+- **Tout retirer** enlève tout ce que vous avez fait apparaître ;
+- chaque marqueur a sa propre entrée, nommée par ce que vous avez tapé et l'heure de la mission (par exemple `-sa6 14:32`) : elle enlève ce marqueur-là seulement, convoi ou groupe entier compris.
+
+Le menu *Mes spawns* n'apparaît que lorsque vous avez quelque chose à retirer.
+Ce qui a déjà été détruit disparaît tout seul de la liste ; un groupe à moitié détruit est retiré entier.
+
+Quelques précisions :
+
+- **C'est le pilote qui compte, pas l'avion** : en changeant d'appareil, vous retrouvez votre liste.
+- **Dans un biplace ou une patrouille**, DCS ne sait pas qui clique dans le menu F10 : chaque occupant du groupe voit les spawns de chacun, rangés sous son nom.
+- **Personne d'autre ne peut retirer vos spawns** par ce menu. `-destroy` reste la commande des membres de confiance.
+- **En quittant le serveur, rien n'est retiré automatiquement** : quelqu'un s'en sert peut-être encore. Faites le ménage avant de partir.
+- Les **zones de combat** ne sont pas concernées : elles retirent leurs propres unités quand on les désactive.
+
 ---
 
 ## Ressources

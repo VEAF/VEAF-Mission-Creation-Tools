@@ -750,6 +750,38 @@ function TestVeafSpawnCore:test_an_allowed_spawn_is_paid_once_it_spawned_somethi
   luaunit.assertEquals(self:_runGated(true, nil).paid, {})
 end
 
+function TestVeafSpawnCore:test_a_multiplied_spawn_is_gated_once_and_each_copy_paid()
+  -- accepted or refused whole, never in part (FEAT-DYNAMIC-CAMPAIGN ticket 14, David 2026-11-16)
+  local gates, paid = 0, 0
+  veafSpawn.commandHandlers = {}
+  veafSpawn.registerCommandHandler("unit", "OPEN", function()
+    return "g"
+  end)
+  veafSpawn.spawnGate = function()
+    gates = gates + 1
+    return true
+  end
+  veafSpawn.spawnPaid = function()
+    paid = paid + 1
+  end
+  veafSpawn.executeCommand(
+    { x = 0, y = 0, z = 0 },
+    "_spawn unit, name shilka, multiplier 3",
+    1,
+    nil,
+    true,
+    nil,
+    nil,
+    nil,
+    nil,
+    nil,
+    2,
+    false
+  )
+  veafSpawn.spawnGate, veafSpawn.spawnPaid = nil, nil
+  luaunit.assertEquals({ gates, paid }, { 1, 3 })
+end
+
 function TestVeafSpawnCore:test_a_scripted_spawn_is_neither_gated_nor_paid()
   local calls = self:_runGated(false, "g", true)
   luaunit.assertTrue(calls.handled)

@@ -216,6 +216,7 @@ A delivery (crate, troops, helicopter) to a factory whose garrison is whole rebu
 Each side has **one stock of resource points** (`resources.start`, 500), saved with the campaign, and **everything the AI puts into play is paid from it** at the price of its units: the garrison of a captured zone, a reinforcement by the [network](#network), an assault convoy, a supply helicopter, a CAP, a strike, the Hunter, a [bomber raid](#bombers).
 An empty stock sends nothing: a sortie leaves only if the stock stays above `resources.reserve` (100) once it is paid, so that the AI keeps what it needs to rebuild its zones.
 A captured zone its side cannot pay gets a token garrison.
+A [paid spawn](#paid-spawns) can take the stock below zero: the AI then pays for nothing, sortie nor reinforcement, until production brings it back up.
 
 **Production** is added at every beat: a background production, `resources.background_per_hour` (30 points an hour), even with no factory, enough to just about hold a base; and each factory, `factory.per_hour` (120) times the share of its buildings standing.
 
@@ -262,7 +263,8 @@ In a persistent campaign, every VEAF spawn command a person drops as a marker �
 - **from the resources** of the other side otherwise;
 - at the price of **the units it made**, one by one, on the [resources' scale](#resources): a random armoured platoon costs what it drew, two tanks and an IFV are 6 + 6 + 4 = 16 points;
 - the players' side pays `economy.credits_per_point` (6) credits a point: those 16 points are 96 credits;
-- when the side cannot pay, the units are taken away at once, nothing is charged, and the message says what they cost and what is left; a side with nothing left at all is refused before the spawn.
+- the price is known only once the units are drawn: the spawn therefore always goes through **whole** — multiplier included — and is paid its exact price, into **debt** if need be;
+- a side at zero or in debt spawns nothing more: the command is refused before the spawn, with the balance, until the balance is above zero again; a gain pays the debt off first.
 
 Smoke, flares, drawings, destroy, teleport and mission master stay free: they put no unit into play.
 A batch alias (`-arty1`) is paid like its aliases: its battery is charged, though the password is checked only once.

@@ -89,11 +89,16 @@ end
 -- Credits (ticket 06)
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- Add credits (or take them, with a negative amount; never below zero), and tell the side.
+--- Add credits (or take them, with a negative amount; never below zero), and tell the side. A gain pays a debt
+--- off before it adds anything: a balance of -50 earning 10 is -40 (ticket 14).
 --- @param amount number
 --- @param reasonKey string|nil the i18n key of why, nil to say nothing
 function veafCampaignEconomy.earn(amount, reasonKey, ...)
-  veafCampaignEconomy.credits = math.max(0, veafCampaignEconomy.credits + amount)
+  if amount < 0 then
+    veafCampaignEconomy.credits = math.max(0, veafCampaignEconomy.credits + amount)
+  else
+    veafCampaignEconomy.credits = veafCampaignEconomy.credits + amount
+  end
   if reasonKey and amount ~= 0 then
     tell("campaign.credits.earned", amount, veaf.t(reasonKey, ...), veafCampaignEconomy.credits)
   end

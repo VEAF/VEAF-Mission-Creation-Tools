@@ -132,12 +132,13 @@ function veafCampaignLogistics.stock(side)
 end
 
 --- Whether a side can pay `cost`: a sortie keeps `resources.reserve` after paying, an "essential" spending
---- goes down to zero, a "partial" one pays whatever is there.
+--- goes down to zero, a "partial" one pays whatever is there, and a "debt" — a person's spawn, charged after
+--- the fact (ticket 14) — the whole of it, below zero if need be. A side in debt pays nothing else.
 --- @param side string
 --- @param cost number
---- @param mode string|nil nil, "essential" or "partial"
+--- @param mode string|nil nil, "essential", "partial" or "debt"
 function veafCampaignLogistics.canPay(side, cost, mode)
-  if mode == "partial" then
+  if mode == "partial" or mode == "debt" then
     return true
   end
   local after = veafCampaignLogistics.stock(side) - cost
@@ -156,7 +157,10 @@ function veafCampaignLogistics.pay(side, cost, mode, what)
     logger():info("%s cannot pay %s (%d points, %d in stock)", side, tostring(what or "a sortie"), cost, veafCampaignLogistics.stock(side))
     return false
   end
-  local paid = math.min(cost, veafCampaignLogistics.stock(side))
+  local paid = cost
+  if mode ~= "debt" then
+    paid = math.max(0, math.min(cost, veafCampaignLogistics.stock(side)))
+  end
   veafCampaignLogistics.stocks[side] = veafCampaignLogistics.stock(side) - paid
   veafCampaignLogistics.counters.spent[side] = (veafCampaignLogistics.counters.spent[side] or 0) + paid
   logger():debug("%s pays %d for %s, %d left", side, paid, tostring(what or "a sortie"), veafCampaignLogistics.stock(side))
@@ -428,19 +432,6 @@ local function spawnBill(side, points)
   return points, veafCampaignLogistics.stock(side), "resources"
 end
 
---- Refuse a spawn, telling the requester what it costs and what is left.
-local function refuseSpawn(requester, key, side, cost, balance, currency)
-  veafCampaignLogistics.counters.spawnsRefused = veafCampaignLogistics.counters.spawnsRefused + 1
-  if currency == "credits" then
-    answerRequester(requester, veaf.t("campaign.spawn.refused_credits", key, math.ceil(cost), math.floor(balance)))
-  else
-    answerRequester(
-      requester,
-      veaf.t("campaign.spawn.refused_resources", key, veaf.t("campaign.side." .. side), math.ceil(cost), math.floor(balance))
-    )
-  end
-end
-
 --- Whether the side a spawn is for pays for it: a paid command, a side of the campaign, the campaign not over,
 --- and for the other side, its resources counted.
 local function payingSide(key, options)
@@ -454,9 +445,9 @@ local function payingSide(key, options)
   return side
 end
 
---- Asked by veafSpawn before a person's spawn command runs. What it will cost is only known once its units
---- exist — a random group draws them —, so a side with nothing at all is refused here, and the rest is
---- settled by `spawnPaid`.
+--- Asked by veafSpawn before a person's spawn command runs, once for all its copies. What it will cost is only
+--- known once its units exist — a random group draws them —, so the rule is the balance: a side with nothing,
+--- or in debt, spawns nothing more until it is above zero again; anything else may run (David, 2026-11-16).
 --- @param key string the command, as veafSpawn registers its handler
 --- @param options table the parsed command: `side` the coalition it spawns for
 --- @param requester number|nil the coalition to answer
@@ -469,7 +460,7 @@ function veafCampaignLogistics.spawnGate(key, options, requester)
   local _, balance, currency = spawnBill(side, 0)
   if balance <= 0 then
     veafCampaignLogistics.counters.spawnsRefused = veafCampaignLogistics.counters.spawnsRefused + 1
-    answerRequester(requester, veaf.t("campaign.spawn.refused_empty_" .. currency, key, veaf.t("campaign.side." .. side)))
+    answerRequester(requester, veaf.t("campaign.spawn.refused_" .. currency, key, veaf.t("campaign.side." .. side), math.floor(balance)))
     return false
   end
   return true
@@ -487,46 +478,41 @@ local function spawnedTypes(name)
         table.insert(types, typeName)
       end
     end
-    return types, group
+    return types
   end
   local static = StaticObject.getByName(name)
   if static then
     table.insert(types, static:getTypeName())
   end
-  return types, static
+  return types
 end
 
 --- Told by veafSpawn once a paid command spawned a group: the price of its units, unit by unit
---- (`veafCampaign.unitPrice`, David 2026-11-16), is charged; a side that cannot pay it sees the group taken
---- away at once, and is told the price and what it has. A group paid is remembered: its survivors come home
---- at the next load.
---- @return boolean whether the spawn stands
+--- (`veafCampaign.unitPrice`, David 2026-11-16), is charged in full — into debt when the balance is short, so
+--- that a spawn is never cut in part; the side spawns nothing more while it is in debt. A group paid is
+--- remembered: its survivors come home at the next load.
 function veafCampaignLogistics.spawnPaid(key, options, groupName, requester)
   local side = payingSide(key, options)
   if not side then
-    return true
+    return
   end
-  local types, object = spawnedTypes(groupName)
-  local points = veafCampaign.unitsPrice(types)
-  local cost, balance, currency = spawnBill(side, points)
-  if cost > balance then
-    if object then
-      pcall(object.destroy, object)
-    end
-    refuseSpawn(requester, key, side, cost, balance, currency)
-    logger():info("spawn [%s] for %s refused: %d unit(s) cost %d, %d left", key, side, #types, cost, balance)
-    return false
-  end
+  local types = spawnedTypes(groupName)
+  local cost, _, currency = spawnBill(side, veafCampaign.unitsPrice(types))
+  local balance
   if currency == "credits" then
     veafCampaignEconomy.credits = veafCampaignEconomy.credits - cost
-    answerRequester(requester, veaf.t("campaign.spawn.paid_credits", key, #types, cost, veafCampaignEconomy.credits))
+    balance = veafCampaignEconomy.credits
+    answerRequester(requester, veaf.t("campaign.spawn.paid_credits", key, #types, cost, balance))
   else
-    veafCampaignLogistics.pay(side, cost, "partial", "spawn " .. key)
+    veafCampaignLogistics.pay(side, cost, "debt", "spawn " .. key)
+    balance = veafCampaignLogistics.stock(side)
+  end
+  if balance < 0 then
+    answerRequester(requester, veaf.t("campaign.spawn.in_debt_" .. currency, veaf.t("campaign.side." .. side), math.floor(balance)))
   end
   veafCampaignLogistics.counters.spawnsCharged = veafCampaignLogistics.counters.spawnsCharged + 1
   table.insert(veafCampaignLogistics.paidSpawns, { name = groupName, side = side })
-  logger():info("spawn [%s] for %s paid %d for %d unit(s): group [%s]", key, side, cost, #types, tostring(groupName))
-  return true
+  logger():info("spawn [%s] for %s paid %d for %d unit(s), balance %d: group [%s]", key, side, cost, #types, balance, tostring(groupName))
 end
 
 --- What the paid spawns still in the world are worth, by side.

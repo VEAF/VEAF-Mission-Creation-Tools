@@ -2216,20 +2216,20 @@ veaf.i18nCatalog = {
   ["campaign.network.underway"] = { fr = " (livraison en route)", en = " (a delivery on its way)" },
   ["campaign.network.arrived"] = { fr = "Réseau d'approvisionnement : %s est renforcée.", en = "Supply network: %s reinforced." },
   ["campaign.spawn.refused_credits"] = {
-    fr = "%s refusé : il coûte %d crédits, la coalition n'en a que %d. Rien n'est débité.",
-    en = "%s refused: it costs %d credits and the coalition has %d. Nothing was charged.",
+    fr = "%s refusé : la coalition (%s) a %d crédits ; plus de spawn tant que le solde n'est pas positif. Rien n'est débité.",
+    en = "%s refused: the coalition (%s) has %d credits; no spawn until the balance is above zero. Nothing was charged.",
   },
   ["campaign.spawn.refused_resources"] = {
-    fr = "%s refusé : %s le paie %d points de ressources et n'en a que %d. Rien n'est débité.",
-    en = "%s refused: %s pays it %d resource points and has %d. Nothing was charged.",
+    fr = "%s refusé : %s a %d points de ressources ; plus de spawn tant qu'il n'est pas repassé au-dessus de zéro. Rien n'est débité.",
+    en = "%s refused: %s has %d resource points; no spawn until it is above zero again. Nothing was charged.",
   },
-  ["campaign.spawn.refused_empty_credits"] = {
-    fr = "%s refusé : la coalition (%s) n'a plus de crédits. Rien n'est débité.",
-    en = "%s refused: the coalition (%s) has no credits left. Nothing was charged.",
+  ["campaign.spawn.in_debt_credits"] = {
+    fr = "La coalition (%s) est dans le rouge : %d crédits. Plus de spawn tant que le solde n'est pas positif.",
+    en = "The coalition (%s) is in debt: %d credits. No spawn until the balance is above zero.",
   },
-  ["campaign.spawn.refused_empty_resources"] = {
-    fr = "%s refusé : %s n'a plus de ressources. Rien n'est débité.",
-    en = "%s refused: %s has no resources left. Nothing was charged.",
+  ["campaign.spawn.in_debt_resources"] = {
+    fr = "%s est dans le rouge : %d points de ressources. Ni spawn ni sortie tant qu'il n'est pas repassé au-dessus de zéro.",
+    en = "%s is in debt: %d resource points. No spawn nor sortie until it is above zero again.",
   },
   ["campaign.spawn.paid_credits"] = {
     fr = "%s : %d unité(s), %d crédits débités, solde %d",

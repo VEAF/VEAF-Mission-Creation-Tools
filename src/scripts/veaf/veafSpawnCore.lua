@@ -144,9 +144,9 @@ veafSpawn.traceMarkerId = 3727
 veafSpawn.commandHandlers = {} -- ordered list: { {key=string, fn=function}, ... }
 
 --- Set by a persistent campaign (FEAT-DYNAMIC-CAMPAIGN ticket 14), nil otherwise: asked before a person's
---- command runs, `spawnGate(key, options, requesterCoalition) -> boolean` says whether it may run, and
---- `spawnPaid(key, options, groupName, requesterCoalition) -> boolean` charges the units it made, false when
---- they could not be paid and were taken away.
+--- command runs, `spawnGate(key, options, requesterCoalition) -> boolean` says whether it may run (asked once,
+--- before the first copy of a multiplied command), and `spawnPaid(key, options, groupName, requesterCoalition)`
+--- charges each copy the units it made, into debt if need be.
 veafSpawn.spawnGate = nil
 veafSpawn.spawnPaid = nil
 
@@ -401,8 +401,9 @@ function veafSpawn.executeCommand(
             end
           end
           -- a person's spawn may have to be paid for (a persistent campaign, FEAT-DYNAMIC-CAMPAIGN ticket 14):
-          -- refused before anything is spawned, charged once something was
-          if veafSpawn.spawnGate and not scripted and not veafSpawn.spawnGate(_key, options, requesterCoalition) then
+          -- the balance is asked once, before the first copy, so that a multiplied command is accepted or
+          -- refused whole, never in part; each copy is then charged for the units it made
+          if i == 1 and veafSpawn.spawnGate and not scripted and not veafSpawn.spawnGate(_key, options, requesterCoalition) then
             return
           end
           local _g, _done, _abort = _handler(eventPos, options, coalition, markId, bypassSecurity)
@@ -411,9 +412,8 @@ function veafSpawn.executeCommand(
           end
           if _g then
             spawnedGroup = _g
-            -- paid for the units it made: a side that cannot pay sees them taken away, and is told so
-            if veafSpawn.spawnPaid and not scripted and not veafSpawn.spawnPaid(_key, options, _g, requesterCoalition) then
-              return
+            if veafSpawn.spawnPaid and not scripted then
+              veafSpawn.spawnPaid(_key, options, _g, requesterCoalition)
             end
           end
           if _done then

@@ -216,6 +216,7 @@ Une livraison (caisse, troupes, hélicoptère) dans une usine dont la garnison e
 Chaque camp a **un stock de points de ressources** (`resources.start`, 500), sauvegardé avec la campagne, et **tout ce que l'IA met en jeu se paie dessus** au prix de ses unités : la garnison d'une zone prise, un renforcement par le [réseau](#network), un convoi d'assaut, un hélicoptère de ravitaillement, une CAP, une frappe, le Hunter, un [raid de bombardiers](#bombers).
 Un stock vide n'envoie plus rien : une sortie ne part que si le stock reste au-dessus de `resources.reserve` (100) une fois payée, pour que l'IA garde de quoi relever ses zones.
 Une zone prise que son camp ne peut pas payer reçoit une garnison symbolique.
+Un [spawn payé](#paid-spawns) peut faire passer le stock sous zéro : l'IA ne paie alors plus rien, sortie ni renfort, jusqu'à ce que la production le remonte.
 
 **La production** s'ajoute à chaque battement : une production de fond, `resources.background_per_hour` (30 points par heure), même sans usine, de quoi tenir tout juste une base ; et chaque usine, `factory.per_hour` (120) multiplié par la part de ses bâtiments debout.
 
@@ -262,7 +263,8 @@ Dans une campagne persistante, toute commande de spawn VEAF qu'une personne pose
 - **sur les ressources** de l'autre camp sinon ;
 - au prix **des unités qu'elle a fait apparaître**, une par une, au [barème des ressources](#resources) : une section blindée tirée au hasard coûte ce qu'elle a tiré, deux chars et un VCI font 6 + 6 + 4 = 16 points ;
 - le camp des joueurs paie `economy.credits_per_point` (6) crédits par point : ces 16 points font 96 crédits ;
-- quand le camp ne peut pas payer, les unités sont retirées aussitôt, rien n'est débité, et le message dit ce qu'elles coûtaient et ce qui reste ; un camp qui n'a plus rien du tout est refusé avant même le spawn.
+- le prix n'est connu qu'une fois les unités tirées : le spawn passe donc toujours **en entier** — multiplicateur compris — et se paie au prix exact, quitte à faire passer le camp **dans le rouge** ;
+- un camp à zéro ou dans le rouge ne fait plus apparaître rien : la commande est refusée avant le spawn, avec son solde, jusqu'à ce que le solde repasse au-dessus de zéro ; un gain rembourse d'abord la dette.
 
 Fumigènes, fusées, dessins, destruction, téléportation et mission master restent gratuits : ils ne mettent aucune unité en jeu.
 Un alias en lot (`-arty1`) se paie comme ses alias : sa batterie est facturée, même si le mot de passe n'est vérifié qu'une fois.

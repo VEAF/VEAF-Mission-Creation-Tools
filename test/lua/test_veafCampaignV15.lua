@@ -625,39 +625,60 @@ function TestCampaignPaidSpawns:test_a_blue_spawn_pays_its_units_in_credits()
   luaunit.assertTrue(veafCampaignLogistics.spawnGate("armoredPlatoon", { side = BLUE }, BLUE))
   -- a random platoon: what it drew is what it costs, 6 + 6 + 4 points, 6 credits a point
   spawned(self, "armor 1", { "T-72B", "T-72B", "BMP-2" })
-  luaunit.assertTrue(veafCampaignLogistics.spawnPaid("armoredPlatoon", { side = BLUE }, "armor 1", BLUE))
+  veafCampaignLogistics.spawnPaid("armoredPlatoon", { side = BLUE }, "armor 1", BLUE)
   luaunit.assertEquals(veafCampaignEconomy.credits, 500 - 16 * 6)
   luaunit.assertEquals(veafCampaignLogistics.counters.spawnsCharged, 1)
   luaunit.assertEquals(#messagesContaining("armoredPlatoon: 3 unit(s), 96 credits charged, balance 404"), 1)
 end
 
-function TestCampaignPaidSpawns:test_short_of_credits_the_units_are_taken_away_and_the_price_told()
+function TestCampaignPaidSpawns:test_short_of_credits_the_spawn_stands_whole_and_the_side_goes_into_debt()
   start()
   veafCampaignEconomy.credits = 100
   self.destroyed = {} -- luaunit keeps the suite's table from one test to the next
   spawned(self, "armor 2", { "T-72B", "T-72B", "T-72B" })
-  luaunit.assertFalse(veafCampaignLogistics.spawnPaid("armoredPlatoon", { side = BLUE }, "armor 2", BLUE))
-  luaunit.assertEquals(self.destroyed, { "armor 2" })
-  luaunit.assertEquals(veafCampaignEconomy.credits, 100)
-  luaunit.assertEquals(#messagesContaining("armoredPlatoon refused: it costs 108 credits and the coalition has 100"), 1)
+  veafCampaignLogistics.spawnPaid("armoredPlatoon", { side = BLUE }, "armor 2", BLUE)
+  luaunit.assertEquals(self.destroyed, {}) -- never cut in part
+  luaunit.assertEquals(veafCampaignEconomy.credits, -8)
+  luaunit.assertEquals(#messagesContaining("is in debt: -8 credits"), 1)
+  -- in debt, nothing more
+  luaunit.assertFalse(veafCampaignLogistics.spawnGate("armoredPlatoon", { side = BLUE }, BLUE))
+  luaunit.assertEquals(#messagesContaining("armoredPlatoon refused: the coalition (blue) has -8 credits"), 1)
+  -- a gain pays the debt off first
+  veafCampaignEconomy.earn(10)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 2)
+  luaunit.assertTrue(veafCampaignLogistics.spawnGate("armoredPlatoon", { side = BLUE }, BLUE))
 end
 
 function TestCampaignPaidSpawns:test_with_nothing_at_all_it_is_refused_before_anything_spawns()
   start()
   veafCampaignEconomy.credits = 0
   luaunit.assertFalse(veafCampaignLogistics.spawnGate("cap", { side = BLUE }, BLUE))
-  luaunit.assertEquals(#messagesContaining("cap refused: the coalition (blue) has no credits left"), 1)
+  luaunit.assertEquals(#messagesContaining("cap refused: the coalition (blue) has 0 credits"), 1)
 end
 
-function TestCampaignPaidSpawns:test_a_red_spawn_pays_its_units_from_red_resources()
+function TestCampaignPaidSpawns:test_a_red_spawn_pays_its_units_from_red_resources_into_debt_if_need_be()
   start()
   veafCampaignLogistics.stocks.red = 20
   spawned(self, "armor 3", { "T-72B", "BMP-2" })
-  luaunit.assertTrue(veafCampaignLogistics.spawnPaid("armoredPlatoon", { side = RED }, "armor 3", BLUE))
+  veafCampaignLogistics.spawnPaid("armoredPlatoon", { side = RED }, "armor 3", BLUE)
   luaunit.assertEquals(veafCampaignLogistics.stock("red"), 10)
   spawned(self, "armor 4", { "T-72B", "T-72B" })
-  luaunit.assertFalse(veafCampaignLogistics.spawnPaid("armoredPlatoon", { side = RED }, "armor 4", BLUE))
-  luaunit.assertEquals(#messagesContaining("armoredPlatoon refused: red pays it 12 resource points and has 10"), 1)
+  veafCampaignLogistics.spawnPaid("armoredPlatoon", { side = RED }, "armor 4", BLUE)
+  luaunit.assertEquals(veafCampaignLogistics.stock("red"), -2)
+  luaunit.assertFalse(veafCampaignLogistics.spawnGate("armoredPlatoon", { side = RED }, BLUE))
+  luaunit.assertEquals(#messagesContaining("armoredPlatoon refused: red has -2 resource points"), 1)
+end
+
+function TestCampaignPaidSpawns:test_a_side_in_debt_pays_nothing_else()
+  start()
+  veafCampaignLogistics.stocks.red = -2
+  luaunit.assertFalse(veafCampaignLogistics.canPay("red", 1))
+  luaunit.assertFalse(veafCampaignLogistics.canPay("red", 1, "essential"))
+  -- what "partial" pays when there is nothing is nothing: a debt never grows by it, nor shrinks
+  luaunit.assertTrue(veafCampaignLogistics.pay("red", 30, "partial"))
+  luaunit.assertEquals(veafCampaignLogistics.stock("red"), -2)
+  veafCampaignOps.maintainCaps("red")
+  luaunit.assertEquals(#self.flights, 0)
 end
 
 function TestCampaignPaidSpawns:test_a_command_that_puts_no_unit_into_play_is_free()
@@ -665,7 +686,8 @@ function TestCampaignPaidSpawns:test_a_command_that_puts_no_unit_into_play_is_fr
   veafCampaignEconomy.credits = 0
   luaunit.assertTrue(veafCampaignLogistics.spawnGate("smoke", { side = BLUE }, BLUE))
   luaunit.assertTrue(veafCampaignLogistics.spawnGate("teleport", { side = BLUE }, BLUE))
-  luaunit.assertTrue(veafCampaignLogistics.spawnPaid("teleport", { side = BLUE }, "anything", BLUE))
+  veafCampaignLogistics.spawnPaid("teleport", { side = BLUE }, "anything", BLUE)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 0)
 end
 
 function TestCampaignPaidSpawns:test_what_a_paid_spawn_left_standing_comes_home_at_the_next_load()

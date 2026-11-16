@@ -44,3 +44,15 @@ David: every campaign flight takes off from the ground, the raid too — startin
 - The BARCAP's station is out of every enemy zone's reach (`edgeOfReach`), not only the target's.
 - A raid is over when its bomber lands **after having flown**: on the ground at the start, it is not "home".
 - Unchanged, decided: the network's 60 s repair of Kobuleti came from the test mission's `hop_seconds: 120`; with the default 600 s a repair takes at least five minutes.
+
+## Holding for real, a carpet, and what the third raid showed (David, 2026-11-16)
+
+The third raid took off and pushed 40 s later: the hold sat over Senaki (no point of the axis out of Kobuleti's Patriot), and "holding" only meant airborne within 15 km of it, so both pushed while climbing; the Tu-22M3, faster, led the SEAD. It then dropped one or two FAB-250 a pass out of its 33 (DCS folds identical log lines, "1 duplicate message(s) skipped", so the log undercounted). The Patriot shot two CAP MiG-29 then fell silent, for a reason the log could not tell. Two replacement CAPs were sent and paid within a second, under the same name.
+
+- Holding = within `HOLD_REACHED` (now 5 km) **and** climbed to the flight's cruise altitude but `HOLD_ALTITUDE_SLACK` (1000 m).
+- In a package the bomber flies at the SEAD's speed (`STRIKE_SPEED`).
+- `CarpetBombing` (`attackType` Carpet, `carpetLength` `CARPET_LENGTH` = 1000 m, `expend` All) instead of `Bombing`; the point given as `x`/`y`, as the Mission Editor writes it, and as `point`. To be confirmed in game.
+- A release logs what the aircraft has left, which also keeps DCS from folding two lines into one.
+- `[CAMPAIGN AIRDEF]`, every `debug_status_seconds`: each zone's air defence units and their missiles left, empty launchers included.
+- A flight counts as up for `FLIGHT_GRACE` (60 s) after its spawn even when DCS does not answer it by name yet, and a group name is never given twice.
+- No enemy CAP where even its `CAP_MIN_RADIUS` circle is under the players' air defence (`capRadius` returns whether it was squeezed).

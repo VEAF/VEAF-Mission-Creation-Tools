@@ -1002,18 +1002,26 @@ function TestCampaignBombers:test_the_sead_and_the_bomber_hold_together_then_pus
   luaunit.assertEquals({ seadHold.x, seadHold.z }, { 85000, 0 })
   luaunit.assertEquals({ bomberHold.x, bomberHold.z }, { 85000, 0 })
   luaunit.assertNotEquals(seadHold.flag, bomberHold.flag)
+  -- in a package, the bomber flies at the SEAD's speed: it does not catch it up
+  luaunit.assertEquals(self.flights[3].params.speed, veafCampaignOps.STRIKE_SPEED)
   -- the bomber is on the ground, the SEAD on its way: nobody pushes
   flightAt(raid.name, { x = 100000 }, false)
-  flightAt(raid.sead, { x = 110000 }, true)
+  flightAt(raid.sead, { x = 110000, y = 2500 }, true)
   veafCampaignOps.followRaid(raid, 1100)
   luaunit.assertEquals(flags, {})
   luaunit.assertNil(raid.outcome)
+  -- the bomber over the hold but still climbing: not holding yet (2026-11-16: both pushed straight after take-off)
+  flightAt(raid.name, { x = 86000, y = 3000 }, true)
+  flightAt(raid.sead, { x = 84000, y = 2500 }, true)
+  veafCampaignOps.followRaid(raid, 1150)
+  luaunit.assertEquals(flags, {})
   -- the bomber holds, the SEAD not yet: still nobody
-  flightAt(raid.name, { x = 86000 }, true)
+  flightAt(raid.name, { x = 86000, y = 7000 }, true)
+  flightAt(raid.sead, { x = 110000, y = 2500 }, true)
   veafCampaignOps.followRaid(raid, 1200)
   luaunit.assertEquals(flags, {})
   -- both hold: the SEAD pushes, the bomber `package_delay` after it
-  flightAt(raid.sead, { x = 84000 }, true)
+  flightAt(raid.sead, { x = 84000, y = 2500 }, true)
   veafCampaignOps.followRaid(raid, 1300)
   luaunit.assertEquals(flags, { [seadHold.flag] = 1 })
   veafCampaignOps.followRaid(raid, 1329)
@@ -1034,7 +1042,7 @@ function TestCampaignBombers:test_with_its_sead_shot_down_the_bomber_pushes_alon
     flags[flag] = value
   end
   local raid = veafCampaignOps.sendRaid("red", veafCampaign.zones["Kobuleti"])
-  flightAt(raid.name, { x = 85000 }, true)
+  flightAt(raid.name, { x = 85000, y = 7000 }, true)
   dcs_mocks.addGroup(raid.sead, {
     getUnits = function()
       return {}
@@ -1162,13 +1170,16 @@ function TestCampaignBombers:test_the_bomber_route_bombs_then_lands_at_home()
   -- weapons free, no reaction to a threat, no jettison, then the bombing
   luaunit.assertEquals(tasks[2].params.action.params, { name = 1, value = 0 })
   luaunit.assertEquals(tasks[3].params.action.params, { name = 15, value = true })
-  luaunit.assertEquals(tasks[4].id, "Bombing")
-  luaunit.assertEquals(tasks[4].params.point, { x = 100, y = 200 })
+  -- a carpet: the `Bombing` task let a Tu-22M3 drop its 33 bombs one or two a pass (2026-11-16)
+  luaunit.assertEquals(tasks[4].id, "CarpetBombing")
+  luaunit.assertEquals({ tasks[4].params.x, tasks[4].params.y }, { 100, 200 })
+  luaunit.assertEquals(tasks[4].params.expend, "All")
+  luaunit.assertEquals(tasks[4].params.carpetLength, veafCampaignOps.CARPET_LENGTH)
   luaunit.assertEquals(route[3].type, "Land")
   luaunit.assertEquals(route[3].airdromeId, 5)
 end
 
-function TestCampaignBombers:test_the_bomber_takes_off_holds_then_bombs_along_its_axis()
+function TestCampaignBombers:test_the_bomber_takes_off_holds_then_bombs_from_its_push_point()
   start()
   local takeoffPoint = { x = 0, y = 0, alt = 0, type = "TakeOffParkingHot", action = "From Parking Area Hot", airdromeId = 5 }
   local route = veafAircraftSpawn.roles.campaign_bomber.buildRoute({
@@ -1187,11 +1198,10 @@ function TestCampaignBombers:test_the_bomber_takes_off_holds_then_bombs_along_it
   luaunit.assertEquals({ route[2].x, route[2].y }, { -10000, 0 })
   luaunit.assertEquals(hold.id, "ControlledTask")
   luaunit.assertEquals(hold.params.stopCondition.userFlag, "raid 1 bomber")
-  -- then bombs, coming from the hold: due south
+  -- then bombs, from its push point on the axis
   local tasks = route[3].task.params.tasks
-  luaunit.assertEquals(tasks[4].id, "Bombing")
-  luaunit.assertTrue(tasks[4].params.directionEnabled)
-  luaunit.assertAlmostEquals(tasks[4].params.direction, math.pi, 1e-6)
+  luaunit.assertEquals({ route[3].x, route[3].y }, { -12000, 0 })
+  luaunit.assertEquals(tasks[4].id, "CarpetBombing")
   luaunit.assertEquals(route[#route].type, "Land")
 end
 
@@ -1481,6 +1491,102 @@ function TestCampaignV15SelfCheck:test_every_mechanism_has_its_line()
   luaunit.assertStrContains(text, "OK  sappers: 0 team(s)")
   luaunit.assertStrContains(text, "OK  warehouses: 0 restored")
   luaunit.assertStrContains(text, "OK  bombers: 0 raid(s)")
+end
+
+-- ---------------------------------------------------------------------------
+-- What the second raid in game showed (David, 2026-11-16)
+-- ---------------------------------------------------------------------------
+TestCampaignSecondRaid = {
+  setUp = function(self)
+    setUpSuite(self)
+    self.unitByName = Unit.getByName
+  end,
+  tearDown = function(self)
+    Unit.getByName = self.unitByName
+    tearDownSuite(self)
+  end,
+}
+
+--- A garrison unit of a zone, alive in DCS, carrying `missiles`.
+local function airDefenceUnit(missiles)
+  return {
+    hasAttribute = function(_, attribute)
+      return attribute == "Air Defence"
+    end,
+    getAmmo = function()
+      return missiles > 0 and { { count = missiles, desc = { category = Weapon.Category.MISSILE } } } or nil
+    end,
+  }
+end
+
+function TestCampaignSecondRaid:test_the_missiles_left_in_each_zone_s_air_defence_are_logged()
+  start()
+  Unit.getByName = function(name)
+    if name == "Kobuleti garrison #1" then
+      return airDefenceUnit(3)
+    elseif name == "Kobuleti garrison #2" then
+      return airDefenceUnit(0)
+    end
+    return nil
+  end
+  veafCampaignOps.reportAirDefences()
+  -- an empty launcher still counts: that is the point
+  luaunit.assertEquals(#logged("[CAMPAIGN AIRDEF] [Kobuleti] blue: 3 missiles left on 2 air defence units (T-72B 3, BMP-2 0)"), 1)
+  luaunit.assertEquals(#logged("[Poti]"), 0)
+end
+
+function TestCampaignSecondRaid:test_a_release_tells_what_the_aircraft_has_left()
+  start()
+  veafCampaignOps.flights = { { name = "red bomber Senaki", side = "red", role = "bomber", aim = { x = 0, z = 0 } } }
+  veafCampaignOps.onFlightEvent({
+    type = { id = world.event.S_EVENT_SHOT },
+    initiator = { unitName = "red bomber Senaki #1", unitType = "Tu-22M3" },
+    weaponName = "FAB_250",
+    dcsInitiator = {
+      getPoint = function()
+        return { x = 7000, y = 7000, z = 0 }
+      end,
+      getAmmo = function()
+        return { { count = 31, desc = { category = Weapon.Category.BOMB } } }
+      end,
+    },
+  })
+  -- the count also keeps DCS from folding two identical lines into one
+  luaunit.assertEquals(#logged("releases FAB_250, 7000 m from its aim, 31 left"), 1)
+end
+
+function TestCampaignSecondRaid:test_a_flight_just_spawned_is_not_lost_while_dcs_has_not_registered_it()
+  start()
+  dcs_mocks.currentTime = 1000
+  table.insert(veafCampaignOps.flights, { name = "red cap Senaki", side = "red", role = "cap", spawnedAt = 1000 })
+  dcs_mocks.currentTime = 1030
+  luaunit.assertEquals(veafCampaignOps.flightsUp("red", "cap"), 1)
+  dcs_mocks.currentTime = 1000 + veafCampaignOps.FLIGHT_GRACE + 1
+  luaunit.assertEquals(veafCampaignOps.flightsUp("red", "cap"), 0)
+end
+
+function TestCampaignSecondRaid:test_a_flight_never_takes_the_name_of_one_dcs_has_not_registered_yet()
+  start()
+  veafAircraftSpawn.spawnAirplaneGroup = function(groupData)
+    table.insert(self.flights, { group = groupData })
+    return groupData.name -- DCS does not answer it by name yet
+  end
+  local first =
+    veafCampaignOps.spawnFlight("red", "cap", veafCampaign.zones["Senaki"], "zone_defense", { zone = { x = 0, y = 0, radius = 1 } }, 6000)
+  local second =
+    veafCampaignOps.spawnFlight("red", "cap", veafCampaign.zones["Senaki"], "zone_defense", { zone = { x = 0, y = 0, radius = 1 } }, 6000)
+  luaunit.assertNotEquals(first, second)
+end
+
+function TestCampaignSecondRaid:test_no_cap_where_even_its_smallest_circle_is_under_the_enemy_sams()
+  start(nil, function(d)
+    d.zones[2].x = 90000 -- Poti 10 km from Senaki
+  end)
+  veafCampaignLogistics.stocks.red = 1000
+  veafCampaignOps.maintainCaps("red")
+  luaunit.assertEquals(#self.flights, 0)
+  luaunit.assertEquals(veafCampaignLogistics.stock("red"), 1000)
+  luaunit.assertEquals(#logged("red sends no CAP over [Senaki]: even 5 km is under the air defence of [Poti]"), 1)
 end
 
 os.exit(luaunit.LuaUnit.run())

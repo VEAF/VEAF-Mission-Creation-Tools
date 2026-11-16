@@ -78,9 +78,20 @@ veafCampaignOps.RAID_TIMEOUT = 7200
 --- A raid's SEAD and bomber take off, then meet at a hold point before they push (David, 2026-11-16): how near it
 --- a flight counts as holding, in metres; how long it holds at most, in seconds, before it goes on alone — a
 --- partner lost on the way does not keep it circling for ever; how far beyond it the attack begins, in metres.
-veafCampaignOps.HOLD_REACHED = 15000
+veafCampaignOps.HOLD_REACHED = 5000
 veafCampaignOps.HOLD_SECONDS = 1200
 veafCampaignOps.PUSH_DISTANCE = 2000
+
+--- How far below its cruise altitude a raid's flight may still be and hold, in metres: a flight still climbing
+--- out of its field does not hold (2026-11-16: with the hold over the field, both pushed straight after take-off).
+veafCampaignOps.HOLD_ALTITUDE_SLACK = 1000
+
+--- The length of the bomber's carpet, in metres.
+veafCampaignOps.CARPET_LENGTH = 1000
+
+--- Seconds during which a flight just spawned counts as up even when DCS does not answer it by name yet
+--- (2026-11-16: a CAP spawned on its parking was taken for lost the next beat, and a second one sent and paid).
+veafCampaignOps.FLIGHT_GRACE = 60
 
 --- The step at which a line is walked to find where it leaves the enemy's air defence, in metres.
 veafCampaignOps.REACH_STEP = 1000
@@ -112,13 +123,18 @@ local function logger()
   return veaf.loggers.get(veafCampaignOps.Id)
 end
 
+--- The group names this module has given, so that it never gives one twice: DCS may not answer a group just
+--- spawned by its name yet, and a second group of the same name replaces the first.
+veafCampaignOps.usedNames = {}
+
 --- A group name nobody uses yet.
 local function uniqueGroupName(base)
   local name, index = base, 1
-  while Group.getByName(name) do
+  while Group.getByName(name) or veafCampaignOps.usedNames[name] do
     index = index + 1
     name = string.format("%s %d", base, index)
   end
+  veafCampaignOps.usedNames[name] = true
   return name
 end
 
@@ -409,7 +425,7 @@ function veafCampaignOps.flightsUp(side, role)
   local count = 0
   for _, flight in ipairs(veafCampaignOps.flights) do
     if not flight.done and flight.side == side and (role == nil or flight.role == role) then
-      if liveUnit(flight.name) then
+      if liveUnit(flight.name) or timer.getTime() - (flight.spawnedAt or -math.huge) < veafCampaignOps.FLIGHT_GRACE then
         count = count + 1
       else
         flight.done = true
@@ -520,15 +536,6 @@ local function pushPoint(hold, target)
   local length = math.max(1, math.sqrt(dx * dx + dz * dz))
   local step = math.min(veafCampaignOps.PUSH_DISTANCE, length)
   return { x = hold.x + dx / length * step, z = hold.z + dz / length * step }
-end
-
---- The azimuth from one point to another, in radians from north, as DCS's tasks take it.
-local function azimuth(from, to)
-  local angle = math.atan2(to.z - from.z, to.x - from.x)
-  if angle < 0 then
-    angle = angle + 2 * math.pi
-  end
-  return angle
 end
 
 --- A strike: start over the home airfield, engage the role's targets in the zone's circle, orbit there
@@ -739,7 +746,10 @@ function veafCampaignOps.spawnFlight(side, aircraftRole, origin, roleName, param
   local spawned = veafAircraftSpawn.spawnAirplaneGroup(groupData, roleName, params)
   if spawned then
     local aim = params.target or (params.zone and { x = params.zone.x, z = params.zone.y })
-    table.insert(veafCampaignOps.flights, { name = spawned, side = side, role = aircraftRole, origin = origin.name, aim = aim })
+    table.insert(
+      veafCampaignOps.flights,
+      { name = spawned, side = side, role = aircraftRole, origin = origin.name, aim = aim, spawnedAt = timer.getTime() }
+    )
     veafCampaignOps.counters.flights = veafCampaignOps.counters.flights + 1
     logger():info("%s %s flight [%s] leaves [%s] (%s)", side, aircraftRole, spawned, origin.name, takeoff and takeoff.action or "air start")
   else
@@ -856,7 +866,20 @@ function veafCampaignOps.maintainCaps(side)
     return
   end
   local center = zone:getCenter()
-  local radius, limit = veafCampaignOps.capRadius(side, zone)
+  local radius, limit, squeezed = veafCampaignOps.capRadius(side, zone)
+  if squeezed then
+    -- even its smallest circle is under the enemy's SAMs: it would only feed them (2026-11-16: a CAP over Senaki,
+    -- in the Patriot's reach, shot down 35 s after take-off, sent again, shot down again)
+    veafCampaign.debug(
+      "DECISION",
+      "%s sends no CAP over [%s]: even %d km is under the air defence of [%s]",
+      side,
+      zone.name,
+      veafCampaignOps.CAP_MIN_RADIUS / 1000,
+      tostring(limit)
+    )
+    return
+  end
   veafCampaign.debug(
     "DECISION",
     "%s CAP over [%s] from [%s], radius %d km%s",
@@ -896,7 +919,7 @@ function veafCampaignOps.capRadius(side, zone)
       end
     end
   end
-  return math.max(veafCampaignOps.CAP_MIN_RADIUS, radius), limit
+  return math.max(veafCampaignOps.CAP_MIN_RADIUS, radius), limit, radius < veafCampaignOps.CAP_MIN_RADIUS
 end
 
 --- Launch a strike on its cadence: CAS and SEAD in turn, at the enemy zone with the most to hit.
@@ -973,7 +996,8 @@ end
 --- A bomber: takes off, holds at its hold point until its flag is raised when it has one, bombs the target point
 --- with all it carries along its axis of approach, overflies it, lands at home.
 ---
---- `params`: `target` (vec3), `airdromeId`, `home` (vec3), `hold` (`{ x, z, flag }`, optional).
+--- `params`: `target` (vec3), `airdromeId`, `home` (vec3), `hold` (`{ x, z, flag }`, optional), `speed` (m/s,
+--- optional: in a package, the SEAD's).
 veafAircraftSpawn.roles.campaign_bomber = {
   buildRoute = function(context)
     local params, spot = context.params, context.spot
@@ -986,7 +1010,7 @@ veafAircraftSpawn.roles.campaign_bomber = {
         alt_type = "BARO",
         type = "Turning Point",
         action = "Turning Point",
-        speed = veafCampaignOps.BOMBER_SPEED,
+        speed = params.speed or veafCampaignOps.BOMBER_SPEED,
         speed_locked = true,
         task = comboTask(tasks),
       }
@@ -995,21 +1019,24 @@ veafAircraftSpawn.roles.campaign_bomber = {
       end
       return wp
     end
-    -- the attack comes along the axis it flies in on: left free, the AI chose its own and a Tu-22M3 went the
-    -- long way round, into the SAMs (2026-11-16)
+    -- a carpet: with the `Bombing` task, a Tu-22M3 dropped its 33 bombs one or two a pass (2026-11-16). The
+    -- Mission Editor writes the point as `x`/`y`; `point` is given too, DCS reading one or the other.
     local from = params.hold and pushPoint(params.hold, params.target) or { x = spot.x, z = spot.z }
     local bombing = {
-      id = "Bombing",
+      id = "CarpetBombing",
       params = {
+        attackType = "Carpet",
+        x = params.target.x,
+        y = params.target.z,
         point = { x = params.target.x, y = params.target.z },
+        carpetLength = veafCampaignOps.CARPET_LENGTH,
         weaponType = veafCampaignOps.ANY_BOMB,
         expend = "All",
+        attackQty = 1,
         attackQtyLimit = false,
         groupAttack = true,
         altitude = altitude,
         altitudeEnabled = true,
-        direction = azimuth(from, params.target),
-        directionEnabled = true,
       },
     }
     local tasks = { weaponsFree() }
@@ -1022,7 +1049,7 @@ veafAircraftSpawn.roles.campaign_bomber = {
     if params.hold then
       route = {
         point(spot.x, spot.z, {}),
-        point(params.hold.x, params.hold.z, { holdTask(params.hold, altitude, veafCampaignOps.BOMBER_SPEED) }),
+        point(params.hold.x, params.hold.z, { holdTask(params.hold, altitude, params.speed or veafCampaignOps.BOMBER_SPEED) }),
         point(from.x, from.z, tasks),
         point(params.target.x, params.target.z, {}),
         home,
@@ -1215,7 +1242,7 @@ function veafCampaignOps.sendRaid(side, target, purchased)
     record.hold = { x = hold.x, z = hold.z }
     record.seadFlag = string.format("campaign raid %d sead", veafCampaignOps.raidSerial)
     record.bomberFlag = string.format("campaign raid %d bomber", veafCampaignOps.raidSerial)
-    record.sead = veafCampaignOps.spawnFlight(side, "sead", origin, "campaign_strike", {
+    local seadParams = {
       target = defence:getCenter(),
       radius = defence.entry.radius or 2000,
       targetTypes = veafCampaignOps.STRIKE_TARGETS.sead,
@@ -1223,7 +1250,9 @@ function veafCampaignOps.sendRaid(side, target, purchased)
       home = origin:getCenter(),
       task = "SEAD",
       hold = { x = hold.x, z = hold.z, flag = record.seadFlag },
-    }, veafCampaignOps.STRIKE_ALTITUDE)
+    }
+    record.sead = veafCampaignOps.spawnFlight(side, "sead", origin, "campaign_strike", seadParams, veafCampaignOps.STRIKE_ALTITUDE)
+    record.seadAltitude = seadParams.altitude
     record.seadOn = defence.name
   end
   if not veafCampaignOps.spawnRaidBomber(record) then
@@ -1278,9 +1307,12 @@ function veafCampaignOps.spawnRaidBomber(record)
   local aim = target:isFactory() and target:structuresCenter() or target:getCenter()
   local params = { target = aim, airdromeId = record.airdromeId, home = origin:getCenter() }
   if record.hold then
+    -- in a package it flies at the SEAD's speed, so that it stays behind it
     params.hold = { x = record.hold.x, z = record.hold.z, flag = record.bomberFlag }
+    params.speed = veafCampaignOps.STRIKE_SPEED
   end
   record.name = veafCampaignOps.spawnFlight(record.side, "bomber", origin, "campaign_bomber", params, veafCampaignOps.BOMBER_ALTITUDE)
+  record.bomberAltitude = params.altitude
   if not record.name then
     return false
   end
@@ -1318,20 +1350,25 @@ function veafCampaignOps.raidUnderway(side)
   return nil
 end
 
---- Whether a raid's flight holds: in the air within `HOLD_REACHED` of the hold point.
-local function holding(unit, hold)
-  return unit and unit:inAir() and distance2d(unit:getPoint(), hold) <= veafCampaignOps.HOLD_REACHED
+--- Whether a raid's flight holds: in the air within `HOLD_REACHED` of the hold point, climbed to its cruise
+--- altitude but `HOLD_ALTITUDE_SLACK`.
+local function holding(unit, hold, altitude)
+  if not (unit and unit:inAir()) then
+    return false
+  end
+  local point = unit:getPoint()
+  return distance2d(point, hold) <= veafCampaignOps.HOLD_REACHED and point.y >= (altitude or 0) - veafCampaignOps.HOLD_ALTITUDE_SLACK
 end
 
 --- A raid's push from its hold: once the bomber holds and its SEAD too — or the SEAD is lost —, the SEAD's flag
 --- is raised, then the bomber's `bombers.package_delay` after it, so that the bomber comes in right behind.
 local function pushFromHold(raid, bomber, now)
-  if not raid.pushedAt and holding(bomber, raid.hold) then
+  if not raid.pushedAt and holding(bomber, raid.hold, raid.bomberAltitude) then
     local sead = raid.sead and liveUnit(raid.sead)
     if not sead then
       raid.pushedAt, raid.bomberPushAt = now, now
       veafCampaign.debug("FLIGHT", "raid on [%s]: no SEAD left, the bomber pushes alone", raid.target)
-    elseif holding(sead, raid.hold) then
+    elseif holding(sead, raid.hold, raid.seadAltitude) then
       trigger.action.setUserFlag(raid.seadFlag, 1)
       raid.pushedAt = now
       raid.bomberPushAt = now + veafCampaign.setting("bombers", "package_delay")
@@ -1472,12 +1509,27 @@ function veafCampaignOps.onFlightEvent(event)
       or (event.weapon and event.weapon.getTypeName and select(2, pcall(event.weapon.getTypeName, event.weapon)))
     local point = shooter and shooter.getPoint and select(2, pcall(shooter.getPoint, shooter))
     local away = (type(point) == "table" and flight.aim) and math.floor(distance2d(point, flight.aim)) or nil
+    -- what it has left: the true count, and two releases never write the same line, which DCS would fold into one
+    local left = nil
+    local ok, ammo = false, nil
+    if shooter and shooter.getAmmo then
+      ok, ammo = pcall(shooter.getAmmo, shooter)
+    end
+    if ok then
+      left = 0
+      for _, item in ipairs(type(ammo) == "table" and ammo or {}) do
+        if not (item.desc and item.desc.category == Weapon.Category.SHELL) then
+          left = left + (item.count or 0)
+        end
+      end
+    end
     veafCampaign.debug(
       "FLIGHT",
-      "%s releases %s%s",
+      "%s releases %s%s%s",
       describe(event.initiator),
       tostring(weapon),
-      away and string.format(", %d m from its aim", away) or ""
+      away and string.format(", %d m from its aim", away) or "",
+      left and string.format(", %d left", left) or ""
     )
   elseif id == world.event.S_EVENT_KILL and (flight or victim) then
     veafCampaign.debug("FLIGHT", "%s kills %s", describe(event.initiator), describe(event.target))
@@ -1566,8 +1618,59 @@ end
 -- Loop, self-check, initialisation
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- Each zone's air defence and the missiles it has left, in the testing period's log: a SAM that stops firing
+--- may be empty (2026-11-16) — an empty launcher is still listed, since that is what the line is for.
+function veafCampaignOps.reportAirDefences()
+  for _, zone in ipairs(veafCampaign.zoneList) do
+    if zone.placed and zone.entry.garrison then
+      local total, units, order, byType = 0, 0, {}, {}
+      for _, group in ipairs(zone.entry.garrison) do
+        for unitIndex, record in ipairs(group.units) do
+          local unit = record.alive and Unit.getByName(veafCampaign.unitName(group, unitIndex))
+          if unit and unit.hasAttribute and unit:hasAttribute("Air Defence") then
+            local missiles = 0
+            local ok, ammo = pcall(unit.getAmmo, unit)
+            for _, item in ipairs(ok and type(ammo) == "table" and ammo or {}) do
+              if item.desc and item.desc.category == Weapon.Category.MISSILE then
+                missiles = missiles + (item.count or 0)
+              end
+            end
+            if not byType[record.type] then
+              byType[record.type] = { units = 0, missiles = 0 }
+              table.insert(order, record.type)
+            end
+            byType[record.type].units = byType[record.type].units + 1
+            byType[record.type].missiles = byType[record.type].missiles + missiles
+            total, units = total + missiles, units + 1
+          end
+        end
+      end
+      if units > 0 then
+        local parts = {}
+        for _, typeName in ipairs(order) do
+          local entry = byType[typeName]
+          table.insert(parts, string.format("%s%s %d", typeName, entry.units > 1 and (" x" .. entry.units) or "", entry.missiles))
+        end
+        veafCampaign.debug(
+          "AIRDEF",
+          "[%s] %s: %d missiles left on %d air defence units (%s)",
+          zone.name,
+          tostring(zone.entry.owner),
+          total,
+          units,
+          table.concat(parts, ", ")
+        )
+      end
+    end
+  end
+end
+
 --- One beat, inside veafCampaign's loop.
 function veafCampaignOps.beat(now)
+  if veafCampaign.debugging() and now >= (veafCampaignOps.nextAirDefenceReport or 0) then
+    veafCampaignOps.nextAirDefenceReport = now + veafCampaign.setting("debug_status_seconds")
+    veafCampaignOps.reportAirDefences()
+  end
   for _, record in ipairs(veafCampaignOps.helicopters) do
     veafCampaignOps.followHelicopter(record, now)
   end
@@ -1607,6 +1710,7 @@ function veafCampaignOps.initialize()
   veafCampaignOps.helicopters, veafCampaignOps.flights, veafCampaignOps.hunted = {}, {}, {}
   veafCampaignOps.nextSupply, veafCampaignOps.nextStrike, veafCampaignOps.strikeCount = {}, {}, 0
   veafCampaignOps.raids, veafCampaignOps.nextRaid = {}, {}
+  veafCampaignOps.usedNames, veafCampaignOps.nextAirDefenceReport = {}, nil
   veafCampaignOps.counters = {
     helicoptersSent = 0,
     helicoptersLanded = 0,

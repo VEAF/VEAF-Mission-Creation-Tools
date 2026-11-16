@@ -108,7 +108,7 @@ Au plus `max_awake_zones` (12) zones sont éveillées à la fois, les plus proch
 ## L'aviation ennemie {#air}
 
 - **CAP** : l'ennemi tient en l'air une CAP par tranche de `air.cap_per_players` (3) joueurs du [niveau d'opposition](scripts/veafQraManager.md#opposition-level), au moins une, au-dessus de sa zone du front la plus proche des joueurs.
-  Son cercle de patrouille (40 km au plus) s'arrête 15 km avant la portée des défenses antiaériennes de nos zones, 5 km au moins : elle ne vient pas se jeter dans nos SAM.
+  Son cercle de patrouille (40 km au plus) s'arrête 15 km avant la portée des défenses antiaériennes de nos zones ; quand même un cercle de 5 km serait à leur portée, elle ne part pas : elle ne vient pas se jeter dans nos SAM.
 - **Frappes** : toutes les `air.strike_seconds` (900 s), une frappe CAS (sur la zone qui a le plus d'unités) ou SEAD (sur celle qui a le plus de défense antiaérienne), en alternance, sur une zone qui borde le territoire ennemi.
 - Elles **décollent** de l'aérodrome ennemi le plus proche, moteur chaud sur des parkings libres, ou de la piste quand il n'y en a pas assez ; sans aérodrome, pas de sortie. Il en va de même pour la CAP, la BARCAP et le Hunter.
   `air.max_flights` (4) vols en l'air au plus par camp.
@@ -318,9 +318,9 @@ Tout **décolle** de l'aérodrome ennemi le plus proche de la cible qui en est a
 
 1. une **BARCAP** tient l'axe, hors de portée de toutes les défenses antiaériennes ennemies (voir la [BARCAP](#shop)) ;
 2. un vol **SEAD**, contre la zone dont la défense antiaérienne couvre la cible (s'il y en a une), et le **bombardier** se retrouvent sur un point d'attente, sur l'axe de la cible, au premier point hors de portée des défenses plus 15 km (au-dessus de leur aérodrome s'il n'y en a pas) ;
-3. quand les deux y tournent, la SEAD repart vers la cible, et le bombardier `bombers.package_delay` (30 s) derrière elle, sur le même axe ; si la SEAD a été abattue en route, le bombardier repart seul. Aucun ne tourne plus de 20 minutes au point d'attente.
+3. quand les deux y tournent, montés à leur altitude (à 1 000 m près) et à moins de 5 km du point, la SEAD repart vers la cible, et le bombardier `bombers.package_delay` (30 s) derrière elle, sur le même axe ; si la SEAD a été abattue en route, le bombardier repart seul. Aucun ne tourne plus de 20 minutes au point d'attente.
 
-Le bombardier attaque dans l'axe d'où il arrive ; il ne réagit pas à la menace et ne largue pas ses bombes en secours : il va jusqu'à la cible.
+Le bombardier vole à la vitesse de la SEAD, pour rester derrière elle, et largue tout son emport d'une passe, en tapis de 1 km sur la cible ; il ne réagit pas à la menace et ne largue pas ses bombes en secours : il va jusqu'à la cible.
 Sans défense à éteindre, pas de SEAD ni d'attente : le bombardier va droit sur la cible.
 
 Pas d'escorte par défaut : la BARCAP tient l'approche, et la fin du trajet est la fenêtre d'interception des joueurs ; `bombers.escort: true` lui en rend une.
@@ -354,7 +354,8 @@ Pendant la mise au point, `dynamic.debug` (activé par défaut) écrit dans `dcs
 | Repère | Ce qu'il dit |
 |---|---|
 | `[CAMPAIGN DECISION]` | chaque décision de l'IA et sa raison : sortie envoyée, ou non (pas de cible, pas de terrain, plus de place, pas de quoi payer — avec le prix et le stock) ; composition d'un raid |
-| `[CAMPAIGN FLIGHT]` | le sort de chaque avion de la campagne : largage (avec sa distance au point visé), victoire ou perte et par qui, atterrissage |
+| `[CAMPAIGN FLIGHT]` | le sort de chaque avion de la campagne : largage (avec sa distance au point visé et ce qu'il lui reste), victoire ou perte et par qui, atterrissage, départ d'un raid de son point d'attente |
+| `[CAMPAIGN AIRDEF]` | toutes les `debug_status_seconds` (300 s) : pour chaque zone, ses unités de défense antiaérienne et les missiles qui leur restent, lanceurs vides compris |
 | `[CAMPAIGN SUPPLY]` | livraisons du réseau commandées, arrivées, perdues |
 | `[CAMPAIGN ZONE]` | zones prises et neutralisées |
 | `[CAMPAIGN STATUS]` | toutes les `debug_status_seconds` (300 s) : par camp, zones, stock et production, livraisons en route, vols en l'air, raid en cours, et les crédits des joueurs |
@@ -410,7 +411,7 @@ Ces points sont écrits et testés hors de DCS, pas encore mesurés en jeu :
 - l'équipe espion qui marche jusqu'à sa zone ;
 - la disparition et la réapparition d'une garnison au passage d'un joueur ;
 - les bâtiments d'une usine posés sur un terrain dégagé, et relevés sous le drapeau du preneur ;
-- la tâche `Bombing` du bombardier, son axe d'attaque, ses options « pas de réaction à la menace » et « pas de largage de secours », et le point d'attente commun du raid combiné (drapeaux `campaign raid <n> sead` / `bomber`) ;
+- la tâche `CarpetBombing` du bombardier, ses options « pas de réaction à la menace » et « pas de largage de secours », et le point d'attente commun du raid combiné (drapeaux `campaign raid <n> sead` / `bomber`) ;
 - les charges des sapeurs, assez fortes pour un bâtiment, et l'équipe hors de leur souffle ;
 - les stocks d'un entrepôt illimité, que `getInventory` rapporte peut-être sans les compter ;
 - la teinte du territoire, faite de triangles, sur la carte F10.

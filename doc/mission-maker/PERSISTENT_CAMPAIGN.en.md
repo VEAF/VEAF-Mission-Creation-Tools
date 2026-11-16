@@ -108,7 +108,7 @@ At most `max_awake_zones` (12) zones are awake at once, nearest the players firs
 ## Enemy air {#air}
 
 - **CAP**: the enemy keeps one CAP up per `air.cap_per_players` (3) players of the [opposition level](scripts/veafQraManager.en.md#opposition-level), at least one, over its front zone nearest the players.
-  Its patrol circle (40 km at most) stops 15 km short of our zones' air defence reach, 5 km at least: it does not throw itself at our SAMs.
+  Its patrol circle (40 km at most) stops 15 km short of our zones' air defence reach; when even a 5 km circle would be in their reach, it does not fly: it does not throw itself at our SAMs.
 - **Strikes**: every `air.strike_seconds` (900 s), a CAS strike (on the zone with the most units) or a SEAD strike (on the one with the most air defence), in turn, on a zone bordering the enemy's territory.
 - They **take off** from the nearest enemy airfield, hot on free stands, or from the runway when there are not enough; no airfield, no sortie. So do the CAP, the BARCAP and the Hunter.
   `air.max_flights` (4) flights in the air at most per side.
@@ -318,9 +318,9 @@ Everything **takes off** from the enemy airfield nearest the target that is at l
 
 1. a **BARCAP** holds the axis, out of the reach of every enemy air defence (see the [BARCAP](#shop));
 2. a **SEAD** flight, at the zone whose air defence covers the target (when one does), and the **bomber** meet at a hold point on the target's axis, the first point out of the defences' reach plus 15 km (over their airfield when there is none);
-3. once both circle there, the SEAD pushes to the target, and the bomber `bombers.package_delay` (30 s) behind it, on the same axis; when the SEAD was shot down on the way, the bomber pushes alone. Neither circles the hold point longer than 20 minutes.
+3. once both circle there, climbed to their altitude (within 1,000 m) and within 5 km of the point, the SEAD pushes to the target, and the bomber `bombers.package_delay` (30 s) behind it, on the same axis; when the SEAD was shot down on the way, the bomber pushes alone. Neither circles the hold point longer than 20 minutes.
 
-The bomber attacks along the axis it comes in on; it does not react to threats nor jettison its bombs: it presses on to the target.
+The bomber flies at the SEAD's speed, to stay behind it, and drops its whole load in one pass, in a 1 km carpet on the target; it does not react to threats nor jettison its bombs: it presses on to the target.
 With no defence to put out, no SEAD and no hold: the bomber flies straight to the target.
 
 No escort by default: the BARCAP holds the approach, and the last leg is the players' interception window; `bombers.escort: true` gives it one back.
@@ -354,7 +354,8 @@ While the campaign is being tuned, `dynamic.debug` (on by default) writes in `dc
 | Tag | What it says |
 |---|---|
 | `[CAMPAIGN DECISION]` | every decision of the AI and its reason: a sortie sent, or not (no target, no airfield, no room left, nothing to pay with — with the price and the stock); a raid's package |
-| `[CAMPAIGN FLIGHT]` | the fate of every campaign aircraft: a weapon released (with its distance to the aim), a kill or a loss and by whom, a landing |
+| `[CAMPAIGN FLIGHT]` | the fate of every campaign aircraft: a weapon released (with its distance to the aim and what it has left), a kill or a loss and by whom, a landing, a raid leaving its hold |
+| `[CAMPAIGN AIRDEF]` | every `debug_status_seconds` (300 s): for each zone, its air defence units and the missiles they have left, empty launchers included |
 | `[CAMPAIGN SUPPLY]` | the network's deliveries ordered, arrived, lost |
 | `[CAMPAIGN ZONE]` | zones captured and turned neutral |
 | `[CAMPAIGN STATUS]` | every `debug_status_seconds` (300 s): per side, zones, stock and production, deliveries on their way, flights up, raid out, and the players' credits |
@@ -410,7 +411,7 @@ These are written and tested outside DCS, not yet measured in game:
 - the spy team walking to its zone;
 - a garrison disappearing and reappearing as a player passes;
 - a factory's buildings placed on open ground, and raised again under the captor's flag;
-- the bomber's `Bombing` task, its attack axis, its "no reaction to threats" and "no jettison" options, and the combined raid's common hold point (flags `campaign raid <n> sead` / `bomber`);
+- the bomber's `CarpetBombing` task, its "no reaction to threats" and "no jettison" options, and the combined raid's common hold point (flags `campaign raid <n> sead` / `bomber`);
 - the sappers' charges, strong enough for a building, and the team out of their blast;
 - an unlimited warehouse's stocks, which `getInventory` may report without counting them;
 - the territory tint, made of triangles, on the F10 map.

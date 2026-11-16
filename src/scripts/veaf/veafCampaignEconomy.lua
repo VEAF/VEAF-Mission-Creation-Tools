@@ -39,7 +39,13 @@ veafCampaignEconomy.PRICES = {
   resupply = 200,
   bomber = 1300, -- the raid package without escort, 220 points at 6 credits a point (David, 2026-11-16)
   assault = 300, -- the players' assault order (Campaign > Assault), a purchase in a persistent campaign
+  escort = 300, -- two fighters covering the buyer's own group, helicopter or airplane (David, 2026-11-16)
 }
+
+--- How often an escort covering a helicopter moves its circle over it, in seconds, and how far the
+--- helicopter must have gone for the circle to move, in metres.
+veafCampaignEconomy.ESCORT_FOLLOW_SECONDS = 60
+veafCampaignEconomy.ESCORT_FOLLOW_DISTANCE = 8000
 
 --- The shop's items, in the menu's order, with the zones each applies to: "enemy", "own", "neutral",
 --- "any", or none for an item that needs no zone.
@@ -53,6 +59,7 @@ veafCampaignEconomy.ITEMS = {
   { id = "capture", zones = "neutral" },
   { id = "resupply", zones = "own" },
   { id = "bomber", zones = "enemy" },
+  { id = "escort" },
   { id = "tanker" },
 }
 
@@ -418,6 +425,119 @@ veafCampaignEconomy.effects = {
   end,
 }
 
+--- The players' airfield zone nearest a point that aircraft may leave from, or nil.
+local function nearestAirfield(side, point)
+  local best, bestDistance = nil, nil
+  for _, zone in ipairs(veafCampaign.zoneList) do
+    if zone.placed and zone.entry.owner == side and zone.entry.airbase and veafCampaignOps.canTakeOffFrom(side, zone) then
+      local center = zone:getCenter()
+      local d = math.sqrt((center.x - point.x) ^ 2 + (center.z - point.z) ^ 2)
+      if not bestDistance or d < bestDistance then
+        best, bestDistance = zone, d
+      end
+    end
+  end
+  return best
+end
+
+--- Keep an escort's circle over the helicopter it covers: re-aimed when the helicopter has moved far enough,
+--- until either group is gone.
+function veafCampaignEconomy.followHelicopter(parameters)
+  local escortName, escortedName, last = parameters[1], parameters[2], parameters[3]
+  local escort, escorted = Group.getByName(escortName), Group.getByName(escortedName)
+  if not (escort and escort:isExist() and escorted and escorted:isExist()) then
+    logger():info("escort [%s] stops following [%s]", escortName, escortedName)
+    return
+  end
+  local unit = escorted:getUnit(1)
+  local point = unit and unit:getPoint()
+  if point and math.sqrt((point.x - last.x) ^ 2 + (point.z - last.z) ^ 2) >= veafCampaignEconomy.ESCORT_FOLLOW_DISTANCE then
+    local zone = { x = point.x, y = point.z, radius = veafCampaignOps.ESCORT_HELICOPTER_RADIUS }
+    if veafAircraftSpawn.assignRole(escortName, "zone_defense", { zone = zone }) then
+      last = { x = point.x, z = point.z }
+    end
+  end
+  veaf.scheduleFunction(
+    veafCampaignEconomy.followHelicopter,
+    { escortName, escortedName, last },
+    timer.getTime() + veafCampaignEconomy.ESCORT_FOLLOW_SECONDS
+  )
+end
+
+--- Radio command: two fighters to escort the caller's own group, bought with the coalition's credits.
+---
+--- An airplane gets the DCS `Escort` task; a helicopter, too slow for fighters to stay with, gets a CAP
+--- circle over it that moves with it. The fighters start in the air over the players' airfield nearest the
+--- caller, so that they join quickly; refused with nothing charged when none can leave or none is declared.
+--- @param parameters table|string the caller's unit name, as `USAGE_ForGroup` passes it
+--- @return boolean whether it was bought
+function veafCampaignEconomy.buyEscort(parameters)
+  local unitName = type(parameters) == "table" and parameters[2] or parameters
+  local unit = unitName and Unit.getByName(unitName)
+  local group = unit and unit:getGroup()
+  if not group or veafCampaign.over then
+    return false
+  end
+  local label, price = veaf.t("campaign.shop.item.escort"), veafCampaignEconomy.price("escort")
+  local function answer(key, ...)
+    trigger.action.outTextForGroup(group:getID(), veaf.t(key, ...), 15)
+  end
+  if veafCampaignEconomy.credits < price then
+    answer("campaign.shop.too_expensive", label, price, veafCampaignEconomy.credits)
+    return false
+  end
+  local side = veafCampaign.playerSide()
+  local point = unit:getPoint()
+  local origin = nearestAirfield(side, point)
+  if not origin then
+    answer("campaign.shop.refused", label, veaf.t("campaign.shop.refused_no_airfield"))
+    return false
+  end
+  local helicopter = unit:hasAttribute("Helicopters")
+  local ok, spawned = pcall(function()
+    if helicopter then
+      local zone = { x = point.x, y = point.z, radius = veafCampaignOps.ESCORT_HELICOPTER_RADIUS }
+      return veafCampaignOps.spawnFlight(side, "cap", origin, "zone_defense", { zone = zone }, veafCampaignOps.CAP_ALTITUDE, true)
+    end
+    return veafCampaignOps.spawnFlight(
+      side,
+      "cap",
+      origin,
+      "air_escort",
+      { escorted = group:getName() },
+      veafCampaignOps.CAP_ALTITUDE,
+      true
+    )
+  end)
+  if not ok or not spawned then
+    logger():error("escort for [%s] failed: %s", group:getName(), tostring(spawned))
+    answer("campaign.shop.refused", label, veaf.t("campaign.shop.refused_spawn"))
+    return false
+  end
+  if helicopter then
+    veaf.scheduleFunction(
+      veafCampaignEconomy.followHelicopter,
+      { spawned, group:getName(), { x = point.x, z = point.z } },
+      timer.getTime() + veafCampaignEconomy.ESCORT_FOLLOW_SECONDS
+    )
+  end
+  veafCampaignEconomy.credits = veafCampaignEconomy.credits - price
+  veafCampaignEconomy.counters.purchases = veafCampaignEconomy.counters.purchases + 1
+  trigger.action.outTextForCoalition(
+    playerCoalition(),
+    veaf.t("campaign.shop.escort", group:getName(), origin.name, price, veafCampaignEconomy.credits),
+    15
+  )
+  logger():info(
+    "bought an escort [%s] for [%s] (%s), %d credits",
+    spawned,
+    group:getName(),
+    helicopter and "helicopter" or "airplane",
+    price
+  )
+  return true
+end
+
 --- Buy an item, for a zone or none: refused with no credit taken when the side cannot pay, the zone no
 --- longer suits, or the effect cannot be had.
 --- @param parameters table `{ itemId, zoneName }`
@@ -676,6 +796,9 @@ function veafCampaignEconomy.buildRadioMenu()
           veafRadio.addCommandToSubmenu(zone.name, path, veafCampaignEconomy.buy, { item.id, zone.name }, veafRadio.USAGE_ForAll)
         end
       end
+    elseif item.id == "escort" then
+      -- for the caller's own group: each player's menu carries it
+      veafRadio.addCommandToSubmenu(title, veafCampaignEconomy.shopPath, veafCampaignEconomy.buyEscort, nil, veafRadio.USAGE_ForGroup)
     elseif item.id ~= "tanker" or veafCampaign.setting("economy", "tanker") then
       veafRadio.addCommandToSubmenu(title, veafCampaignEconomy.shopPath, veafCampaignEconomy.buy, { item.id }, veafRadio.USAGE_ForAll)
     end

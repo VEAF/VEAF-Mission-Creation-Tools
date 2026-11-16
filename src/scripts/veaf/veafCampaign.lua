@@ -92,7 +92,7 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   },
   tasks = { count = 3, refresh_seconds = 300, air_kills = 2, rewards = {} },
   intel = { hidden = true, seconds = 3600, overflight_altitude = 1500, spy_troops = "Spy", spy_range = 5000 },
-  air = { strike_seconds = 900, max_flights = 4, cap_per_players = 3 },
+  air = { strike_seconds = 900, max_flights = 4, cap_per_players = 3, cap_helicopter_chance = 25 },
   -- the V1.5 (tickets 11 to 18)
   resources = { enabled = true, start = 500, background_per_hour = 30, reserve = 100, prices = {} },
   factory = { buildings = 3, per_hour = 120, types = { "Workshop A", "Tech combine", "Tech hangar A" } },

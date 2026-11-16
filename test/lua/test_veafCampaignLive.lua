@@ -322,6 +322,93 @@ function TestCampaignAir:test_the_cap_count_follows_the_opposition_level()
   luaunit.assertEquals(veafCampaignOps.wantedCaps(), 0)
 end
 
+-- 2026-11-16, after Foothold: the CAP follows the players' fighters, spares helicopters and attack airplanes,
+-- and does not stay grounded because its nearest zone is under the enemy's SAMs.
+local function spared(attributes, id)
+  return {
+    hasAttribute = function(_, name)
+      return attributes[name] == true
+    end,
+    getID = function()
+      return id or 1
+    end,
+  }
+end
+
+function TestCampaignAir:test_no_cap_when_following_and_no_fighter_is_up()
+  start()
+  opposition(0)
+  veafOpposition.follow, veafOpposition.FOLLOW_OFF = "air_to_air", "off"
+  luaunit.assertEquals(veafCampaignOps.wantedCaps(), 0)
+  opposition(4)
+  veafOpposition.follow, veafOpposition.FOLLOW_OFF = "air_to_air", "off"
+  luaunit.assertEquals(veafCampaignOps.wantedCaps(), 2)
+end
+
+function TestCampaignAir:test_a_persistent_campaign_follows_the_fighters_unless_the_mission_follows_already()
+  start()
+  local followed
+  opposition(0)
+  veafOpposition.follow, veafOpposition.FOLLOW_OFF, veafOpposition.FOLLOW_AIR_TO_AIR = "off", "off", "air_to_air"
+  veafOpposition.setFollow = function(mode)
+    followed = mode
+  end
+  veafCampaignOps.followFighters()
+  luaunit.assertEquals(followed, "air_to_air")
+  followed = nil
+  veafOpposition.follow = "players"
+  veafCampaignOps.followFighters()
+  luaunit.assertNil(followed)
+end
+
+function TestCampaignAir:test_the_cap_spares_helicopters_and_attack_airplanes_but_on_a_draw()
+  start({ air = { cap_helicopter_chance = 0 } })
+  luaunit.assertTrue(veafCampaignOps.capEngages("cap", spared({ Fighters = true }, 1)))
+  luaunit.assertFalse(veafCampaignOps.capEngages("cap", spared({ Helicopters = true }, 2)))
+  luaunit.assertFalse(veafCampaignOps.capEngages("cap", spared({ Battleplanes = true }, 3)))
+  veafCampaign.data.dynamic.air.cap_helicopter_chance = 100
+  luaunit.assertFalse(veafCampaignOps.capEngages("cap", spared({ Helicopters = true }, 2))) -- drawn once
+  luaunit.assertTrue(veafCampaignOps.capEngages("cap", spared({ Helicopters = true }, 4)))
+end
+
+function TestCampaignAir:test_the_cap_takes_the_next_front_zone_when_the_nearest_is_under_the_sams()
+  start()
+  local first, second = veafCampaign.zones["Senaki"], veafCampaign.zones["Zugdidi"]
+  second.entry.airbase = nil
+  local capZones, capRadius = veafCampaignOps.capZones, veafCampaignOps.capRadius
+  veafCampaignOps.capZones = function()
+    return { first, second }
+  end
+  veafCampaignOps.capRadius = function(_, zone)
+    if zone == first then
+      return veafCampaignOps.CAP_MIN_RADIUS, "Kobuleti", true
+    end
+    return 30000, nil, false
+  end
+  veafCampaignOps.maintainCaps("red")
+  veafCampaignOps.capZones, veafCampaignOps.capRadius = capZones, capRadius
+  luaunit.assertEquals(#self.flights, 1)
+  luaunit.assertEquals(self.flights[1].params.zone.x, second:getCenter().x)
+end
+
+function TestCampaignAir:test_a_cap_refused_everywhere_is_logged_once()
+  start()
+  local lines = 0
+  local debug = veafCampaign.debug
+  veafCampaign.debug = function()
+    lines = lines + 1
+  end
+  local capRadius = veafCampaignOps.capRadius
+  veafCampaignOps.capRadius = function()
+    return veafCampaignOps.CAP_MIN_RADIUS, "Kobuleti", true
+  end
+  veafCampaignOps.maintainCaps("red")
+  veafCampaignOps.maintainCaps("red")
+  veafCampaignOps.capRadius, veafCampaign.debug = capRadius, debug
+  luaunit.assertEquals(#self.flights, 0)
+  luaunit.assertEquals(lines, 1)
+end
+
 function TestCampaignAir:test_a_cap_covers_the_front_with_the_zone_defense_role()
   start()
   veafCampaignOps.maintainCaps("red")

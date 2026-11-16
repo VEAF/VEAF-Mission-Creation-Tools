@@ -1550,6 +1550,7 @@ local function forgetCapWatchdog(capGroupName)
   veafSpawn.capWatchdogZones[capGroupName] = nil
   veafSpawn.capWatchdogFlown[capGroupName] = nil
   veafSpawn.capWatchdogAssignments[capGroupName] = nil
+  veafSpawn.capTargetFilters[capGroupName] = nil
   veafAircraftSpawn.forgetGroup(capGroupName)
 end
 
@@ -1623,6 +1624,10 @@ function veafSpawn.startCapWatchdog(capGroupName, capCoalition, capZone, pTarget
             -- dereferences, which is how a detected static could raise "Static doesn't exist" and take
             -- the whole watchdog down with it.
             local isEngageable, refusalReason = veafSpawn.isCapEngageableTarget(target, capCoalition)
+            local filter = veafSpawn.capTargetFilters[capGroupName]
+            if isEngageable and filter and not filter(target) then
+              isEngageable, refusalReason = false, "spared by the group's target filter"
+            end
             if not isEngageable then
               veaf.loggers.get(veafSpawn.Id):trace("Discarding a detected object: %s", veaf.lp(refusalReason))
             else

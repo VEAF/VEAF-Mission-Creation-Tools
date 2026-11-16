@@ -154,7 +154,12 @@ _SCHEMA: dict[str, Check | dict[str, Check]] = {
 }
 
 #: The keys of `dynamic.air` that are not a side.
-_AIR_SETTINGS: dict[str, Check] = {"strike_seconds": _positive, "max_flights": _natural, "cap_per_players": _positive}
+_AIR_SETTINGS: dict[str, Check] = {
+    "strike_seconds": _positive,
+    "max_flights": _natural,
+    "cap_per_players": _positive,
+    "cap_helicopter_chance": _percent,
+}
 
 
 def _issue(setting: str) -> ValidationIssue:

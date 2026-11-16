@@ -1635,7 +1635,12 @@ function TestCampaignSecondRaid:test_no_cap_where_even_its_smallest_circle_is_un
   veafCampaignOps.maintainCaps("red")
   luaunit.assertEquals(#self.flights, 0)
   luaunit.assertEquals(veafCampaignLogistics.stock("red"), 1000)
-  luaunit.assertEquals(#logged("red sends no CAP over [Senaki]: even 5 km is under the air defence of [Poti]"), 1)
+  luaunit.assertEquals(
+    #logged(
+      "red sends no CAP: even 5 km over every front zone is under the enemy's air defence, or has no airfield (first: [Senaki], under [Poti])"
+    ),
+    1
+  )
 end
 
 os.exit(luaunit.LuaUnit.run())

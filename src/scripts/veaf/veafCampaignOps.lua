@@ -44,6 +44,58 @@ veafCampaignOps.STRIKE_ORBIT_SECONDS = 600
 --- How far around its zone a CAP looks for aircraft, in metres: at most, since it stops short of the
 --- enemy's air defence (David, 2026-11-16), and at least `CAP_MIN_RADIUS` over its own zone.
 veafCampaignOps.CAP_RADIUS = 40000
+
+--- How far an escort bought in the shop patrols around a helicopter it covers, in metres: fighters cannot
+--- fly at a helicopter's speed, so they hold a circle over it rather than the DCS `Escort` task.
+veafCampaignOps.ESCORT_HELICOPTER_RADIUS = 15000
+
+--- Whether a DCS unit is a helicopter or a ground-attack airplane (A-10, Su-25, AV-8B...): what Foothold's
+--- `InvisibleA10` spares. The enemy CAP leaves them alone unless they lose the draw, the Hunter never chases
+--- them, and they neither size nor place the enemy CAP (David, 2026-11-16).
+--- @param unit table a DCS unit or object
+--- @return boolean
+function veafCampaignOps.isSpared(unit)
+  if not (unit and unit.hasAttribute) then
+    return false
+  end
+  local ok, spared = pcall(function()
+    return unit:hasAttribute("Helicopters") or unit:hasAttribute("Battleplanes") or unit:hasAttribute("Battle airplanes")
+  end)
+  return ok and spared or false
+end
+
+--- Whether a player's aircraft counts as a fighter for the enemy CAP: in the air, armed with a radar-guided
+--- air-to-air missile (the opposition's `air_to_air` count), and neither a helicopter nor an attack airplane.
+--- @param unit table a DCS unit
+--- @return boolean
+function veafCampaignOps.isFighter(unit)
+  if not (unit and unit:isExist() and unit:inAir()) or veafCampaignOps.isSpared(unit) then
+    return false
+  end
+  return not (veafOpposition and veafOpposition.armedForAirToAir) or veafOpposition.armedForAirToAir(unit)
+end
+
+--- Whether the enemy CAP engages a target it detected: any airplane but an attack one; a helicopter or an
+--- attack airplane on a draw of `air.cap_helicopter_chance`, made once per target and CAP group, so that a
+--- spared target is not drawn again at every sweep of the watchdog.
+--- @param capGroupName string
+--- @param target table the detected DCS unit
+--- @return boolean
+function veafCampaignOps.capEngages(capGroupName, target)
+  if not veafCampaignOps.isSpared(target) then
+    return true
+  end
+  local draws = veafCampaignOps.capDraws[capGroupName]
+  if not draws then
+    draws = {}
+    veafCampaignOps.capDraws[capGroupName] = draws
+  end
+  local id = target:getID()
+  if draws[id] == nil then
+    draws[id] = math.random(100) <= veafCampaign.setting("air", "cap_helicopter_chance")
+  end
+  return draws[id]
+end
 veafCampaignOps.CAP_MIN_RADIUS = 5000
 
 --- The stand types a fighter or a strike aircraft may start on: every one but the runway (16) and the
@@ -494,7 +546,7 @@ function veafCampaignOps.paidSortie(side, price, what, launch)
       "%s sends %s [%s] for %d points (stock was %s)",
       side,
       what,
-      tostring(sent),
+      tostring(type(sent) == "table" and (sent.name or sent.groupName) or sent),
       price,
       tostring(stock and math.floor(stock))
     )
@@ -542,29 +594,47 @@ function veafCampaignOps.wantedCaps()
   if veafOpposition and veafOpposition.isNoAircraft and veafOpposition.isNoAircraft() then
     return 0
   end
+  local following = veafOpposition and veafOpposition.follow and veafOpposition.follow ~= veafOpposition.FOLLOW_OFF
+  if following and (level or 0) == 0 then
+    -- following the players' fighters, and none is up: helicopters and attack airplanes fly unopposed
+    return 0
+  end
   local wanted = level and math.ceil(level / veafCampaign.setting("air", "cap_per_players")) or 1
   return math.max(1, math.min(wanted, veafCampaign.setting("air", "max_flights")))
 end
 
---- The zone a side's CAP covers: its front zone nearest the other side's players, else its first front zone.
-function veafCampaignOps.capZone(side)
+--- The front zones a side's CAP may cover, the nearest to the other side's fighters first (helicopters and
+--- attack airplanes do not count); in the order of `frontZones` when no fighter is up.
+--- @param side string
+--- @return table zones
+function veafCampaignOps.capZones(side)
   local front = veafCampaignOps.frontZones(side)
-  local players = {}
+  local fighters = {}
   for _, unit in ipairs(coalition.getPlayers(veafCampaign.SIDES[veafCampaign.enemyOf(side)]) or {}) do
-    if unit and unit:isExist() then
-      table.insert(players, unit:getPoint())
+    if veafCampaignOps.isFighter(unit) then
+      table.insert(fighters, unit:getPoint())
     end
   end
-  local best, bestDistance = front[1], nil
-  for _, zone in ipairs(front) do
-    for _, point in ipairs(players) do
-      local d = distance2d(zone:getCenter(), point)
-      if not bestDistance or d < bestDistance then
-        best, bestDistance = zone, d
-      end
+  local distance = {}
+  for index, zone in ipairs(front) do
+    local best = math.huge
+    for _, point in ipairs(fighters) do
+      best = math.min(best, distance2d(zone:getCenter(), point))
     end
+    distance[zone] = { best, index }
   end
-  return best
+  table.sort(front, function(a, b)
+    if distance[a][1] ~= distance[b][1] then
+      return distance[a][1] < distance[b][1]
+    end
+    return distance[a][2] < distance[b][2]
+  end)
+  return front
+end
+
+--- The zone a side's CAP covers: its front zone nearest the other side's fighters, else its first front zone.
+function veafCampaignOps.capZone(side)
+  return veafCampaignOps.capZones(side)[1]
 end
 
 --- How many of a zone's live garrison units count for a strike role: all of them for CAS, the air
@@ -961,30 +1031,42 @@ function veafCampaignOps.maintainCaps(side)
   if missing <= 0 or veafCampaignOps.flightsUp(side) >= veafCampaign.setting("air", "max_flights") then
     return
   end
-  local zone = veafCampaignOps.capZone(side)
-  local origin = zone and veafCampaignOps.nearestOwnZone(side, zone, true)
-  if zone and zone.entry.airbase and veafCampaignOps.canTakeOffFrom(side, zone) then
-    origin = zone
+  -- the front zone nearest the fighters whose circle stays out of the enemy's SAMs: the nearest one alone
+  -- grounded the CAP for a whole evening (2026-11-16, Syria: Idlib under Hatay's Hawk, Taftanaz never tried)
+  local zone, origin, radius, limit, refused
+  for _, candidate in ipairs(veafCampaignOps.capZones(side)) do
+    local candidateOrigin = veafCampaignOps.nearestOwnZone(side, candidate, true)
+    if candidate.entry.airbase and veafCampaignOps.canTakeOffFrom(side, candidate) then
+      candidateOrigin = candidate
+    end
+    local candidateRadius, candidateLimit, squeezed = veafCampaignOps.capRadius(side, candidate)
+    if candidateOrigin and not squeezed then
+      zone, origin, radius, limit = candidate, candidateOrigin, candidateRadius, candidateLimit
+      break
+    end
+    refused = refused or { candidate.name, candidateLimit }
   end
-  if not (zone and origin) then
-    veafCampaign.debug("DECISION", "%s sends no CAP: no front zone, or no airfield to leave from", side)
+  if not zone then
+    -- even its smallest circle is under the enemy's SAMs everywhere: it would only feed them (2026-11-16: a CAP
+    -- over Senaki, in the Patriot's reach, shot down 35 s after take-off, sent again, shot down again)
+    local reason = refused
+        and string.format(
+          "%s sends no CAP: even %d km over every front zone is under the enemy's air defence, or has no airfield (first: [%s], under [%s])",
+          side,
+          veafCampaignOps.CAP_MIN_RADIUS / 1000,
+          refused[1],
+          tostring(refused[2])
+        )
+      or string.format("%s sends no CAP: no front zone, or no airfield to leave from", side)
+    -- said once, not every beat (2026-11-16: the same line every 10 s filled the log)
+    if veafCampaignOps.lastCapRefusal[side] ~= reason then
+      veafCampaignOps.lastCapRefusal[side] = reason
+      veafCampaign.debug("DECISION", "%s", reason)
+    end
     return
   end
+  veafCampaignOps.lastCapRefusal[side] = nil
   local center = zone:getCenter()
-  local radius, limit, squeezed = veafCampaignOps.capRadius(side, zone)
-  if squeezed then
-    -- even its smallest circle is under the enemy's SAMs: it would only feed them (2026-11-16: a CAP over Senaki,
-    -- in the Patriot's reach, shot down 35 s after take-off, sent again, shot down again)
-    veafCampaign.debug(
-      "DECISION",
-      "%s sends no CAP over [%s]: even %d km is under the air defence of [%s]",
-      side,
-      zone.name,
-      veafCampaignOps.CAP_MIN_RADIUS / 1000,
-      tostring(limit)
-    )
-    return
-  end
   veafCampaign.debug(
     "DECISION",
     "%s CAP over [%s] from [%s], radius %d km%s",
@@ -995,7 +1077,7 @@ function veafCampaignOps.maintainCaps(side)
     limit and (", short of the air defence of [" .. limit .. "]") or ""
   )
   veafCampaignOps.paidSortie(side, veafCampaignOps.flightPrice(side, "cap"), "a CAP", function()
-    return veafCampaignOps.spawnFlight(
+    local spawned = veafCampaignOps.spawnFlight(
       side,
       "cap",
       origin,
@@ -1003,6 +1085,12 @@ function veafCampaignOps.maintainCaps(side)
       { zone = { x = center.x, y = center.z, radius = radius } },
       veafCampaignOps.CAP_ALTITUDE
     )
+    if spawned and veafSpawn and veafSpawn.capTargetFilters then
+      veafSpawn.capTargetFilters[spawned] = function(target)
+        return veafCampaignOps.capEngages(spawned, target)
+      end
+    end
+    return spawned
   end)
 end
 
@@ -1712,6 +1800,10 @@ function veafCampaignOps.onKill(event)
     return
   end
   local killer, player = kill.unit, kill.player
+  if veafCampaignOps.isSpared(killer) then
+    -- as Foothold: no Hunter on a helicopter or an attack airplane, which could not fight it off
+    return
+  end
   local books = veafCampaignOps.hunted[player]
   if not books then
     local ground, air = veafCampaign.setting("hunter", "ground_kills"), veafCampaign.setting("hunter", "air_kills")
@@ -1874,6 +1966,7 @@ function veafCampaignOps.initialize()
   veafCampaignOps.nextSupply, veafCampaignOps.nextStrike, veafCampaignOps.strikeCount = {}, {}, 0
   veafCampaignOps.raids, veafCampaignOps.nextRaid = {}, {}
   veafCampaignOps.usedNames, veafCampaignOps.nextAirDefenceReport = {}, nil
+  veafCampaignOps.capDraws, veafCampaignOps.lastCapRefusal = {}, {}
   veafCampaignOps.counters = {
     helicoptersSent = 0,
     helicoptersLanded = 0,
@@ -1886,6 +1979,7 @@ function veafCampaignOps.initialize()
   }
   table.insert(veafCampaign.beatHooks, veafCampaignOps.beat)
   table.insert(veafCampaign.selfChecks, veafCampaignOps.selfCheck)
+  veafCampaignOps.followFighters()
   veafEventHandler.addCallback("veafCampaignOps.onKill", { "S_EVENT_KILL" }, veafCampaignOps.onKill)
   veafEventHandler.addCallback("veafCampaignOps.onBirth", { "S_EVENT_BIRTH" }, veafCampaignOps.onBirth)
   veafEventHandler.addCallback(
@@ -1894,6 +1988,21 @@ function veafCampaignOps.initialize()
     veafCampaignOps.onFlightEvent
   )
   return true
+end
+
+--- Size the enemy CAP on the players' fighters in the air, unless the mission already follows a count: a
+--- persistent campaign's opposition fixed at a level sent a CAP at helicopters and A-10s alike, and never
+--- none (David, 2026-11-16, after Foothold).
+function veafCampaignOps.followFighters()
+  if not (veafOpposition and veafOpposition.setFollow) or veafOpposition.isNoAircraft() then
+    return
+  end
+  if veafOpposition.follow ~= veafOpposition.FOLLOW_OFF then
+    return
+  end
+  veafOpposition.playersCoalition = veafCampaign.SIDES[veafCampaign.playerSide()]
+  veafOpposition.setFollow(veafOpposition.FOLLOW_AIR_TO_AIR)
+  logger():info("the enemy CAP follows the players' fighters in the air")
 end
 
 veaf.loggers.get(veafCampaignOps.Id):info(veaf.loggers.get(veafCampaignOps.Id):getVersionInfo())

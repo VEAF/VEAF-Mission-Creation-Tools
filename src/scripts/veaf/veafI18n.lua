@@ -2155,6 +2155,11 @@ veaf.i18nCatalog = {
   ["campaign.shop.item.capture"] = { fr = "Hélico de capture", en = "Capture helicopter" },
   ["campaign.shop.item.resupply"] = { fr = "Hélico de ravitaillement", en = "Resupply helicopter" },
   ["campaign.shop.item.tanker"] = { fr = "Ravitailleur", en = "Tanker" },
+  ["campaign.shop.item.escort"] = { fr = "Escorte de mon groupe", en = "Escort for my group" },
+  ["campaign.shop.escort"] = {
+    fr = "Escorte achetée pour %s : deux chasseurs partent de %s. %d crédits, solde %d",
+    en = "Escort bought for %s: two fighters leave from %s. %d credits, balance %d",
+  },
   ["campaign.shop.bought"] = { fr = "Acheté : %s (%s) pour %d crédits, solde %d", en = "Bought: %s (%s) for %d credits, balance %d" },
   ["campaign.shop.too_expensive"] = {
     fr = "%s coûte %d crédits, la coalition n'en a que %d.",

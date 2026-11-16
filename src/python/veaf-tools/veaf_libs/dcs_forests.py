@@ -333,10 +333,11 @@ def registered_dcs_dirs() -> list[Path]:
     Returns:
         Their folders; empty off Windows or when DCS never registered one.
     """
-    try:
-        import winreg  # noqa: PLC0415  (Windows only)
-    except ImportError:
+    # The platform test, not a try/except ImportError: mypy checks the CI's Linux, where winreg is empty.
+    if sys.platform != "win32":
         return []
+    import winreg  # noqa: PLC0415  (Windows only)
+
     found: list[Path] = []
     for key_name in _REGISTRY_KEYS:
         try:

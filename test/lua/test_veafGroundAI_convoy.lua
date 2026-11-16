@@ -267,6 +267,19 @@ function TestConvoyHelpers:test_the_drive_to_the_rally_point_does_not_cross_wate
   end)
 end
 
+function TestConvoyHelpers:test_a_column_whose_centre_is_in_the_water_still_finds_a_dry_rally_point()
+  -- a column strung along the lagoon shore by Poti: its average position is in the water, its trucks are not
+  dcs_mocks.visibilityAnswer = false
+  local wet = function(point)
+    return math.abs(point.x) < 100 and math.abs(point.y) < 100
+  end
+  withWater(wet, function()
+    local from = { x = 0, y = 0, z = 0 }
+    local rally = veafGroundAI.chooseRallyPoint(from, { { x = 2000, y = 0, z = 0 } }, nil)
+    luaunit.assertFalse(wet({ x = rally.x, y = rally.z }), "a dry rally point: x=" .. rally.x .. " z=" .. rally.z)
+  end)
+end
+
 function TestConvoyHelpers:test_with_water_all_around_the_convoy_stays_where_it_is()
   dcs_mocks.visibilityAnswer = true
   local wet = function(point)

@@ -97,7 +97,7 @@ The campaign starts again from its declared state at the next load of the missio
 Away from the players, a zone has no unit in the world: its garrison is only a line of the save, losses included.
 It comes back exactly as it was:
 
-- **always**, when it is within `front_depth` (40 km) of the front line drawn on the map, connected to an enemy zone or not, or targeted by a sortie: an enemy going round finds someone there;
+- **always**, when it is within `front_depth` (40 km) of the front line drawn on the map, or connected to a zone of another side, or targeted by a sortie: an enemy going round finds someone there;
 - when an **enemy player's aircraft** comes within `wake_radius` (60 km), or within its air defence's reach plus `reach_wake_margin` (20 km) when that reach is longer;
 - when an **enemy aircraft in the air**, AI included, comes within its air defence's reach plus `reach_wake_margin`: a long-range SAM therefore wakes much earlier than a zone with guns only;
 - when an **enemy ground group** that is no garrison (a convoy, troops dropped, a spawn) comes within `ground_wake_radius` (10 km).

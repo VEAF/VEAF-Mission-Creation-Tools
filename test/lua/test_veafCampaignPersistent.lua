@@ -520,6 +520,14 @@ function TestCampaignDormancy:test_the_front_is_the_line_drawn_not_the_connectio
   luaunit.assertEquals(awakeZones(), { "Kobuleti", "Senaki", "Poti" }) -- Zugdidi is 125 km from it
 end
 
+function TestCampaignDormancy:test_a_zone_connected_to_an_enemy_zone_is_on_the_front_however_far_the_line()
+  -- a sparse map: the line between Kobuleti and Senaki runs 25 km from each, beyond a 20 km depth
+  veafCampaign.data = persistentData({ front_depth = 20000 })
+  veafCampaign.initialize()
+  passes(4)
+  luaunit.assertEquals(awakeZones(), { "Kobuleti", "Senaki" })
+end
+
 function TestCampaignDormancy:test_the_front_line_moves_with_a_capture()
   veafCampaign.data = persistentData()
   veafCampaign.initialize()

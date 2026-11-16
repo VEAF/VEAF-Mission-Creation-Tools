@@ -873,6 +873,10 @@ ConvoyUnitHandler.ROAD_SNAP_DISTANCE = 300
 --- Metres between two points where the off-road drive to a rally point is checked for water: the blue
 --- trucks of 2026-11-16 fell back into the lagoon by Poti and drowned.
 ConvoyUnitHandler.DRY_STEP = 50
+
+--- Metres of the drive left out at its start: it starts from the column's average position, in the water when the
+--- column follows a shore, while its trucks stand on the road around it.
+ConvoyUnitHandler.DRY_START = 150
 --- A town masks a rally point when its centre lies this close to the line from the enemy to it.
 ConvoyUnitHandler.TOWN_COVER_RADIUS = 400
 --- The name the unarmed vehicles' group takes, after the convoy's.
@@ -1238,18 +1242,21 @@ function veafGroundAI.nearestFriendlyPlace(side, from)
   return best
 end
 
---- Whether the straight, off-road drive from one point to another stays out of the water, the end included.
+--- Whether the straight, off-road drive from one point to another stays out of the water, the end included and
+--- its first `DRY_START` metres left out (the column's average position, not where its trucks stand).
 --- @param from table a vec3
 --- @param to table a vec3
 --- @return boolean
 function veafGroundAI.isDryDrive(from, to)
   local length = dist2D(from, to)
   local steps = math.ceil(length / ConvoyUnitHandler.DRY_STEP)
-  for step = 0, steps do
-    local t = steps > 0 and step / steps or 0
-    local surface = land.getSurfaceType({ x = from.x + t * (to.x - from.x), y = from.z + t * (to.z - from.z) })
-    if surface == land.SurfaceType.WATER or surface == land.SurfaceType.SHALLOW_WATER then
-      return false
+  for step = 1, steps do
+    local t = step / steps
+    if t * length > ConvoyUnitHandler.DRY_START then
+      local surface = land.getSurfaceType({ x = from.x + t * (to.x - from.x), y = from.z + t * (to.z - from.z) })
+      if surface == land.SurfaceType.WATER or surface == land.SurfaceType.SHALLOW_WATER then
+        return false
+      end
     end
   end
   return true

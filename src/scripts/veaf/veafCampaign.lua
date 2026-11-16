@@ -2896,13 +2896,22 @@ function veafCampaign.frontDistance(zone)
   return best
 end
 
---- Whether a zone is on the front: within `front_depth` of the front line drawn on the map (David,
---- 2026-11-16) — not only connected to an enemy zone, or a zone just behind the line would be empty when
---- the enemy goes round.
+--- Whether a zone is on the front: connected to a zone its owner does not hold, or within `front_depth` of the
+--- front line drawn on the map (David, 2026-11-16) — a zone just behind the line must not be empty when the
+--- enemy goes round. The connection still counts: on a sparse map the line runs farther than `front_depth`
+--- from two connected enemies.
 --- @param zone table
 --- @return boolean
 function veafCampaign.isFront(zone)
-  return veafCampaign.frontDistance(zone) <= veafCampaign.setting("front_depth")
+  if veafCampaign.frontDistance(zone) <= veafCampaign.setting("front_depth") then
+    return true
+  end
+  for _, neighbour in ipairs(veafCampaign.neighbours(zone.name)) do
+    if neighbour.entry.owner ~= zone.entry.owner then
+      return true
+    end
+  end
+  return false
 end
 
 --- Why a zone is wanted awake, most pressing first: "always" (on the front, or the target of a sortie),

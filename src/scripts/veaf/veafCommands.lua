@@ -15,7 +15,8 @@
 --   - event        : table { text, coalition, idx } (real DCS event or constructed)
 --   - bypassSecurity : true when called from the interpreter (trusted context)
 --   - fromMarker   : true when dispatched from a DCS marker event
---   - spawnedGroups: may be nil (only provided by the interpreter)
+--   - spawnedGroups: may be nil (provided by the interpreter, and on the marker path when a
+--                    `markerSpawnListener` watches what a pilot's marker spawned)
 --   - route        : may be nil (only provided by the interpreter)
 --
 -- See the documentation : https://veaf.github.io/documentation/
@@ -108,6 +109,14 @@ veafCommands.SECURITY_CHECKS.L0 = veafCommands.SECURITY_CHECKS.ADMIN
 veafCommands.SECURITY_CHECKS.L1 = veafCommands.SECURITY_CHECKS.SENIOR_PILOT
 veafCommands.SECURITY_CHECKS.L9 = veafCommands.SECURITY_CHECKS.KNOWN_PILOT
 
+--- Told about every marker dispatched, before its handlers run: `fn(spawnedGroups, event)`, where
+--- `spawnedGroups` is the collection the handlers fill with the groups they spawn — watch it with
+--- `veaf.registerSpawnedGroupsHook` to hear about a group spawned later, after an alias delay or a
+--- repeat — and `event` the marker event, which names its author. nil, nobody listens and the handlers
+--- get no collection, as before. veafSpawn sets it to remember what each pilot spawned
+--- (FEAT-SPAWN-OWNERSHIP-DESPAWN). The interpreter path never calls it: a script's spawn is nobody's.
+veafCommands.markerSpawnListener = nil
+
 -- Ordered list of registered command handlers.
 -- Each entry: { fn = function, priority = number, security = string }
 veafCommands.commandHandlers = {}
@@ -199,6 +208,15 @@ end
 -- @return bool  true if a handler consumed the event (mark will be removed by caller)
 function veafCommands.dispatchMarker(eventPos, event)
   veaf.loggers.get(veafCommands.Id):debug("dispatchMarker(text=[%s])", tostring(event.text))
+  local spawnedGroups = nil
+  if veafCommands.markerSpawnListener then
+    spawnedGroups = {}
+    -- A listener only watches: its failure must not cost the pilot his command.
+    local ok, err = pcall(veafCommands.markerSpawnListener, spawnedGroups, event)
+    if not ok then
+      veaf.loggers.get(veafCommands.Id):error("the marker spawn listener raised: %s", veaf.p(err))
+    end
+  end
   for _, entry in ipairs(veafCommands.commandHandlers) do
     -- Recognition BEFORE security. Checking first meant every handler whose tier the pilot lacked
     -- printed a refusal for a command it would never have handled: a marker reading "RDV ici" earned
@@ -207,7 +225,7 @@ function veafCommands.dispatchMarker(eventPos, event)
     if
       veafCommands.handlesText(entry, event and event.text)
       and veafCommands.isAllowed(entry, event, false)
-      and entry.fn(eventPos, event, false, true, nil, nil)
+      and entry.fn(eventPos, event, false, true, spawnedGroups, nil)
     then
       return true
     end

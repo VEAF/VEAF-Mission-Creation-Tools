@@ -255,4 +255,26 @@ function TestAliasHandlerLevel:test_raw_move_marker_stays_trusted_member()
   luaunit.assertEquals(veafShortcuts.securityLevelFor(VeafAlias:new():setVeafCommand("_move tankermission")), "SENIOR_PILOT")
 end
 
+--- `-cas` handed the CAS module its bypass flag where the marker id goes, so the module looked for the
+--- author of mark `false` and asked every pilot for the password; and it had no way to say what it
+--- spawned (FEAT-SPAWN-OWNERSHIP-DESPAWN).
+function TestAliasHandlerLevel:test_cas_gets_the_marker_and_the_spawn_collection()
+  local saved = veafCasMission.executeCommand
+  local received = nil
+  veafCasMission.executeCommand = function(...)
+    received = { ... }
+    return true
+  end
+  local groups = {}
+  self.level = KNOWN_PILOT
+
+  veafShortcuts.executeCommand(POSITION, "-cas", coalition.side.RED, MARK_ID, false, groups)
+  veafCasMission.executeCommand = saved
+
+  luaunit.assertNotNil(received, "-cas reaches the CAS module")
+  luaunit.assertEquals(received[4], MARK_ID)
+  luaunit.assertEquals(received[5], false)
+  luaunit.assertIs(received[6], groups)
+end
+
 os.exit(luaunit.LuaUnit.run())

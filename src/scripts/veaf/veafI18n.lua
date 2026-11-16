@@ -332,6 +332,18 @@ veaf.i18nCatalog = {
     fr = "Tous les convois ont été nettoyés",
     en = "All convoys cleaned up",
   },
+  ["spawn.mine_removed"] = {
+    fr = "Retiré : %s",
+    en = "Removed: %s",
+  },
+  ["spawn.mine_gone"] = {
+    fr = "Déjà détruit : %s",
+    en = "Already destroyed: %s",
+  },
+  ["spawn.mine_not_yours"] = {
+    fr = "Seul %s peut retirer ses spawns, et il n'est plus dans ce groupe",
+    en = "Only %s can remove his spawns, and he is no longer in this group",
+  },
   ["spawn.iads_group_added"] = {
     fr = "Groupe ajouté à l'IADS nommé « %s »",
     en = 'Group added to the IADS named "%s"',
@@ -1805,6 +1817,14 @@ veaf.i18nCatalog = {
   ["menu.spawn.convoy_cleanup"] = {
     fr = "Retirer tous les convois",
     en = "Cleanup all convoys",
+  },
+  ["menu.spawn.mine"] = {
+    fr = "Mes spawns",
+    en = "My spawns",
+  },
+  ["menu.spawn.mine_remove_all"] = {
+    fr = "Tout retirer",
+    en = "Remove all",
   },
   ["menu.spawn.convoy_info_all"] = {
     fr = "Infos sur tous les convois",

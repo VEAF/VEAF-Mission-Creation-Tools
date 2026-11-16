@@ -1176,6 +1176,7 @@ function veafSpawn.initialize()
       bypass
     )
   end, veafCommands.PRIORITY_SPAWN, veafCommands.SECURITY_HANDLED)
+  veafSpawn.initializeOwnership()
   veafSpawn.dumpSpawnablePlanesList()
 end
 

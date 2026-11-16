@@ -1,6 +1,6 @@
 # FIX-OPEN-TRAINING-PILOT-FEEDBACK — Helicopter hard tier and QNH in inHg
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human
 
 David, 2026-11-15, after flying the Open Trainings:
 
@@ -41,9 +41,9 @@ The METAR line already carries both (`Q1013/29.92`).
 
 | # | Ticket | Status |
 |---|---|---|
-| 01 | [A real hard tier for the helicopter training](tickets/01-helicopter-hard-tier.md) | ⬜ |
+| 01 | [A real hard tier for the helicopter training](tickets/01-helicopter-hard-tier.md) | ✅ |
 | 02 | [The QNH in hPa and inHg everywhere](tickets/02-qnh-hpa-and-inhg.md) | ✅ |
-| 03 | [Training ranges out of the forests](tickets/03-training-ranges-out-of-forests.md) | ⬜ |
+| 03 | [Training ranges out of the forests](tickets/03-training-ranges-out-of-forests.md) | 🧑 |
 
 Ticket 03 (point 4) is mission work in the same repositories, with a look in game on Syria where the forest probe is blind.
 Ticket 01 is mission work in the six Open Training repositories (`VEAF-Open-Training-Mission-<theatre>-v6`), ticket 02 is Lua runtime in VMCT (`src/scripts/veaf/veafWeather.lua`, luaunit tests).

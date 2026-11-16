@@ -1,6 +1,6 @@
 # 03 — Training ranges out of the forests
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 Files: the training combat zones of the Open Training repositories, starting with Syria.
 
@@ -20,3 +20,12 @@ It is the same defect as the Akamas range (moved 2026-11-12): on Syria the DCS p
 
 - No unit of an Open Training training zone spawns in a wood, checked by eye on Syria and by `clear-ground-check` elsewhere.
 - `known-limitations.yaml` names Ceyhan as a second case and `docs/agents/dcs-runtime-traps.md` is regenerated.
+
+## Outcome so far (2026-11-16)
+
+- Known limitation widened in #1280: `disposition-blind-to-akamas-forest` names the Ceyhan forest, where `clear-ground-check` of 2026-11-12 had called the range's 8 vehicles clear; `dcs-runtime-traps.md` regenerated.
+- Syria: the whole Ceyhan family (three trigger zones, every target and marker of the three tiers, the Reaper 1 orbit, the F10 circle and label) moved by one vector, from 8.8 km east of FARP Ceyhan to 8.7 km due south of it, centre (212316, 2506), in the plain between Körkuyu and Kurtkulağı (`tools/fix_ceyhan_range.py` of the Syria repository). OpenStreetMap shows farmland at both places, the old one included, so it says nothing about DCS's trees: the new place waits for David's look in game.
+- Syria, in passing: the F10 circle and label of the Akamas range had stayed at its old place when the range moved on 2026-11-12; they now sit on its zones.
+- The other theatres: no Mission Editor vehicle of a training zone moved; the new hard-tier launchers are `#command` markers, which `clear-ground-check` does not read and which the runtime settles itself. The check of every training zone needs DCS running, so it waits for David.
+
+Waiting for David: the look in game at the Ceyhan range, then `clear-ground-check` on the five other Open Trainings.

@@ -227,9 +227,6 @@ limitations:
     which the campaign skips only when the count is a million or more; whether a factory's buildings,
     respawned under a new owner's country, replace the previous ones; and whether the territory, drawn as
     free-form triangles with `markupToAll(7, …)`, fills as expected on the F10 map.
-
-    One hole is known, not measured: a batch alias (`-arty1`, a Mission Master's) runs its commands as a
-    script, so what it spawns is not charged to the side it spawns for.
   workaround: |
     Read **Campaign → Self-check (admin)** in game: its factories, sappers, warehouses, bombers and
     territory lines count what happened. Turn a mechanism off in `dynamic:` (`bombers.enabled`,

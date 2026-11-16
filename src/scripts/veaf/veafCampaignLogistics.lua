@@ -28,25 +28,25 @@ veaf.loggers.new(veafCampaignLogistics.Id, veafCampaignLogistics.LogLevel)
 --- Whether the resources are counted: a persistent campaign with `resources.enabled`.
 veafCampaignLogistics.active = false
 
---- What each VEAF spawn command costs, in credits or points, when `economy.spawn_prices` does not say
---- (ticket 14). A command not listed puts no unit into play, and is free.
-veafCampaignLogistics.SPAWN_PRICES = {
-  unit = 100,
-  group = 150,
-  infantryGroup = 50,
-  armoredPlatoon = 150,
-  airDefenseBattery = 250,
-  transportCompany = 100,
-  fullCombatGroup = 400,
-  convoy = 300,
-  cap = 400,
-  afac = 300,
-  awacs = 500,
-  escort = 400,
-  farp = 200,
-  fob = 300,
-  cargo = 50,
-  logistic = 100,
+--- The VEAF spawn commands that put units into play, and are paid for the units they made (ticket 14). Every
+--- other one — smoke, flares, drawings, destroy, teleport, mission master — is free.
+veafCampaignLogistics.SPAWN_COMMANDS = {
+  unit = true,
+  group = true,
+  infantryGroup = true,
+  armoredPlatoon = true,
+  airDefenseBattery = true,
+  transportCompany = true,
+  fullCombatGroup = true,
+  convoy = true,
+  cap = true,
+  afac = true,
+  awacs = true,
+  escort = true,
+  farp = true,
+  fob = true,
+  cargo = true,
+  logistic = true,
 }
 
 --- How near the buildings' row the sappers plant their charges, in metres.
@@ -408,71 +408,125 @@ end
 -- Paid spawns (ticket 14)
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- What a VEAF spawn command costs, or nil when it is free.
-function veafCampaignLogistics.spawnPrice(key)
-  local overrides = veafCampaign.setting("economy", "spawn_prices") or {}
-  local price = overrides[key] or veafCampaignLogistics.SPAWN_PRICES[key]
-  if price and price > 0 then
-    return price
-  end
-  return nil
+--- Whether a VEAF spawn command puts units into play, and so is paid.
+function veafCampaignLogistics.isPaidSpawn(key)
+  return veafCampaignLogistics.SPAWN_COMMANDS[key] == true
 end
 
---- Asked by veafSpawn before a person's spawn command runs: whether the side it spawns for can pay it. A
---- refusal tells the requester what it costs and what is left; nothing is charged.
---- @param key string the command, as veafSpawn registers its handler
---- @param options table the parsed command: `side` the coalition it spawns for
---- @param requester number the coalition to answer
---- @return boolean whether it may run
-function veafCampaignLogistics.spawnGate(key, options, requester)
-  local price = veafCampaignLogistics.spawnPrice(key)
-  local side = sideName(options.side)
-  if not price or not side or veafCampaign.over then
-    return true
-  end
+--- What a paid spawn costs its side: the points of the units it made, in credits for the players' side
+--- (`economy.credits_per_point` credits a point), in resource points for the other.
+--- @param side string
+--- @param points number
+--- @return number the cost
+--- @return number what the side has
+--- @return string "credits" or "resources"
+local function spawnBill(side, points)
   if side == veafCampaign.playerSide() then
     local credits = veafCampaignEconomy and veafCampaignEconomy.credits or 0
-    if credits < price then
-      veafCampaignLogistics.counters.spawnsRefused = veafCampaignLogistics.counters.spawnsRefused + 1
-      answerRequester(requester, veaf.t("campaign.spawn.refused_credits", key, price, credits))
-      return false
-    end
-  elseif veafCampaignLogistics.active and not veafCampaignLogistics.canPay(side, price, "essential") then
-    veafCampaignLogistics.counters.spawnsRefused = veafCampaignLogistics.counters.spawnsRefused + 1
+    return points * veafCampaign.setting("economy", "credits_per_point"), credits, "credits"
+  end
+  return points, veafCampaignLogistics.stock(side), "resources"
+end
+
+--- Refuse a spawn, telling the requester what it costs and what is left.
+local function refuseSpawn(requester, key, side, cost, balance, currency)
+  veafCampaignLogistics.counters.spawnsRefused = veafCampaignLogistics.counters.spawnsRefused + 1
+  if currency == "credits" then
+    answerRequester(requester, veaf.t("campaign.spawn.refused_credits", key, math.ceil(cost), math.floor(balance)))
+  else
     answerRequester(
       requester,
-      veaf.t(
-        "campaign.spawn.refused_resources",
-        key,
-        veaf.t("campaign.side." .. side),
-        price,
-        math.floor(veafCampaignLogistics.stock(side))
-      )
+      veaf.t("campaign.spawn.refused_resources", key, veaf.t("campaign.side." .. side), math.ceil(cost), math.floor(balance))
     )
+  end
+end
+
+--- Whether the side a spawn is for pays for it: a paid command, a side of the campaign, the campaign not over,
+--- and for the other side, its resources counted.
+local function payingSide(key, options)
+  local side = sideName(options.side)
+  if not veafCampaignLogistics.isPaidSpawn(key) or not side or veafCampaign.over then
+    return nil
+  end
+  if side ~= veafCampaign.playerSide() and not veafCampaignLogistics.active then
+    return nil
+  end
+  return side
+end
+
+--- Asked by veafSpawn before a person's spawn command runs. What it will cost is only known once its units
+--- exist — a random group draws them —, so a side with nothing at all is refused here, and the rest is
+--- settled by `spawnPaid`.
+--- @param key string the command, as veafSpawn registers its handler
+--- @param options table the parsed command: `side` the coalition it spawns for
+--- @param requester number|nil the coalition to answer
+--- @return boolean whether it may run
+function veafCampaignLogistics.spawnGate(key, options, requester)
+  local side = payingSide(key, options)
+  if not side then
+    return true
+  end
+  local _, balance, currency = spawnBill(side, 0)
+  if balance <= 0 then
+    veafCampaignLogistics.counters.spawnsRefused = veafCampaignLogistics.counters.spawnsRefused + 1
+    answerRequester(requester, veaf.t("campaign.spawn.refused_empty_" .. currency, key, veaf.t("campaign.side." .. side)))
     return false
   end
   return true
 end
 
---- Told by veafSpawn once a paid command spawned a group: charge it, and remember the group, whose
---- survivors come home at the next load.
-function veafCampaignLogistics.spawnPaid(key, options, groupName, requester)
-  local price = veafCampaignLogistics.spawnPrice(key)
-  local side = sideName(options.side)
-  if not price or not side or veafCampaign.over then
-    return
-  end
-  if side == veafCampaign.playerSide() then
-    if veafCampaignEconomy then
-      veafCampaignEconomy.credits = math.max(0, veafCampaignEconomy.credits - price)
-      answerRequester(requester, veaf.t("campaign.spawn.paid_credits", key, price, veafCampaignEconomy.credits))
+--- The DCS type of every unit a spawn made: a group's units, or the static itself. The pathfinding vehicle a
+--- convoy carries for its first seconds is not one of them.
+local function spawnedTypes(name)
+  local types = {}
+  local group = Group.getByName(name)
+  if group and group:isExist() then
+    for _, unit in ipairs(group:getUnits() or {}) do
+      local typeName = unit and unit:isExist() and unit:getTypeName()
+      if typeName and not (veafUnits and typeName == veafUnits.DefaultPathfindingUnitType) then
+        table.insert(types, typeName)
+      end
     end
-  elseif veafCampaignLogistics.active then
-    veafCampaignLogistics.pay(side, price, "partial", "spawn " .. key)
+    return types, group
+  end
+  local static = StaticObject.getByName(name)
+  if static then
+    table.insert(types, static:getTypeName())
+  end
+  return types, static
+end
+
+--- Told by veafSpawn once a paid command spawned a group: the price of its units, unit by unit
+--- (`veafCampaign.unitPrice`, David 2026-11-16), is charged; a side that cannot pay it sees the group taken
+--- away at once, and is told the price and what it has. A group paid is remembered: its survivors come home
+--- at the next load.
+--- @return boolean whether the spawn stands
+function veafCampaignLogistics.spawnPaid(key, options, groupName, requester)
+  local side = payingSide(key, options)
+  if not side then
+    return true
+  end
+  local types, object = spawnedTypes(groupName)
+  local points = veafCampaign.unitsPrice(types)
+  local cost, balance, currency = spawnBill(side, points)
+  if cost > balance then
+    if object then
+      pcall(object.destroy, object)
+    end
+    refuseSpawn(requester, key, side, cost, balance, currency)
+    logger():info("spawn [%s] for %s refused: %d unit(s) cost %d, %d left", key, side, #types, cost, balance)
+    return false
+  end
+  if currency == "credits" then
+    veafCampaignEconomy.credits = veafCampaignEconomy.credits - cost
+    answerRequester(requester, veaf.t("campaign.spawn.paid_credits", key, #types, cost, veafCampaignEconomy.credits))
+  else
+    veafCampaignLogistics.pay(side, cost, "partial", "spawn " .. key)
   end
   veafCampaignLogistics.counters.spawnsCharged = veafCampaignLogistics.counters.spawnsCharged + 1
   table.insert(veafCampaignLogistics.paidSpawns, { name = groupName, side = side })
-  logger():info("spawn [%s] for %s paid %d: group [%s]", key, side, price, tostring(groupName))
+  logger():info("spawn [%s] for %s paid %d for %d unit(s): group [%s]", key, side, cost, #types, tostring(groupName))
+  return true
 end
 
 --- What the paid spawns still in the world are worth, by side.

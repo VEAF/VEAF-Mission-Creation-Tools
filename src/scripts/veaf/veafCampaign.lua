@@ -82,7 +82,7 @@ veafCampaign.DYNAMIC_DEFAULTS = {
     capture = 200,
     delivery = 100,
     prices = {},
-    spawn_prices = {}, -- by VEAF spawn command, over veafCampaignLogistics.SPAWN_PRICES (ticket 14)
+    credits_per_point = 6, -- what a resource point costs in credits: the players' spawns pay their units so (ticket 14)
     demolition = 50, -- credits per building the sappers destroy (ticket 15)
     warehouse_delivery = 50, -- credits per weapons cargo unloaded at another airfield (ticket 16)
   },

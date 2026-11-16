@@ -260,21 +260,12 @@ Dans une campagne persistante, toute commande de spawn VEAF qu'une personne pose
 
 - **en crédits** quand elle fait apparaître des unités pour le camp des joueurs ;
 - **sur les ressources** de l'autre camp sinon ;
-- au prix de sa catégorie, `economy.spawn_prices` ;
-- refusée avec un message qui dit ce qu'elle coûte et ce qui reste quand le camp ne peut pas payer : rien n'est débité, rien n'apparaît.
+- au prix **des unités qu'elle a fait apparaître**, une par une, au [barème des ressources](#resources) : une section blindée tirée au hasard coûte ce qu'elle a tiré, deux chars et un VCI font 6 + 6 + 4 = 16 points ;
+- le camp des joueurs paie `economy.credits_per_point` (6) crédits par point : ces 16 points font 96 crédits ;
+- quand le camp ne peut pas payer, les unités sont retirées aussitôt, rien n'est débité, et le message dit ce qu'elles coûtaient et ce qui reste ; un camp qui n'a plus rien du tout est refusé avant même le spawn.
 
-| Commande | Prix | | Commande | Prix |
-|---|---|---|---|---|
-| `unit` | 100 | | `convoy` | 300 |
-| `group` | 150 | | `cap` | 400 |
-| `infantryGroup` | 50 | | `afac` | 300 |
-| `armoredPlatoon` | 150 | | `awacs` | 500 |
-| `airDefenseBattery` | 250 | | `escort` | 400 |
-| `transportCompany` | 100 | | `farp` | 200 |
-| `fullCombatGroup` | 400 | | `fob` | 300 |
-| `cargo` | 50 | | `logistic` | 100 |
-
-Fumigènes, fusées, dessins, destruction, téléportation et mission master restent gratuits ; une catégorie mise à 0 aussi.
+Fumigènes, fusées, dessins, destruction, téléportation et mission master restent gratuits : ils ne mettent aucune unité en jeu.
+Un alias en lot (`-arty1`) se paie comme ses alias : sa batterie est facturée, même si le mot de passe n'est vérifié qu'une fois.
 Ce qu'un script fait apparaître (une combat zone, une commande que l'interpréteur lit dans un nom posé dans l'éditeur, les sorties de la campagne elle-même) n'est pas l'action d'une personne et ne se paie pas ici.
 
 ## L'équipe de démolition {#demolition}
@@ -349,7 +340,7 @@ Une ligne `KO` suffit à dire où regarder.
 | `supply_crate` | `Zone supplies` | le nom de la caisse CTLD 2 qui ravitaille |
 | `hunter` | `{enabled: true, ground_kills: 8, air_kills: 4, chance: 10}` | le Hunter |
 | `air` | voir [l'aviation ennemie](#air) | `strike_seconds` (900), `max_flights` (4), `cap_per_players` (3), et les avions de chaque camp |
-| `economy` | voir [la boutique](#shop) | `start_credits`, `kill_ground`, `kill_air`, `capture`, `delivery`, `prices`, `tanker`, `spawn_prices`, `demolition` (50), `warehouse_delivery` (50) |
+| `economy` | voir [la boutique](#shop) | `start_credits`, `kill_ground`, `kill_air`, `capture`, `delivery`, `prices`, `tanker`, `credits_per_point` (6), `demolition` (50), `warehouse_delivery` (50) |
 | `tasks` | voir [les tâches](#tasks) | `count`, `refresh_seconds`, `air_kills`, `rewards` (`attack`, `capture`, `resupply`, `air`, `intercept`) |
 | `intel` | voir [le renseignement](#intel) | `hidden`, `seconds`, `overflight_altitude`, `spy_troops`, `spy_range` |
 | `resources` | voir [les ressources](#resources) | `enabled` (true), `start` (500), `background_per_hour` (30), `reserve` (100), `prices` |

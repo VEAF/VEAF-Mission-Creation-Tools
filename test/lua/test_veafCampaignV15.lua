@@ -601,50 +601,79 @@ function TestCampaignPaidSpawns:test_the_campaign_sets_the_gate()
   luaunit.assertEquals(veafSpawn.spawnPaid, veafCampaignLogistics.spawnPaid)
 end
 
-function TestCampaignPaidSpawns:test_a_blue_spawn_is_paid_in_credits()
+--- A group spawned, with units of those types; `self.destroyed` lists what is taken away.
+local function spawned(self, name, types)
+  self.destroyed = self.destroyed or {}
+  local this = self
+  dcs_mocks.addGroup(name, {
+    getUnits = function()
+      local units = {}
+      for index, typeName in ipairs(types) do
+        table.insert(units, unitAt({ x = 10 * index }, { type = typeName }))
+      end
+      return units
+    end,
+    destroy = function()
+      table.insert(this.destroyed, name)
+    end,
+  })
+end
+
+function TestCampaignPaidSpawns:test_a_blue_spawn_pays_its_units_in_credits()
   start()
   veafCampaignEconomy.credits = 500
   luaunit.assertTrue(veafCampaignLogistics.spawnGate("armoredPlatoon", { side = BLUE }, BLUE))
-  veafCampaignLogistics.spawnPaid("armoredPlatoon", { side = BLUE }, "armor 1", BLUE)
-  luaunit.assertEquals(veafCampaignEconomy.credits, 350)
+  -- a random platoon: what it drew is what it costs, 6 + 6 + 4 points, 6 credits a point
+  spawned(self, "armor 1", { "T-72B", "T-72B", "BMP-2" })
+  luaunit.assertTrue(veafCampaignLogistics.spawnPaid("armoredPlatoon", { side = BLUE }, "armor 1", BLUE))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 500 - 16 * 6)
   luaunit.assertEquals(veafCampaignLogistics.counters.spawnsCharged, 1)
+  luaunit.assertEquals(#messagesContaining("armoredPlatoon: 3 unit(s), 96 credits charged, balance 404"), 1)
 end
 
-function TestCampaignPaidSpawns:test_short_of_credits_it_is_refused_with_the_price_and_the_balance()
+function TestCampaignPaidSpawns:test_short_of_credits_the_units_are_taken_away_and_the_price_told()
   start()
   veafCampaignEconomy.credits = 100
-  luaunit.assertFalse(veafCampaignLogistics.spawnGate("cap", { side = BLUE }, BLUE))
+  self.destroyed = {} -- luaunit keeps the suite's table from one test to the next
+  spawned(self, "armor 2", { "T-72B", "T-72B", "T-72B" })
+  luaunit.assertFalse(veafCampaignLogistics.spawnPaid("armoredPlatoon", { side = BLUE }, "armor 2", BLUE))
+  luaunit.assertEquals(self.destroyed, { "armor 2" })
   luaunit.assertEquals(veafCampaignEconomy.credits, 100)
-  luaunit.assertEquals(#messagesContaining("cap refused: it costs 400 credits and the coalition has 100"), 1)
+  luaunit.assertEquals(#messagesContaining("armoredPlatoon refused: it costs 108 credits and the coalition has 100"), 1)
 end
 
-function TestCampaignPaidSpawns:test_a_red_spawn_is_paid_from_red_resources()
+function TestCampaignPaidSpawns:test_with_nothing_at_all_it_is_refused_before_anything_spawns()
   start()
-  veafCampaignLogistics.stocks.red = 200
-  luaunit.assertTrue(veafCampaignLogistics.spawnGate("armoredPlatoon", { side = RED }, BLUE))
-  veafCampaignLogistics.spawnPaid("armoredPlatoon", { side = RED }, "armor 2", BLUE)
-  luaunit.assertEquals(veafCampaignLogistics.stock("red"), 50)
-  luaunit.assertFalse(veafCampaignLogistics.spawnGate("armoredPlatoon", { side = RED }, BLUE))
-  luaunit.assertEquals(#messagesContaining("armoredPlatoon refused: red pays it 150 resource points and has 50"), 1)
+  veafCampaignEconomy.credits = 0
+  luaunit.assertFalse(veafCampaignLogistics.spawnGate("cap", { side = BLUE }, BLUE))
+  luaunit.assertEquals(#messagesContaining("cap refused: the coalition (blue) has no credits left"), 1)
 end
 
-function TestCampaignPaidSpawns:test_a_command_with_no_price_is_free()
-  start({ economy = { spawn_prices = { cargo = 0 } } })
+function TestCampaignPaidSpawns:test_a_red_spawn_pays_its_units_from_red_resources()
+  start()
+  veafCampaignLogistics.stocks.red = 20
+  spawned(self, "armor 3", { "T-72B", "BMP-2" })
+  luaunit.assertTrue(veafCampaignLogistics.spawnPaid("armoredPlatoon", { side = RED }, "armor 3", BLUE))
+  luaunit.assertEquals(veafCampaignLogistics.stock("red"), 10)
+  spawned(self, "armor 4", { "T-72B", "T-72B" })
+  luaunit.assertFalse(veafCampaignLogistics.spawnPaid("armoredPlatoon", { side = RED }, "armor 4", BLUE))
+  luaunit.assertEquals(#messagesContaining("armoredPlatoon refused: red pays it 12 resource points and has 10"), 1)
+end
+
+function TestCampaignPaidSpawns:test_a_command_that_puts_no_unit_into_play_is_free()
+  start()
   veafCampaignEconomy.credits = 0
   luaunit.assertTrue(veafCampaignLogistics.spawnGate("smoke", { side = BLUE }, BLUE))
-  luaunit.assertTrue(veafCampaignLogistics.spawnGate("cargo", { side = BLUE }, BLUE))
+  luaunit.assertTrue(veafCampaignLogistics.spawnGate("teleport", { side = BLUE }, BLUE))
+  luaunit.assertTrue(veafCampaignLogistics.spawnPaid("teleport", { side = BLUE }, "anything", BLUE))
 end
 
 function TestCampaignPaidSpawns:test_what_a_paid_spawn_left_standing_comes_home_at_the_next_load()
   memoryFileSystem(self)
   start()
   veafCampaignEconomy.credits = 1000
-  veafCampaignLogistics.spawnPaid("armoredPlatoon", { side = BLUE }, "armor 3", BLUE)
-  dcs_mocks.addGroup("armor 3", {
-    getUnits = function()
-      return { unitAt({ x = 0 }, { type = "T-72B" }), unitAt({ x = 10 }, { type = "BMP-2" }) }
-    end,
-  })
+  spawned(self, "armor 5", { "T-72B", "BMP-2" })
+  veafCampaignLogistics.spawnPaid("armoredPlatoon", { side = BLUE }, "armor 5", BLUE)
   veafCampaignLogistics.stocks.blue = 100
   veafCampaign.writeState()
   start()

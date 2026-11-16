@@ -939,6 +939,32 @@ function TestAliasChainCoalitions:test_a_batch_alias_keeps_the_requester()
   luaunit.assertEquals(self.vu.groundAI, coalition.side.BLUE, "le lot doit transmettre le demandeur")
 end
 
+--- Ce que le lot passe a veafSpawn en dernier argument : `scripted`, qui dit qu'un script demande.
+function TestAliasChainCoalitions:_scriptedSeenBySpawn(bypassSecurity)
+  local vu = {}
+  veafSpawn.executeCommand = function(...)
+    table.insert(vu, select(12, ...))
+    return true
+  end
+  local savedKnown = veafSecurity.isKnownPilot
+  veafSecurity.isKnownPilot = function()
+    return true -- le mot de passe du lot est bon
+  end
+  veafShortcuts.executeCommand({ x = 0, y = 0, z = 0 }, "-arty1", coalition.side.RED, 0, bypassSecurity, nil, nil, coalition.side.BLUE)
+  veafSecurity.isKnownPilot = savedKnown
+  return vu
+end
+
+function TestAliasChainCoalitions:test_a_batch_dropped_by_a_person_spawns_as_that_person()
+  -- Le lot contourne le mot de passe deja verifie, mais ce qu'il pose reste l'action du pilote : une
+  -- campagne persistante le fait payer (FEAT-DYNAMIC-CAMPAIGN ticket 14). Avant, `scripted` valait `true`.
+  luaunit.assertEquals(self:_scriptedSeenBySpawn(false)[1], false)
+end
+
+function TestAliasChainCoalitions:test_a_batch_run_by_a_script_stays_a_script()
+  luaunit.assertEquals(self:_scriptedSeenBySpawn(true)[1], true)
+end
+
 function TestAliasChainCoalitions:test_a_delayed_alias_keeps_the_requester()
   -- Le chemin `-alias!30` : l'ordre part plus tard, avec ses arguments ranges dans une table. Le
   -- demandeur doit y etre, sinon un ordre differe cherche du mauvais cote — troisieme cablage de ce lot

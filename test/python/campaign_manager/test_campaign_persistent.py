@@ -117,7 +117,7 @@ class TestTheDynamicBlock:
             ({"resources": {"prices": {"T-72B": "cheap"}}}, "dynamic.resources.prices"),
             ({"factory": {"types": []}}, "dynamic.factory.types"),
             ({"network": {"hop_seconds": 0}}, "dynamic.network.hop_seconds"),
-            ({"economy": {"spawn_prices": {"cap": -1}}}, "dynamic.economy.spawn_prices"),
+            ({"economy": {"credits_per_point": 0}}, "dynamic.economy.credits_per_point"),
             ({"territory": {"enabled": "yes"}}, "dynamic.territory.enabled"),
         ],
     )

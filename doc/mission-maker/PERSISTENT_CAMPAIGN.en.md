@@ -260,21 +260,12 @@ In a persistent campaign, every VEAF spawn command a person drops as a marker â€
 
 - **in credits** when it spawns units for the players' side;
 - **from the resources** of the other side otherwise;
-- at its category's price, `economy.spawn_prices`;
-- refused with a message saying what it costs and what is left when the side cannot pay: nothing is charged, nothing appears.
+- at the price of **the units it made**, one by one, on the [resources' scale](#resources): a random armoured platoon costs what it drew, two tanks and an IFV are 6 + 6 + 4 = 16 points;
+- the players' side pays `economy.credits_per_point` (6) credits a point: those 16 points are 96 credits;
+- when the side cannot pay, the units are taken away at once, nothing is charged, and the message says what they cost and what is left; a side with nothing left at all is refused before the spawn.
 
-| Command | Price | | Command | Price |
-|---|---|---|---|---|
-| `unit` | 100 | | `convoy` | 300 |
-| `group` | 150 | | `cap` | 400 |
-| `infantryGroup` | 50 | | `afac` | 300 |
-| `armoredPlatoon` | 150 | | `awacs` | 500 |
-| `airDefenseBattery` | 250 | | `escort` | 400 |
-| `transportCompany` | 100 | | `farp` | 200 |
-| `fullCombatGroup` | 400 | | `fob` | 300 |
-| `cargo` | 50 | | `logistic` | 100 |
-
-Smoke, flares, drawings, destroy, teleport and mission master stay free; so does a category set to 0.
+Smoke, flares, drawings, destroy, teleport and mission master stay free: they put no unit into play.
+A batch alias (`-arty1`) is paid like its aliases: its battery is charged, though the password is checked only once.
 What a script spawns (a combat zone, a command the interpreter reads from a name placed in the editor, the campaign's own sorties) is no person's action and is not paid here.
 
 ## The demolition team {#demolition}
@@ -349,7 +340,7 @@ A `KO` line is enough to know where to look.
 | `supply_crate` | `Zone supplies` | the name of the CTLD 2 crate that resupplies |
 | `hunter` | `{enabled: true, ground_kills: 8, air_kills: 4, chance: 10}` | the Hunter |
 | `air` | see [enemy air](#air) | `strike_seconds` (900), `max_flights` (4), `cap_per_players` (3), and each side's aircraft |
-| `economy` | see [the shop](#shop) | `start_credits`, `kill_ground`, `kill_air`, `capture`, `delivery`, `prices`, `tanker`, `spawn_prices`, `demolition` (50), `warehouse_delivery` (50) |
+| `economy` | see [the shop](#shop) | `start_credits`, `kill_ground`, `kill_air`, `capture`, `delivery`, `prices`, `tanker`, `credits_per_point` (6), `demolition` (50), `warehouse_delivery` (50) |
 | `tasks` | see [the tasks](#tasks) | `count`, `refresh_seconds`, `air_kills`, `rewards` (`attack`, `capture`, `resupply`, `air`, `intercept`) |
 | `intel` | see [intelligence](#intel) | `hidden`, `seconds`, `overflight_altitude`, `spy_troops`, `spy_range` |
 | `resources` | see [the resources](#resources) | `enabled` (true), `start` (500), `background_per_hour` (30), `reserve` (100), `prices` |

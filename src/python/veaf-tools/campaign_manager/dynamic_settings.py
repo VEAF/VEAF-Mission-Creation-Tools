@@ -109,7 +109,7 @@ _SCHEMA: dict[str, Check | dict[str, Check]] = {
         "delivery": _natural,
         "prices": _counts,
         "tanker": _text,
-        "spawn_prices": _counts,
+        "credits_per_point": _positive,
         "demolition": _natural,
         "warehouse_delivery": _natural,
     },

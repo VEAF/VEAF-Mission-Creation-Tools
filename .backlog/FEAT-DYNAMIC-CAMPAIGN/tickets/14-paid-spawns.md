@@ -10,7 +10,7 @@ In a persistent campaign every VEAF spawn command a person issues — `_spawn`, 
 
 - **in credits** when it spawns for the players' side;
 - **from the resources** of the side it spawns for otherwise — red, which has no players (David, 2026-11-16);
-- **priced by command category**, `dynamic.economy.spawn_prices`, defaults below;
+- **priced by the units it made**, below;
 - **refused with an explicit error** when the side cannot pay: what it costs and what is left, to the requester; nothing is charged, nothing is spawned;
 - charged only when the command actually spawned something;
 - what survives joins its side's resources at the next load (ticket 12).
@@ -19,21 +19,13 @@ A spawn a script makes (a combat zone, a command the interpreter reads from a na
 The interpreter's commands are not paid, and do not belong in a persistent campaign at all (David, 2026-11-16): they spawn afresh at every restart, outside the save. What the MCP or a mission maker places goes into `campaign.yaml` as zones and garrisons; `campaign next` reports any interpreter command it finds in the mission.
 The players' assault order (Campaign → Assault) is a purchase too: `economy.prices.assault` (300 credits).
 
-## Defaults (credits or points)
+## Price: the units the spawn made (David, 2026-11-16)
 
-| command | price | | command | price |
-|---|---|---|---|---|
-| `unit` | 100 | | `convoy` | 300 |
-| `group` | 150 | | `cap` | 400 |
-| `infantryGroup` | 50 | | `afac` | 300 |
-| `armoredPlatoon` | 150 | | `awacs` | 500 |
-| `airDefenseBattery` | 250 | | `escort` | 400 |
-| `transportCompany` | 100 | | `farp` | 200 |
-| `fullCombatGroup` | 400 | | `fob` | 300 |
-| `cargo` | 50 | | `logistic` | 100 |
+A random group draws its units, so a spawn is priced once it exists: the sum of its units' prices on the resources' scale (`veafCampaign.unitPrice`, ticket 12), in resource points for the other side, and `economy.credits_per_point` (6) credits a point for the players' side — a CAP of two fighters, 60 points, is 360 credits, near the shop's 400.
+A side that cannot pay sees the units taken away at once and is told the price and what it has; a side with nothing left at all is refused before the spawn.
+Free: the commands that put no unit into play (smoke, flares, drawings, destroy, teleport, mission master).
 
-Everything else (smoke, flares, drawings, destroy, teleport, mission master) stays free: it puts no unit into play.
-Values in the shop's scale (a CAP is 400 in both); a category set to 0 is free.
+A batch alias (`-arty1`) bypasses the password it has already checked for the pilot who dropped it; until this lot, that bypass also meant "a script asked", so its battery was free. `scripted` now travels through `veafShortcuts` apart from the bypass (David, 2026-11-16).
 
 ## How
 

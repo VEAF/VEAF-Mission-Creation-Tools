@@ -2223,7 +2223,18 @@ veaf.i18nCatalog = {
     fr = "%s refusé : %s le paie %d points de ressources et n'en a que %d. Rien n'est débité.",
     en = "%s refused: %s pays it %d resource points and has %d. Nothing was charged.",
   },
-  ["campaign.spawn.paid_credits"] = { fr = "%s : %d crédits débités, solde %d", en = "%s: %d credits charged, balance %d" },
+  ["campaign.spawn.refused_empty_credits"] = {
+    fr = "%s refusé : la coalition (%s) n'a plus de crédits. Rien n'est débité.",
+    en = "%s refused: the coalition (%s) has no credits left. Nothing was charged.",
+  },
+  ["campaign.spawn.refused_empty_resources"] = {
+    fr = "%s refusé : %s n'a plus de ressources. Rien n'est débité.",
+    en = "%s refused: %s has no resources left. Nothing was charged.",
+  },
+  ["campaign.spawn.paid_credits"] = {
+    fr = "%s : %d unité(s), %d crédits débités, solde %d",
+    en = "%s: %d unit(s), %d credits charged, balance %d",
+  },
   ["campaign.demolition.no_target"] = {
     fr = "Sapeurs : aucune usine ennemie à moins de %d km, ils restent sur place.",
     en = "Sappers: no enemy factory within %d km; they stay where they are.",

@@ -144,8 +144,9 @@ veafSpawn.traceMarkerId = 3727
 veafSpawn.commandHandlers = {} -- ordered list: { {key=string, fn=function}, ... }
 
 --- Set by a persistent campaign (FEAT-DYNAMIC-CAMPAIGN ticket 14), nil otherwise: asked before a person's
---- command runs, `spawnGate(key, options, requesterCoalition) -> boolean` says whether its side can pay it,
---- and `spawnPaid(key, options, groupName, requesterCoalition)` is told once it spawned a group.
+--- command runs, `spawnGate(key, options, requesterCoalition) -> boolean` says whether it may run, and
+--- `spawnPaid(key, options, groupName, requesterCoalition) -> boolean` charges the units it made, false when
+--- they could not be paid and were taken away.
 veafSpawn.spawnGate = nil
 veafSpawn.spawnPaid = nil
 
@@ -410,8 +411,9 @@ function veafSpawn.executeCommand(
           end
           if _g then
             spawnedGroup = _g
-            if veafSpawn.spawnPaid and not scripted then
-              veafSpawn.spawnPaid(_key, options, _g, requesterCoalition)
+            -- paid for the units it made: a side that cannot pay sees them taken away, and is told so
+            if veafSpawn.spawnPaid and not scripted and not veafSpawn.spawnPaid(_key, options, _g, requesterCoalition) then
+              return
             end
           end
           if _done then

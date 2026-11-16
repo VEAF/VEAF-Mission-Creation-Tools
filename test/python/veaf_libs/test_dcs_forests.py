@@ -22,12 +22,18 @@ from veaf_libs.dcs_forests import (
 
 @dataclass
 class TreesMesh:
-    """A forest mesh: indices into the node's base vertices, and triangles over those indices."""
+    """An overlay mesh, a forest by default: indices into the node's base vertices, and triangles over them.
+
+    ``priority`` is the draw order written after the material; ``uvw_size`` the element size of its
+    ``parametricUVW`` (4, a texture index; 12, a road's offsets; ``None``, no such array).
+    """
 
     base_index: list[int]
     triangles: list[tuple[int, int, int]]
     shader: bytes = b"Simple5.1"
     kind: bytes = b"Trees"
+    priority: int = 0x5D
+    uvw_size: int | None = 4
 
 
 @dataclass
@@ -67,7 +73,8 @@ def build_surface(nodes: list[Node], *, decl_table: bool = False) -> bytes:
             count = len(mesh.base_index)
             b.meta += struct.pack("<IIII", 2, count, 6, 1)
             b.array(b"baseIndex", 4, 4, struct.pack(f"<{count}I", *mesh.base_index))
-            b.array(b"parametricUVW", 4, 4, bytes(4 * count))
+            if mesh.uvw_size is not None:
+                b.array(b"parametricUVW", 4 if mesh.uvw_size == 4 else 2, mesh.uvw_size, bytes(mesh.uvw_size * count))
             b.array(b"offset", 0, 4, struct.pack(f"<{count}f", *([1.0] * count)))
             b.array(b"materialParamsIndex", 4, 4, bytes(4 * count))
             flat = [i for tri in mesh.triangles for i in tri]
@@ -77,7 +84,7 @@ def build_surface(nodes: list[Node], *, decl_table: bool = False) -> bytes:
             used = [node.vertices[i] for i in mesh.base_index if i < len(node.vertices)]
             lo = [min(v[k] for v in used) for k in range(3)]
             hi = [max(v[k] for v in used) for k in range(3)]
-            b.meta += struct.pack("<III", 0, 0x5D, 1) + b"\xff\x02" + struct.pack("<6f", *lo, *hi)
+            b.meta += struct.pack("<III", 0, mesh.priority, 1) + b"\xff\x02" + struct.pack("<6f", *lo, *hi)
             b.meta += struct.pack("<I", 1) + b"\0"
         flat_v = [c for v in node.vertices for c in v]
         b.meta += struct.pack("<IIII", 2, len(node.vertices), 1, 1)
@@ -324,3 +331,50 @@ def test_a_flat_triangle_covers_nothing(tmp_path: Path) -> None:
     with SurfaceForests(_write(tmp_path, [flat])) as forests:
         assert not forests.in_forest(100.0, 100.0)
         assert not forests.in_forest(110.0, 100.0)
+
+
+# A 400 m square clearing in the middle of SQUARE (local x 400..800, z 500..900), on the same node.
+_CLEARING_VERTICES = [
+    *SQUARE.vertices,
+    (400.0, 5.0, 500.0),
+    (800.0, 5.0, 500.0),
+    (800.0, 5.0, 900.0),
+    (400.0, 5.0, 900.0),
+]
+
+
+def _forest_and_clearing(**clearing: object) -> Node:
+    overlay = TreesMesh(base_index=[5, 6, 7, 8], triangles=[(0, 1, 2), (0, 2, 3)], **clearing)  # type: ignore[arg-type]
+    return Node(origin=SQUARE.origin, vertices=_CLEARING_VERTICES, trees=[*SQUARE.trees, overlay])
+
+
+def test_an_overlay_drawn_above_the_forest_clears_it(tmp_path: Path) -> None:
+    """Agana on Marianas WWII: the airfield (Runway, 103) is drawn over a forest texture (Forest, 49)."""
+    node = _forest_and_clearing(shader=b"SplatmapUnique5.1", kind=b"Runway", priority=0x5D + 10, uvw_size=None)
+    with SurfaceForests(_write(tmp_path, [node])) as forests:
+        assert not forests.in_forest(10600.0, 20700.0)  # in the clearing
+        assert forests.in_forest(10200.0, 20300.0)  # in the forest around it
+        assert forests.mesh_count == 1
+
+
+@pytest.mark.parametrize(
+    "clearing",
+    [
+        {"kind": b"Field", "priority": 0x5D - 10},  # drawn below the forest: the trees win
+        {"kind": b"Field", "priority": 0x5D},  # a tie: the forest is kept
+        {"kind": b"Road", "priority": 0x5D + 10, "uvw_size": 12},  # offsets from the base vertices: not read
+    ],
+)
+def test_an_overlay_that_does_not_cover_the_forest_leaves_it(tmp_path: Path, clearing: dict[str, object]) -> None:
+    with SurfaceForests(_write(tmp_path, [_forest_and_clearing(**clearing)])) as forests:
+        assert forests.in_forest(10600.0, 20700.0)
+
+
+def test_a_higher_forest_over_a_field_is_still_a_forest(tmp_path: Path) -> None:
+    """Two forests at a point: the highest one is compared with what lies above it, not the lowest."""
+    node = _forest_and_clearing(kind=b"Field", priority=0x5D + 10)
+    node.trees.append(
+        TreesMesh(base_index=[5, 6, 7, 8], triangles=[(0, 1, 2), (0, 2, 3)], kind=b"Forest", priority=0x5D + 20)
+    )
+    with SurfaceForests(_write(tmp_path, [node])) as forests:
+        assert forests.in_forest(10600.0, 20700.0)

@@ -92,6 +92,14 @@ veaf.outTextForUnit(unitName, report, 30)
 
 The remaining arguments are optional: `getWeatherString(vec3, dcsElementName, unitSystem, iSurfaceAltitudeMeters)`. Passing a DCS unit name as `dcsElementName` tailors the report to the aircraft type (unit system, LASTE data for the A-10).
 
+### QNH units {#qnh-units}
+
+The QNH and QFE are always shown **in hPa and in inHg**, whatever the aircraft or the theatre: in the slot welcome message, the weather report, the ATIS (a carrier's included) and a combat zone's weather.
+A pilot sets the altimeter in whichever unit it takes, without converting: `1013Hpa|29.91inHg`.
+Eastern aircraft (MiG, Su, Russian helicopters…), a Russian carrier and a combat zone's weather get mmHg as well: `1013Hpa|29.91inHg|760mmHg`.
+
+The unit system picked for the aircraft still changes the wind, the visibility and the altitudes; it no longer drops any pressure unit.
+
 ---
 
 ## Fog Management

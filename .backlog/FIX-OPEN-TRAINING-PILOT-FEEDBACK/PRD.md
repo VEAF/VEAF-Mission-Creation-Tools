@@ -1,6 +1,6 @@
 # FIX-OPEN-TRAINING-PILOT-FEEDBACK — Helicopter hard tier and QNH in inHg
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 David, 2026-11-15, after flying the Open Trainings:
 
@@ -42,7 +42,7 @@ The METAR line already carries both (`Q1013/29.92`).
 | # | Ticket | Status |
 |---|---|---|
 | 01 | [A real hard tier for the helicopter training](tickets/01-helicopter-hard-tier.md) | ⬜ |
-| 02 | [The QNH in hPa and inHg everywhere](tickets/02-qnh-hpa-and-inhg.md) | ⬜ |
+| 02 | [The QNH in hPa and inHg everywhere](tickets/02-qnh-hpa-and-inhg.md) | ✅ |
 | 03 | [Training ranges out of the forests](tickets/03-training-ranges-out-of-forests.md) | ⬜ |
 
 Ticket 03 (point 4) is mission work in the same repositories, with a look in game on Syria where the forest probe is blind.

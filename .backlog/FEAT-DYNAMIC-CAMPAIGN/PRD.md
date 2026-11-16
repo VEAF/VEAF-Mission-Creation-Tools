@@ -31,6 +31,7 @@ Section numbers point to the detailed notes under [`foothold-analysis/`](foothol
 | V1 | A task board of 3 or 4 tasks drawn from the situation, with a map mark and a credit reward; a briefing explains the particular points if needed | 05 §11 |
 | V1 | Intelligence: an enemy garrison's composition stays hidden until reconnoitred (overflight, JTAC, purchased intel) | 06 §5 |
 | V1.5 | Weapon stocks per warehouse, moved by players | 07 §9, §17 |
+| V1.5 | **VEAF spawn commands paid from the campaign** (David, 2026-11-16; point 9 of the player experience above, left out of the V1 rows): every VEAF spawn in a persistent campaign — `_spawn`, `-armor`, `-cap`, convoys, crates… — is priced by category and paid from the credits of the side it spawns for (`-armor side blue` from blue's chest); refused, with nothing charged, when the side cannot pay; game masters included. One hook where `veafSpawn` spawns, a price per vehicle, aircraft, crate in `dynamic.economy`. Open: who pays for red, which has no chest — (a) a red chest fed by its captures and blue's losses (recommended), (b) red spawns forbidden, (c) red spawns free | — |
 | V1.5 | Territory cells (Voronoi) tinted by owner on the F10 map | 01 §14 |
 | V2 | Foothold's Director (packages, feints, learning) | 04 |
 | V2 | Foothold's full player economy: personal credits banked on landing, ranks, career | 05 §3, §7–§10 |

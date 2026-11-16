@@ -216,7 +216,7 @@ _spawn bomb, power 500, shells 3
 ### Removing what you spawned {#remove-your-spawns}
 
 The mission remembers what **your** markers spawned: an alias (`-sa6`, `-armor`, `-convoy`, `-farp`…), a raw command (`_spawn`, `_cas`…).
-You remove it yourself from **F10 → VEAF → SPAWN → My spawns → [your name]**:
+You remove it yourself from **F10 → VEAF → SPAWN → Next page → My spawns → [your name]** (*My spawns* comes after the SPAWN menu's commands, which fill its first page):
 
 - **Remove all** removes everything you spawned;
 - each marker has its own entry, named after what you typed and the mission time (for example `-sa6 14:32`): it removes that marker's spawn only, a whole convoy or group included.

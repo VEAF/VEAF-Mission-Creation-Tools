@@ -268,6 +268,18 @@ function TestSpawnOwnership:test_a_late_group_joins_its_marker_s_item()
   luaunit.assertEquals(items[1].names, { "Convoy #1", "Convoy #2" })
 end
 
+--- A CAS target is always named "Blue CAS Group": the newest marker owns the name, or the first pilot's
+--- finished item would come back alive with the second pilot's target, and he could remove it.
+function TestSpawnOwnership:test_a_name_spawned_again_belongs_to_the_newest_marker_only()
+  self:spawnFromMarker("Zip", "-cas", { "Blue CAS Group" })
+  self:spawnFromMarker("Zip", "-sa6", { "SA-6 #1" })
+  self:spawnFromMarker("Other", "-cas", { "Blue CAS Group" })
+
+  luaunit.assertEquals(#veafSpawn.ownedSpawns["Zip"], 1)
+  luaunit.assertEquals(veafSpawn.ownedSpawns["Zip"][1].names, { "SA-6 #1" })
+  luaunit.assertEquals(veafSpawn.ownedSpawns["Other"][1].names, { "Blue CAS Group" })
+end
+
 function TestSpawnOwnership:test_two_markers_are_two_items()
   self:spawnFromMarker("Zip", "-sa6", { "SA-6 #1" })
   self:spawnFromMarker("Zip", "-armor", { "Armor #1" })
@@ -352,6 +364,27 @@ function TestSpawnOwnership:test_the_owner_s_group_sees_his_items_and_no_other_g
   luaunit.assertTrue(contains(viper, veaf.t("menu.spawn.mine_remove_all")))
   luaunit.assertTrue(contains(viper, veafSpawn.ownedSpawns["Zip"][1].label))
   luaunit.assertEquals(self:labelsFor(12), {})
+end
+
+--- Where the pilot guide sends him: the spawn menu's commands fill its first page, "My spawns" is behind
+--- "Next page".
+function TestSpawnOwnership:test_my_spawns_is_on_the_spawn_menu_s_second_page()
+  self.root.subMenus = {}
+  veafSpawn.buildRadioMenu()
+  veafSpawn.initializeOwnership()
+  self:seat("Viper", 11, { { "Viper-1", "Zip" } })
+  self:spawnFromMarker("Zip", "-sa6", { "SA-6 #1" })
+
+  self:rebuild()
+
+  local parentOf = nil
+  for _, call in ipairs(self.calls) do
+    if call.kind == "addSubMenuForGroup" and call.args[2] == veaf.t("menu.spawn.mine") then
+      parentOf = call.args[3]
+    end
+  end
+  luaunit.assertNotNil(parentOf, "My spawns is rendered for the owner's group")
+  luaunit.assertEquals(parentOf.title, veaf.t("radio.next_page"))
 end
 
 --- The F10 menu cannot tell which occupant clicked: each one's items show, under his name (Q4).

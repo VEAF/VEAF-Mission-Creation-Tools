@@ -547,7 +547,7 @@ L'ATC de DCS est coupé : annoncez-vous sur la VHF de l'aérodrome au roulage, a
 Ne vous alignez pas derrière un avion qui décolle ; dégagez la piste dès l'atterrissage.
 Une zone de combat activée par un autre pilote est la sienne : demandez avant de la désactiver ou de la nettoyer.
 Nettoyez VOS zones de combat en les désactivant avant de partir.
-Retirez VOS spawns avant de partir : menu F10 › VEAF › APPARITION › Mes spawns.
+Retirez VOS spawns avant de partir : menu F10 › VEAF › APPARITION › Page suivante › Mes spawns.
 ```
 
 **Fiche « Commandes »** :
@@ -566,7 +566,7 @@ Paliers : [ouvert] tout le monde · [pilote VEAF] pilote que le serveur connaît
 -jtac (laser 1688), -smoke (option color), -tacan : désignation, marque visuelle, balise [ouvert]
 -point <nom> : nommer un point (la destination d'un convoi) [ouvert]
 -destroy : retire ce qui est à moins de 100 m du marqueur [confiance]
-F10 › VEAF › APPARITION › Mes spawns : retirer ce que vos marqueurs ont fait apparaître, tout ou un par un [ouvert]
+F10 › VEAF › APPARITION › Page suivante › Mes spawns : retirer ce que vos marqueurs ont fait apparaître, tout ou un par un [ouvert]
 _spawn unit, name <type DCS>, multiplier 4 : un type précis, là où -armor tire au hasard [pilote VEAF]
 
 Options : side red/blue, defense 0-5, armor 0-5, size.

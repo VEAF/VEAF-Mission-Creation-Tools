@@ -70,6 +70,28 @@ function veafSpawn.ownershipLabel(text)
   return string.format("%s %02d:%02d", line, math.floor(seconds / 3600) % 24, math.floor(seconds / 60) % 60)
 end
 
+--- Takes a name back from whatever item holds it: a name spawned again is the newest marker's. The CAS
+--- target is always "Blue CAS Group" or "Red CAS Group", and a FARP's name is what the pilot typed; left in
+--- the first item, the name would bring that finished item back alive with someone else's spawn in it.
+function veafSpawn.releaseOwnedName(name)
+  for owner, items in pairs(veafSpawn.ownedSpawns) do
+    for i = #items, 1, -1 do
+      local names = items[i].names
+      for j = #names, 1, -1 do
+        if names[j] == name then
+          table.remove(names, j)
+          if #names == 0 then
+            table.remove(items, i)
+          end
+        end
+      end
+    end
+    if #items == 0 then
+      veafSpawn.ownedSpawns[owner] = nil
+    end
+  end
+end
+
 --- veafCommands' marker spawn listener: watches what this marker spawns, and files it under its author.
 --- The item is created with the first group, so a marker that spawned nothing leaves nothing; a group
 --- spawned later — an alias delay, a repeat — joins the same item.
@@ -85,7 +107,14 @@ function veafSpawn.recordMarkerSpawns(spawnedGroups, event)
       veafSpawn.ownedSpawnsCounter = veafSpawn.ownedSpawnsCounter + 1
       item = { id = veafSpawn.ownedSpawnsCounter, label = label, names = {} }
     end
-    -- Back in the owner's list if a prune removed the item between two groups of a repeat.
+    for _, known in ipairs(item.names) do
+      if known == name then
+        return
+      end
+    end
+    veafSpawn.releaseOwnedName(name)
+    table.insert(item.names, name)
+    -- Listed on its first group, and again if a prune dropped it between two groups of a repeat.
     local items = veafSpawn.ownedSpawns[owner] or {}
     veafSpawn.ownedSpawns[owner] = items
     local listed = false
@@ -95,12 +124,6 @@ function veafSpawn.recordMarkerSpawns(spawnedGroups, event)
     if not listed then
       table.insert(items, item)
     end
-    for _, known in ipairs(item.names) do
-      if known == name then
-        return
-      end
-    end
-    table.insert(item.names, name)
     veaf.loggers.get(veafSpawn.Id):debug("%s spawned %s (%s)", veaf.p(owner), veaf.p(name), veaf.p(label))
     veafSpawn.refreshOwnershipMenu()
   end)
@@ -305,8 +328,9 @@ end
 function veafSpawn.initializeOwnership()
   veafCommands.markerSpawnListener = veafSpawn.recordMarkerSpawns
   if veafSpawn.rootPath then
-    -- The tenth entry of the spawn menu: it still fits on one page (veafRadio.MENU_PAGE_SIZE).
-    -- Shown only to a group where a pilot has something to remove.
+    -- A submenu comes after the spawn menu's commands, and with the two default "Escort me" entries
+    -- they already fill its first page: it lands behind "Next page". Shown only to a group where a
+    -- pilot has something to remove.
     veafSpawn.ownershipMenu = veafRadio.addSubMenuForGroups(veaf.t("menu.spawn.mine"), veafSpawn.rootPath, function(unitName)
       local player = playerOf(unitName)
       return player ~= nil and veafSpawn.ownedSpawns[player] ~= nil

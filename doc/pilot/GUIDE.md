@@ -216,7 +216,7 @@ _spawn bomb, power 500, shells 3
 ### Retirer ce que vous avez fait apparaître {#remove-your-spawns}
 
 La mission retient ce que **vos** marqueurs ont fait apparaître : un alias (`-sa6`, `-armor`, `-convoy`, `-farp`…), une commande brute (`_spawn`, `_cas`…).
-Vous le retirez vous-même depuis **F10 → VEAF → APPARITION → Mes spawns → [votre nom]** :
+Vous le retirez vous-même depuis **F10 → VEAF → APPARITION → Page suivante → Mes spawns → [votre nom]** (*Mes spawns* vient après les commandes du menu APPARITION, qui remplissent sa première page) :
 
 - **Tout retirer** enlève tout ce que vous avez fait apparaître ;
 - chaque marqueur a sa propre entrée, nommée par ce que vous avez tapé et l'heure de la mission (par exemple `-sa6 14:32`) : elle enlève ce marqueur-là seulement, convoi ou groupe entier compris.

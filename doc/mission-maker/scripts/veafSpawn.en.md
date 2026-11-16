@@ -355,9 +355,10 @@ With neither `unitname` nor `name`, the command clears the circle: check the nam
 ### Each pilot removes his own spawns {#own-spawns}
 
 The runtime remembers, for each pilot, the groups his markers spawned: alias or raw command (`_spawn`, `_cas`, convoy, FARP, FOB…), filed under the marker's author.
-He removes them himself from **F10 → VEAF → SPAWN → My spawns → [his name]**, all at once or one marker at a time; the [pilot guide](../../pilot/GUIDE.en.md#remove-your-spawns) describes the menu.
+He removes them himself from **F10 → VEAF → SPAWN → Next page → My spawns → [his name]**, all at once or one marker at a time; the [pilot guide](../../pilot/GUIDE.en.md#remove-your-spawns) describes the menu.
 
 Nothing to configure: the menu comes with the module, under the *SPAWN* menu (it is not shown when `veafSpawn.HideRadioMenu` hides that menu).
+A submenu comes after the menu's commands, which fill the first page with the two default "Escort me" entries: *My spawns* is behind "Next page", and on the first page when `veafSpawn.EscortRadioMenuTemplates` holds fewer than two.
 What a script, a combat zone or a combat mission spawns belongs to nobody and is not listed.
 Removing is open to everyone, with no level: a pilot can always remove what he made himself; `-destroy` stays reserved to trusted members.
 

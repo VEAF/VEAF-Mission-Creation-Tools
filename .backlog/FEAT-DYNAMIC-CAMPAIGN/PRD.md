@@ -1,6 +1,6 @@
 # FEAT-DYNAMIC-CAMPAIGN — a Foothold-like persistent campaign, built on VMCT alone
 
-Status: 🧑 waiting-human — V1 merged into the integration branch `feature/dynamic-campaign` (#1276, 2026-11-15); waits for David's in-game check of the test mission, then ticket 10 on a server (David: the lot is not merged into `develop` piece by piece)
+Status: 🔄 in-progress — V1 merged into the integration branch `feature/dynamic-campaign` (#1276, 2026-11-15) and checked in game by David; the V1.5 (tickets 11 to 19) is being built on `feature/dynamic-campaign-v15`, then ticket 10 on a server (David: the lot is not merged into `develop` piece by piece)
 
 > **Paused 2026-10-06, resumed 2026-11-15** for the V1 of the table below.
 > Paused 2026-10-06: David wants a multi-mission campaign first ([`FEAT-MULTI-MISSION-CAMPAIGN`](../FEAT-MULTI-MISSION-CAMPAIGN/PRD.md)), then this persistent mission built on the bricks it leaves: the `campaign.yaml` format, garrisons drawn once and recorded, live capture, the F10 map and menu, the runtime state writer, stocks, scenery.
@@ -163,6 +163,7 @@ composite from a theatre description, the authoring skill) are the **next lot**,
 
 Realigned on the V1 on 2026-11-15: the seven tickets of 2026-10-03 predated both the multi-mission campaign, which built the format, the capture, the map and the state writer, and the feature selection.
 Their content is either done there, or carried into the tickets below.
+Tickets 11 to 19 are the V1.5 rows of the feature selection (2026-11-16), one branch and one pull request into `feature/dynamic-campaign`.
 
 | # | ticket | status |
 |---|---|---|
@@ -176,6 +177,15 @@ Their content is either done there, or carried into the tickets below.
 | 08 | [Intelligence: hidden garrisons, reconnaissance, spy team](tickets/08-intelligence.md) | 🧑 |
 | 09 | [Documentation, example campaign, test mission, in-game check](tickets/09-doc-example-test-mission.md) | 🧑 |
 | 10 | [Measure it against Foothold, then tune the caps](tickets/10-measure-against-foothold.md) | ⬜ |
+| 11 | [Zone kinds: factories and depots](tickets/11-zone-kinds.md) | 🔄 |
+| 12 | [Resources for the AI: one stock per side, prices, production](tickets/12-resources-production.md) | 🔄 |
+| 13 | [The supply network: hop by hop, depots at half time](tickets/13-supply-network.md) | 🔄 |
+| 14 | [VEAF spawn commands paid in credits or resources](tickets/14-paid-spawns.md) | 🔄 |
+| 15 | [Demolition team: sappers who blow up a factory](tickets/15-demolition-team.md) | 🔄 |
+| 16 | [Weapon stocks per warehouse, moved by players](tickets/16-warehouse-stocks.md) | 🔄 |
+| 17 | [Strategic bombers: an escorted red raid, a blue raid bought](tickets/17-strategic-bombers.md) | 🔄 |
+| 18 | [Territory cells (Voronoi) tinted by owner](tickets/18-voronoi-territory.md) | 🔄 |
+| 19 | [V1.5: documentation, example, test mission, self-check](tickets/19-v15-doc-test-mission.md) | 🔄 |
 
 ## Former index entry
 

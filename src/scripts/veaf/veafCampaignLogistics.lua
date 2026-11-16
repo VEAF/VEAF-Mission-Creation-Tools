@@ -565,25 +565,36 @@ function veafCampaignLogistics.paidSurvivors()
 end
 
 --- The policy a persistent campaign sets on the players' markers (`veafCommands.markerPolicy`): "disabled",
---- "ADMIN", or nil for the module's own level. The first word decides — an alias, or a command with, for
---- `_spawn`, its kind; `_move` only when it teleports.
+--- "ADMIN", or nil for the module's own level. An alias is its first word (veafShortcuts reads one only
+--- there); a command is found anywhere in the text, as its module finds it — `_x _spawn bomb` is a bomb.
+--- `_spawn` counts with its kind, `_move` only when it teleports.
 --- @param text string the marker's text
 --- @return string|nil
 function veafCampaignLogistics.markerPolicy(text)
   local lower = type(text) == "string" and text:lower() or ""
-  local word = lower:match("^%s*([%-_][%w_]+)")
-  if not word then
-    return nil
+  local alias = lower:match("^%s*(%-[%w_]+)")
+  local commands = {}
+  for word in lower:gmatch("(_[%w_]+)") do
+    commands[word] = true
   end
-  if veafCampaignLogistics.DISABLED_MARKERS[word] then
+  for kind in lower:gmatch("_spawn%s+([%w]+)") do
+    commands["_spawn " .. kind] = true
+  end
+  local function listed(list)
+    if alias and list[alias] then
+      return true
+    end
+    for command in pairs(commands) do
+      if list[command] then
+        return true
+      end
+    end
+    return false
+  end
+  if listed(veafCampaignLogistics.DISABLED_MARKERS) then
     return "disabled"
   end
-  local kind = lower:match("^%s*_spawn%s+([%w]+)")
-  if
-    veafCampaignLogistics.ADMIN_MARKERS[word]
-    or (kind and veafCampaignLogistics.ADMIN_MARKERS["_spawn " .. kind])
-    or (word == "_move" and lower:find("teleport", 1, true))
-  then
+  if listed(veafCampaignLogistics.ADMIN_MARKERS) or (commands["_move"] and lower:find("teleport", 1, true)) then
     return "ADMIN"
   end
   return nil

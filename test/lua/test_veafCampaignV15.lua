@@ -1155,6 +1155,12 @@ function TestCampaignMarkerPolicy:test_cheats_are_for_admins_cas_is_off_the_rest
     ["-cas"] = "disabled",
     ["-cas!30"] = "disabled",
     ["_cas, disperse"] = "disabled",
+    -- a command is found anywhere in the text, as its module finds it (review of #1282)
+    ["_x _spawn bomb"] = "ADMIN",
+    ["radius 50, _spawn bomb"] = "ADMIN",
+    ["_x _destroy"] = "ADMIN",
+    ["_x _move tanker, teleport"] = "ADMIN",
+    ["_x _cas"] = "disabled",
   }
   for text, policy in pairs(expected) do
     luaunit.assertEquals(veafCampaignLogistics.markerPolicy(text), policy, text)

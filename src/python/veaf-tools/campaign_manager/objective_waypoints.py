@@ -52,8 +52,16 @@ def _ascii_capitals(text: str) -> str:
     return re.sub(r"[^A-Z0-9]+", "_", folded.upper()).strip("_")
 
 
+def _first_word(name: str) -> str:
+    """The first word of a name that is not a one- or two-letter article: ``Al-Safira`` → ``SAFIRA``."""
+    words = _ascii_capitals(name).split("_")
+    return next((word for word in words if len(word) > 2), words[0])
+
+
 def waypoint_keys(zones: list[CampaignZone]) -> dict[str, str]:
     """The waypoint key of each zone: its name's first word, or its whole name when two zones share it.
+
+    A leading article (`Al-`, `Le`, any word of one or two letters) is skipped: `Al-Safira` is `SAFIRA`.
 
     Args:
         zones: The zones to name.
@@ -61,7 +69,7 @@ def waypoint_keys(zones: list[CampaignZone]) -> dict[str, str]:
     Returns:
         The key by zone name: ``Khobi depot`` → ``KHOBI``.
     """
-    first = {zone.name: _ascii_capitals(zone.name).split("_")[0] for zone in zones}
+    first = {zone.name: _first_word(zone.name) for zone in zones}
     shared = {key for key in first.values() if list(first.values()).count(key) > 1}
     return {name: _ascii_capitals(name) if key in shared else key for name, key in first.items()}
 

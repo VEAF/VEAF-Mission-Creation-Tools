@@ -243,6 +243,7 @@ end
 
 ---------------------------------------------------------------------------------------------------
 ---  Static data
+-- every system shows the QNH in hPa and inHg, whatever the aircraft: a pilot reads the one their altimeter takes
 veafWeatherUnitSystem.Systems = {
   Full = veafWeatherUnitSystem:create(
     { veafWeatherUnitSystem.Units.Kts, veafWeatherUnitSystem.Units.Mps },
@@ -254,43 +255,43 @@ veafWeatherUnitSystem.Systems = {
     { veafWeatherUnitSystem.Units.Kts },
     { veafWeatherUnitSystem.Units.M },
     { veafWeatherUnitSystem.Units.Ft },
-    { veafWeatherUnitSystem.Units.Hpa }
+    { veafWeatherUnitSystem.Units.Hpa, veafWeatherUnitSystem.Units.InHg }
   ), -- default
   IcaoMetric = veafWeatherUnitSystem:create(
     { veafWeatherUnitSystem.Units.Mps },
     { veafWeatherUnitSystem.Units.M },
     { veafWeatherUnitSystem.Units.Ft },
-    { veafWeatherUnitSystem.Units.Hpa }
+    { veafWeatherUnitSystem.Units.Hpa, veafWeatherUnitSystem.Units.InHg }
   ), -- for russian airfields
   Faa = veafWeatherUnitSystem:create(
     { veafWeatherUnitSystem.Units.Kts },
     { veafWeatherUnitSystem.Units.Sm },
     { veafWeatherUnitSystem.Units.Ft },
-    { veafWeatherUnitSystem.Units.InHg }
+    { veafWeatherUnitSystem.Units.Hpa, veafWeatherUnitSystem.Units.InHg }
   ), -- for US aircrafts or airfields, and for older british aircrafts
   FaaMetric = veafWeatherUnitSystem:create(
     { veafWeatherUnitSystem.Units.Kts },
     { veafWeatherUnitSystem.Units.M },
     { veafWeatherUnitSystem.Units.Ft },
-    { veafWeatherUnitSystem.Units.InHg }
+    { veafWeatherUnitSystem.Units.Hpa, veafWeatherUnitSystem.Units.InHg }
   ), -- for US army helicopters
   FaaNavy = veafWeatherUnitSystem:create(
     { veafWeatherUnitSystem.Units.Kts },
     { veafWeatherUnitSystem.Units.Nm },
     { veafWeatherUnitSystem.Units.Ft },
-    { veafWeatherUnitSystem.Units.InHg }
+    { veafWeatherUnitSystem.Units.Hpa, veafWeatherUnitSystem.Units.InHg }
   ), -- for US aircraft carriers
   Metric = veafWeatherUnitSystem:create(
     { veafWeatherUnitSystem.Units.Mps },
     { veafWeatherUnitSystem.Units.M },
     { veafWeatherUnitSystem.Units.M },
-    { veafWeatherUnitSystem.Units.Hpa }
+    { veafWeatherUnitSystem.Units.Hpa, veafWeatherUnitSystem.Units.InHg }
   ), -- for french army helicopters
   MetricEastern = veafWeatherUnitSystem:create(
     { veafWeatherUnitSystem.Units.Mps },
     { veafWeatherUnitSystem.Units.M },
     { veafWeatherUnitSystem.Units.M },
-    { veafWeatherUnitSystem.Units.MmHg }
+    { veafWeatherUnitSystem.Units.Hpa, veafWeatherUnitSystem.Units.InHg, veafWeatherUnitSystem.Units.MmHg }
   ), -- for russian and chinese aircrafts
 }
 veafWeatherUnitSystem.DefaultUnitSystem = veafWeatherUnitSystem.Systems.Icao
@@ -1825,7 +1826,7 @@ end
 function veafWeather.buildRadioMenu()
   veaf.loggers.get(veafWeather.Id):debug("buildRadioMenu()")
 
-  veafWeather.rootPath = veafRadio.addMenu(veaf.t(veafWeather.RadioMenuName))
+  veafWeather.rootPath = veafRadio.addRootMenu(veafWeather.RadioMenuName)
   veafRadio.addCommandToSubmenu(
     veaf.t("menu.weather.closest_point"),
     veafWeather.rootPath,

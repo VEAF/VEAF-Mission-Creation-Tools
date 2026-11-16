@@ -3181,7 +3181,7 @@ function veafCombatZone.buildRadioMenu()
   if veafCombatZone.rootPath then
     veafRadio.delSubmenu(veafCombatZone.rootPath)
   end
-  veafCombatZone.rootPath = veafRadio.addMenu(veaf.t(veafCombatZone.RadioMenuName))
+  veafCombatZone.rootPath = veafRadio.addRootMenu(veafCombatZone.RadioMenuName)
   veafCombatZone.combatZoneRootPath = veafCombatZone.rootPath
 
   if not veafRadio.skipHelpMenus then

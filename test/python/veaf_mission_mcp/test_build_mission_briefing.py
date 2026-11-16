@@ -201,3 +201,31 @@ def test_the_deployment_and_the_waypoint_notes_reach_the_deck(catalog: ActionCat
     assert "Déploiement et coordination" in text and "Viper décolle le premier." in text
     assert "Largage sur le dépôt." in text
     assert any("NOWHERE" in warning for warning in result["warnings"])
+
+
+def test_kneeboard_only_with_sheets_writes_the_kneeboard_alone(catalog: ActionCatalog, tmp_path: Path) -> None:
+    """FEAT-OPEN-TRAINING-KNEEBOARD 01, through the catalog: an Open Training's kneeboard, its sheets first."""
+    objective_mission(tmp_path)
+    sheets = [
+        {"title": "Mission", "paragraphs": "Un entraînement ouvert.\n\nVingt-six zones de combat."},
+        {"title": "Conduite", "paragraphs": ["Ne pas décoller d'un taxiway."]},
+    ]
+    result = catalog.run_action(
+        "build_mission_briefing",
+        {"mission_path": str(tmp_path), **PARAMS, "kneeboard_only": True, "sheets": sheets},
+    )
+    assert result["deck"] is None and result["pdf"] is None
+    assert result["pictures"] == [] and result["maps"] == []
+    assert result["kneeboard"][:3] == ["01-briefing-sheet-1.jpg", "02-briefing-sheet-2.jpg", "03-briefing-overview.jpg"]
+    assert not (tmp_path / "docs" / "briefing.pptx").exists()
+
+
+def test_the_sheets_are_checked_for_accents(catalog: ActionCatalog, tmp_path: Path) -> None:
+    objective_mission(tmp_path)
+    sheets = [
+        {"title": "Conduite", "paragraphs": ["Eviter de decoller d'un taxiway, respecter la frequence du terrain."]}
+    ]
+    result = catalog.run_action(
+        "build_mission_briefing", {"mission_path": str(tmp_path), **PARAMS, "kneeboard_only": True, "sheets": sheets}
+    )
+    assert any(warning.startswith("sheet Conduite:") and "accent" in warning for warning in result["warnings"])

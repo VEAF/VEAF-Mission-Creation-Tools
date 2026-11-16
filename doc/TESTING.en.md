@@ -166,6 +166,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafOpposition.lua` | Opposition level: counted from the players connected or airborne, hysteresis (an immediate rise, a delayed drop), the `_opposition` marker and its security level |
 | `test_veafShortcuts.lua` | Shortcut registration and resolution |
 | `test_veafShortcuts_bypass.lua` | What a player may type after a security-bypassing shortcut |
+| `test_veafShortcuts_handlerLevel.lua` | A shortcut runs at the level of the command it launches, or at the one it declares |
 | `test_veafWeather.lua` | Weather parsing, QNH/wind calculations |
 | `test_dcsDataExport.lua` | Unit data export utilities |
 | `test_veafCombatMission.lua` | Base combat mission lifecycle |
@@ -197,6 +198,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafMissileGuardian.lua` | Missile intercept logic |
 | `test_veafCampaign.lua` | Multi-mission campaign: garrisons drawn, recorded, and their losses |
 | `test_veafCasMission.lua` | CAS threat package generation |
+| `test_veafCasMission_menu.lua` | Fixed CAS MISSION menu: no entry added or removed during a mission, answers with no mission running |
 | `test_veafTransportMission.lua` | Transport mission setup |
 | `test_veafCarrierOperations.lua` | Carrier recovery sequence |
 | `test_veafMove.lua` | Move/teleport command parsing |
@@ -204,6 +206,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafGrass.lua` | Grass runway initialization |
 | `test_veafHelicopterSpawn.lua` | Helicopter spawned from a marker: landed by the ground path, `HELICOPTER` category, the alias's loadout, `orbit` and `transport` tasks |
 | `test_veafSpawn.lua` | Spawn commands, mark text analysis, laser freq conversion |
+| `test_veafSpawnOwnership.lua` | What each pilot's markers spawned, and the F10 menu that removes it |
 | `test_veafSpawnParser.lua` | Deterministic spawn mark-text parsing (`markTextAnalysis`) |
 | `test_veafCommands.lua` | Command registry: priority ordering and dispatch |
 | `test_veafI18n.lua` | Lua runtime i18n layer (`veaf.t`, `veafI18n` catalog) |

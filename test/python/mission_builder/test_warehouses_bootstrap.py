@@ -17,6 +17,7 @@ from typing import Any
 
 import luadata
 from mission_builder.warehouses_bootstrap import DEFAULT_AIRPORT, ensure_airports_populated
+from mission_tools.dcs_lua import serialize_member
 from veaf_libs.dcs_airdromes import airdromes_for_theatre
 
 
@@ -28,10 +29,7 @@ def _through_luadata(airports: dict[int, dict[str, Any]]) -> Any:
     Building the fixture through the same serializer/parser pair the build uses is the only way to
     exercise the shape a mission really has.
     """
-    text = luadata.serialize(
-        {"airports": airports}, indent="  ", indent_level=0, always_provide_keyname=True, sort=True
-    )
-    return luadata.unserialize(text)["airports"]
+    return luadata.unserialize(serialize_member({"airports": airports}, "warehouses"))["airports"]
 
 
 def _mission(theatre: str = "Syria", warehouses: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -213,6 +211,6 @@ class TestATableThatCameFromAMissionFile:
         # write and read the coalitions back out of the text.
         warehouses: dict[str, Any] = {"airports": _through_luadata({1: {"coalition": "RED"}, 2: {"coalition": "BLUE"}})}
         ensure_airports_populated(warehouses, theatre="Syria")
-        text = luadata.serialize(warehouses, indent="  ", indent_level=0, always_provide_keyname=True, sort=True)
-        assert 'coalition = "RED"' in text
-        assert 'coalition = "BLUE"' in text
+        text = serialize_member(warehouses, "warehouses")
+        assert '["coalition"] = "RED"' in text
+        assert '["coalition"] = "BLUE"' in text

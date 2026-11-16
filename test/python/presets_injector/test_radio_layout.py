@@ -431,6 +431,56 @@ class TestOH58DEndToEnd(unittest.TestCase):
         self.assertEqual(sorted(fm2.keys()), list(range(1, 22)))
         self.assertEqual(fm2[1], fm2[3])
 
+    def test_a_30_entry_fm_list_is_cut_to_the_21_slots_the_fm_radios_hold(self):
+        # FIX-RADIO-PRESET-CAPACITY: 32 FM presets crash the DCS client at spawn (four OTs, 2026-11-10);
+        # the module's panelRadio declares 21 FM channels (C, M, 1..19).
+        fm_supplement = [30.0 + i for i in range(30)]
+        channel_lists = _channel_lists(
+            primary_1=self._list(), primary_2=[200.0 + i for i in range(20)], fm_supplement=fm_supplement
+        )
+        preset = pack_preset_for_type(channel_lists, "blue", "OH58D")
+        self.assertIsNotNone(preset)
+        result = preset.to_dict()
+
+        for radio_index in (3, 4):
+            radio = result[radio_index]["channels"]
+            self.assertEqual(sorted(radio.keys()), list(range(1, 22)))
+            self.assertEqual(radio[1], fm_supplement[0])  # "C" = entry #01
+            self.assertEqual(radio[2], fm_supplement[19])  # "M" = entry #20
+            for slot in range(3, 22):
+                self.assertEqual(radio[slot], fm_supplement[slot - 3])
+
+    def test_a_30_entry_uhf_list_is_cut_to_the_20_slots_the_uhf_radio_holds(self):
+        primary_1 = [225.0 + i for i in range(30)]
+        channel_lists = _channel_lists(primary_1=primary_1, primary_2=[200.0 + i for i in range(20)])
+        preset = pack_preset_for_type(channel_lists, "blue", "OH58D")
+        self.assertIsNotNone(preset)
+        radio1 = preset.to_dict()[1]["channels"]
+        self.assertEqual(sorted(radio1.keys()), list(range(1, 21)))
+        self.assertEqual(radio1[1], primary_1[19])  # "M" = entry #20
+        for slot in range(2, 21):
+            self.assertEqual(radio1[slot], primary_1[slot - 2])
+
+
+class TestDeclaredCapacities(unittest.TestCase):
+    """The shipped layouts declare each radio's capacity from the module's `panelRadio` channel count."""
+
+    def test_capacities_match_the_module_files(self):
+        from presets_injector.presets_manager import _load_radio_layouts
+
+        layouts = _load_radio_layouts()
+        expected = {
+            "OH58D": {1: 20, 2: 20, 3: 21, 4: 21},
+            "Mi-24P": {1: 20, 2: 10},
+            "CH-47Fbl1": {1: 20, 2: 20, 3: 10},
+            # 47 slots exactly, filled by keyed_groups + specials: never exceeded, nothing to declare.
+            "AJS37": {1: None},
+        }
+        for unit_type, radios in expected.items():
+            for index, capacity in radios.items():
+                with self.subTest(unit_type=unit_type, radio=index):
+                    self.assertEqual(layouts[unit_type].radios[index].capacity, capacity)
+
 
 class TestRadioCountGuard(unittest.TestCase):
     @patch("presets_injector.presets_manager.logger")

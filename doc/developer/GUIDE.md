@@ -530,9 +530,13 @@ git push origin published-vx.y.z vx.y.z
 # 2. fusion en retour, pour que develop partage l'histoire de master
 git checkout develop
 git pull origin develop
-git merge origin/master
+git merge origin/master -m "Merge branch 'master' into develop [skip ci]"
 git push origin develop
 ```
+
+> **`[skip ci]` sur la fusion en retour :** elle porte exactement le code que la PR de release vient de tester, et la relancer refaisait sept workflows pour rien.
+> La doc `dev` et l'image `develop` du bot se mettent à jour au merge suivant dans `develop`.
+> Pour la même raison, les contrôles ne tournent plus sur un push vers `master` : seuls les workflows qui publient quelque chose (image `latest` du bot, worker du chatbot) y tournent encore.
 
 > **Attention :** pousser le tag est irréversible — uniquement après le merge de la PR.
 

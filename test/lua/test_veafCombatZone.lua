@@ -4576,7 +4576,7 @@ function TestCombatZoneBfrFixes:setUp()
     zonesDict = veafCombatZone.zonesDict,
     zonesList = veafCombatZone.zonesList,
     rootPath = veafCombatZone.rootPath,
-    addMenu = veafRadio.addMenu,
+    addRootMenu = veafRadio.addRootMenu,
     delSubmenu = veafRadio.delSubmenu,
   }
   veafCombatZone.zonesDict = {}
@@ -4584,8 +4584,8 @@ function TestCombatZoneBfrFixes:setUp()
   veafCombatZone.rootPath = nil
   -- the menus under the VEAF root, as veafRadio would hold them
   self.rootMenus = {}
-  veafRadio.addMenu = function(title)
-    local menu = { title = title, subMenus = {}, commands = {} }
+  veafRadio.addRootMenu = function(key)
+    local menu = { title = veaf.t(key), subMenus = {}, commands = {} }
     table.insert(self.rootMenus, menu)
     return menu
   end
@@ -4602,7 +4602,7 @@ function TestCombatZoneBfrFixes:tearDown()
   veafCombatZone.zonesDict = self.saved.zonesDict
   veafCombatZone.zonesList = self.saved.zonesList
   veafCombatZone.rootPath = self.saved.rootPath
-  veafRadio.addMenu = self.saved.addMenu
+  veafRadio.addRootMenu = self.saved.addRootMenu
   veafRadio.delSubmenu = self.saved.delSubmenu
 end
 

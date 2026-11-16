@@ -98,6 +98,14 @@ class ReconPhoto:
 
 
 @dataclass(frozen=True)
+class TextSheet:
+    """A kneeboard sheet of free text: a title and its paragraphs (FEAT-OPEN-TRAINING-KNEEBOARD 01)."""
+
+    title: str
+    paragraphs: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class BriefingContent:
     """What the assistant passes: the scenario's words, never a figure the mission holds."""
 
@@ -132,6 +140,9 @@ class BriefingContent:
     """The package's code words: a coordination page in the deck and on the kneeboard, left out when empty."""
     support: tuple[SupportAsset, ...] = ()
     """The support the mission has no group for (a JTAC, the fat cow, a GCI): rows of the ATO's support table."""
+    sheets: tuple[TextSheet, ...] = ()
+    """Sheets of free text at the head of the kneeboard, in this order: an Open Training's mission, conduct and
+    commands (FEAT-OPEN-TRAINING-KNEEBOARD 01). The deck and the PDF leave them out."""
 
 
 @dataclass(frozen=True)
@@ -221,7 +232,8 @@ class RadioPlan:
 class BriefingReport:
     """What building the briefing produced."""
 
-    deck: Path
+    deck: Path | None
+    """``None`` when only the kneeboard was written."""
     pages: int
     maps: list[Path]
     pictures: list[str]

@@ -550,6 +550,7 @@ The build tells you how many it added.
 | `ask` | Ask a question about the VEAF documentation (AI assistant). With no question, starts an interactive session. |
 | `capture-map` | Capture a theatre's airbases from a running bridge mission (via dcs-serve) into <theatre>.json; `--parking` also writes the parking spots to `parking/<theatre>.json`. |
 | `clear-ground-check` | Check in DCS, without spawning them, whether a built mission's ground vehicles stand in scenery, and compare with the clear-ground catalogue. |
+| `forest-check` | List the ground vehicles of a built mission standing in a forest, from the map files installed with DCS, without launching the game. |
 | `scenery-objects` | List in DCS the map objects (bridges, buildings) around points, with the id a combat zone's [`scenery_targets`](scripts/veafCombatZone.en.md#scenery-targets) takes. |
 | `farp-spot` | Find in DCS, near a point, the flat spots clear of trees and buildings where a FARP can go — the command `add_farp` gives when it could not check the pad. |
 | `terrain-sweep` | Sweep in DCS the ground elevation of a whole theatre, which the MCP action `terrain_elevation` then reads with no DCS (a target's altitude, a route's floor, terrain masking). |
@@ -584,7 +585,9 @@ In an interactive terminal, `veaf-tools.exe` opens a guided wizard (TUI) instead
 - `.\veaf-tools.exe mission prepare c:\my-mission` → the folder is already supplied, so the wizard only asks for the template.
 - `--tui` appended to any command → opens the wizard even when nothing is missing (e.g. `.\veaf-tools.exe mission build --tui`).
 
-Options already passed on the command line are pre-filled; unknown options (e.g. `--verbose`) are preserved as-is. Outside an interactive terminal (CI, redirected output), the wizard never triggers and the command runs normally.
+Options already passed on the command line are pre-filled; unknown options (e.g. `--verbose`) are preserved as-is.
+Started from a mission folder (a folder holding a `mission.yaml`), the wizard proposes that folder and the mission name written in its `mission.yaml`, even if you typed something else for another mission; for everything else, it proposes what you typed last time.
+Outside an interactive terminal (CI, redirected output), the wizard never triggers and the command runs normally.
 
 **Navigation**: **Ctrl-B** (or **Escape** pressed twice) steps back to the previous prompt; from the main menu (or a command's first prompt) it quits the wizard. A reminder is shown at the bottom of each prompt.
 

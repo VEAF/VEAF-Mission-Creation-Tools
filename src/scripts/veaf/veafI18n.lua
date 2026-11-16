@@ -332,6 +332,18 @@ veaf.i18nCatalog = {
     fr = "Tous les convois ont été nettoyés",
     en = "All convoys cleaned up",
   },
+  ["spawn.mine_removed"] = {
+    fr = "Retiré : %s",
+    en = "Removed: %s",
+  },
+  ["spawn.mine_gone"] = {
+    fr = "Déjà détruit : %s",
+    en = "Already destroyed: %s",
+  },
+  ["spawn.mine_not_yours"] = {
+    fr = "Seul %s peut retirer ses spawns, et il n'est plus dans ce groupe",
+    en = "Only %s can remove his spawns, and he is no longer in this group",
+  },
   ["spawn.iads_group_added"] = {
     fr = "Groupe ajouté à l'IADS nommé « %s »",
     en = 'Group added to the IADS named "%s"',
@@ -392,6 +404,18 @@ veaf.i18nCatalog = {
   ["cas.illum_available"] = {
     fr = "Éclairage de la cible disponible",
     en = "Target illumination available",
+  },
+  ["cas.no_mission"] = {
+    fr = "Pas de mission CAS : posez un marqueur -cas sur la carte F10",
+    en = "No CAS mission: place a -cas marker on the F10 map",
+  },
+  ["cas.smoke_already_requested"] = {
+    fr = "Fumée déjà demandée : le marquage fumigène sera de nouveau disponible sous peu",
+    en = "Smoke already requested: the smoke marker will be available again shortly",
+  },
+  ["cas.illum_already_requested"] = {
+    fr = "Fusée éclairante déjà demandée : l'éclairage sera de nouveau disponible sous peu",
+    en = "Illumination flare already requested: illumination will be available again shortly",
   },
   ["cas.objective_destroyed"] = {
     fr = "Groupe objectif CAS détruit !",
@@ -1738,10 +1762,6 @@ veaf.i18nCatalog = {
     fr = "Réapparition de %s",
     en = "Respawn %s",
   },
-  ["menu.casmission.flare_done"] = {
-    fr = "Objectif éclairé par fusée",
-    en = "Target area is marked with illumination flare",
-  },
   ["menu.casmission.markers"] = {
     fr = "Marquage de l'objectif",
     en = "Target markers",
@@ -1753,10 +1773,6 @@ veaf.i18nCatalog = {
   ["menu.casmission.skip"] = {
     fr = "Passer l'objectif en cours",
     en = "Skip current objective",
-  },
-  ["menu.casmission.smoke_done"] = {
-    fr = "Objectif marqué à la fumée rouge",
-    en = "Target is marked with red smoke",
   },
   ["menu.combatzone.activate"] = {
     fr = "Activer la zone",
@@ -1801,6 +1817,14 @@ veaf.i18nCatalog = {
   ["menu.spawn.convoy_cleanup"] = {
     fr = "Retirer tous les convois",
     en = "Cleanup all convoys",
+  },
+  ["menu.spawn.mine"] = {
+    fr = "Mes spawns",
+    en = "My spawns",
+  },
+  ["menu.spawn.mine_remove_all"] = {
+    fr = "Tout retirer",
+    en = "Remove all",
   },
   ["menu.spawn.convoy_info_all"] = {
     fr = "Infos sur tous les convois",

@@ -94,27 +94,58 @@ class TestMissionYamlDefaults:
         assert defaults["mission_name_or_file"] == "Operation-Thunder"
         assert defaults["input_mission_name_or_file"] == "Operation-Thunder"
 
-    def test_empty_when_mission_block_has_no_name(self, tmp_path: Path) -> None:
+    def test_only_the_folder_when_mission_block_has_no_name(self, tmp_path: Path) -> None:
         (tmp_path / "mission.yaml").write_text("mission:\n  era: MODERN\n", encoding="utf-8")
-        assert _mission_yaml_defaults(tmp_path) == {}
+        assert _mission_yaml_defaults(tmp_path) == {"mission_folder": "."}
 
-    def test_returns_empty_on_malformed_yaml(self, tmp_path: Path) -> None:
+    def test_only_the_folder_on_malformed_yaml(self, tmp_path: Path) -> None:
         (tmp_path / "mission.yaml").write_text("mission: [unclosed\n", encoding="utf-8")
-        assert _mission_yaml_defaults(tmp_path) == {}
+        assert _mission_yaml_defaults(tmp_path) == {"mission_folder": "."}
+
+    def test_a_mission_folder_proposes_itself(self, tmp_path: Path) -> None:
+        """A folder holding a mission.yaml is the folder the wizard works on."""
+        (tmp_path / "mission.yaml").write_text("mission:\n  name: Operation-Thunder\n", encoding="utf-8")
+        assert _mission_yaml_defaults(tmp_path)["mission_folder"] == "."
 
 
 class TestResolvePromptDefault:
     def _prompt(self) -> ArgPrompt:
         return ArgPrompt("mission_name_or_file", "Mission", default="mission.miz", is_option=False)
 
-    def test_saved_preference_wins_over_yaml(self) -> None:
+    def test_yaml_wins_over_saved_preference(self) -> None:
+        """Flogas's report: the name typed for another mission must not replace this folder's own."""
         prompt = self._prompt()
         result = _resolve_prompt_default(
             prompt,
-            last_args={"mission_name_or_file": "saved.miz"},
-            yaml_defaults={"mission_name_or_file": "FromYaml"},
+            last_args={"mission_name_or_file": "VEAF-IMC-Day"},
+            yaml_defaults={"mission_name_or_file": "VEAF-Open-Training-Mission-Sinai"},
         )
+        assert result == "VEAF-Open-Training-Mission-Sinai"
+
+    def test_saved_preference_used_when_yaml_gives_nothing(self) -> None:
+        prompt = self._prompt()
+        result = _resolve_prompt_default(prompt, last_args={"mission_name_or_file": "saved.miz"}, yaml_defaults={})
         assert result == "saved.miz"
+
+    def test_current_mission_folder_wins_over_a_saved_folder(self, tmp_path: Path) -> None:
+        """A folder saved from another run must not be proposed inside a mission folder."""
+        (tmp_path / "mission.yaml").write_text("mission:\n  name: Sinai\n", encoding="utf-8")
+        prompt = ArgPrompt("mission_folder", "Folder", default=".", is_option=False, resolve_path=True)
+        result = _resolve_prompt_default(
+            prompt,
+            last_args={"mission_folder": "D:/missions/other"},
+            yaml_defaults=_mission_yaml_defaults(tmp_path),
+        )
+        assert result == "."
+
+    def test_saved_folder_kept_outside_a_mission_folder(self, tmp_path: Path) -> None:
+        prompt = ArgPrompt("mission_folder", "Folder", default=".", is_option=False, resolve_path=True)
+        result = _resolve_prompt_default(
+            prompt,
+            last_args={"mission_folder": "D:/missions/other"},
+            yaml_defaults=_mission_yaml_defaults(tmp_path),
+        )
+        assert result == "D:/missions/other"
 
     def test_yaml_used_when_no_saved_preference(self) -> None:
         prompt = self._prompt()

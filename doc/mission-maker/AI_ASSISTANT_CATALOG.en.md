@@ -774,6 +774,9 @@ The targets and the flight plan's steps are sheets, six to a page: name, what it
 The AI can add a **strategic situation** page and a **deployment and coordination** page, in prose; with dynamic slots, the ATO says "dynamic slot" and lists the package's flights under their base, not the dozens of types it offers.
 A second map, the **combat area**, follows the situation map, framed on the objectives and the threats; on the kneeboard every map is turned so that the attack axis (from the base to the objectives) runs up the page.
 The AI can also give the package's **code words** (a page in the deck and on the kneeboard), and the briefing takes the **recon photos** left in `docs/recon/` (a JPEG photo and its JSON sheet: zone, title, heading, pitch, position), two to a page after their objective's zoom.
+**The kneeboard alone**, for an Open Training: its README is already the full briefing and its briefing pictures are its own, so the tool writes the kneeboard pages and nothing else — no PPTX, no PDF, no DCS briefing picture.
+It opens on **text sheets** the AI writes (the mission, the conduct on the server, the useful commands with their security tier), then the overview map, a zoom per combat zone with its recon photos, and the zone list giving the F10 menu path that starts each one and its coordinates.
+The text sheets also go at the head of an objective mission's kneeboard.
 
 > 💬 *"Make the mission's briefing, topo background."*
 

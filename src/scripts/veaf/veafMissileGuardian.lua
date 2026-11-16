@@ -572,7 +572,7 @@ function veafMissileGuardian.buildRadioMenu()
   if veafMissileGuardian.rootPath then
     veafRadio.clearSubmenu(veafMissileGuardian.rootPath)
   else
-    veafMissileGuardian.rootPath = veafRadio.addMenu(veaf.t(veafMissileGuardian.RadioMenuName))
+    veafMissileGuardian.rootPath = veafRadio.addRootMenu(veafMissileGuardian.RadioMenuName)
   end
   if not veafRadio.skipHelpMenus then
     veafRadio.addCommandToSubmenu(

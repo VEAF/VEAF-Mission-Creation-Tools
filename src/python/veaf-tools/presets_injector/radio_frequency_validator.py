@@ -80,10 +80,15 @@ def get_valid_ranges(unit_type: str) -> list[FrequencyRange] | None:
 
 @dataclass(frozen=True)
 class RadioSpec:
-    """One physical radio's frequency ranges, in the aircraft's `.miz` order."""
+    """One physical radio's frequency ranges, in the aircraft's `.miz` order.
+
+    ``channels`` is how many presets the radio holds, read from its module's ``panelRadio``
+    (FEAT-RADIO-CAPACITY-ALL-TYPES), or ``None`` when the module lists none.
+    """
 
     name: str
     ranges: list[FrequencyRange]
+    channels: int | None = None
 
 
 def get_radios(unit_type: str) -> list[RadioSpec] | None:
@@ -110,6 +115,7 @@ def get_radios(unit_type: str) -> list[RadioSpec] | None:
                 FrequencyRange(min_mhz=r["min_mhz"], max_mhz=r["max_mhz"], modulation=r.get("modulation", "AM/FM"))
                 for r in radio.get("ranges", [])
             ],
+            channels=radio.get("channels"),
         )
         for radio in entry.get("radios", [])
     ]

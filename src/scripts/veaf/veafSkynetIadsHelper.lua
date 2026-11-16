@@ -4457,7 +4457,7 @@ function veafSkynet.buildSpotterViewRadioMenu(coa)
   else
     -- Scoped to the coalition: the other side has its own network and has no business seeing a
     -- switch for this one.
-    root = veafRadio.addSubMenu(veaf.t(veafSkynet.RadioMenuName), nil, coa)
+    root = veafRadio.addRootMenu(veafSkynet.RadioMenuName, coa)
     veafSkynet.spotterViewRootPaths[coa] = root
   end
 

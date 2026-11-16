@@ -822,6 +822,9 @@ catalogue predicted, and a disagreement is reported as a question about the cata
 markers (`#command`) are not checked: their group is drawn at runtime, which moves it off scenery
 itself. Same flow as `clear-ground-sweep`: `dcs-serve`, survey mission, instructions, waiting.
 
+A "0 vehicles in the scenery" is only as good as the DCS probe, and the probe does not see every forest: on Syria it found no tree on the Akamas peninsula, where a T-72 it called clear stood in the middle of a wood (known limitation `disposition-blind-to-akamas-forest`, measured on 2026-11-12).
+Where the map is wooded, run [`forest-check`](#forest-check) as well, which reads the forests from the map files, and look at the vehicles in game (F10 view, or smoke on each position) before concluding.
+
 | Name | Type | Required | Description |
 |---|---|---|---|
 | `MISSION` | `str` | yes | The .miz to check. It is read, never loaded in DCS. |
@@ -843,6 +846,35 @@ itself. Same flow as `clear-ground-sweep`: `dcs-serve`, survey mission, instruct
 ```
 
 *Flat alias : `veaf-tools clear-ground-check`*
+
+### `veaf-tools dcs forest-check` {#forest-check}
+
+List the ground vehicles of a built mission standing **in a forest**, from the map files installed with DCS.
+The game is not launched: the command reads the forests where the F10 "Map" view takes them from to draw them, in `Mods\terrains\<map>\surface\<map>.surface5`, and loads only the parts of the map around the vehicles; it answers in a few seconds.
+The positions are read from the `.miz`; combat-zone markers (`#command`) are not checked, their group is drawn at runtime.
+
+It completes [`clear-ground-check`](#clear-ground-check) where the DCS probe does not see the trees: on Syria, the probe called the Akamas firing range and the Ceyhan helicopter range clear, both in the middle of a wood; `forest-check` finds both (known limitation `disposition-blind-to-akamas-forest`).
+It sees forests only: buildings, towns and lone trees stay with `clear-ground-check`.
+A point is in a forest only when the forest is the layer drawn on top there, as on the F10 view: on the Marianas the forest is a ground texture, and an airfield, a field or a village drawn over it hides it. Roads, rivers and beaches are not read: a vehicle on a road through a wood counts as in the wood.
+It reads all eleven DCS maps. Checked on 2026-11-16 against the airfields' parking spots: 0 to 2.5% in a forest depending on the map, against 3 to 36% of the same spots moved 3 km.
+
+The DCS folder is the one DCS wrote in the Windows registry; `--dcs-dir` gives another one (the folder holding `Mods`).
+
+| Name | Type | Required | Description |
+|---|---|---|---|
+| `MISSION` | `str` | yes | The .miz to check. It is read, never loaded in DCS. |
+
+| Options | Type | Default | Description |
+|---|---|---|---|
+| `--dcs-dir` | `str` | *(Windows registry)* | The DCS install folder (the one holding Mods). |
+| `--report` | `str` | *(none)* | Also write the report as JSON to this file. |
+| `--verbose` | `boolean` | `false` | If enabled, displays detailed debugging information. |
+
+```powershell
+.\veaf-tools.exe dcs forest-check build\MyMission.miz
+```
+
+*Flat alias : `veaf-tools forest-check`*
 
 ### `veaf-tools dcs scenery-objects` {#scenery-objects}
 

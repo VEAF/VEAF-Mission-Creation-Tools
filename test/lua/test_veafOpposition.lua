@@ -332,6 +332,9 @@ function TestVeafOpposition:test_the_menu_offers_one_entry_per_level_and_every_m
     addMenu = function(title)
       return { title = title }
     end,
+    addRootMenu = function(key, side)
+      return veafRadio.addSubMenu(veaf.t(key), nil, side)
+    end,
     addSubMenu = function(title)
       local menu = { title = title }
       table.insert(menus, menu)

@@ -339,7 +339,7 @@ function veafOpposition.radioFollow(mode)
 end
 
 function veafOpposition.buildRadioMenu()
-  veafOpposition.rootPath = veafRadio.addMenu(veaf.t(veafOpposition.RadioMenuName))
+  veafOpposition.rootPath = veafRadio.addRootMenu(veafOpposition.RadioMenuName)
   veafRadio.addCommandToSubmenu(
     veaf.t("menu.opposition.show"),
     veafOpposition.rootPath,

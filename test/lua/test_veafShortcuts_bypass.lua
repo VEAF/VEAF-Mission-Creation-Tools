@@ -19,6 +19,7 @@ dofile(src .. "/veafDcsSpawner.lua")
 dofile(src .. "/veafI18n.lua")
 dofile(src .. "/veafSecurity.lua")
 dofile(src .. "/veafSpawn.lua")
+dofile(src .. "/veafCommands.lua")
 dofile(src .. "/veafShortcuts.lua")
 
 local POSITION = { x = 0, y = 0, z = 0 }

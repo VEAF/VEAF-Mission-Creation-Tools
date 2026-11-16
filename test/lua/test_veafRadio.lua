@@ -2250,4 +2250,225 @@ function TestVeafRadioFirstLevelCapitals:test_to_upper_case_handles_accented_let
   luaunit.assertEquals(veafRadio.toUpperCase("DÉJÀ"), "DÉJÀ")
 end
 
+-------------------------------------------------------------------------------------------------
+-- FEAT-RADIO-MENU-ORDER — the root menus in the order pilots use them
+--
+-- Sorted by label, "ZONES DE COMBAT" came last in French and could land on page 2 of an Open
+-- Training. Each root menu now carries a fixed rank, the same in every language.
+-------------------------------------------------------------------------------------------------
+TestVeafRadioRootOrder = {}
+
+-- The order decided with David on 2026-11-10 (PRD D2), then the entries no rank lists, then CAS.
+local RANKED_ROOT_KEYS = {
+  "menu.campaign.root",
+  "menu.combatzone.root",
+  "menu.weather.root",
+  "menu.assets.root",
+  "menu.combatmission.root",
+  "menu.carrier.root",
+  "menu.transportmission.root",
+  "menu.spawn.root",
+  "menu.skynet.root",
+  "menu.move.root",
+  "menu.namedpoints.root",
+  "menu.missileguardian.root",
+  "menu.opposition.root",
+}
+
+function TestVeafRadioRootOrder:setUp()
+  self._origAddSubMenu = missionCommands.addSubMenu
+  self._origAddCommand = missionCommands.addCommand
+  self._origCatalog = veaf.i18nCatalog
+  self._origLanguage = veaf.config.language
+  dofile(src .. "/veafI18n.lua")
+  self.rendered = {}
+  local this = self
+  missionCommands.addSubMenu = function(title, parent)
+    local m = { title = title, parent = parent }
+    table.insert(this.rendered, m)
+    return m
+  end
+  missionCommands.addCommand = function(title, parent)
+    local c = { title = title, parent = parent }
+    table.insert(this.rendered, c)
+    return c
+  end
+end
+
+function TestVeafRadioRootOrder:tearDown()
+  missionCommands.addSubMenu = self._origAddSubMenu
+  missionCommands.addCommand = self._origAddCommand
+  veaf.i18nCatalog = self._origCatalog
+  veaf.config.language = self._origLanguage
+end
+
+-- Every root entry an Open Training or a campaign can hold, added in a shuffled order, the way the
+-- modules really add them (assist's two top-level commands with their own sortKey); returns the
+-- root's labels in render order, across its pages.
+function TestVeafRadioRootOrder:_renderRoot(language)
+  veaf.config.language = language
+  local root = { title = veaf.t("menu.radio.root"), subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  builder:addRootMenu("menu.casmission.root")
+  builder:addMenu(veaf.t("menu.ctld.root"))
+  for i = #RANKED_ROOT_KEYS, 1, -1 do
+    builder:addRootMenu(RANKED_ROOT_KEYS[i])
+  end
+  builder:addMenu(veaf.t("assist.menu.root"))
+  builder:addCommand(veaf.t("assist.menu.skip"), nil, function() end).sortKey = "Assistance 2"
+  builder:addCommand(veaf.t("assist.menu.confirm"), nil, function() end).sortKey = "Assistance 1"
+  builder:build()
+  local pages = { [root.dcsRadioMenu] = true }
+  local nextPage = veaf.t("radio.next_page")
+  local labels = {}
+  for _, entry in ipairs(self.rendered) do
+    if pages[entry.parent] then
+      if entry.title == nextPage then
+        pages[entry] = true
+      else
+        table.insert(labels, entry.title)
+      end
+    end
+  end
+  return labels
+end
+
+local function expectedRootLabels()
+  local labels = {}
+  for _, key in ipairs(RANKED_ROOT_KEYS) do
+    table.insert(labels, veafRadio.toUpperCase(veaf.t(key)))
+  end
+  for _, key in ipairs({ "assist.menu.root", "assist.menu.confirm", "assist.menu.skip", "menu.ctld.root" }) do
+    table.insert(labels, veafRadio.toUpperCase(veaf.t(key)))
+  end
+  table.insert(labels, veafRadio.toUpperCase(veaf.t("menu.casmission.root")))
+  return labels
+end
+
+function TestVeafRadioRootOrder:test_the_root_follows_the_fixed_order_in_french()
+  local labels = self:_renderRoot("fr")
+  luaunit.assertEquals(labels, expectedRootLabels())
+  luaunit.assertEquals(labels[2], "ZONES DE COMBAT")
+end
+
+function TestVeafRadioRootOrder:test_the_root_follows_the_same_order_in_english()
+  local labels = self:_renderRoot("en")
+  luaunit.assertEquals(labels, expectedRootLabels())
+  luaunit.assertEquals(labels[2], "COMBAT ZONES")
+end
+
+function TestVeafRadioRootOrder:test_combat_zones_weather_and_assets_are_on_the_first_page()
+  veaf.config.language = "fr"
+  local root = { title = veaf.t("menu.radio.root"), subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  builder:addMenu(veaf.t("menu.ctld.root"))
+  builder:addMenu(veaf.t("assist.menu.root"))
+  builder:addRootMenu("menu.casmission.root")
+  for i = #RANKED_ROOT_KEYS, 2, -1 do -- an Open Training: no campaign
+    builder:addRootMenu(RANKED_ROOT_KEYS[i])
+  end
+  builder:build()
+  local onFirstPage = {}
+  for _, entry in ipairs(self.rendered) do
+    if entry.parent == root.dcsRadioMenu then
+      onFirstPage[entry.title] = true
+    end
+  end
+  luaunit.assertTrue(onFirstPage["ZONES DE COMBAT"])
+  luaunit.assertTrue(onFirstPage["MÉTÉO ET ATC"])
+  luaunit.assertTrue(onFirstPage["MOYENS"])
+  luaunit.assertNil(onFirstPage["MISSION CAS"])
+end
+
+function TestVeafRadioRootOrder:test_an_unlisted_root_entry_sorts_after_the_ranked_ones_and_before_cas()
+  veaf.config.language = "fr"
+  local root = { title = "VEAF", subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  builder:addRootMenu("menu.casmission.root")
+  builder:addCommand("A command straight under VEAF", nil, function() end)
+  builder:addMenu("AAA unlisted module")
+  builder:addRootMenu("menu.opposition.root")
+  builder:addRootMenu("menu.combatzone.root")
+  builder:build()
+  local labels = {}
+  for _, entry in ipairs(self.rendered) do
+    if entry.parent == root.dcsRadioMenu then
+      table.insert(labels, entry.title)
+    end
+  end
+  luaunit.assertEquals(labels, {
+    "ZONES DE COMBAT",
+    "OPPOSITION",
+    "A COMMAND STRAIGHT UNDER VEAF",
+    "AAA UNLISTED MODULE",
+    "MISSION CAS",
+  })
+end
+
+function TestVeafRadioRootOrder:test_sub_menus_still_sort_alphabetically()
+  local root = { title = "VEAF", subMenus = {}, commands = {} }
+  local builder = veafRadio.RadioMenuBuilder:new(root)
+  local zones = builder:addRootMenu("menu.combatzone.root")
+  builder:addMenu("Zulu", zones).rootRank = 1
+  builder:addMenu("Alpha", zones)
+  builder:build()
+  luaunit.assertEquals(zones.subMenus[1].title, "Alpha")
+  luaunit.assertEquals(zones.subMenus[2].title, "Zulu")
+end
+
+function TestVeafRadioRootOrder:test_the_ranks_are_the_same_whatever_the_language()
+  luaunit.assertEquals(veafRadio.rootRank("menu.campaign.root"), 1)
+  luaunit.assertEquals(veafRadio.rootRank("menu.combatzone.root"), 2)
+  luaunit.assertEquals(veafRadio.rootRank("menu.opposition.root"), 13)
+  luaunit.assertTrue(veafRadio.rootRank("menu.casmission.root") > veafRadio.ROOT_RANK_UNLISTED)
+  luaunit.assertNil(veafRadio.rootRank("menu.ctld.root"))
+end
+
+-- The wiring: a module that kept calling addSubMenu for its root menu would get no rank and sort
+-- among the unlisted entries, with nothing else to say so.
+function TestVeafRadioRootOrder:test_every_ranked_module_adds_its_root_menu_with_its_key()
+  local moduleOf = {
+    ["menu.campaign.root"] = "veafCampaign.lua",
+    ["menu.combatzone.root"] = "veafCombatZone.lua",
+    ["menu.weather.root"] = "veafWeather.lua",
+    ["menu.assets.root"] = "veafAssets.lua",
+    ["menu.combatmission.root"] = "veafCombatMission.lua",
+    ["menu.carrier.root"] = "veafCarrierOperations.lua",
+    ["menu.transportmission.root"] = "veafTransportMission.lua",
+    ["menu.spawn.root"] = "veafSpawnCore.lua",
+    ["menu.skynet.root"] = "veafSkynetIadsHelper.lua",
+    ["menu.move.root"] = "veafMove.lua",
+    ["menu.namedpoints.root"] = "veafNamedPoints.lua",
+    ["menu.missileguardian.root"] = "veafMissileGuardian.lua",
+    ["menu.opposition.root"] = "veafOpposition.lua",
+    ["menu.casmission.root"] = "veafCasMission.lua",
+  }
+  local keys = { veafRadio.ROOT_MENU_LAST }
+  for _, key in ipairs(veafRadio.ROOT_MENU_ORDER) do
+    table.insert(keys, key)
+  end
+  for _, key in ipairs(keys) do
+    local file = assert(io.open(src .. "/" .. moduleOf[key], "r"))
+    local text = file:read("*a")
+    file:close()
+    local byName = text:match('([%w_]+%.RadioMenuName) = "' .. key:gsub("%.", "%%.") .. '"')
+    local literal = text:find('addRootMenu("' .. key .. '"', 1, true)
+    local named = byName and text:find("addRootMenu(" .. byName, 1, true)
+    luaunit.assertTrue(literal ~= nil or named ~= nil, key .. " is not added through addRootMenu in " .. moduleOf[key])
+  end
+end
+
+function TestVeafRadioRootOrder:test_add_root_menu_registers_under_the_mission_root()
+  veaf.config.language = "fr"
+  local menu = veafRadio.addRootMenu("menu.weather.root")
+  luaunit.assertEquals(menu.title, "MÉTÉO ET ATC")
+  luaunit.assertEquals(menu.rootRank, 3)
+  local registered = false
+  for _, subMenu in ipairs(veafRadio.radioMenu.subMenus) do
+    registered = registered or subMenu == menu
+  end
+  veafRadio.delSubmenu(menu)
+  luaunit.assertTrue(registered)
+end
+
 os.exit(luaunit.LuaUnit.run())

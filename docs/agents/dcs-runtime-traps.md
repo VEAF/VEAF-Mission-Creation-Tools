@@ -551,6 +551,44 @@ as « not shown free », and look in game before concluding that a place is wood
 *What it cost:* `veaf-tools dcs farp-spot` keeps only the points this query calls free: it can miss a usable spot.
 Neither what it lists nor what it leaves out has been checked by eye yet.
 
+### On Syria, `Disposition.getSimpleZones` does not see some forests (Akamas peninsula, Ceyhan) {#disposition-blind-to-akamas-forest}
+
+Measured **2026-11-12**.
+
+The probe every clear-ground tool rests on answers "free" inside a wood it cannot see. Measured on
+Syria, on the Akamas peninsula (Cyprus):
+
+| Asked | Answer |
+|---|---|
+| `veaf-tools dcs clear-ground-sweep`, 6 km around (x=13764, y=-326975) | **0 blocked cells of 58 081** |
+| `veaf-tools dcs clear-ground-check` on the Akamas range of the Syria Open Training | its vehicles **on clear ground** |
+| in game (David), a T-72 at (13404, -326775) | **in the middle of a wood** |
+
+A second forest, 8 km east of the Ceyhan FARP (Turkey, near MGRS YF69):
+
+| Asked | Answer |
+|---|---|
+| `veaf-tools dcs clear-ground-check` on the whole Syria Open Training, 2026-11-12 | 11 vehicles off clear ground, all of them sanctuary groups: the 8 vehicles of the Ceyhan helicopter range, around (218900, 11100), **on clear ground** |
+| in game (David, 2026-11-15), the same range, unmoved | **in the middle of a forest** |
+
+So on Syria a clean `clear-ground-check` — "0 vehicles in the scenery" — proves nothing where the
+probe is blind. Two forests are measured; which others of the map it misses is not.
+
+**What to do:** Run `veaf-tools dcs forest-check <mission.miz>` as well: it reads the forests from the map files
+installed with DCS (the `Trees` meshes of `surface/<map>.surface5`, the data the F10 "Map" view
+draws), without launching the game. Measured on 2026-11-16 against six places known in game on
+Syria: the old Ceyhan range (219000, 11000), a wood at (212316, 2506) and the Akamas T-72
+(13404, -326775) come out in a forest; open hills at (212916, 9506), the Ceyhan FARP (221016, 2506)
+and the current Akamas range (14640, -314461) do not. It sees forests only: for buildings and lone
+trees, look at the placed vehicles in game before trusting a range or a defence. One capture of the
+F10 map in its "Map" mode around the placed units settles it, and its cursor readout gives the
+mission coordinates to place by.
+
+*What it cost:* The Akamas firing range of the Syria Open Training stood in the trees, reported by a player on the
+VEAF Discord (thread 1570181686451507230); it was moved to the Polis plain and checked by smoke in
+game (VEAF-Open-Training-Mission-Syria-v6 `bee652e`, 2026-11-12). The Ceyhan helicopter range of the
+same mission stood in a forest too, reported by David after flying it (2026-11-15).
+
 ### An air start with a single waypoint flies north, whatever its unit's `heading` {#air-start-flies-toward-its-second-point}
 
 Measured **2026-10-12**.
@@ -895,6 +933,24 @@ takes the freed id, nobody sees it, and a stale click on the removed entry lands
 
 *What it cost:* Wrong F10 commands fired in multiplayer, among them a CTLD smoke instead of a troop embark
 (VEAF/CTLD#257).
+
+### An OH-58D whose FM radios carry 32 presets crashes the DCS client at spawn {#oh58d-crashes-with-too-many-fm-presets}
+
+Measured **2026-11-10**.
+
+The Kiowa's two FM sets (radios 3 and 4) hold 21 presets: `C`, `M`, then 1 to 19, the channel count of
+their `panelRadio` table in `CoreMods/aircraft/OH-58D/OH58D.lua`. A mission that writes more still loads in
+the Mission Editor, and the client crashes at spawn, in multiplayer, during the cockpit initialisation: the
+log stops after the LMFD Lua state, with no crash report.
+
+Measured on the Open Trainings, 2026-11-10: Caucasus, Syria, GermanyCW and Marianas wrote 32 FM presets
+(a 30-entry `fm_supplement`) and crashed; Sinai and PersianGulf wrote 21 and worked. Where between 21 and
+32 the crash starts is not measured.
+
+**What to do:** Keep the FM lists at 20 entries or fewer. From 6.37.0 the build stops at the radio's capacity by itself and
+says so (see `radio-presets-beyond-capacity`).
+
+*What it cost:* Four Open Trainings unflyable in the Kiowa, 2026-11-10.
 
 ## Ground AI {#ground-ai}
 

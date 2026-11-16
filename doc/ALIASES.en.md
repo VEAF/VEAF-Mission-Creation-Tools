@@ -4,6 +4,9 @@ Quick-reference of all built-in marker aliases available in every VEAF MCT missi
 
 Place an F10 map marker with the alias text (e.g. `-sam`) to spawn the corresponding group or execute the command. See [veafShortcuts](mission-maker/scripts/veafShortcuts.en.md) for the module documentation and how to create custom aliases.
 
+An alias runs at the security level of the command it launches, unless it declares one: see [an alias's level](mission-maker/scripts/veafShortcuts.en.md#alias-level).
+The tanker and AFAC commands (`-tanker*`, `-afachere`) need a VEAF pilot, `-send` and `-play` a trusted member.
+
 ---
 
 ## Generic SAM Groups

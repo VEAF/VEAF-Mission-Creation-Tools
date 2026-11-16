@@ -1,9 +1,10 @@
 """Regression tests for iso-functional radio-presets conversion (ADR 0003).
 
 These lock the bespoke-layout behaviour of ``convert_presets`` against the real
-Tripack ``radioSettings.lua`` fixture: the Mi-24P channel rotation + FM radio and
-the AJS37 leading dummy, hardcoded specials and per-channel modulations must all
-round-trip into a dedicated per-aircraft preset.
+Tripack ``radioSettings.lua`` fixture: the AJS37 leading dummy, hardcoded specials
+and per-channel modulations must round-trip into a dedicated per-aircraft preset,
+and the Mi-24P channel rotation + 10-channel FM radio must come out of the packer
+unchanged (its radio capacities make it reproduce the v5 preset exactly).
 
 Also covers the model-level ``modulations`` round-trip on ``RadioDefinition``,
 and (FEAT-RADIO-PRESET-PROJECTION-08, ADR 0010) the preset-plan generation that
@@ -61,37 +62,45 @@ class TestTripackPresetsFidelity(unittest.TestCase):
         out = Path(cls._tmp.name) / "presets.yaml"
         cls.warnings = convert_presets(_FIXTURE, out)
         cls.data = _load_faithful(out)
+        cls.manager = PresetsManager()
+        cls.manager.read_yaml(out)
 
     @classmethod
     def tearDownClass(cls) -> None:
         cls._tmp.cleanup()
 
     # ── Mi-24P: channel rotation (ch0 → preset #20) + second FM radio ──────────
+    # Since FIX-RADIO-PRESET-CAPACITY the packer stops at the R-863's 20 and the R-828's 10 channels, as the
+    # v5 preset did, so it reproduces that preset exactly and the conversion needs no override for it.
 
-    def test_mi24p_assigned_dedicated_preset(self) -> None:
-        self.assertEqual(_assignment_for(self.data, "blue", "Mi-24P"), "blue_mi_24p")
+    def _mi24p(self) -> dict[int, Any]:
+        preset = self.manager.get_radios_for(coalition="blue", aircraft_type="helicopter", unit_type="Mi-24P")
+        self.assertIsNotNone(preset)
+        return preset.to_dict()
+
+    def test_mi24p_needs_no_dedicated_preset(self) -> None:
+        self.assertIsNone(_assignment_for(self.data, "blue", "Mi-24P"))
 
     def test_mi24p_has_two_radios(self) -> None:
-        preset = self.data["presets_collection"]["blue_presets"]["blue_mi_24p"]
-        self.assertEqual(set(preset["radios"]), {"radio_1", "radio_2"})
+        self.assertEqual(set(self._mi24p()), {1, 2})
 
     def test_mi24p_rotation_preserved(self) -> None:
-        radio = self.data["radios_collection"]["blue_radios"]["radio_blue_mi_24p_1"]
+        channels = self._mi24p()[1]["channels"]
         # Slot [1] (DCS channel 0) holds preset #20, then 1..19 follow.
-        self.assertEqual(radio["channels"][1], 243.000)  # ##RADIO1_20##
-        self.assertEqual(radio["channels"][2], 284.000)  # ##RADIO1_01##
-        self.assertEqual(radio["channels"][20], 268.500)  # ##RADIO1_19##
+        self.assertEqual(channels[1], 243.000)  # ##RADIO1_20##
+        self.assertEqual(channels[2], 284.000)  # ##RADIO1_01##
+        self.assertEqual(channels[20], 268.500)  # ##RADIO1_19##
+        self.assertEqual(len(channels), 20)
 
     def test_mi24p_second_fm_radio_preserved(self) -> None:
-        radio = self.data["radios_collection"]["blue_radios"]["radio_blue_mi_24p_2"]
-        self.assertEqual(radio["type"], "fm")
-        self.assertEqual(radio["channels"][1], 31.000)  # ##RADIO3_01##
-        self.assertEqual(radio["channels"][10], 40.000)  # ##RADIO3_10##
+        channels = self._mi24p()[2]["channels"]
+        self.assertEqual(channels[1], 31.000)  # ##RADIO3_01##
+        self.assertEqual(channels[10], 40.000)  # ##RADIO3_10##
+        self.assertEqual(len(channels), 10)
 
     def test_mi24p_rotation_radio_has_no_modulations(self) -> None:
         # The Mi-24P radio has an empty modulations table → channels stay plain floats.
-        radio = self.data["radios_collection"]["blue_radios"]["radio_blue_mi_24p_1"]
-        self.assertNotIsInstance(radio["channels"][1], dict)
+        self.assertNotIsInstance(self._mi24p()[1]["channels"][1], dict)
 
     # ── AJS37: leading dummy, hardcoded specials, modulations ──────────────────
 
@@ -214,14 +223,15 @@ class TestTripackPresetPlanGeneration(unittest.TestCase):
     # ── Bespoke aircraft: kept iso-functionally in presets.v5.yaml, delegated ──
     # to the packer (best effort) in the lean presets.yaml plan.
     #
-    # (FEAT-CONVERTV5-PLAN-PRESETS: the four quirky Tripack aircraft do not
-    # factor exactly, so the faithful copy keeps their dedicated override, while
+    # (FEAT-CONVERTV5-PLAN-PRESETS: three of the quirky Tripack aircraft do not
+    # factor exactly — the Mi-24P does since FIX-RADIO-PRESET-CAPACITY —, so the
+    # faithful copy keeps their dedicated override, while
     # the plan drops it — the packer projects them from the crystallisation,
     # possibly at best effort, and the maker is warned.)
 
-    def test_mi24p_keeps_its_dedicated_preset_in_faithful(self) -> None:
-        self.assertEqual(_assignment_for(self.faithful, "blue", "Mi-24P"), "blue_mi_24p")
-        self.assertEqual(_assignment_for(self.faithful, "red", "Mi-24P"), "red_mi_24p")
+    def test_mi24p_is_reproduced_by_the_packer_so_faithful_drops_its_override(self) -> None:
+        self.assertIsNone(_assignment_for(self.faithful, "blue", "Mi-24P"))
+        self.assertIsNone(_assignment_for(self.faithful, "red", "Mi-24P"))
 
     def test_ajs37_keeps_its_dedicated_preset_in_faithful(self) -> None:
         self.assertEqual(_assignment_for(self.faithful, "red", "AJS37"), "red_ajs37")
@@ -246,7 +256,7 @@ class TestTripackPresetPlanGeneration(unittest.TestCase):
     def test_plan_warns_about_best_effort_projection(self) -> None:
         # The maker is told (once) which aircraft the plan projects at best effort.
         self.assertTrue(
-            any("Mi-24P" in w and "AJS37" in w for w in self.warnings),
+            any("OH58D" in w and "AJS37" in w for w in self.warnings),
             msg="expected a best-effort summary warning naming the projected aircraft",
         )
 
@@ -263,7 +273,7 @@ class TestTripackPresetPlanGeneration(unittest.TestCase):
 
     def test_fallback_warning_names_the_affected_aircraft(self) -> None:
         combined = " ".join(self.warnings)
-        for aircraft in ("Mi-24P", "AJS37", "OH58D", "CH-47Fbl1"):
+        for aircraft in ("AJS37", "OH58D", "CH-47Fbl1"):
             self.assertIn(aircraft, combined)
 
 
@@ -350,6 +360,6 @@ class TestPlanFrequencyAliasing(unittest.TestCase):
         self.assertEqual(aliases["Guard"]["freqs"]["uhf"], 243.0)
 
     def test_faithful_copy_keeps_raw_frequency(self) -> None:
-        radio = self.faithful["radios_collection"]["blue_radios"]["radio_blue_mi_24p_1"]
+        radio = self.faithful["radios_collection"]["blue_radios"]["radio_blue_ch_47fbl1_2"]
         self.assertEqual(radio["channels"][1], 243.0)
         self.assertNotIn("channels_collection", self.faithful)

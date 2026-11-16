@@ -652,7 +652,7 @@ end
 
 --- Build the initial radio menu
 function veafTransportMission.buildRadioMenu()
-  veafTransportMission.rootPath = veafRadio.addSubMenu(veaf.t(veafTransportMission.RadioMenuName))
+  veafTransportMission.rootPath = veafRadio.addRootMenu(veafTransportMission.RadioMenuName)
   veafRadio.addCommandToSubmenu(
     veaf.t("menu.common.help"),
     veafTransportMission.rootPath,

@@ -412,4 +412,80 @@ function TestVeafCommandsRecognitionBeforeSecurity:test_a_handler_without_a_keyp
   luaunit.assertEquals(self.calls, 1, "no keyphrase declared means no filtering")
 end
 
+-- ---------------------------------------------------------------------------
+-- The groups a marker spawned (FEAT-SPAWN-OWNERSHIP-DESPAWN): a listener is handed the collection the
+-- handlers fill, with the event that carries the marker's author.
+-- ---------------------------------------------------------------------------
+TestVeafCommandsMarkerSpawnListener = {}
+
+function TestVeafCommandsMarkerSpawnListener:setUp()
+  resetHandlers()
+  self.savedListener = veafCommands.markerSpawnListener
+end
+
+function TestVeafCommandsMarkerSpawnListener:tearDown()
+  veafCommands.markerSpawnListener = self.savedListener
+end
+
+local function groupsRecordingHandler(received)
+  return function(pos, event, bypass, fromMarker, groups, route)
+    received.groups = groups
+    return true
+  end
+end
+
+function TestVeafCommandsMarkerSpawnListener:test_the_listener_and_the_handler_share_one_collection()
+  local heard = {}
+  veafCommands.markerSpawnListener = function(groups, event)
+    heard.groups = groups
+    heard.event = event
+  end
+  local received = {}
+  veafCommands.registerCommandHandler(groupsRecordingHandler(received), 10, "OPEN")
+  local event = { text = "-sa6", idx = 7 }
+
+  veafCommands.dispatchMarker(pos, event)
+
+  luaunit.assertEquals(type(received.groups), "table", "the handler gets a collection to fill")
+  luaunit.assertIs(heard.groups, received.groups, "the listener watches the very table the handler fills")
+  luaunit.assertIs(heard.event, event, "the listener sees the event, which names the marker's author")
+end
+
+function TestVeafCommandsMarkerSpawnListener:test_without_a_listener_the_handler_gets_no_collection()
+  veafCommands.markerSpawnListener = nil
+  local received = {}
+  veafCommands.registerCommandHandler(groupsRecordingHandler(received), 10, "OPEN")
+
+  veafCommands.dispatchMarker(pos, { text = "-sa6", idx = 7 })
+
+  luaunit.assertNil(received.groups, "nothing changes for a mission that does not listen")
+end
+
+function TestVeafCommandsMarkerSpawnListener:test_a_failing_listener_does_not_cost_the_command()
+  veafCommands.markerSpawnListener = function()
+    error("listener broken")
+  end
+  local received = {}
+  veafCommands.registerCommandHandler(groupsRecordingHandler(received), 10, "OPEN")
+
+  luaunit.assertTrue(veafCommands.dispatchMarker(pos, { text = "-sa6", idx = 7 }))
+  luaunit.assertEquals(type(received.groups), "table")
+end
+
+--- A script's command is not a pilot's: the interpreter path never calls the listener.
+function TestVeafCommandsMarkerSpawnListener:test_a_script_command_is_not_heard()
+  local calls = 0
+  veafCommands.markerSpawnListener = function()
+    calls = calls + 1
+  end
+  local received = {}
+  veafCommands.registerCommandHandler(groupsRecordingHandler(received), 10, "OPEN")
+  local interpreterGroups = {}
+
+  veafCommands.execute(pos, "-sa6", coalition.side.RED, interpreterGroups)
+
+  luaunit.assertEquals(calls, 0)
+  luaunit.assertIs(received.groups, interpreterGroups)
+end
+
 os.exit(luaunit.LuaUnit.run())

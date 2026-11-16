@@ -375,6 +375,9 @@ function TestVeafAssetsCoalitionMenu:setUp()
     USAGE_ForAll = 0,
     USAGE_ForGroup = 1,
     skipHelpMenus = true,
+    addRootMenu = function(key, side)
+      return veafRadio.addSubMenu(veaf.t(key), nil, side)
+    end,
     addSubMenu = function(title, parent, side)
       local menu = { title = title, parent = parent, side = side }
       submenus[title] = menu

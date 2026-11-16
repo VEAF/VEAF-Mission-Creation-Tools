@@ -352,6 +352,16 @@ _destroy, unitname Tank-1
 
 Sans `unitname` ni `name`, la commande vide le cercle : vérifiez le nom avant de valider le marqueur.
 
+### Chaque pilote retire ses propres spawns {#own-spawns}
+
+Le runtime retient, pour chaque pilote, les groupes que ses marqueurs ont fait apparaître : alias ou commande brute (`_spawn`, `_cas`, convoi, FARP, FOB…), rangés sous l'auteur du marqueur.
+Il les retire lui-même depuis **F10 → VEAF → APPARITION → Page suivante → Mes spawns → [son nom]**, tout d'un coup ou marqueur par marqueur ; le [guide du pilote](../../pilot/GUIDE.md#remove-your-spawns) décrit le menu.
+
+Rien à configurer : le menu vient avec le module, sous le menu *APPARITION* (il n'apparaît pas si `veafSpawn.HideRadioMenu` le masque).
+Un sous-menu passe après les commandes du menu, qui remplissent la première page avec les deux « Escorte-moi » par défaut : *Mes spawns* est derrière « Page suivante », et en première page si `veafSpawn.EscortRadioMenuTemplates` en compte moins de deux.
+Ce qu'un script, une zone de combat ou une mission de combat fait apparaître n'est à personne et n'y figure pas.
+Le retrait est ouvert à tous, sans niveau : un pilote retire toujours ce qu'il a fait lui-même ; `-destroy` reste réservé aux membres de confiance.
+
 ### Téléporter un groupe
 
 ```

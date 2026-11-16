@@ -409,7 +409,7 @@ approximation of it.
   Roosevelt** (one `add_carrier_group` each, with distinct TACAN, ICLS, Link 4 and frequencies):
   David's decision of 2026-10-02, for every generated mission that has a carrier group.
 - **`src/presets.yaml` = the briefing's frequency plan**, channel by channel, no Guard (channel 1 is the flight's starting frequency): bases, carrier,
-  AWACS, tankers, package frequency. **Base channels carry the frequencies DCS gives the airfield**:
+  AWACS, tankers, package frequency — the airfields on the VHF radio (`primary_2`), everything else on the UHF radio (`primary_1`), AWACS and tankers first, never one kind spread over both. **Base channels carry the frequencies DCS gives the airfield**:
   `describe_airfield_channels` then `set_airfield_channels`, never a hand-typed airfield frequency.
   Rewrite **all** the template's `channel_lists`: on another map, it keeps Caucasus airfields
   (Batumi, Beslan…). Re-read the presets actually injected, aircraft by aircraft (`inspect_built_mission`). The
@@ -431,7 +431,7 @@ approximation of it.
   - **`basemap: topo`** (OpenTopoMap, hillshade and contour lines) for any low-level or terrain-dependent mission, and in a desert, where the standard OSM basemap is nearly empty.
   - **Look at every rendered map** if you can: no label may point at the wrong spot. With no way to
     see an image, ask the user to look at them (`docs/maps/`).
-  - **Re-read every zoom for units placed in buildings** when the theatre has no clear-ground catalogue (Syria among others: the placing actions say so): a vehicle in a village or a wood shows there, and moves with `set_unit_properties`. What a zoom does not show stays to be checked in game (`veaf-tools dcs clear-ground-check`, which needs DCS).
+  - **Re-read every zoom for units placed in buildings** when the theatre has no clear-ground catalogue (Syria among others: the placing actions say so): a vehicle in a village or a wood shows there, and moves with `set_unit_properties`. What a zoom does not show stays to be checked in game (`veaf-tools dcs clear-ground-check`, which needs DCS), and in a wooded area by eye as well: the probe of that check misses some forests (Syria, Akamas peninsula, known limitation `disposition-blind-to-akamas-forest`).
 - **F10 drawings** (`add_map_drawing`) on the `Blue` layer: the route and its named points, the known
   threats with their outline. Each label with an **opaque, light** `fill_color`, otherwise the default
   background (half-transparent black) makes it unreadable.

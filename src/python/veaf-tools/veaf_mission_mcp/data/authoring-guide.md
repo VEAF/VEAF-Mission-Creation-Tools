@@ -182,6 +182,9 @@ a blue SAM (`-sam` is not inherently red; what it draws at random is the level, 
 site, make the fake-unit **blue** — don't fall back to literal units just for a colour. (The
 "coalition is ignored" above only governs which real groups the zone *captures* by geometry.)
 
+**Each side on its own side of the front:** in a zone that holds both sides, each side's armor stands on its own side of the line and its air defense behind it — the short range with its armor, the medium range in depth, never between the two lines nor beyond the opposing units.
+Lay the markers where each belongs on the ground, not in a pattern around the zone centre: a red SA-8 laid 2.5 km south of the centre of the Caucasus OT's `combatZone_Beslan` stood about 1 km from the blue Abrams.
+
 **Which side must die:** a zone completes when the **hostile** coalition's units are gone, and
 that side is **red** unless you say otherwise. If the units to destroy are blue — a zone played
 from the red side — set `enemy_coalition: BLUE` on the `combat_zones[]` entry; otherwise the zone
@@ -341,8 +344,9 @@ or a red base with slots nobody asked for, is an inconsistency.
   AWACS Overlord = 1, Magic = 2…), radio frequency, preset label and `ASSETS` information text must
   agree. Cross-check them once written.
 - **Its channel goes into `src/presets.yaml` in the same pass.** An AWACS, a tanker or a carrier you
-  place gets its channel in the players' coalition's `channel_lists`, under the name the briefing uses;
-  the airfields the mission flies from get theirs through `set_airfield_channels`. The scaffold's plan
+  place gets its channel in the players' coalition's `channel_lists`, under the name the briefing uses,
+  on the UHF list (`primary_1`, AWACS and tankers first, then carriers, then flights);
+  the airfields the mission flies from get theirs through `set_airfield_channels`, on the VHF list (`primary_2`) only. The scaffold's plan
   is an Open Training's (Magic 282.2, Arco-1 290.5…): left as it is, every radio and every kneeboard
   agrees with it and not with your mission — what *Kolkhida* mission 1 flew with. The build lists every
   AWACS and tanker no preset carries, in its log and in `presets-validation-report.md`: treat that list

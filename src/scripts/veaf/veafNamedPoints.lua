@@ -242,7 +242,7 @@ end
 --- Build the initial radio menu
 function veafNamedPoints.buildRadioMenu()
   veaf.loggers.get(veafNamedPoints.Id):debug("buildRadioMenu()")
-  veafNamedPoints.rootPath = veafRadio.addSubMenu(veaf.t(veafNamedPoints.RadioMenuName))
+  veafNamedPoints.rootPath = veafRadio.addRootMenu(veafNamedPoints.RadioMenuName)
   veafRadio.addCommandToSubmenu(
     veaf.t("menu.namedpoints.list"),
     veafNamedPoints.rootPath,

@@ -59,7 +59,7 @@ flowchart TD
 |---------|----|----|
 | **Trigger DCS** | Triggers `DO SCRIPT FILE` manuels pointant vers chaque fichier `.lua` | Trigger unique injecté automatiquement par `veaf-tools mission build` ; aucun travail de trigger manuel |
 | **Chaîne de build** | Pas d'étape de build — scripts chargés directement depuis le disque au démarrage de la mission | `.\veaf-tools.exe mission build` assemble le `.miz` depuis `src/mission/` + `src/scripts/` |
-| **Script de build** | `build.cmd` complexe avec une ligne par commande d'injection | Pas de `build.cmd` — lancez simplement `.\veaf-tools-updater.exe` puis `.\veaf-tools.exe mission build` |
+| **Script de build** | `build.cmd` complexe avec une ligne par commande d'injection | Pas de `build.cmd` — lancez simplement `.\veaf-tools-updater.exe` puis `.\veaf-tools.exe mission build` ; vos propres étapes vont dans un script à vous ([Vos propres étapes après le build](#post-build-steps)) |
 | **Pipeline d'auto-injection** | Chaque commande d'injection devait être ajoutée manuellement à `build.cmd` | `veaf-tools mission build` auto-détecte et exécute chaque étape quand le fichier correspondant est présent dans `src/` |
 | **Mises à jour des outils** | NPM (`npm install`) — scripts distribués sous forme de package versionné | `veaf-tools-updater.exe` — télécharge et vérifie la dernière release en une commande |
 | **Config au moment du build** | Pas de fichier de config au moment du build | `mission.yaml` — contrôle les niveaux de log, l'activation/désactivation des modules, les surcharges d'étapes du pipeline |
@@ -167,6 +167,29 @@ Quand votre mission v5 charge ses propres scripts par la liste `scriptsToLoad` d
 - distingue, parmi les réglages qu'il ne peut pas reporter, ceux que votre script **calcule** (lus dans des données, par un appel) au lieu de les écrire comme une valeur.
 
 La méthode complète est dans [Porter une mission à couche de scripts maison](custom-script-layer.md).
+
+#### Vos propres étapes après le build {#post-build-steps}
+
+En v5, `build.cmd` était à vous : on y ajoutait ses propres étapes. En v6, VEAF ne fournit plus de script de build, mais rien ne vous empêche d'en écrire un qui lance le build, puis vos traitements à vous sur le `.miz` produit — par exemple injecter ou modifier vos propres triggers selon que vous construisez pour le serveur ou pour vos tests.
+
+Choisissez la variante avec un [profil de build](GUIDE.md#build-profiles) (`--profile TEST`, `--profile SERVER`) : chaque profil écrit son propre `.miz`, suffixé de son nom (`MaMission_20261109_TEST.miz`). Un `build.ps1` dans le dossier de la mission :
+
+```powershell
+param([string]$BuildProfile = "TEST")
+
+.\veaf-tools.exe mission build --profile $BuildProfile
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+# Le .miz que ce build vient d'écrire
+$miz = Get-ChildItem -Filter "*_$BuildProfile.miz" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+
+# Vos étapes à vous, sur ce fichier
+.\mon-outil.exe $miz.FullName
+```
+
+Lancez-le avec `.\build.ps1 -BuildProfile SERVER`. Si PowerShell refuse d'exécuter un script (« l'exécution de scripts est désactivée sur ce système »), lancez-le avec `powershell -ExecutionPolicy Bypass -File .\build.ps1`.
+
+Le fichier `mission` du `.miz` est écrit dans la même mise en forme que l'éditeur de mission (`["coalition"] = `, indentation par tabulations, commentaires `-- end of`) : un outil qui lit une mission sauvée par l'éditeur lit aussi celle de VEAF. L'ordre des clés, lui, n'est pas celui de l'éditeur, qui le change d'ailleurs à chaque sauvegarde : ne vous appuyez pas dessus.
 
 ---
 

@@ -77,6 +77,7 @@ plugins:
             Getting help: Obtenir de l'aide
             Diagnostic block format: Format du bloc de diagnostic
             Report block format: Format du bloc de rapport
+            Live scripts with dcs-hotload: Scripts en direct avec dcs-hotload
             When DCS misbehaves: DCS se comporte mal
             Pilot Guide: Guide Pilote
             Overview: Aperçu
@@ -224,6 +225,7 @@ nav:
     - Diagnostic block format: developer/diagnostic-block.md
     - Report block format: developer/report-block.md
     - Smoke harness (in-DCS): developer/smoke-harness.md
+    - Live scripts with dcs-hotload: developer/hotload.md
     - Testing: TESTING.md
   - References:
     - mission.yaml Reference: MISSION_YAML_REFERENCE.md

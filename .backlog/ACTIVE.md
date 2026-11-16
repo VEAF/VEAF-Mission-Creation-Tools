@@ -186,6 +186,10 @@ The briefing map drawn by the tools rather than by each mission's own script. Pa
 
 A Foothold-like persistent campaign built on VMCT alone. Paused 2026-10-06: David wants the multi-mission campaign first, and this lot will be built on the bricks it leaves.
 
+### [POC-AUTO-TOWER](POC-AUTO-TOWER/PRD.md) · ⏸
+
+An automatic tower in French on the airfield VHF that frames the human pilots only, triggered by where they are (entry points, circuit, takeoff, landing), with no voice or F10 input. The idea came from reviewing the LivingRadio mod, not kept for our servers. Paused 2026-11-16: noted, not for now.
+
 ### [REFACTOR-SPAWN-AIR-TEMPLATES](REFACTOR-SPAWN-AIR-TEMPLATES/PRD.md) · ⏸
 
 How an air template is chosen for a spawn has no clear model (#284). Its one visible symptom (#240) is fixed; resume when a lot is already in this code.

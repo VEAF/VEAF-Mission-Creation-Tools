@@ -61,11 +61,11 @@ Toutes les fonctions de VEAF MCT sont accessibles depuis **F10 → Autre → VEA
 ```mermaid
 graph TD
     F10[Menu radio F10] --> Autre[Autre] --> VEAF[VEAF]
-    VEAF --> Res[MOYENS]
-    VEAF --> CAS[MISSION CAS]
     VEAF --> CZ[ZONES DE COMBAT]
+    VEAF --> Res[MOYENS]
     VEAF --> Miss[MISSIONS]
     VEAF --> Assist[ASSISTANCE]
+    VEAF --> CAS[MISSION CAS]
     Assist --> AS1["Démarrage à froid — F-16C"]
     Res --> A1["Arco 1-1 — ravitailleur"]
     Res --> A2["Overlord — AWACS"]
@@ -75,6 +75,24 @@ graph TD
 > 📷 *Capture à venir : sous-menu VEAF dans le menu radio F10.*
 
 Le contenu exact dépend de ce que le créateur de la mission a activé : certaines missions n'auront pas toutes ces entrées.
+
+Les menus apparaissent **toujours dans le même ordre**, quelle que soit la langue de la mission — les plus utilisés en premier :
+
+1. CAMPAGNE (dans une mission de campagne)
+2. ZONES DE COMBAT
+3. MÉTÉO ET ATC
+4. MOYENS
+5. MISSIONS
+6. OPS PORTE-AVIONS
+7. MISSION DE TRANSPORT
+8. APPARITION
+9. RÉSEAU DE GUETTEURS
+10. DÉPLACER
+11. POINTS NOMMÉS
+12. GUARDIAN
+13. OPPOSITION
+
+Viennent ensuite les autres entrées (ASSISTANCE, CTLD…), par ordre alphabétique, et **MISSION CAS toujours en dernier**. Une page du menu F10 tient 10 entrées : au-delà, la dernière s'appelle « Page suivante », et MISSION CAS se retrouve alors sur la page 2.
 
 ---
 
@@ -195,6 +213,25 @@ _spawn flare, power 1000000, shells 5
 _spawn bomb, power 500, shells 3
 ```
 
+### Retirer ce que vous avez fait apparaître {#remove-your-spawns}
+
+La mission retient ce que **vos** marqueurs ont fait apparaître : un alias (`-sa6`, `-armor`, `-convoy`, `-farp`…), une commande brute (`_spawn`, `_cas`…).
+Vous le retirez vous-même depuis **F10 → VEAF → APPARITION → Page suivante → Mes spawns → [votre nom]** (*Mes spawns* vient après les commandes du menu APPARITION, qui remplissent sa première page) :
+
+- **Tout retirer** enlève tout ce que vous avez fait apparaître ;
+- chaque marqueur a sa propre entrée, nommée par ce que vous avez tapé et l'heure de la mission (par exemple `-sa6 14:32`) : elle enlève ce marqueur-là seulement, convoi ou groupe entier compris.
+
+Le menu *Mes spawns* n'apparaît que lorsque vous avez quelque chose à retirer.
+Ce qui a déjà été détruit disparaît tout seul de la liste ; un groupe à moitié détruit est retiré entier.
+
+Quelques précisions :
+
+- **C'est le pilote qui compte, pas l'avion** : en changeant d'appareil, vous retrouvez votre liste.
+- **Dans un biplace ou une patrouille**, DCS ne sait pas qui clique dans le menu F10 : chaque occupant du groupe voit les spawns de chacun, rangés sous son nom.
+- **Personne d'autre ne peut retirer vos spawns** par ce menu. `-destroy` reste la commande des membres de confiance.
+- **En quittant le serveur, rien n'est retiré automatiquement** : quelqu'un s'en sert peut-être encore. Faites le ménage avant de partir.
+- Les **zones de combat** ne sont pas concernées : elles retirent leurs propres unités quand on les désactive.
+
 ---
 
 ## Ressources
@@ -288,7 +325,7 @@ Le générateur **CAS** (*Close Air Support*, appui aérien rapproché) crée un
 
 **Déroulement :**
 
-1. **Générer** — posez un marqueur `_cas` sur la carte (avec des paramètres optionnels, voir plus bas). Le sous-menu **MISSION CAS** apparaît alors dans F10 → VEAF.
+1. **Générer** — posez un marqueur `_cas` sur la carte (avec des paramètres optionnels, voir plus bas). Le sous-menu **MISSION CAS**, en dernier dans F10 → VEAF, est là en permanence : sans mission CAS en cours, ses entrées répondent « Pas de mission CAS : posez un marqueur -cas sur la carte F10 ».
 2. **Marquer la zone** — *Target markers → Request smoke on target area* ou *Request illumination flare over target area* (3 minutes de délai entre deux marquages).
 3. **Obtenir les infos** — *Target information* : position, composition des unités, état.
 4. **Engager** — attaquez les cibles marquées.
@@ -330,6 +367,8 @@ de votre palier ou en dessous.
 
 Les commandes ouvertes : infos sur les ressources, fumée, fusées éclairantes, marquage d'un point.
 D'autres, comme faire apparaître un groupe ou détruire une unité, demandent un palier plus élevé.
+
+Un alias demande le palier de la commande qu'il lance : `-send` demande un membre de confiance comme `_radio`, à une exception près — déplacer un ravitailleur ou un AFAC par alias (`-tankerlow`, `-tankerhere`, `-afachere`…) est ouvert aux pilotes VEAF ([le palier d'un alias](../mission-maker/scripts/veafShortcuts.md#alias-level)).
 
 Si vous n'êtes pas sur la liste, ajoutez le mot de passe du palier voulu à chaque commande protégée
 (mot-clé `password`, par exemple `_spawn group, name ..., password [MOT_DE_PASSE]`) : il est vérifié

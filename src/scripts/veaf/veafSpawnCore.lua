@@ -1024,7 +1024,7 @@ end
 function veafSpawn.buildRadioMenu()
   veaf.loggers.get(veafSpawn.Id):debug(string.format("veafSpawn.buildRadioMenu() hideMenu%s", veaf.p(veafSpawn.HideRadioMenu)))
   if not veafSpawn.HideRadioMenu then
-    veafSpawn.rootPath = veafRadio.addSubMenu(veaf.t(veafSpawn.RadioMenuName))
+    veafSpawn.rootPath = veafRadio.addRootMenu(veafSpawn.RadioMenuName)
     veafRadio.addCommandToSubmenu(
       veaf.t("menu.spawn.available_aircraft"),
       veafSpawn.rootPath,
@@ -1176,6 +1176,7 @@ function veafSpawn.initialize()
       bypass
     )
   end, veafCommands.PRIORITY_SPAWN, veafCommands.SECURITY_HANDLED)
+  veafSpawn.initializeOwnership()
   veafSpawn.dumpSpawnablePlanesList()
 end
 

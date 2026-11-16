@@ -74,6 +74,13 @@ class FrequencyRange:
 class AircraftRadio:
     name: str
     ranges: list[FrequencyRange] = field(default_factory=list)
+    channels: int | None = None
+    """How many preset channels the radio holds: the length of its ``panelRadio`` ``channels`` list.
+
+    The presets injector truncates a longer channel list to it (FEAT-RADIO-CAPACITY-ALL-TYPES): the
+    OH-58D crashed the DCS client at spawn with 32 FM presets on radios that hold 21. ``None`` when
+    the module declares no list (a radio the overlay declares has none).
+    """
 
 
 @dataclass
@@ -262,8 +269,39 @@ def _parse_ranges(range_block: str) -> list[FrequencyRange]:
     return ranges
 
 
+def _count_child_blocks(block: str) -> int:
+    """Count the direct ``{...}`` children of a balanced Lua table block.
+
+    Args:
+        block: A balanced block, starting with ``{`` and ending with ``}``.
+
+    Returns:
+        The number of tables at depth one: a nested table inside a child counts once.
+    """
+    count = 0
+    pos = 1  # skip the leading {
+    while pos < len(block) - 1:
+        if block[pos] == "{":
+            child = _extract_block(block, pos)
+            if not child:
+                break
+            count += 1
+            pos += len(child)
+        else:
+            pos += 1
+    return count
+
+
 def parse_panel_radio(lua_content: str) -> list[AircraftRadio] | None:
-    """Extract panelRadio entries from a DCS Lua aircraft file."""
+    """Extract panelRadio entries from a DCS Lua aircraft file.
+
+    Args:
+        lua_content: Full text of the aircraft's datamine Lua file.
+
+    Returns:
+        The radios that carry a name and a range, each with its preset channel count when the
+        module lists its channels, or ``None`` when the file has no usable ``panelRadio``.
+    """
     match = re.search(r"panelRadio\s*=\s*\{", lua_content)
     if not match:
         return None
@@ -289,12 +327,16 @@ def parse_panel_radio(lua_content: str) -> list[AircraftRadio] | None:
                     # Strip the channels block so we don't match channel names as radio name
                     channels_match = re.search(r"\bchannels\s*=\s*\{", radio_block)
                     search_text = radio_block
+                    channel_count: int | None = None
                     if channels_match:
                         channels_block = _extract_block(radio_block, channels_match.end() - 1)
                         search_text = radio_block.replace(channels_block, "", 1)
+                        channel_count = _count_child_blocks(channels_block)
                     radio_name_match = re.search(r'\bname\s*=\s*"([^"]+)"', search_text)
                     if ranges and radio_name_match:
-                        radios.append(AircraftRadio(name=radio_name_match.group(1), ranges=ranges))
+                        radios.append(
+                            AircraftRadio(name=radio_name_match.group(1), ranges=ranges, channels=channel_count)
+                        )
             pos += len(radio_block) if radio_block else 1
         else:
             pos += 1
@@ -433,22 +475,33 @@ def extract_all_specs(clone_root: Path) -> list[AircraftSpec]:
 # ---------------------------------------------------------------------------
 
 
+def _radio_to_yaml_dict(radio: AircraftRadio) -> dict:
+    """One radio's YAML entry; ``channels`` only when the module lists them.
+
+    Args:
+        radio: The extracted radio.
+
+    Returns:
+        The radio's mapping, as ``dcs-radio-specs.yaml`` stores it.
+    """
+    entry: dict = {
+        "name": radio.name,
+        "ranges": [
+            {"min_mhz": rng.min_mhz, "max_mhz": rng.max_mhz, "modulation": rng.modulation} for rng in radio.ranges
+        ],
+    }
+    if radio.channels is not None:
+        entry["channels"] = radio.channels
+    return entry
+
+
 def specs_to_yaml_dict(specs: list[AircraftSpec]) -> dict:
     result: dict = {}
     for spec in specs:
         entry: dict = {
             "name": spec.display_name,
             "category": spec.category,
-            "radios": [
-                {
-                    "name": r.name,
-                    "ranges": [
-                        {"min_mhz": rng.min_mhz, "max_mhz": rng.max_mhz, "modulation": rng.modulation}
-                        for rng in r.ranges
-                    ],
-                }
-                for r in spec.radios
-            ],
+            "radios": [_radio_to_yaml_dict(r) for r in spec.radios],
         }
         if spec.dcs_rejects_on_load:
             entry["dcs_rejects_on_load"] = True
@@ -480,6 +533,8 @@ def write_yaml(specs: list[AircraftSpec], output: Path) -> None:
         f.write("#     category: plane | helicopter\n")
         f.write("#     radios:\n")
         f.write("#       - name: Radio name as shown in DCS\n")
+        f.write("#         channels: 20       # length of its panelRadio channels list, when the module\n")
+        f.write("#                            # lists one: the injector truncates a longer list to it\n")
         f.write("#         ranges:\n")
         f.write("#           - min_mhz: 30.0\n")
         f.write("#             max_mhz: 87.975\n")

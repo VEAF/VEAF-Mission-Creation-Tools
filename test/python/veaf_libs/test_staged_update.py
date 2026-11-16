@@ -104,11 +104,15 @@ def test_copies_set_aside_by_earlier_swaps_are_deleted_when_free(exe: Path) -> N
 
 
 def _start_copy(dest: Path) -> subprocess.Popen:
-    """Copy a standalone system program to ``dest`` and start it waiting ~30 s."""
+    """Copy a standalone system program to ``dest`` and start it waiting ~30 s.
+
+    Not ``/bin/sleep`` on Linux: from Ubuntu 26.04 it is the uutils multicall binary, which picks its
+    utility from its own file name and exits at once under any other name.
+    """
     if sys.platform == "win32":
         source, args = Path(os.environ["SystemRoot"]) / "System32" / "ping.exe", ["-n", "30", "127.0.0.1"]
     else:
-        source, args = Path("/bin/sleep"), ["30"]
+        source, args = Path("/usr/bin/perl"), ["-e", "sleep 30"]
     dest.write_bytes(source.read_bytes())
     dest.chmod(0o755)
     return subprocess.Popen([str(dest), *args], stdout=subprocess.DEVNULL)

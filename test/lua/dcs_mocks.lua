@@ -1260,6 +1260,10 @@ veafRadio = {
   addSubMenu = function(...)
     return {}
   end,
+  -- through addSubMenu, as the real one goes, so a test spying on addSubMenu sees root menus too
+  addRootMenu = function(key, side)
+    return veafRadio.addSubMenu(veaf.t(key), nil, side)
+  end,
   addCommandToSubmenu = function(...) end,
   addSecuredCommandToSubmenu = function(...) end,
   addCommandToMainMenu = function(...) end,

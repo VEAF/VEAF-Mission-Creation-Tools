@@ -4,6 +4,9 @@ Référence rapide de tous les alias de marqueur intégrés disponibles dans tou
 
 Placez un marqueur F10 avec le texte de l'alias (ex : `-sam`) pour faire apparaître le groupe correspondant ou exécuter la commande. Voir [veafShortcuts](mission-maker/scripts/veafShortcuts.md) pour la documentation du module et la création d'alias personnalisés.
 
+Un alias s'exécute au palier de sécurité de la commande qu'il lance, sauf s'il en déclare un : voir [le palier d'un alias](mission-maker/scripts/veafShortcuts.md#alias-level).
+Les commandes de ravitailleur et d'AFAC (`-tanker*`, `-afachere`) demandent un pilote VEAF, `-send` et `-play` un membre de confiance.
+
 ---
 
 ## Groupes SAM génériques

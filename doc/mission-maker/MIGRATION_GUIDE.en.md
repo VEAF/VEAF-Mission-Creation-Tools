@@ -60,7 +60,7 @@ flowchart TD
 |------|----|----|
 | **DCS trigger** | Manual `DO SCRIPT FILE` triggers pointing at each `.lua` file | Single trigger injected automatically by `veaf-tools mission build`; no manual trigger work |
 | **Build toolchain** | No build step — scripts loaded directly from disk at mission start | `.\veaf-tools.exe mission build` assembles the `.miz` from `src/mission/` + `src/scripts/` |
-| **Build script** | Complex `build.cmd` with one line per inject command | No `build.cmd` — just run `.\veaf-tools-updater.exe` then `.\veaf-tools.exe mission build` |
+| **Build script** | Complex `build.cmd` with one line per inject command | No `build.cmd` — just run `.\veaf-tools-updater.exe` then `.\veaf-tools.exe mission build`; your own steps go in a script of your own ([Your own steps after the build](#post-build-steps)) |
 | **Auto-inject pipeline** | Each inject command (`inject-presets`, `inject-waypoints`, etc.) had to be added manually to `build.cmd` | `veaf-tools mission build` auto-detects and runs each step when the matching file is present in `src/` |
 | **Tool updates** | NPM (`npm install`) — scripts distributed as a versioned package | `veaf-tools-updater.exe` — downloads and verifies the latest release in one command |
 | **Build-time config** | No build-time config file | `mission.yaml` — controls log levels, module enable/disable, pipeline step overrides |
@@ -168,6 +168,29 @@ When your v5 mission loads scripts of its own through the `scriptsToLoad` list o
 - says apart, among the settings it cannot carry, those your script **computes** (read from data, a function call) rather than writes as a value.
 
 The whole method is in [Porting a mission with its own script layer](custom-script-layer.en.md).
+
+#### Your own steps after the build {#post-build-steps}
+
+In v5, `build.cmd` was yours: you added your own steps to it. In v6, VEAF ships no build script any more, but nothing stops you from writing one that runs the build, then your own processing of the `.miz` it wrote — for instance injecting or changing your own triggers depending on whether you build for the server or for your tests.
+
+Pick the variant with a [build profile](GUIDE.en.md#build-profiles) (`--profile TEST`, `--profile SERVER`): each profile writes its own `.miz`, suffixed with its name (`MyMission_20261109_TEST.miz`). A `build.ps1` in the mission folder:
+
+```powershell
+param([string]$BuildProfile = "TEST")
+
+.\veaf-tools.exe mission build --profile $BuildProfile
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+# The .miz this build has just written
+$miz = Get-ChildItem -Filter "*_$BuildProfile.miz" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+
+# Your own steps, on that file
+.\my-tool.exe $miz.FullName
+```
+
+Run it with `.\build.ps1 -BuildProfile SERVER`. If PowerShell refuses to run a script ("running scripts is disabled on this system"), run it with `powershell -ExecutionPolicy Bypass -File .\build.ps1`.
+
+The `.miz`'s `mission` file is written in the Mission Editor's layout (`["coalition"] = `, tab indentation, `-- end of` comments): a tool that reads a mission saved by the editor reads VEAF's too. The key order is not the editor's, which changes it on every save anyway: do not rely on it.
 
 ---
 

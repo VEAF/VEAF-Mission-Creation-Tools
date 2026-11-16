@@ -12,7 +12,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-import luadata
+from mission_tools.dcs_lua import serialize_member
 from mission_tools.mission_constants import DEFAULT_SCRIPTS_LOCATION
 from mission_tools.miz_backup import backup_before_write
 from mission_tools.miz_tools import list_members, read_miz, write_miz
@@ -92,9 +92,8 @@ def set_briefing_picture(
         # `write_miz` rewrites a `mapResource` member the archive already has; one it lacks has to be
         # supplied, as `add_sound` does.
         if f"{DEFAULT_SCRIPTS_LOCATION}/mapResource" not in members:
-            additional_files[f"{DEFAULT_SCRIPTS_LOCATION}/mapResource"] = (
-                "mapResource = \n"
-                + luadata.serialize(resources, indent="  ", indent_level=0, always_provide_keyname=True, sort=True)
+            additional_files[f"{DEFAULT_SCRIPTS_LOCATION}/mapResource"] = serialize_member(
+                resources, "mapResource"
             ).encode()
         backup_before_write(target)
         write_miz(mission, target, additional_files=additional_files)

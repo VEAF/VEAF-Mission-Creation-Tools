@@ -199,6 +199,20 @@ limitations:
   workaround: |
     None in flight; an escorted convoy rarely meets a second contact after taking its zone.
 
+- id: transport-mission-menu-piles-up-in-french
+  kind: tool
+  area: runtime
+  title: "In a French mission, the TRANSPORT MISSION menu never removes an entry, so its entries pile up"
+  symptom: |
+    `veafTransportMission` removes its F10 entries by their **English** titles
+    (`delCommand(..., "Request smoke on drop zone")`, "Skip current objective"…) while it adds them with
+    labels in the mission's language, and `delCommand` compares titles. In a French mission no removal
+    happens: after a smoke request both "request" and "marked" entries are shown, each reset adds
+    another "request", and the mission's entries stay after it ends. The CAS mission had the same
+    defect, measured 2026-11-10 and fixed by FEAT-RADIO-MENU-ORDER (its menu is now fixed).
+  workaround: |
+    None in flight: use the first matching entry. An English mission is not affected.
+
 - id: briefing-channels-are-dcs-slots
   kind: tool
   area: mcp
@@ -1485,6 +1499,47 @@ limitations:
     `veaf-tools dcs farp-spot` keeps only the points this query calls free: it can miss a usable spot.
     Neither what it lists nor what it leaves out has been checked by eye yet.
 
+- id: disposition-blind-to-akamas-forest
+  kind: dcs
+  area: spawning
+  title: "On Syria, `Disposition.getSimpleZones` does not see some forests (Akamas peninsula, Ceyhan)"
+  measured: "2026-11-12"
+  theatres: [Syria]
+  symptom: |
+    The probe every clear-ground tool rests on answers "free" inside a wood it cannot see. Measured on
+    Syria, on the Akamas peninsula (Cyprus):
+
+    | Asked | Answer |
+    |---|---|
+    | `veaf-tools dcs clear-ground-sweep`, 6 km around (x=13764, y=-326975) | **0 blocked cells of 58 081** |
+    | `veaf-tools dcs clear-ground-check` on the Akamas range of the Syria Open Training | its vehicles **on clear ground** |
+    | in game (David), a T-72 at (13404, -326775) | **in the middle of a wood** |
+
+    A second forest, 8 km east of the Ceyhan FARP (Turkey, near MGRS YF69):
+
+    | Asked | Answer |
+    |---|---|
+    | `veaf-tools dcs clear-ground-check` on the whole Syria Open Training, 2026-11-12 | 11 vehicles off clear ground, all of them sanctuary groups: the 8 vehicles of the Ceyhan helicopter range, around (218900, 11100), **on clear ground** |
+    | in game (David, 2026-11-15), the same range, unmoved | **in the middle of a forest** |
+
+    So on Syria a clean `clear-ground-check` — "0 vehicles in the scenery" — proves nothing where the
+    probe is blind. Two forests are measured; which others of the map it misses is not.
+  workaround: |
+    Run `veaf-tools dcs forest-check <mission.miz>` as well: it reads the forests from the map files
+    installed with DCS (the `Trees` meshes of `surface/<map>.surface5`, the data the F10 "Map" view
+    draws), without launching the game. Measured on 2026-11-16 against six places known in game on
+    Syria: the old Ceyhan range (219000, 11000), a wood at (212316, 2506) and the Akamas T-72
+    (13404, -326775) come out in a forest; open hills at (212916, 9506), the Ceyhan FARP (221016, 2506)
+    and the current Akamas range (14640, -314461) do not. It sees forests only: for buildings and lone
+    trees, look at the placed vehicles in game before trusting a range or a defence. One capture of the
+    F10 map in its "Map" mode around the placed units settles it, and its cursor readout gives the
+    mission coordinates to place by.
+  cost: |
+    The Akamas firing range of the Syria Open Training stood in the trees, reported by a player on the
+    VEAF Discord (thread 1570181686451507230); it was moved to the Polis plain and checked by smoke in
+    game (VEAF-Open-Training-Mission-Syria-v6 `bee652e`, 2026-11-12). The Ceyhan helicopter range of the
+    same mission stood in a forest too, reported by David after flying it (2026-11-15).
+
 - id: air-start-flies-toward-its-second-point
   kind: dcs
   area: spawning
@@ -1908,3 +1963,77 @@ limitations:
   workaround: |
     Turn the wind with height by 30° at most (`wind_veer`, 20° by default); never set an upper wind opposed
     to the surface one.
+
+- id: tanker-move-aliases-skip-their-security-level
+  kind: tool
+  area: runtime
+  title: "`-tankerlow` and `-tankerhigh` run for anyone, though `_move` is a trusted member's command"
+  symptom: |
+    `veafMove` registers `_move` with `veafCommands` at the `SENIOR_PILOT` level (moving a tanker affects
+    everyone flying). The aliases `-tankerlow` and `-tankerhigh` do not bypass security, but
+    `VeafAlias:execute` calls `veafMove.executeCommand` directly, past the `veafCommands` handler that holds
+    the level, and `veafMove.executeCommand` checks nothing itself: a marker with either alias moves the
+    nearest tanker whoever drops it. Read in the code on 2026-11-10 (FEAT-OPEN-TRAINING-KNEEBOARD), not
+    measured in game.
+  workaround: |
+    Brief them as a trusted member's commands, as the Open Training kneeboard does; a mission that must
+    keep its tankers where they are leaves the aliases out of its briefing.
+
+- id: oh58d-crashes-with-too-many-fm-presets
+  kind: dcs
+  area: radio
+  title: "An OH-58D whose FM radios carry 32 presets crashes the DCS client at spawn"
+  measured: "2026-11-10"
+  symptom: |
+    The Kiowa's two FM sets (radios 3 and 4) hold 21 presets: `C`, `M`, then 1 to 19, the channel count of
+    their `panelRadio` table in `CoreMods/aircraft/OH-58D/OH58D.lua`. A mission that writes more still loads in
+    the Mission Editor, and the client crashes at spawn, in multiplayer, during the cockpit initialisation: the
+    log stops after the LMFD Lua state, with no crash report.
+
+    Measured on the Open Trainings, 2026-11-10: Caucasus, Syria, GermanyCW and Marianas wrote 32 FM presets
+    (a 30-entry `fm_supplement`) and crashed; Sinai and PersianGulf wrote 21 and worked. Where between 21 and
+    32 the crash starts is not measured.
+  workaround: |
+    Keep the FM lists at 20 entries or fewer. From 6.37.0 the build stops at the radio's capacity by itself and
+    says so (see `radio-presets-beyond-capacity`).
+  cost: |
+    Four Open Trainings unflyable in the Kiowa, 2026-11-10.
+
+- id: radio-presets-beyond-capacity
+  kind: tool
+  area: radio
+  title: "The build wrote more presets than a radio holds, without a word"
+  symptom: |
+    A channel list longer than a radio went through whole: a 30-entry `fm_supplement` gave the OH-58D 32 FM
+    presets for 21 slots, which crashes the client (`oh58d-crashes-with-too-many-fm-presets`). The layouts
+    declared no radio capacity, and the truncation primitive was silent by design.
+  workaround: |
+    Keep the lists within the radio's channel count (the `panelRadio` table of the module's Lua file).
+  fixed_in: "6.37.0"
+
+- id: radio-capacity-not-applied-to-manual-presets
+  kind: tool
+  area: radio
+  title: "A manual `presets_assignments` preset is written whole, past the radio's capacity"
+  symptom: |
+    From 6.37.0 every radio is cut at the preset count its module lists (`channels` in
+    `dcs-radio-specs.yaml`), but only on the `channel_lists` projection. A type matched by
+    `presets_assignments` takes its legacy preset as it is: the shipped defaults give the blue CH-47F
+    `modern_blue_fm_uhf`, whose `radio_fm_30` puts 30 FM presets on an ARC-186 that holds 20. Whether
+    the CH-47F crashes like the OH-58D did is not measured.
+  workaround: |
+    Keep a manual preset's radios within the channel count of the module (`channels` of the type in
+    `dcs-radio-specs.yaml`, in radio order).
+  fixed_in: "6.37.0"
+
+- id: radio-capacity-unknown-for-overlay-radios
+  kind: tool
+  area: radio
+  title: "The La-7 and the MiG-15bis radios have no preset capacity: their lists go through whole"
+  symptom: |
+    Every other radio stops at the preset count its module lists (`channels` in `dcs-radio-specs.yaml`).
+    The La-7's and the MiG-15bis's radio is declared by the VEAF overlay
+    (`dcs-radio-specs-overrides.yaml`) because the datamine has none for them, so no count is known and
+    the build writes whatever the list holds.
+  workaround: |
+    Keep their channel lists short, or give them a manual preset that fits their cockpit set.

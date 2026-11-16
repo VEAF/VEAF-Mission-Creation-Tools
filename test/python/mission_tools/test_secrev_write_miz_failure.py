@@ -42,7 +42,7 @@ class TestAFailedWriteIsReported(unittest.TestCase):
         folder = Path(tempfile.mkdtemp())
         mission = _mission(_a_miz(folder))
         out = folder / "out.miz"
-        with mock.patch.object(miz_tools.luadata, "serialize", side_effect=RuntimeError("boom")):
+        with mock.patch.object(miz_tools, "serialize_member", side_effect=RuntimeError("boom")):
             with self.assertRaises(RuntimeError):
                 write_miz(mission, out)
 
@@ -50,7 +50,7 @@ class TestAFailedWriteIsReported(unittest.TestCase):
         folder = Path(tempfile.mkdtemp())
         mission = _mission(_a_miz(folder))
         out = folder / "out.miz"
-        with mock.patch.object(miz_tools.luadata, "serialize", side_effect=RuntimeError("boom")):
+        with mock.patch.object(miz_tools, "serialize_member", side_effect=RuntimeError("boom")):
             with self.assertRaises(RuntimeError):
                 write_miz(mission, out)
         self.assertEqual(_temp_files(folder), [], "the refused write left its temp file on disk")
@@ -59,7 +59,7 @@ class TestAFailedWriteIsReported(unittest.TestCase):
         folder = Path(tempfile.mkdtemp())
         mission = _mission(_a_miz(folder))
         out = folder / "out.miz"
-        with mock.patch.object(miz_tools.luadata, "serialize", side_effect=RuntimeError("boom")):
+        with mock.patch.object(miz_tools, "serialize_member", side_effect=RuntimeError("boom")):
             with self.assertRaises(RuntimeError):
                 write_miz(mission, out)
         self.assertFalse(out.exists(), "a half-written mission must not appear at the target path")
@@ -71,7 +71,7 @@ class TestAFailedWriteIsReported(unittest.TestCase):
         mission = _mission(_a_miz(folder))
         out = _a_miz(folder, "out.miz")
         before = out.read_bytes()
-        with mock.patch.object(miz_tools.luadata, "serialize", side_effect=RuntimeError("boom")):
+        with mock.patch.object(miz_tools, "serialize_member", side_effect=RuntimeError("boom")):
             with self.assertRaises(RuntimeError):
                 write_miz(mission, out)
         self.assertEqual(out.read_bytes(), before)

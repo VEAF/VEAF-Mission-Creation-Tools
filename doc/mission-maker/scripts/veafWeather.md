@@ -78,6 +78,14 @@ veaf.outTextForUnit(unitName, report, 30)
 
 Les arguments suivants sont optionnels : `getWeatherString(vec3, dcsElementName, unitSystem, iSurfaceAltitudeMeters)`. En passant le nom d'une unité DCS comme `dcsElementName`, le rapport s'adapte au type d'appareil (système d'unités, données LASTE pour le A-10).
 
+### Unités du QNH {#qnh-units}
+
+Le QNH et le QFE s'affichent toujours **en hPa et en inHg**, quel que soit l'appareil ou le théâtre : à l'accueil de slot, dans le rapport météo, dans l'ATIS (y compris celui d'un porte-avions) et dans la météo d'une zone de combat.
+Un pilote cale son altimètre dans l'unité qu'il prend, sans conversion : `1013Hpa|29.91inHg`.
+Les appareils de l'Est (MiG, Su, hélicoptères russes…), un porte-avions russe et la météo d'une zone de combat ont en plus le mmHg : `1013Hpa|29.91inHg|760mmHg`.
+
+Le système d'unités choisi pour l'appareil change toujours le vent, la visibilité et les altitudes ; il ne retire plus aucune unité de pression.
+
 ---
 
 ## Menu radio F10

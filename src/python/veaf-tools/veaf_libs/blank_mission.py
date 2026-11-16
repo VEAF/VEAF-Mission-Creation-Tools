@@ -19,8 +19,8 @@ units on both sides and no country assigned to either, and DCS refused to load i
 from functools import lru_cache
 from typing import Any
 
-import luadata  # type: ignore[import-untyped]
 import yaml
+from mission_tools.dcs_lua import serialize_member
 
 from veaf_libs.bundled_data import read_bundled_text
 
@@ -207,9 +207,8 @@ def _mission_skeleton(theatre: dict[str, Any]) -> dict[str, Any]:
 
 
 def _serialize(content: dict[str, Any], variable_name: str) -> bytes:
-    """Serialize a Lua table to ``<name> = \\n<lua>`` bytes (mirrors ``write_miz``)."""
-    lua = luadata.serialize(content, indent="  ", indent_level=0, always_provide_keyname=True, sort=True)
-    return f"{variable_name} = \n{lua}".encode()
+    """Serialize a Lua table to ``<name> = …`` bytes in the Mission Editor's layout (mirrors ``write_miz``)."""
+    return serialize_member(content, variable_name).encode()
 
 
 def generate_blank_mission(theatre: str) -> dict[str, bytes]:

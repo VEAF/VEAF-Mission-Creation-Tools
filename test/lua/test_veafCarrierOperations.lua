@@ -36,6 +36,9 @@ veafWeatherData = {
   end,
 }
 veafRadio = {
+  addRootMenu = function(key, side)
+    return veafRadio.addSubMenu(veaf.t(key), nil, side)
+  end,
   addSubMenu = function(...)
     return {}
   end,
@@ -481,6 +484,9 @@ function TestVeafCarrierMenuCoalition:setUp()
   veafRadio = {
     skipHelpMenus = true,
     USAGE_ForGroup = "ForGroup",
+    addRootMenu = function(key, side)
+      return veafRadio.addSubMenu(veaf.t(key), nil, side)
+    end,
     addSubMenu = function(title, parent, coalitionSide)
       local node = { title = title, parent = parent, coalitionSide = coalitionSide }
       table.insert(this.subMenus, node)
@@ -624,6 +630,9 @@ function TestVeafCarrierStartMenuLanguage:setUp()
   veafRadio = {
     skipHelpMenus = true,
     USAGE_ForGroup = "ForGroup",
+    addRootMenu = function(key, side)
+      return veafRadio.addSubMenu(veaf.t(key), nil, side)
+    end,
     addSubMenu = function(title)
       return { title = title }
     end,

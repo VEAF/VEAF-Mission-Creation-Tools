@@ -1203,7 +1203,7 @@ function veafCampaign.buildRadioMenu()
   if not veafRadio then
     return
   end
-  veafCampaign.rootPath = veafRadio.addSubMenu(veaf.t("menu.campaign.root"))
+  veafCampaign.rootPath = veafRadio.addRootMenu("menu.campaign.root")
   veafRadio.addCommandToSubmenu(
     veaf.t("menu.campaign.situation"),
     veafCampaign.rootPath,

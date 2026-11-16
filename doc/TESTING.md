@@ -166,6 +166,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafOpposition.lua` | Niveau d'opposition : compté sur les joueurs connectés ou en vol, hystérésis (hausse immédiate, baisse après un délai), marqueur `_opposition` et son niveau de sécurité |
 | `test_veafShortcuts.lua` | Enregistrement et résolution des raccourcis |
 | `test_veafShortcuts_bypass.lua` | Ce qu'un joueur peut taper après un raccourci qui contourne la sécurité |
+| `test_veafShortcuts_handlerLevel.lua` | Un raccourci s'exécute au palier de la commande qu'il lance, ou à celui qu'il déclare |
 | `test_veafWeather.lua` | Parsing météo, calculs QNH/vent |
 | `test_dcsDataExport.lua` | Utilitaires d'export de données unités |
 | `test_veafCombatMission.lua` | Cycle de vie d'une mission de combat |
@@ -197,6 +198,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafMissileGuardian.lua` | Logique d'interception de missiles |
 | `test_veafCampaign.lua` | Campagne multi-missions : tirage, enregistrement et pertes des garnisons |
 | `test_veafCasMission.lua` | Génération de packages de menaces CAS |
+| `test_veafCasMission_menu.lua` | Menu MISSION CAS fixe : aucune entrée ajoutée ni retirée pendant une mission, réponses sans mission en cours |
 | `test_veafTransportMission.lua` | Setup de mission de transport |
 | `test_veafCarrierOperations.lua` | Séquence de recovery porte-avions |
 | `test_veafMove.lua` | Parsing de commandes de déplacement/téléportation |
@@ -204,6 +206,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafGrass.lua` | Initialisation de pistes en herbe |
 | `test_veafHelicopterSpawn.lua` | Hélicoptère créé par marqueur : posé par le chemin sol, catégorie `HELICOPTER`, armement de l'alias, tâches `orbit` et `transport` |
 | `test_veafSpawn.lua` | Commandes spawn, analyse de texte marqueur, conversion fréquence laser |
+| `test_veafSpawnOwnership.lua` | Ce que les marqueurs de chaque pilote ont fait apparaître, et le menu F10 qui le retire |
 | `test_veafSpawnParser.lua` | Parsing déterministe du texte marqueur de spawn (`markTextAnalysis`) |
 | `test_veafCommands.lua` | Registre de commandes : ordonnancement par priorité et dispatch |
 | `test_veafI18n.lua` | Couche i18n runtime Lua (`veaf.t`, catalogue `veafI18n`) |

@@ -669,6 +669,8 @@ Un script déclaré ici est inclus dans le `.miz` **sans** déclencher de warnin
 
 **Ordre de chargement** : les scripts de mission se chargent toujours dans l'ordre `veaf-config.lua` → `mission-script.lua` → vos `custom_scripts` (dans l'ordre de déclaration). Un script custom peut donc compter sur la config VEAF et sur `mission-script.lua` déjà chargés.
 
+> Exemple : [charger dcs-hotload](developer/hotload.md) avec un script custom, pour exécuter du Lua dans la mission qui tourne.
+
 ```yaml
 custom_scripts:
   generate_load_trigger: true       # défaut global pour tous les scripts ci-dessous
@@ -724,16 +726,20 @@ une mission adoptée reproduit donc l'étalement de l'amont sans que vous ayez �
 custom_scripts:
   scripts:
     - path: src/scripts/FgMission.lua   # toujours chargé (les deux variantes)
+    - path: src/scripts/FgDebug.lua
+      generate_load_trigger: false     # déclaré, mais pas chargé par le build par défaut
 
 profiles:
   DEV:
     custom_scripts:
       scripts:
         - path: src/scripts/FgMission.lua    # ⚠️ doit répéter les scripts de base
-        - path: src/scripts/FgDebug.lua      # en plus, dev seulement
+        - path: src/scripts/FgDebug.lua      # sans le flag : chargé en DEV
 ```
 
 Buildez la variante dev avec `veaf-tools mission build --profile DEV` (elle charge `FgMission.lua` + `FgDebug.lua`) ; le build par défaut ne charge que `FgMission.lua`.
+
+> ⚠️ **Déclarer le script dans le profil seulement ne suffit pas** : un fichier `.lua` de `src/scripts/` que `custom_scripts:` ne déclare pas est chargé quand même, avec un warning au build. C'est pourquoi la base déclare `FgDebug.lua` avec `generate_load_trigger: false`. Le build par défaut l'embarque quand même dans le `.miz`, mais ne le charge dans aucun des deux modes.
 
 > ⚠️ **Piège** : le deep-merge des profils **remplace les listes, il ne les concatène pas** (voir [`profiles:`](#profiles)). Le `custom_scripts.scripts` du profil doit donc **répéter** les scripts de base et ajouter celui spécifique à la variante — sinon les scripts de base sont perdus dans ce profil.
 
@@ -786,7 +792,7 @@ pipeline:
 
 ---
 
-### `build:`
+### `build:` {#build}
 
 Contrôle la façon dont `veaf-tools mission build` résout le bundle de scripts VEAF.
 Ces paramètres sont normalement définis via la CLI (`--dev-mode`, `--scripts-path`) puis persistés automatiquement.

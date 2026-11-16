@@ -10,7 +10,15 @@ from pathlib import Path
 from typing import Any
 
 from mission_briefing.mission_briefing_worker import build_mission_briefing
-from mission_briefing.models import BriefingContent, CodeWord, Objective, PackageFlight, SupportAsset, Threat
+from mission_briefing.models import (
+    BriefingContent,
+    CodeWord,
+    Objective,
+    PackageFlight,
+    SupportAsset,
+    TextSheet,
+    Threat,
+)
 from veaf_libs.map_tiles import TILE_SOURCES
 
 from veaf_mission_mcp.accents import missing_accents_warnings
@@ -164,6 +172,9 @@ def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
             CodeWord(word=str(c["word"]), meaning=str(c.get("meaning") or ""), who=str(c.get("who") or ""))
             for c in params.get("code_words") or []
         ),
+        sheets=tuple(
+            TextSheet(title=str(s["title"]), paragraphs=_lines(s.get("paragraphs"))) for s in params.get("sheets") or []
+        ),
     )
     report = build_mission_briefing(
         Path(params["mission_path"]),
@@ -173,9 +184,10 @@ def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
         kneeboard=params.get("kneeboard") is not False,
         recon_folder=Path(params["recon_folder"]) if params.get("recon_folder") else None,
         kneeboard_replace=params.get("kneeboard_replace") is True,
+        kneeboard_only=params.get("kneeboard_only") is True,
     )
     return {
-        "deck": str(report.deck),
+        "deck": str(report.deck) if report.deck else None,
         "pages": report.pages,
         "pdf": str(report.pdf) if report.pdf else None,
         "pdf_pages": report.pdf_pages,
@@ -210,4 +222,6 @@ def _texts(content: BriefingContent) -> dict[str, str]:
     }
     for objective in content.objectives:
         fields[f"objective {objective.zone}"] = [objective.title, *objective.task]
+    for sheet in content.sheets:
+        fields[f"sheet {sheet.title}"] = [sheet.title, *sheet.paragraphs]
     return {label: " ".join(lines) for label, lines in fields.items()}

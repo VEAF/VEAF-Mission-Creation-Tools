@@ -286,6 +286,15 @@ Statics remain for what does not live: buildings, depots, parked aircraft.
 `add_group` places it hot at start; give it `roe: "weapons_hold"` and `disperse: false` (the same keys on a `create_combat_zone` group).
 `training: true`, one radio menu per family.
 
+**No vehicle in the trees.** Every vehicle placed in the Mission Editor (the inert targets above, the zones' native groups; ships excepted) goes through `veaf-tools dcs clear-ground-check` on the built `.miz` before delivery, and is moved (`set_unit_properties`) when it fails.
+Markers (`#command`) are exempt: the runtime itself places their group clear of the scenery.
+The check needs DCS running on this computer (same sequence as `clear-ground-sweep`: `dcs-serve`, empty survey mission, instructions, wait); without DCS, it goes into what remains to be checked (8).
+Reported on the Syria OT, read on 2026-11-12: the Akamas training family (A1 to A3) stands on a wooded peninsula, and its targets — Mission Editor groups, which the runtime never moves — are in the trees.
+The theatre has no clear-ground catalogue, but `clear-ground-check` asks DCS itself, on any map.
+**A clean check is not proof everywhere**: the DCS probe does not see every forest.
+Measured on Syria on 2026-11-12, it saw no tree on the Akamas peninsula, where a T-72 it called clear stood in the middle of a wood (known limitation `disposition-blind-to-akamas-forest`).
+In a wooded area, the vehicles are also looked at in game (F10 view, or smoke on each position); without DCS, that look goes into what remains to be checked (8).
+
 **As an option, a non-combat helicopter zone**: navigation or search for a downed crew, with radio
 beacons along the route (sounds played in a loop, FM frequencies given in the briefing) and a
 distress signal on the site. `training: true`, `completable: false`. The sounds must exist in the
@@ -311,6 +320,11 @@ Rules:
 - **Era defense consistent with the target** (a large armored unit has its divisional defense, an
   airbase its base defense, a convoy its own AAA), through the aliases, carriers of the class spawned,
   unique unit names.
+- **Each side defends from its own side of the front.** In a zone that sets both sides face to face, each side's armor stands on its own side of the line and its air defense behind it: the short range with its armor, **the medium range in depth**, never between the two lines nor beyond the opposing units.
+  Markers are not laid in a geometric pattern around the zone centre (a cross, a circle): each has its place on its own side's ground.
+  Measured on `combatZone_Beslan` of the Caucasus OT (radius 8 km), after a report read on 2026-11-12: red armor north, blue Abrams south, and the red markers laid in a cross around the centre — the SA-8 `Bes-o2` 2.5 km **south**, about 1 km from the Abrams of `allies-2`, the Shilka `Bes-a1` 1.5 km south.
+  The SAM meant to stand far from the front appeared inside the blue lines.
+- **No Mission Editor vehicle in the trees**: the `clear-ground-check` of 4.6 applies to the real zones.
 - **Targets**: statics for buildings, bunkers, aircraft on the ground; native groups for what lives;
   convoys = **one native group** with a road route, its air defense in the same group.
   **Every point of a convoy, the start included, is on a road**: take the point DCS gives (`land.getClosestPointOnRoads` through the dcs-bridge), and set **all** the points "On Road".
@@ -355,9 +369,15 @@ Rules:
 
 - **Complete presets**: the build lists every AWACS, tanker or carrier no preset carries (its log and
   `presets-validation-report.md`); the mission is not ready until that list is empty.
-- **`src/presets.yaml` to rewrite for the map** (the template is not made for it): UHF = bases,
-  AWACS, flights, tankers; VHF = flights; no Guard (channel 1 is the flight's starting frequency); FM 30-59; a red plan if red flies. **Base
-  channels carry the frequencies DCS gives the airfield**, even with ATC silenced: they are what the
+  Only the assets deliberately left off the UHF radio may stay on it (arena AWACS such as Darkstar, drones): tell the user.
+- **`src/presets.yaml` to rewrite for the map** (the template is not made for it), with the template's convention:
+  **the VHF radio (`primary_2`) carries the airfields** (their tower frequency, `bases` collection) and the FARPs;
+  **the UHF radio (`primary_1`) carries the assets, then the flights**: AWACS and tankers first (the carriers' S-3Bs included), then the carriers, then the flights (Archer, Bengal…) in the channels left.
+  Never mix the two: with 20 channels per radio, an airfield or a flight put on either one at random is on only one of them, and the pilot looks for it on the other (Syria OT, 2026-11-11: Ramat David missing from the VHF, Archer missing from the UHF).
+  No drones or exotic assets (Darkstar…).
+  Beyond 20 channels: on the UHF, drop the last flights of the list; on the VHF, keep the airfields that have slots and the ones near the combat zones; tell the user what you left out.
+  No Guard (channel 1 is the flight's starting frequency); FM 30-59; a red plan on the same convention if red flies.
+  **Base channels carry the frequencies DCS gives the airfield**, even with ATC silenced: they are what the
   pilot reads on the F10 view, and an invented series misleads them. Never type an airfield frequency:
   `describe_airfield_channels` lists the mission's bases with their DCS frequencies, propose them to
   the user (a radio holds about twenty channels), then `set_airfield_channels` writes the chosen ones
@@ -475,6 +495,69 @@ The rest does not change: the 3 × 3 shape and `includes:`, combat zones, QRA, C
 The starting template follows: in WW2, take `standard` and switch off what this table drops, `full` brings Skynet.
 When a question of section 1 has no answer in this table, decide, announce it, and write it down in "Feedback for VMCT".
 
+### 4.15 The kneeboard
+
+The `README.md` stays the full briefing; the kneeboard is its cockpit version, inside the `.miz`: a few pages the pilot opens in flight.
+It duplicates neither the README nor the briefing pictures of section 4.13: **no deck, no PDF, no DCS briefing picture**.
+
+One call, **after the build**: `build_mission_briefing` with `kneeboard_only: true`.
+The tool then touches the kneeboard alone (the `src/mission/KNEEBOARD/IMAGES/` folder and every built `.miz`); the mission's briefing pictures stay its own.
+What you pass it:
+
+- `title`: the mission's name.
+- `sheets`, in this order, at the head of the kneeboard; `paragraphs` as a **list**, one item per line (a string joins its lines into one paragraph):
+  1. **Mission** — you condense it from the README, which stays the source: what the Open Training is, the home base and the other bases, the support (tankers with TACAN, frequency and level, AWACS, carriers), the arena, the bullseye. Ten lines at most, every figure copied from the README, never computed again.
+  2. **Conduct** — the text below, **copied as it is**.
+  3. **Commands** — the text below, **copied as it is**: the list is settled, do not recompose it from one mission to the next.
+- `objectives`: **every zone of `COMBATZONE.combat_zones` in `mission.yaml`**, training included, in the file's order.
+  `zone` = its `zone_name`, `title` = its `friendly_name`, `task` = the F10 menu path that starts it: `F10 › VEAF › COMBAT ZONES › <radio_group_name> › <friendly_name> › Activate zone` (with no `radio_group_name`, that level goes).
+  Do not group the easy / medium / hard levels of one site: one zone per objective.
+  No `threats`, no `flights`, no `code_words`: an Open Training has neither a flight plan nor a code word.
+- The recon photos are read from `docs/recon/` when there are some (`veaf-tools dcs recon-photos`, which needs DCS); a zone with no photo still gets its page.
+
+The kneeboard reads in this order: the three sheets, the overview map, for each zone its zoom and its photos, then the zone list giving each one's menu path and coordinates.
+
+**Keep what you pass the tool** in `docs/kneeboard.json`, the call's parameters without `mission_path`, and commit it with the mission.
+On every rebuild that changes a zone, a base or the support: update that file, then call `build_mission_briefing` again with it.
+With no change, nothing to redo: the pages are in `src/mission/KNEEBOARD/IMAGES/` and the build takes them along.
+
+**"Conduct" sheet** (a first draft, for David to correct):
+
+```text
+Take off from the runway, never from a taxiway.
+DCS's ATC is off: announce yourself on the airfield's VHF when taxiing, taking off and in the pattern (frequencies in the README and the radio plan).
+Do not line up behind an aircraft taking off; vacate the runway as soon as you land.
+A combat zone another pilot started is theirs: ask before stopping or clearing it.
+Clean up YOUR combat zones by deactivating them before you leave.
+Remove YOUR spawns before you leave: F10 menu › VEAF › SPAWN › Next page › My spawns.
+```
+
+**"Commands" sheet**:
+
+```text
+Marker: F10 map, right click, "Add marker", type the command, validate.
+Tiers: [open] everyone · [VEAF pilot] a pilot the server knows · [trusted] a trusted member. A pilot the server does not know adds ", password <the tier's password>" to the marker.
+
+-cas: a close air support zone, groups scattered around the marker, ended from the F10 menu [VEAF pilot]
+-shilka, -manpads, -sa6, -sa11, -sa15, -samSR, -samLR: an air defence to suppress or avoid [VEAF pilot]
+-armor, -infantry: a ground target [VEAF pilot]
+-convoy, dest <point>: a moving target [VEAF pilot]
+-cap <type> (e.g. -cap Su-27): an air target [VEAF pilot]
+-tankerlow, -tankerhigh: the nearest tanker to FL120 / FL220 [VEAF pilot]
+-farp <name>, -fob: a forward base [VEAF pilot]
+-jtac (laser 1688), -smoke (option color), -tacan: designation, a visual mark, a beacon [open]
+-point <name>: name a point (a convoy's destination) [open]
+-destroy: removes what is within 100 m of the marker [trusted]
+F10 › VEAF › SPAWN › Next page › My spawns: remove what your markers spawned, all of it or one by one [open]
+_spawn unit, name <DCS type>, multiplier 4: one precise type, where -armor draws at random [VEAF pilot]
+
+Options: side red/blue, defense 0-5, armor 0-5, size.
+The rest goes through the F10 › VEAF menu: COMBAT ZONES, ASSETS, CARRIER OPS.
+```
+
+The tiers are the code's on 2026-11-10 (`veafShortcuts.lua`, then the command the alias runs); **no password** on any sheet, nor in `docs/kneeboard.json`.
+A mission whose `mission.language` is `fr` takes the sheets of the French prompt.
+
 ## 5. Build order
 
 1. `scaffold_mission` in the empty folder.
@@ -490,7 +573,8 @@ When a question of section 1 has no answer in this table, decide, announce it, a
    support, carriers, drones, training by family, combat zones by kind with each one's briefing, scripted
    missions, QRA, CAP, player-versus-player and arena, blue and red radio plan, base weather and time, useful
    commands; then "For mission makers": building, files, regenerating this document, known limitations.
-9. **Local test mission** (section 8).
+9. **Kneeboard** (4.15): `build_mission_briefing` in `kneeboard_only`, from the README and `mission.yaml`; the content passed kept in `docs/kneeboard.json`.
+10. **Local test mission** (section 8).
 
 A short progress note after each step: what is done, not what you are about to do.
 
@@ -529,7 +613,10 @@ the sides; running DCS.
     (`clouds`, `season.temperature`, `wind`): no cloud base on the ground, and the wind read as DCS simulates it in `inspect_built_mission`, never the setting;
   - the `LOCAL_TEST` profile built without security, the default configuration with it;
   - the briefing pictures present in the `.miz`, listed in `pictureFileNameB` and
-    `pictureFileNameN`, `pictureFileNameR` empty (4.13).
+    `pictureFileNameN`, `pictureFileNameR` empty (4.13);
+  - the kneeboard (4.15): its pages in the `.miz`, the three sheets first, a page per zone, and the mission's briefing pictures unchanged by the call.
+- **Run `veaf-tools dcs clear-ground-check` on the built mission** (4.6): every Mission Editor vehicle that fails is moved, then the mission rebuilt and checked again. In a wooded area, look at the vehicles in game as well: the probe can miss a forest (Syria, Akamas). Without DCS on this computer, say so and put it in what remains to be checked.
+- **Check the side of every defense** (4.7): in every zone with both sides, no marker or group of one side between the two lines or among the opponent's.
 - **Run `veaf-tools dcs mission-check` on the built mission** before handing the briefing over: it needs no DCS for its wind check, and fails when the briefing's wind contradicts the wind DCS simulates.
 - **Reread your briefings**: every range, bearing, altitude and place name recomputed or sourced.
 - **Hand over a local test mission**, a copy of the `LOCAL_TEST` build (never in the sources) with: a blue

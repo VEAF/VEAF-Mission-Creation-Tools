@@ -90,7 +90,7 @@ function veafAssets.buildRadioMenu()
     return
   end
 
-  veafAssets.rootPath = veafRadio.addSubMenu(veaf.t(veafAssets.RadioMenuName))
+  veafAssets.rootPath = veafRadio.addRootMenu(veafAssets.RadioMenuName)
   if not veafRadio.skipHelpMenus then
     veafRadio.addCommandToSubmenu(veaf.t("menu.common.help"), veafAssets.rootPath, veafAssets.help, nil, veafRadio.USAGE_ForGroup)
   end

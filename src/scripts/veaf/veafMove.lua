@@ -1201,7 +1201,7 @@ end
 --- Build the initial radio menu
 function veafMove.buildRadioMenu()
   veaf.loggers.get(veafMove.Id):debug(string.format("veafMove.buildRadioMenu()"))
-  veafMove.rootPath = veafRadio.addSubMenu(veaf.t(veafMove.RadioMenuName))
+  veafMove.rootPath = veafRadio.addRootMenu(veafMove.RadioMenuName)
   if not veafRadio.skipHelpMenus then
     veafRadio.addCommandToSubmenu(veaf.t("menu.common.help"), veafMove.rootPath, veafMove.help, nil, veafRadio.USAGE_ForGroup)
   end

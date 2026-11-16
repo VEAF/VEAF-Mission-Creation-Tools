@@ -6,6 +6,66 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-OPEN-TRAINING-PILOT-FEEDBACK](FIX-OPEN-TRAINING-PILOT-FEEDBACK/PRD.md) · ✅
+
+David's notes after flying the Open Trainings. QNH in hPa and inHg everywhere (#1280); a real helicopter hard tier (Tor, Tunguska, Osa) in the six Open Trainings; the radio menu order was already done by FEAT-RADIO-MENU-ORDER. The training ranges stand out of the forests: Ceyhan moved and checked in game on Syria, then `forest-check` run on the six Open Trainings (2026-11-16) — Akamas and Karpas on Syria, three groups on Caucasus, the three jungle ranges of Marianas (44 groups into clearings) moved; Falklands, Persian Gulf and Sinai had nothing to move. Reaches the players with the next VMCT release and `Publish-OT`.
+
+### [FEAT-FOREST-CHECK](FEAT-FOREST-CHECK/PRD.md) · ✅
+
+Forests read from a DCS map's `.surface5` file without the game, and `veaf-tools dcs forest-check <mission.miz>` to list the vehicles standing in one (#1285). A point counts as forest only when the forest is the overlay drawn on top there: Agana's airfield on Marianas WWII, checked on David's F10 captures, is drawn over a forest texture. Validated on David's six Syria places and on the parking stands of the eleven maps (2026-11-16).
+
+### [FEAT-SPAWN-OWNERSHIP-DESPAWN](FEAT-SPAWN-OWNERSHIP-DESPAWN/PRD.md) · ✅
+
+Each pilot can remove from the F10 menu what his markers spawned (`-sa6`, `-armor`, `-cas`, `-convoy`, `-farp`…), all at once or one by one: the runtime records every marker-spawned group with its author, combat zones left out since they clean their own. `-destroy` stays a trusted member's command. Three tickets, eight questions with a reco each; asked by David while correcting the Open Training conduct sheet (2026-11-10). Done 2026-11-16: `veafCommands` hands marker handlers a watched collection, `veafSpawnOwnership.lua` files each marker's groups under its author and builds SPAWN › Next page › My spawns › [name] (remove all, or one marker), `-cas` passes its marker id; pilot guide, veafSpawn page, OT sheets and demo step (VEAF/VEAF-Demo-Mission-v6#14). Left: one look in game that the marker author matches the slot's player name.
+
+### [FIX-BUILD-NAME-AND-OT-PLACEMENT](FIX-BUILD-NAME-AND-OT-PLACEMENT/PRD.md) · ✅
+
+Three Discord reports of 2026-11-12: the build wizard proposes the name of the last mission built anywhere instead of the folder's `mission.yaml` name (Flogas, Sinai OT); the OT prompt gets a rule placing each side's defenses on its own side of the front (Rex, Beslan) and a `clear-ground check` of Mission Editor vehicles (Rex, Akamas). Done 2026-11-12: the wizard proposes the folder's `mission.yaml` name and the folder itself over saved values; the OT prompt (fr, en) and the authoring guide carry both rules. The OT repositories are fixed in a separate session.
+
+### [FIX-OT-RADIO-PLAN-CONVENTION](FIX-OT-RADIO-PLAN-CONVENTION/PRD.md) · ✅
+
+The OT prompt told sessions to put airfields and flights on both UHF and VHF, so each OT spreads them over two 20-channel radios and a pilot finds Ramat David only in UHF and Archer only in VHF (Syria, 2026-11-11). The prompt states the template's convention — VHF for the airfields, UHF for AWACS and tankers first, then carriers and flights, no drones, no Guard — and the eight OTs' plans are rewritten to it. Reported by David (2026-11-11). Done 2026-11-11: the prompt is fixed, the seven served-or-built OTs are rewritten, rebuilt and checked on a blue A-10C II, six deployed with `Publish-OT.ps1` (Falklands is served by no instance); Normandy left as it is (one radio).
+
+### [FIX-RADIO-CAPACITY-FOLLOWUP](FIX-RADIO-CAPACITY-FOLLOWUP/PRD.md) · ✅
+
+Presets assigned through `presets_assignments` stop at the radios' capacity too, on a copy (the defaults' blue CH-47F gets 20 of `radio_fm_30`'s 30 FM presets, the list unchanged), and a build logs one summary warning for every radio it cut instead of one per radio: a default build went from 29 warnings to one. Follow-up of #1263 (2026-11-11).
+
+### [FEAT-RADIO-CAPACITY-ALL-TYPES](FEAT-RADIO-CAPACITY-ALL-TYPES/PRD.md) · ✅
+
+Every radio of 87 of the 100 aircraft types stops at the preset count its module's `panelRadio` lists, read from the pinned DCS datamine by the radio-specs generator (`channels` in `dcs-radio-specs.yaml`), under the band-based default too; the cut goes by slot number so lists with gaps keep their channel numbers. The shipped `fm_supplement` holds 20 entries; warbird, Mosquito and AH-64D radios still cut the shipped shared lists, with a warning. Follow-up of #1262 (2026-11-10).
+
+### [FIX-RADIO-PRESET-CAPACITY](FIX-RADIO-PRESET-CAPACITY/PRD.md) · ✅
+
+The OH-58D, Mi-24P and CH-47F radios declare their capacity from their module's `panelRadio` channel count (Kiowa FM: 21; 32 crashed the client at spawn), and a truncation warns at build, once per radio. The shipped defaults raise it for the Kiowa template, whose 30-entry `fm_supplement` gave 32 FM presets. Reported by David, 2026-11-10.
+
+### [FIX-KNEEBOARD-PAGE-WEIGHT](FIX-KNEEBOARD-PAGE-WEIGHT/PRD.md) · ✅
+
+The kneeboard pages saved at 1024 px and JPEG quality 80 instead of 1536 px and 88, after the Open Training kneeboard added 9 to 18 MB per mission. Drawn as before, only brought down when saved. One ticket; decided by David (2026-11-10).
+
+### [FEAT-RADIO-MENU-ORDER](FEAT-RADIO-MENU-ORDER/PRD.md) · ✅
+
+The VEAF F10 root menus in the order pilots use them — combat zones, weather, assets first — through a fixed `sortKey` per root menu, the same in every language, instead of the alphabetical order that puts ZONES DE COMBAT last in French. The CAS menu stays forever at the end, and its entries stop being deleted and recreated. Three tickets; decided with David (2026-11-10).
+
+### [FIX-ALIAS-SKIPS-HANDLER-LEVEL](FIX-ALIAS-SKIPS-HANDLER-LEVEL/PRD.md) · ✅
+
+An alias called its module's `executeCommand` directly, past the level the dispatcher enforces: `_move`, `_radio` and `_gc` ran for any player through `-tankerlow`, `-send`, `-ai_set`, `-arty1_fire`…, unknown to the server included (worse than the survey's VEAF-pilot reading). A non-bypassing alias now applies the level of the handler its own command reaches, or the one it declares; the tanker and AFAC aliases declare VEAF pilot (David), `-send`/`-play` take trusted member, the `_gc` aliases VEAF pilot.
+
+### [FEAT-OPEN-TRAINING-KNEEBOARD](FEAT-OPEN-TRAINING-KNEEBOARD/PRD.md) · ✅
+
+An Open Training's briefing as kneeboard pages in the `.miz`: `build_mission_briefing` gains `kneeboard_only` (the kneeboard and nothing else — no deck, PDF or DCS picture, no flight card, a zone list with each zone's F10 path and centre) and `sheets` (free text first in the kneeboard); the OT prompt writes the mission, conduct and commands sheets and keeps the content in `docs/kneeboard.json`. Tried on a copy of the Caucasus OT: 36 pages. Putting it into the three OTs waits for a VMCT release.
+
+### [DOC-HOTLOAD-RECIPE](DOC-HOTLOAD-RECIPE/PRD.md) · ✅
+
+A developer page on loading dcs-hotload (MacFlorent/dcs-hotload) in a VMCT-built mission with no VMCT code, rewritten on 2026-11-11 to follow hotload's own model: one copy extracted into the mission folder, unlocked with its `hotload-setup.py`, booted by a script declared in `custom_scripts` that finds it from `VEAF_DYNAMIC_MISSIONPATH`, so in a dynamic build only, and writes a `HOTLOAD: not booted:` line to `dcs.log` otherwise. Reservations: install-wide `io`/`lfs` unlock, `status` blind to this boot, one F10 root entry, VEAF modules are not reloaded. Chosen by David and Flogas over a `hotload:` build key; merged in #1257, revised by ticket 02 (which also fixed the reference's `FgDebug.lua` profile example), not tested in game.
+
+### [FEAT-DCS-EDITOR-LUA-LAYOUT](FEAT-DCS-EDITOR-LUA-LAYOUT/PRD.md) · ✅
+
+Two points Flogas raised (2026-11-09): a built mission's `mission` file is written in the Mission Editor's layout (`["coalition"] = `, tabs, `-- end of`), so tools that read a mission's text read VEAF's too; and the migration guide shows how to add your own steps after the build with a `build.ps1` and a build profile, since v6 has no `build.cmd` to edit. One PR (#1251).
+
+### [CHORE-RELEASE-CI-REDUNDANCY](CHORE-RELEASE-CI-REDUNDANCY/PRD.md) · ✅
+
+The 6.36.0 release started 27 runs, 15 of them on a tree its pull request had already tested: the check workflows no longer run on a push to `master`, and the release back-merge carries `[skip ci]`. The bot and chatbot publications keep `master`. And the release carries its SBOM again: `publish --force` recreated the release after `sbom.yml` had attached it. One PR.
+
 ### [CHORE-VENDOR-CTLD-RC17](CHORE-VENDOR-CTLD-RC17/PRD.md) · ✅
 
 CTLD `2.0.0-rc17` vendored ahead of the release: a piloted Fat Cow leaves its FARP open and packs it as crates on the ground, loadouts come as crates to load, no Fat Cow menu for aeroplanes, and the JTAC logs its laser code. No new setting, catalogue unchanged.
@@ -408,6 +468,10 @@ Every base came out neutral in 6.14.2: a contiguous airfield table read as a lis
 Not a defect: measured in game, an A-50 enrolled by the helper detects by radar and feeds Skynet, and the three A-50s of the report orbited more than its 204 km from every Georgian base, which the ground radars reached — consistent, not proven, the log being lost. The contact flag that can stay `DLINK` for minutes is now a recorded DCS trap.
 
 ## 🚫 Won't fix
+
+### [FEAT-SIGNED-RELEASES](FEAT-SIGNED-RELEASES/PRD.md) · 🚫
+
+Signing the Windows executables through SignPath Foundation: the license audit ([audit.md](FEAT-SIGNED-RELEASES/audit.md)) found every code component OSI-licensed, but DCS-derived reference data under no license inside `veaf-tools.exe`, which SignPath may refuse with no appeal; dropped by David on 2026-11-13. The audit also lists compliance gaps worth knowing (third-party notices not shipped, WMM files copied from DCS, VEAF-dcs-bridge without a license).
 
 ### [FEAT-MISSION-RECIPES](FEAT-MISSION-RECIPES/PRD.md) · 🚫
 

@@ -85,6 +85,27 @@ ambiguous combo radios (e.g. the F/A-18's two identical ARC-210s). See
 decision — a simple default for the common case, explicit `Radio layout`
 override for the rest — only the mechanism.
 
+## Amendment (FIX-RADIO-PRESET-CAPACITY) — a capacity truncation warns
+
+Slot capacity used to truncate silently: a debug line under `build`, `validate` being the verbose path.
+It now logs a **warning at build**, naming the type, the radio, the capacity and how many presets were dropped, once per radio and per build.
+Two things changed. A dropped preset is one a pilot will look for in the cockpit. And capacity stopped being theoretical: the OH-58D crashes the DCS client at spawn, in multiplayer, when its FM radios get 32 presets (four Open Trainings, 2026-11-10), so the FM radios now declare `capacity: 21`.
+
+Capacities are declared only where the module documents them, from the channel count of its `panelRadio` table (`CoreMods/aircraft/<type>/*.lua`): OH-58D, Mi-24P, CH-47F. The AJS-37 stays without one — its 47 slots are filled exactly by construction.
+
+## Amendment (FEAT-RADIO-CAPACITY-ALL-TYPES) — every radio holds what its module lists
+
+The datamine dump at the pinned ref lists every module's `panelRadio` channels, already flattened; the radio-specs generator counts them into `dcs-radio-specs.yaml` (`channels`, per radio), and the packer truncates each radio to that count when the Radio layout declares no `capacity` of its own — under the band-based default too.
+87 of the 100 types get a count; the Flaming Cliffs types (kneeboard only) and the radios the overlay declares (La-7, MiG-15bis) have none and stay unbounded.
+The cut also went from count to **slot number**: a channel dropped from a list leaves its slot empty so a pilot's channel N stays N, so a short list could reach past the last slot, and a renumbering cut would have shifted the kept channels.
+The three types above keep their hand-declared values, which equal the module's counts.
+
+## Amendment (FIX-RADIO-CAPACITY-FOLLOWUP) — one summary warning, and the manual path is capped
+
+Once every type had a count, a build from the shipped defaults warned 29 times, once per radio: the coalition's shared lists are longer than a warbird's 4-channel set by nature, and the lines drowned the build's other messages.
+The per-radio line is now debug, and the build logs **one warning** listing every truncated type and radio with its capacity and dropped count.
+A preset assigned through `presets_assignments` — the manual override — is cut the same way, by slot, on a copy so the shared collection is left alone; a preset that fits is written as it is. The shipped blue CH-47F gets 20 of `radio_fm_30`'s 30 FM presets.
+
 ## Alternatives rejected
 
 - **Replace the old layers** — breaks existing missions and convert-v5.

@@ -151,8 +151,8 @@ class TestNormalizeWarehousesAirports:
         mission = read_mission_folder(base)
         write_mission_folder(mission, base)
         text = (base / "warehouses").read_text(encoding="utf-8")
-        assert 'coalition = "RED"' in text
-        assert 'coalition = "BLUE"' in text
+        assert '["coalition"] = "RED"' in text
+        assert '["coalition"] = "BLUE"' in text
         assert "[1] =" in text and "[2] =" in text
 
 

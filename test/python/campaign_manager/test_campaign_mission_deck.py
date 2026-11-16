@@ -180,8 +180,8 @@ class TestTheObjectives:
         assert [zone.name for zone in objective_zones(campaign, None)] == ["Senaki", "Gudauta depot"]
 
 
-def _deck(tmp_path: Path) -> list[list[str]]:
-    campaign = _campaign()
+def _deck(tmp_path: Path, campaign: CampaignDefinition | None = None) -> list[list[str]]:
+    campaign = campaign or _campaign()
     with language("fr"):
         report = mission_deck(
             campaign,
@@ -329,3 +329,26 @@ class TestTheWorker:
         assert report.mission_deck == worker.mission_folder(1) / MISSION_DECK_FILE
         assert report.mission_deck.is_file()
         assert not any("build" in issue.message for issue in issues)
+
+
+class TestAPersistentCampaign:
+    """Found on the Syria campaign (2026-11-16): its mission deck read "1/10" and "no enemy air activity"."""
+
+    @staticmethod
+    def _campaign() -> CampaignDefinition:
+        raw = copy.deepcopy(VALID)
+        raw["campaign"].update(mode="persistent", objectives=[])
+        campaign, issues = parse_campaign(raw)
+        assert campaign is not None, issues
+        return campaign
+
+    def test_the_cover_counts_no_mission(self, tmp_path: Path) -> None:
+        cover = "\n".join(_deck(tmp_path, self._campaign())[0])
+        assert "KOLKHIDA" in cover
+        assert "1/8" not in cover
+
+    def test_the_enemy_air_force_is_announced_from_its_bases(self, tmp_path: Path) -> None:
+        deck = _deck(tmp_path, self._campaign())
+        flow = "\n".join("\n".join(slide) for slide in deck if "Déroulement" in slide[0])
+        assert "Aviation ennemie active" in flow
+        assert "au départ de Senaki" in flow

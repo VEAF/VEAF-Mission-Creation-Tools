@@ -25,7 +25,9 @@ from campaign_manager.next_mission import (
     interpreter_commands,
     mission_data,
     prepare_next_mission,
+    strategic_situation,
 )
+from veaf_libs.i18n import language
 from veaf_libs.mission_validator import ERROR, ValidationIssue
 
 
@@ -322,3 +324,25 @@ class TestTheInterpreterInAPersistentCampaign:
         assert episodic is not None
         report = prepare_next_mission(episodic, initial_state(episodic), tmp_path, tmp_path / "m2")
         assert report.interpreter_commands == []
+
+
+class TestTheStrategicSituation:
+    """Found on the Syria campaign (2026-11-16): the text, which is also the mission's DCS briefing, read
+    "mission 1 sur 10", "Réserve ennemie : 0 blindés" and "10 mission(s) prévue(s) restante(s)"."""
+
+    def _text(self) -> str:
+        raw_zones = copy.deepcopy(VALID["zones"])
+        raw_zones[1]["display_name"] = "Base de Senaki"
+        campaign = _persistent(head={"objectives": []}, zones=raw_zones)
+        with language("fr"):
+            return strategic_situation(campaign, initial_state(campaign))
+
+    def test_no_count_of_missions_nor_reserve(self) -> None:
+        text = self._text()
+        assert text.startswith("SITUATION STRATÉGIQUE — campagne persistante")
+        assert "Réserve ennemie" not in text
+        assert "mission(s) prévue(s)" not in text
+        assert "gagnée quand l'ennemi ne tient plus aucune zone" in text
+
+    def test_the_zones_go_by_the_name_the_players_read(self) -> None:
+        assert "Tenu par les rouges : Base de Senaki" in self._text()

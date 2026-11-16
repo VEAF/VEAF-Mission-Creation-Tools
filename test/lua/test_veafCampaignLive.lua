@@ -1029,4 +1029,25 @@ function TestCampaignTakeoff:test_a_barcap_is_bought_against_an_enemy_zone()
   luaunit.assertFalse(veafCampaignEconomy.buy({ "barcap", "Kobuleti" })) -- ours: a BARCAP is on an enemy zone
 end
 
+TestCampaignAdminMenus = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+-- 2026-11-16, first server evening: a senior pilot opened the self-check marked "(admin)"
+function TestCampaignAdminMenus:test_the_admin_commands_ask_the_admin_level()
+  start()
+  local added = {}
+  local add = veafRadio.addSecuredCommandToSubmenu
+  veafRadio.addSecuredCommandToSubmenu = function(title, ...)
+    local command = { title = title }
+    added[title] = command
+    return command
+  end
+  veafCampaign.buildRadioMenu()
+  veafRadio.addSecuredCommandToSubmenu = add
+  for _, key in ipairs({ "menu.campaign.counters", "menu.campaign.self_check", "menu.campaign.reset" }) do
+    local command = added[veaf.t(key)]
+    luaunit.assertNotNil(command, key)
+    luaunit.assertEquals(command.securityLevel, 90, key)
+  end
+end
+
 os.exit(luaunit.LuaUnit.run())

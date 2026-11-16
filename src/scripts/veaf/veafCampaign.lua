@@ -2289,10 +2289,19 @@ function veafCampaign.buildRadioMenu()
     nil,
     veafRadio.USAGE_ForAll
   )
-  veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.campaign.counters"), veafCampaign.rootPath, veafCampaign.reportCounters)
-  veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.campaign.self_check"), veafCampaign.rootPath, veafCampaign.reportSelfCheck)
+  -- the "(admin)" commands ask the admin level: a secured command asks a senior pilot by default, and a
+  -- senior pilot opened the self-check on the first server evening (2026-11-16)
+  local function adminCommand(title, method)
+    local command = veafRadio.addSecuredCommandToSubmenu(veaf.t(title), veafCampaign.rootPath, method)
+    if command then
+      command.securityLevel = veafSecurity and veafSecurity.LEVEL_ADMIN or 90
+    end
+    return command
+  end
+  adminCommand("menu.campaign.counters", veafCampaign.reportCounters)
+  adminCommand("menu.campaign.self_check", veafCampaign.reportSelfCheck)
   if veafCampaign.isPersistent() then
-    veafRadio.addSecuredCommandToSubmenu(veaf.t("menu.campaign.reset"), veafCampaign.rootPath, veafCampaign.resetCampaign)
+    adminCommand("menu.campaign.reset", veafCampaign.resetCampaign)
   end
   veafRadio.refreshRadioMenu()
 end

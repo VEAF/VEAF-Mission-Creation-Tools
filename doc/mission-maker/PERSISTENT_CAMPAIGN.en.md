@@ -314,9 +314,9 @@ dynamic:
 
 ## Territory {#territory}
 
-Each zone holds the part of the map nearer to it than to any other zone (its Voronoi cell), tinted on the F10 map in its side's colour, grey for a neutral zone; a dark line runs between two cells of different sides: the front.
+Each zone holds the part of the map nearer to it than to any other zone (its Voronoi cell), tinted on the F10 map in its side's colour, grey for a neutral zone; a dark line runs between two cells of different sides: the front, edged on each side with short slanted hatches in the side's colour, plain to see where the tint is faint.
 The map is redrawn only when a zone changes hands.
-`territory.margin` (70 km) extends the cells beyond the outer zones; `territory.enabled: false` removes the tint.
+`territory.margin` (70 km) extends the cells beyond the outer zones; `territory.hatch_spacing` (3,000 m) and `territory.hatch_length` (2,500 m) set the hatches' spacing and length; `territory.enabled: false` removes the tint.
 
 ## Checking a mission in game {#self-check}
 
@@ -351,7 +351,7 @@ A `KO` line is enough to know where to look.
 | `demolition` | see [demolition](#demolition) | `troops` (`Sappers`), `range` (5000), `fuse` (120) |
 | `warehouse` | see [the stocks](#warehouses) | `enabled` (true), `load` (10) |
 | `bombers` | see [the bombers](#bombers) | `enabled` (true), `seconds` (3600), `min_distance` (80000) |
-| `territory` | see [territory](#territory) | `enabled` (true), `margin` (70000) |
+| `territory` | see [territory](#territory) | `enabled` (true), `margin` (70000), `hatch_spacing` (3000), `hatch_length` (2500) |
 
 The caps are conservative by default; they will be tuned from what the servers hold.
 

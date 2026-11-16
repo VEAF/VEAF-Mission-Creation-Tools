@@ -96,7 +96,7 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   demolition = { troops = "Sappers", range = 5000, fuse = 120 },
   warehouse = { enabled = true, load = 10 },
   bombers = { enabled = true, seconds = 3600, min_distance = 80000 },
-  territory = { enabled = true, margin = 70000 },
+  territory = { enabled = true, margin = 70000, hatch_spacing = 3000, hatch_length = 2500 },
 }
 
 --- What a unit costs in resource points when `resources.prices` does not name its type, by what the DCS
@@ -1270,6 +1270,40 @@ veafCampaign.TERRITORY_COLORS = {
 --- Colour of the front: the edges between two cells of different owners.
 veafCampaign.FRONT_COLOR = { 0.1, 0.1, 0.1, 0.8 }
 
+--- Colour of the hatches along the front, on each side's own side of it: strong, where the fill is faint.
+veafCampaign.HATCH_COLORS = {
+  blue = { 0, 0, 1, 0.9 },
+  red = { 1, 0, 0, 0.9 },
+}
+
+--- The hatches along one edge of the front, on one side of it: short strokes slanted at 45°, every
+--- `territory.hatch_spacing` metres, `territory.hatch_length` long, pointing into the cell of `site`.
+--- @param from table one end of the edge, `{ x, z }`
+--- @param to table the other end
+--- @param site table the site of the cell the hatches go into
+--- @return table the strokes, `{ { from = { x, z }, to = { x, z } } }`
+function veafCampaign.frontHatches(from, to, site)
+  local spacing = veafCampaign.setting("territory", "hatch_spacing")
+  local reach = veafCampaign.setting("territory", "hatch_length") / math.sqrt(2)
+  local dx, dz = to.x - from.x, to.z - from.z
+  local length = math.sqrt(dx * dx + dz * dz)
+  if length == 0 then
+    return {}
+  end
+  dx, dz = dx / length, dz / length
+  -- the normal to the edge, turned towards the cell's own site
+  local nx, nz = -dz, dx
+  if (site.x - from.x) * nx + (site.z - from.z) * nz < 0 then
+    nx, nz = -nx, -nz
+  end
+  local strokes = {}
+  for t = spacing / 2, length, spacing do
+    local base = { x = from.x + dx * t, z = from.z + dz * t }
+    table.insert(strokes, { from = base, to = { x = base.x + (nx + dx) * reach, z = base.z + (nz + dz) * reach } })
+  end
+  return strokes
+end
+
 --- Keep the part of a convex polygon nearer `a` than `b`. Each vertex carries `edge`, the label of the edge
 --- from it to the next one; the new edge along the bisector gets `label`.
 --- @param polygon table `{ { x, z, edge } }`, in order
@@ -1375,10 +1409,20 @@ function veafCampaign.drawTerritory()
     end
     for k, vertex in ipairs(cell) do
       local other = vertex.edge
+      local nextVertex = cell[k % #cell + 1]
       if other and other > index and owners[other] ~= owners[index] then
         local id = veaf.getUniqueIdentifier()
-        trigger.action.lineToAll(-1, id, vec3(vertex), vec3(cell[k % #cell + 1]), veafCampaign.FRONT_COLOR, 1, true)
+        trigger.action.lineToAll(-1, id, vec3(vertex), vec3(nextVertex), veafCampaign.FRONT_COLOR, 1, true)
         table.insert(veafCampaign.territoryMarks, id)
+      end
+      -- hatches on this cell's side of the front, in its owner's colour: the fill alone is too faint to read
+      local hatch = veafCampaign.HATCH_COLORS[owners[index]]
+      if other and hatch and owners[other] ~= owners[index] then
+        for _, stroke in ipairs(veafCampaign.frontHatches(vertex, nextVertex, sites[index])) do
+          local id = veaf.getUniqueIdentifier()
+          trigger.action.lineToAll(-1, id, vec3(stroke.from), vec3(stroke.to), hatch, 1, true)
+          table.insert(veafCampaign.territoryMarks, id)
+        end
       end
     end
   end

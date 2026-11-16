@@ -314,9 +314,9 @@ dynamic:
 
 ## Le territoire {#territory}
 
-Chaque zone tient la part de la carte plus proche d'elle que de toute autre zone (sa cellule de Voronoï), teintée sur la carte F10 de la couleur de son camp, gris pour une zone neutre ; une ligne sombre court entre deux cellules de camps différents : c'est le front.
+Chaque zone tient la part de la carte plus proche d'elle que de toute autre zone (sa cellule de Voronoï), teintée sur la carte F10 de la couleur de son camp, gris pour une zone neutre ; une ligne sombre court entre deux cellules de camps différents : c'est le front, souligné de chaque côté par de petites hachures obliques de la couleur du camp, bien visibles là où la teinte est pâle.
 La carte ne se redessine que quand une zone change de camp.
-`territory.margin` (70 km) prolonge les cellules au-delà des zones du bord ; `territory.enabled: false` retire la teinte.
+`territory.margin` (70 km) prolonge les cellules au-delà des zones du bord ; `territory.hatch_spacing` (3 000 m) et `territory.hatch_length` (2 500 m) règlent l'écart et la longueur des hachures ; `territory.enabled: false` retire la teinte.
 
 ## Contrôler une mission en jeu {#self-check}
 
@@ -351,7 +351,7 @@ Une ligne `KO` suffit à dire où regarder.
 | `demolition` | voir [la démolition](#demolition) | `troops` (`Sappers`), `range` (5000), `fuse` (120) |
 | `warehouse` | voir [les stocks](#warehouses) | `enabled` (true), `load` (10) |
 | `bombers` | voir [les bombardiers](#bombers) | `enabled` (true), `seconds` (3600), `min_distance` (80000) |
-| `territory` | voir [le territoire](#territory) | `enabled` (true), `margin` (70000) |
+| `territory` | voir [le territoire](#territory) | `enabled` (true), `margin` (70000), `hatch_spacing` (3000), `hatch_length` (2500) |
 
 Les plafonds sont prudents par défaut ; ils se règleront d'après ce que tiennent les serveurs.
 

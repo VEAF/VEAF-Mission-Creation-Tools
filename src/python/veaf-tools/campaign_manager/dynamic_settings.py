@@ -138,7 +138,7 @@ _SCHEMA: dict[str, Check | dict[str, Check]] = {
     "demolition": {"troops": _text, "range": _positive, "fuse": _positive},
     "warehouse": {"enabled": _flag, "load": _positive},
     "bombers": {"enabled": _flag, "seconds": _positive, "min_distance": _positive},
-    "territory": {"enabled": _flag, "margin": _positive},
+    "territory": {"enabled": _flag, "margin": _positive, "hatch_spacing": _positive, "hatch_length": _positive},
 }
 
 #: The keys of `dynamic.air` that are not a side.

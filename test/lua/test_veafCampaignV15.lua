@@ -1101,6 +1101,29 @@ function TestCampaignTerritory:test_the_map_is_tinted_and_the_front_drawn_once_p
   luaunit.assertTrue(#dcs_mocks.marksRemoved >= markups) -- the former tint taken away
 end
 
+function TestCampaignTerritory:test_the_hatches_run_along_the_front_into_their_own_cell()
+  start()
+  -- a front 10 km long along z, between a site west of it and one east of it
+  local from, to = { x = 0, z = 0 }, { x = 0, z = 10000 }
+  local west = veafCampaign.frontHatches(from, to, { x = -5000, z = 5000 })
+  luaunit.assertEquals(#west, 3) -- every 3000 m from 1500 m on
+  for _, stroke in ipairs(west) do
+    luaunit.assertEquals(stroke.from.x, 0) -- on the front
+    luaunit.assertTrue(stroke.to.x < 0) -- into the western cell
+    -- slanted at 45 degrees, hatch_length long
+    luaunit.assertAlmostEquals(math.abs(stroke.to.x - stroke.from.x), math.abs(stroke.to.z - stroke.from.z), 0.001)
+    luaunit.assertAlmostEquals(math.sqrt((stroke.to.x - stroke.from.x) ^ 2 + (stroke.to.z - stroke.from.z) ^ 2), 2500, 0.001)
+  end
+  luaunit.assertTrue(veafCampaign.frontHatches(from, to, { x = 5000, z = 5000 })[1].to.x > 0)
+end
+
+function TestCampaignTerritory:test_the_hatches_are_drawn_with_the_tint()
+  start({ territory = { hatch_spacing = 1000 } })
+  local fine = #veafCampaign.territoryMarks
+  start({ territory = { hatch_spacing = 100000 } })
+  luaunit.assertTrue(fine > #veafCampaign.territoryMarks + 20)
+end
+
 function TestCampaignTerritory:test_off_nothing_is_drawn()
   start({ territory = { enabled = false } })
   luaunit.assertEquals(#dcs_mocks.markups, 0)

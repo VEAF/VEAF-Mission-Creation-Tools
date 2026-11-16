@@ -8,6 +8,7 @@ PRD row "Territory cells (Voronoi)"; analysis note 01 §14 (the mechanism, rewri
 
 - Each zone owns the part of the map nearer to its centre than to any other zone's: its Voronoi cell, computed by clipping a bounding box (the zones' extent plus `territory.margin`, 70 km) by the perpendicular bisector with every other zone.
 - Each cell is filled on the F10 map in its owner's colour, faint (blue, red, grey for neutral); the edges between two cells of different owners are drawn as a line — the front.
+- Along the front, short hatches slanted at 45° on each side, in that side's colour (David, 2026-11-16, after the first look in game: the fill alone reads as a faint pink and a faint blue); `territory.hatch_spacing` (3000 m) and `territory.hatch_length` (2500 m).
 - Redrawn when a zone changes hands, never otherwise.
 - Off with `territory.enabled: false`.
 

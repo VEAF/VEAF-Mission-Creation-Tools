@@ -1,6 +1,6 @@
 # FEAT-SPAWN-OWNERSHIP-DESPAWN — Each pilot can remove what he spawned, from the F10 menu
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 David, 2026-11-10, while correcting the Open Training conduct sheet (FEAT-OPEN-TRAINING-KNEEBOARD): "it would be good to remember, per pilot, the things he spawned (except combat zones, which handle that very well) so that he can despawn them from the radio menu".
 

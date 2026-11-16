@@ -1,6 +1,6 @@
 # 03 — Training ranges out of the forests
 
-Status: 🧑 waiting-human
+Status: ✅ done
 
 Files: the training combat zones of the Open Training repositories, starting with Syria.
 
@@ -31,4 +31,16 @@ It is the same defect as the Akamas range (moved 2026-11-12): on Syria the DCS p
   The range moved a second time, onto the open hills east of Körkuyu, 10.7 km south-east of FARP Ceyhan (`tools/move_ceyhan_open.py`, Syria `37a9086`), picked on David's F10 capture set to 9.28 m per pixel; his F10 capture of the activated hard tier shows every unit on open ground.
 - The known limitation now says the F10 map in "Map" mode shows those forests.
 
-Waiting for David: `clear-ground-check` on the five other Open Trainings.
+- `veaf-tools dcs forest-check` (FEAT-FOREST-CHECK, #1285 and #1287) replaced `clear-ground-check` for this: it reads the forests from the map files, without DCS. David's Mission Editor captures of Akamas Medium-Armor (in a wood) and Karpas Medium-SA15 (on its edge) agreed with it (2026-11-16).
+- Run on the six Open Trainings, training groups and `#command` markers included (2026-11-16):
+
+  | Open Training | Training groups or markers in or next to a forest | Done |
+  |---|---|---|
+  | Sinai, Falklands, Persian Gulf | none | nothing to move |
+  | Syria | Akamas (Easy BMPs and convoy, Medium-Armor), Karpas (Medium-SA15, Hard-EWR) | 7 groups shifted 35 to 400 m, `tools/fix_forest_check.py`, Syria `5395b1e` |
+  | Caucasus | Kobuleti Medium-sr-2, Akhalkalaki Medium-aaa-1, Gori Hard-ewr | 3 groups shifted 150 to 300 m, Caucasus `1a1799c` |
+  | Marianas | Talofofo, NWF and Rota: 41 of 44 groups and markers, in the jungle | 44 groups into the nearest clearings of their zone circle, 10 m to 3.1 km, Marianas `a5918de` |
+
+- Marianas: no rigid shift clears a whole range (NWF has about 3 % of its circle clear at 50 m around), so each group went to its own clearing, 100 m from any other: nothing of forest or water within 100 m of a Medium/Hard spawn marker (75 m where no 100 m clearing exists), 50 m of an Easy target. The Talofofo Hard Tor (H4-1) stays outside its circle on purpose, 12.9 km from FARP Merizo for its 12 km range.
+- Each rebuilt and rechecked: `check_portees` finds no weapon in reach of what it must not reach, and no training unit or marker is left in a forest.
+- Out of this ticket, `forest-check` also lists sanctuary groups, air defences and other combat zones in forests (Caucasus: Lazarevskoye, Psebay, Beslan; others on Syria, Marianas, Falklands, Persian Gulf); they are not training ranges and were left as they are.

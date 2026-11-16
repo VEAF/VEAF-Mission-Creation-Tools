@@ -119,7 +119,7 @@ dofile("{mocks}/dcs_mocks.lua")
 for _, m in ipairs({{"veaf","veafI18n","veafScheduler","veafMath","veafGeo","veafMissionDb","veafDcsSpawner",
   "dcsUnits","veafUnits","veafCasMission","veafEventHandler","veafRadio","veafNamedPoints"}}) do dofile("{src}/" .. m .. ".lua") end
 veafAircraftSpawn = {{ roles = {{}} }}
-for _, m in ipairs({{"veafCampaign","veafCampaignOps","veafCampaignEconomy"}}) do dofile("{src}/" .. m .. ".lua") end
+for _, m in ipairs({{"veafCampaign","veafCampaignOps","veafCampaignEconomy","veafCampaignLogistics"}}) do dofile("{src}/" .. m .. ".lua") end
 Airbase.getByName = function(name) return {{ getPoint = function() return {{ x = 1, y = 0, z = 2 }} end, getID = function() return 1 end }} end
 {data_line.strip()}
 assert(veafCampaign.initialize())

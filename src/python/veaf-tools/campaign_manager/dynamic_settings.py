@@ -2,7 +2,9 @@
 
 A persistent campaign is one mission that runs on a server, saves itself and moves on its own: zones
 asleep away from the players, counter-attacks, supply helicopters, enemy air, credits and a shop, a
-task board, intelligence. All of it is set in the `dynamic:` block of `campaign.yaml`.
+task board, intelligence; and since the V1.5, resources and their supply network, paid spawns,
+demolition teams, warehouse stocks, strategic bombers and territory cells. All of it is set in the
+`dynamic:` block of `campaign.yaml`.
 
 Only the aircraft need the tools: each is declared by DCS type and loadout **name**, and its pylons
 are resolved here from the shipped DCS loadouts, so the runtime spawns it without any template in the
@@ -23,7 +25,7 @@ from veaf_libs.mission_validator import ERROR, ValidationIssue
 from campaign_manager.models import COALITIONS
 
 #: The roles an aircraft is declared for, per side.
-AIR_ROLES: tuple[str, ...] = ("cap", "cas", "sead")
+AIR_ROLES: tuple[str, ...] = ("cap", "cas", "sead", "bomber")
 
 #: What each side flies when `dynamic.air` does not say: type, DCS loadout name, aircraft per flight.
 DEFAULT_AIR: dict[str, dict[str, dict[str, Any]]] = {
@@ -31,11 +33,13 @@ DEFAULT_AIR: dict[str, dict[str, dict[str, Any]]] = {
         "cap": {"type": "MiG-29A", "loadout": "R-73*2,R-60M*2,R-27R*2", "count": 2},
         "cas": {"type": "Su-25", "loadout": "FAB-250*4,UB-13*2,R-60M*2,Fuel*2", "count": 2},
         "sead": {"type": "MiG-27K", "loadout": "Kh-25MPU*2,R-60M*2,Fuel", "count": 2},
+        "bomber": {"type": "Tu-22M3", "loadout": "FAB-250*33", "count": 1},
     },
     "blue": {
         "cap": {"type": "F-15C", "loadout": "AIM-9*2,AIM-120*2,AIM-7*4,Fuel*3", "count": 2},
         "cas": {"type": "A-10C", "loadout": "AGM-65D*2,Mk-82*6,AIM-9*2,ECM", "count": 2},
         "sead": {"type": "FA-18C_hornet", "loadout": "AIM-9X*2, AIM-120C-5*2, AGM-88C*2, FUEL", "count": 2},
+        "bomber": {"type": "B-1B", "loadout": "Mk-82*84", "count": 1},
     },
 }
 
@@ -75,6 +79,10 @@ def _counts(value: Any) -> bool:
     return isinstance(value, dict) and all(isinstance(key, str) and _natural(count) for key, count in value.items())
 
 
+def _statics(value: Any) -> bool:
+    return isinstance(value, list) and bool(value) and all(_text(kind) for kind in value)
+
+
 Check = Callable[[Any], bool]
 
 #: Every key of `dynamic:` but `air`, and what its value must be. Sub-blocks are checked key by key.
@@ -101,6 +109,9 @@ _SCHEMA: dict[str, Check | dict[str, Check]] = {
         "delivery": _natural,
         "prices": _counts,
         "tanker": _text,
+        "spawn_prices": _counts,
+        "demolition": _natural,
+        "warehouse_delivery": _natural,
     },
     "tasks": {"count": _natural, "refresh_seconds": _positive, "air_kills": _positive, "rewards": _counts},
     "intel": {
@@ -110,6 +121,24 @@ _SCHEMA: dict[str, Check | dict[str, Check]] = {
         "spy_troops": _text,
         "spy_range": _positive,
     },
+    "resources": {
+        "enabled": _flag,
+        "start": _natural,
+        "background_per_hour": _natural,
+        "reserve": _natural,
+        "prices": _counts,
+    },
+    "factory": {"buildings": _positive, "per_hour": _natural, "types": _statics},
+    "network": {
+        "hop_seconds": _positive,
+        "isolated_seconds": _positive,
+        "depot_store": _natural,
+        "max_deliveries": _natural,
+    },
+    "demolition": {"troops": _text, "range": _positive, "fuse": _positive},
+    "warehouse": {"enabled": _flag, "load": _positive},
+    "bombers": {"enabled": _flag, "seconds": _positive, "min_distance": _positive},
+    "territory": {"enabled": _flag, "margin": _positive},
 }
 
 #: The keys of `dynamic.air` that are not a side.

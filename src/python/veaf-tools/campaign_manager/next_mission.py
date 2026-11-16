@@ -353,26 +353,31 @@ SUPPLY_CRATES: tuple[dict[str, Any], ...] = (
 #: The one-man CTLD 2 troop group a persistent campaign adds, for the spy team (ticket 08).
 SPY_GROUP: dict[str, Any] = {"inf": 1}
 
+#: The two-man CTLD 2 troop group a persistent campaign adds, for the demolition team (ticket 15).
+SAPPER_GROUP: dict[str, Any] = {"inf": 2}
+
 
 def add_campaign_cargo(mission_folder: Path, dynamic: dict[str, Any]) -> list[str]:
     """Add to the mission's CTLD 2 catalogue what a persistent campaign's players carry.
 
-    The "Zone supplies" crates and the spy team, under the names `dynamic.supply_crate` and
-    `dynamic.intel.spy_troops` give, when the mission's `ctld-config.yaml` does not have them yet. A
-    mission without that file has no CTLD 2, and is left alone.
+    The "Zone supplies" crates, the spy team and the demolition team, under the names
+    `dynamic.supply_crate`, `dynamic.intel.spy_troops` and `dynamic.demolition.troops` give, when the
+    mission's `ctld-config.yaml` does not have them yet. A mission without that file has no CTLD 2, and
+    is left alone.
 
     Args:
         mission_folder: The mission folder.
         dynamic: The campaign's live play settings.
 
     Returns:
-        What was added, for the report: the crate's and the troop group's names.
+        What was added, for the report: the crate's and the troop groups' names.
     """
     path = mission_folder / CTLD_CONFIG_FILENAME
     if not path.is_file():
         return []
     crate_name = str(dynamic.get("supply_crate") or "Zone supplies")
     spy_name = str((dynamic.get("intel") or {}).get("spy_troops") or "Spy")
+    sapper_name = str((dynamic.get("demolition") or {}).get("troops") or "Sappers")
     data = load_yaml(path)
     facing = data.get("mm_facing")
     if not isinstance(facing, dict):
@@ -384,9 +389,10 @@ def add_campaign_cargo(mission_folder: Path, dynamic: dict[str, Any]) -> list[st
         crates[SUPPLY_CRATE_SECTION] = [{**crate, "desc": crate_name} for crate in SUPPLY_CRATES]
         added.append(crate_name)
     groups = facing.setdefault("loadableGroups", [])
-    if spy_name not in {str(group.get("name")) for group in groups}:
-        groups.append({"name": spy_name, **SPY_GROUP})
-        added.append(spy_name)
+    for name, group in ((spy_name, SPY_GROUP), (sapper_name, SAPPER_GROUP)):
+        if name not in {str(known.get("name")) for known in groups}:
+            groups.append({"name": name, **group})
+            added.append(name)
     if added:
         save_yaml(path, data)
     return added

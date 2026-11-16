@@ -10,6 +10,8 @@
 -- * A task board of a few tasks drawn from the situation, each with a map mark and a reward.
 -- * Intelligence: the players do not see an enemy garrison's strength until they reveal it — an
 --   overflight, a JTAC drone, bought intel, or a CTLD 2 spy team walking into the zone.
+-- * In the V1.5: a bomber raid in the shop, and an intercept task when the enemy's bombers are out
+--   (ticket 17).
 --
 -- Runs inside veafCampaign's single loop, and only in a persistent campaign.
 --
@@ -35,6 +37,8 @@ veafCampaignEconomy.PRICES = {
   intel = 150,
   capture = 250,
   resupply = 200,
+  bomber = 1200,
+  assault = 300, -- the players' assault order (Campaign > Assault), a purchase in a persistent campaign
 }
 
 --- The shop's items, in the menu's order, with the zones each applies to: "enemy", "own", "neutral",
@@ -48,11 +52,12 @@ veafCampaignEconomy.ITEMS = {
   { id = "barcap", zones = "enemy" },
   { id = "capture", zones = "neutral" },
   { id = "resupply", zones = "own" },
+  { id = "bomber", zones = "enemy" },
   { id = "tanker" },
 }
 
 --- What a task is worth when `tasks.rewards` does not say.
-veafCampaignEconomy.REWARDS = { attack = 300, capture = 300, resupply = 200, air = 200 }
+veafCampaignEconomy.REWARDS = { attack = 300, capture = 300, resupply = 200, air = 200, intercept = 400 }
 
 --- The laser code and frequency of a JTAC drone bought in the shop.
 veafCampaignEconomy.JTAC_CODE = 1688
@@ -108,6 +113,22 @@ function veafCampaignEconomy.onKill(event)
       end
     end
   end
+end
+
+--- Take a price from the credits for a purchase made outside the shop — the assault order: refused, and
+--- told, when the side cannot pay.
+--- @param price number
+--- @param label string what is bought, as the players read it
+--- @return boolean whether it was paid
+function veafCampaignEconomy.charge(price, label)
+  if veafCampaignEconomy.credits < price then
+    tell("campaign.shop.too_expensive", label, price, veafCampaignEconomy.credits)
+    return false
+  end
+  veafCampaignEconomy.credits = veafCampaignEconomy.credits - price
+  veafCampaignEconomy.counters.purchases = veafCampaignEconomy.counters.purchases + 1
+  tell("campaign.shop.bought", label, "-", price, veafCampaignEconomy.credits)
+  return true
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -378,6 +399,10 @@ veafCampaignEconomy.effects = {
     local sent = veafCampaignOps.sendHelicopter(veafCampaign.playerSide(), zone, "resupply")
     return sent ~= nil, "campaign.shop.refused_spawn"
   end,
+  bomber = function(zone)
+    local raid = veafCampaignOps.sendRaid(veafCampaign.playerSide(), zone, true)
+    return raid ~= nil, "campaign.shop.refused_no_bomber"
+  end,
   tanker = function()
     local name = veafCampaign.setting("economy", "tanker")
     if not (name and veafAssets and veafAssets.respawn) then
@@ -468,6 +493,11 @@ end
 function veafCampaignEconomy.candidateTasks()
   local own = veafCampaign.playerSide()
   local candidates = {}
+  -- the enemy's bombers out come first: they will not wait (ticket 17)
+  local raid = veafCampaignOps and veafCampaignOps.raidUnderway and veafCampaignOps.raidUnderway(veafCampaign.enemyOf(own))
+  if raid and not kindPosted("intercept") then
+    table.insert(candidates, { kind = "intercept", zone = raid.target, raid = raid })
+  end
   local attack = veafCampaign.attackTarget(own)
   if attack and not zonePosted(attack.name) then
     table.insert(candidates, { kind = "attack", zone = attack.name })
@@ -543,6 +573,11 @@ function veafCampaignEconomy.taskState(task)
   local zone = task.zone and veafCampaign.zones[task.zone]
   if task.kind == "air" then
     return task.kills >= veafCampaign.setting("tasks", "air_kills") and "done" or nil
+  elseif task.kind == "intercept" then
+    if not task.raid.done then
+      return nil
+    end
+    return task.raid.outcome == "destroyed" and "done" or "withdrawn"
   elseif task.kind == "attack" then
     return zone.entry.owner ~= veafCampaign.enemyOf(own) and "done" or nil
   elseif task.kind == "capture" then

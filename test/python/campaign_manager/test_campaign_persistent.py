@@ -77,6 +77,19 @@ class TestTheDynamicBlock:
             "supply_crate": "Zone supplies",
             "economy": {"start_credits": 800, "prices": {"jtac": 300}},
             "intel": {"hidden": False},
+            "resources": {
+                "enabled": True,
+                "start": 800,
+                "background_per_hour": 10,
+                "reserve": 50,
+                "prices": {"T-72B": 7},
+            },
+            "factory": {"buildings": 4, "per_hour": 90, "types": ["Workshop A"]},
+            "network": {"hop_seconds": 300, "isolated_seconds": 1800, "depot_store": 2, "max_deliveries": 1},
+            "demolition": {"troops": "Sapeurs", "range": 4000, "fuse": 90},
+            "warehouse": {"enabled": False, "load": 5},
+            "bombers": {"enabled": True, "seconds": 1800, "min_distance": 60000},
+            "territory": {"enabled": True, "margin": 50000},
         }
         dynamic = _persistent(dynamic=block).dynamic
         for key, value in block.items():
@@ -94,6 +107,12 @@ class TestTheDynamicBlock:
             ({"hunter": {"chance": 150}}, "dynamic.hunter.chance"),
             ({"intel": "yes"}, "dynamic.intel"),
             ({"weather": 1}, "dynamic.weather"),
+            ({"resources": {"start": -5}}, "dynamic.resources.start"),
+            ({"resources": {"prices": {"T-72B": "cheap"}}}, "dynamic.resources.prices"),
+            ({"factory": {"types": []}}, "dynamic.factory.types"),
+            ({"network": {"hop_seconds": 0}}, "dynamic.network.hop_seconds"),
+            ({"economy": {"spawn_prices": {"cap": -1}}}, "dynamic.economy.spawn_prices"),
+            ({"territory": {"enabled": "yes"}}, "dynamic.territory.enabled"),
         ],
     )
     def test_a_bad_setting_is_named(self, block: dict[str, Any], setting: str) -> None:
@@ -199,21 +218,20 @@ class TestTheCampaignCargo:
         path.write_text(yaml.safe_dump(document), encoding="utf-8")
         return path
 
-    def test_the_supply_crate_and_the_spy_team_are_added(self, tmp_path: Path) -> None:
+    def test_the_supply_crate_and_the_spy_and_demolition_teams_are_added(self, tmp_path: Path) -> None:
         path = self._ctld(tmp_path)
-        assert add_campaign_cargo(tmp_path, {}) == ["Zone supplies", "Spy"]
+        assert add_campaign_cargo(tmp_path, {}) == ["Zone supplies", "Spy", "Sappers"]
         facing = yaml.safe_load(path.read_text(encoding="utf-8"))["mm_facing"]
         crates = facing["spawnableCrates"]["Campaign"]
         assert [(c["desc"], c["side"]) for c in crates] == [("Zone supplies", 2), ("Zone supplies", 1)]
         assert facing["spawnableCrates"]["Combat Vehicles"][0]["desc"] == "LAV"
         assert {"name": "Spy", "inf": 1} in facing["loadableGroups"]
+        assert {"name": "Sappers", "inf": 2} in facing["loadableGroups"]
 
     def test_the_names_follow_the_settings(self, tmp_path: Path) -> None:
         self._ctld(tmp_path)
-        assert add_campaign_cargo(tmp_path, {"supply_crate": "Caisse", "intel": {"spy_troops": "Espion"}}) == [
-            "Caisse",
-            "Espion",
-        ]
+        dynamic = {"supply_crate": "Caisse", "intel": {"spy_troops": "Espion"}, "demolition": {"troops": "Sapeurs"}}
+        assert add_campaign_cargo(tmp_path, dynamic) == ["Caisse", "Espion", "Sapeurs"]
 
     def test_a_second_run_adds_nothing(self, tmp_path: Path) -> None:
         self._ctld(tmp_path)

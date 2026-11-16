@@ -10,6 +10,9 @@
 -- * Enemy air: a CAP over the front, as many as the opposition level asks, and CAS or SEAD strikes on
 --   the enemy zone with the most to hit; aircraft built from type and payload, no template needed.
 -- * Hunter: two fighters scrambled at a player on a kill streak.
+-- * Strategic bombers (V1.5, ticket 17): an escorted enemy raid on the players' zones, a raid the players
+--   buy in the shop.
+-- * In the V1.5, every sortie the AI flies is paid from its side's resources (ticket 12).
 --
 -- Runs inside veafCampaign's single loop (`veafCampaign.beatHooks`), and only in a persistent campaign.
 --
@@ -57,9 +60,25 @@ veafCampaignOps.ASSUMED_SHORT_RANGE = 20000
 --- What each strike role engages.
 veafCampaignOps.STRIKE_TARGETS = { cas = { "Ground Units" }, sead = { "Air Defence" } }
 
+--- How high and fast a bomber flies, in metres above its field and m/s.
+veafCampaignOps.BOMBER_ALTITUDE = 7000
+veafCampaignOps.BOMBER_SPEED = 220
+
+--- What DCS calls any bomb, for the `Bombing` task's `weaponType` (Moose's `ENUMS.WeaponFlag.AnyBomb`).
+veafCampaignOps.ANY_BOMB = 2147485694
+
+--- Seconds after which a raid still out is over, landed or not.
+veafCampaignOps.RAID_TIMEOUT = 7200
+
 --- The supply helicopters sent, and the flights launched: records the self-check counts.
 veafCampaignOps.helicopters = {}
 veafCampaignOps.flights = {}
+
+--- The bomber raids: `{ name, escort, side, target, purchased, startedAt, done, outcome }`.
+veafCampaignOps.raids = {}
+
+--- When each side sends its next raid.
+veafCampaignOps.nextRaid = {}
 
 --- When each side sends its next helicopter, and its next strike.
 veafCampaignOps.nextSupply = {}
@@ -302,7 +321,10 @@ function veafCampaignOps.dispatchHelicopters(now)
         if veafCampaignOps.helicoptersOut(side) < veafCampaign.setting("max_helicopters") then
           local target, kind = veafCampaignOps.supplyTarget(side)
           if target then
-            veafCampaignOps.sendHelicopter(side, target, kind)
+            local typeName = veafCampaign.setting("helicopter")[side] or veafCampaign.DYNAMIC_DEFAULTS.helicopter[side]
+            veafCampaignOps.paidSortie(side, veafCampaign.unitPrice(typeName), "a supply helicopter", function()
+              return veafCampaignOps.sendHelicopter(side, target, kind)
+            end)
           end
         end
       end
@@ -318,6 +340,32 @@ end
 function veafCampaignOps.aircraft(side, role)
   local air = veafCampaign.data.dynamic and veafCampaign.data.dynamic.air
   return air and air[side] and air[side][role]
+end
+
+--- What a flight of a side's aircraft for a role costs, in resource points (ticket 12).
+function veafCampaignOps.flightPrice(side, role)
+  local aircraft = veafCampaignOps.aircraft(side, role)
+  return aircraft and aircraft.count * veafCampaign.unitPrice(aircraft.type) or 0
+end
+
+--- Fly a sortie of the AI if its side can pay it and keep its reserve (ticket 12): `launch` is called only
+--- then, and what it sent is paid.
+--- @param side string
+--- @param price number points
+--- @param what string for the log
+--- @param launch function returning what was sent, or nil
+--- @return any what `launch` returned, or nil
+function veafCampaignOps.paidSortie(side, price, what, launch)
+  if not veafCampaign.canPay(side, price) then
+    veafCampaignOps.counters.unpaid = veafCampaignOps.counters.unpaid + 1
+    logger():info("%s cannot pay %s (%d points): not sent", side, what, price)
+    return nil
+  end
+  local sent = launch()
+  if sent then
+    veafCampaign.pay(side, price, "partial", what)
+  end
+  return sent
 end
 
 --- How many of a side's flights fly now, by role or all of them.
@@ -575,8 +623,9 @@ end
 --- @param roleName string the veafAircraftSpawn role
 --- @param params table the role's parameters
 --- @param altitude number the altitude it flies its job at, metres above the field
+--- @param airStart boolean|nil true to start in the air over the field, as a raid does
 --- @return string|nil the group's name
-function veafCampaignOps.spawnFlight(side, aircraftRole, origin, roleName, params, altitude)
+function veafCampaignOps.spawnFlight(side, aircraftRole, origin, roleName, params, altitude, airStart)
   local aircraft = veafCampaignOps.aircraft(side, aircraftRole)
   if not aircraft then
     logger():warn("no %s aircraft declared for %s", aircraftRole, side)
@@ -587,7 +636,7 @@ function veafCampaignOps.spawnFlight(side, aircraftRole, origin, roleName, param
   params.altitude = params.altitude or cruise
   local airbase = origin.entry.airbase and Airbase.getByName(origin.entry.airbase)
   local takeoff, positions = nil, {}
-  if airbase and airbase.getParking then
+  if airbase and airbase.getParking and not airStart then
     takeoff, positions = veafCampaignOps.takeoffFrom(airbase, aircraft.count)
     params.takeoffPoint = takeoff
   end
@@ -687,14 +736,16 @@ function veafCampaignOps.maintainCaps(side)
     return
   end
   local center = zone:getCenter()
-  veafCampaignOps.spawnFlight(
-    side,
-    "cap",
-    origin,
-    "zone_defense",
-    { zone = { x = center.x, y = center.z, radius = veafCampaignOps.CAP_RADIUS } },
-    veafCampaignOps.CAP_ALTITUDE
-  )
+  veafCampaignOps.paidSortie(side, veafCampaignOps.flightPrice(side, "cap"), "a CAP", function()
+    return veafCampaignOps.spawnFlight(
+      side,
+      "cap",
+      origin,
+      "zone_defense",
+      { zone = { x = center.x, y = center.z, radius = veafCampaignOps.CAP_RADIUS } },
+      veafCampaignOps.CAP_ALTITUDE
+    )
+  end)
 end
 
 --- Launch a strike on its cadence: CAS and SEAD in turn, at the enemy zone with the most to hit.
@@ -722,15 +773,283 @@ function veafCampaignOps.launchStrike(side, now)
     return
   end
   local airbase = Airbase.getByName(origin.entry.airbase)
-  veafCampaign.keepAwake(target, veafCampaignOps.STRIKE_ORBIT_SECONDS * 3)
-  veafCampaignOps.spawnFlight(side, role, origin, "campaign_strike", {
-    target = target:getCenter(),
-    radius = target.entry.radius or 2000,
-    targetTypes = veafCampaignOps.STRIKE_TARGETS[role],
-    airdromeId = airbase and airbase:getID(),
-    home = origin:getCenter(),
-    task = role == "sead" and "SEAD" or "CAS",
-  }, veafCampaignOps.STRIKE_ALTITUDE)
+  veafCampaignOps.paidSortie(side, veafCampaignOps.flightPrice(side, role), "a " .. role .. " strike", function()
+    veafCampaign.keepAwake(target, veafCampaignOps.STRIKE_ORBIT_SECONDS * 3)
+    return veafCampaignOps.spawnFlight(side, role, origin, "campaign_strike", {
+      target = target:getCenter(),
+      radius = target.entry.radius or 2000,
+      targetTypes = veafCampaignOps.STRIKE_TARGETS[role],
+      airdromeId = airbase and airbase:getID(),
+      home = origin:getCenter(),
+      task = role == "sead" and "SEAD" or "CAS",
+    }, veafCampaignOps.STRIKE_ALTITUDE)
+  end)
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Strategic bombers (ticket 17)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+local function comboTask(tasks)
+  for index, task in ipairs(tasks) do
+    task.number, task.enabled, task.auto = index, true, false
+  end
+  return { id = "ComboTask", params = { tasks = tasks } }
+end
+
+local function weaponsFree()
+  return { id = "WrappedAction", params = { action = { id = "Option", params = { name = 0, value = 0 } } } }
+end
+
+--- A bomber: starts in the air, bombs the target point with all it carries, overflies it, lands at home.
+---
+--- `params`: `target` (vec3), `airdromeId`, `home` (vec3).
+veafAircraftSpawn.roles.campaign_bomber = {
+  buildRoute = function(context)
+    local params, spot = context.params, context.spot
+    local altitude = params.altitude or spot.y
+    local function point(x, z, tasks, extra)
+      local wp = {
+        x = x,
+        y = z,
+        alt = altitude,
+        alt_type = "BARO",
+        type = "Turning Point",
+        action = "Turning Point",
+        speed = veafCampaignOps.BOMBER_SPEED,
+        speed_locked = true,
+        task = comboTask(tasks),
+      }
+      for key, value in pairs(extra or {}) do
+        wp[key] = value
+      end
+      return wp
+    end
+    local bombing = {
+      id = "Bombing",
+      params = {
+        point = { x = params.target.x, y = params.target.z },
+        weaponType = veafCampaignOps.ANY_BOMB,
+        expend = "All",
+        attackQtyLimit = false,
+        groupAttack = true,
+        altitude = altitude,
+        altitudeEnabled = true,
+        directionEnabled = false,
+      },
+    }
+    local route = {
+      point(spot.x, spot.z, { weaponsFree(), bombing }),
+      point(params.target.x, params.target.z, {}),
+      point(params.home.x, params.home.z, {}, { type = "Land", action = "Landing", airdromeId = params.airdromeId }),
+    }
+    return route, { task = "Ground Attack" }
+  end,
+  afterSpawn = function() end,
+}
+
+--- An escort: starts in the air beside its bomber, follows it and engages the fighters that come near; goes
+--- home when the bomber is gone.
+---
+--- `params`: `groupId` (the bomber's), `airdromeId`, `home` (vec3).
+veafAircraftSpawn.roles.campaign_escort = {
+  buildRoute = function(context)
+    local params, spot = context.params, context.spot
+    local altitude = params.altitude or spot.y
+    local escort = {
+      id = "Escort",
+      params = {
+        groupId = params.groupId,
+        pos = { x = -500, y = 300, z = 300 },
+        lastWptIndexFlag = false,
+        engagementDistMax = 60000,
+        targetTypes = { "Planes" },
+      },
+    }
+    local route = {
+      {
+        x = spot.x,
+        y = spot.z,
+        alt = altitude,
+        alt_type = "BARO",
+        type = "Turning Point",
+        action = "Turning Point",
+        speed = veafCampaignOps.INTERCEPT_SPEED,
+        task = comboTask({ weaponsFree(), escort }),
+      },
+      {
+        x = params.home.x,
+        y = params.home.z,
+        alt = altitude,
+        alt_type = "BARO",
+        type = "Land",
+        action = "Landing",
+        airdromeId = params.airdromeId,
+        speed = veafCampaignOps.INTERCEPT_SPEED,
+        task = comboTask({}),
+      },
+    }
+    return route, { task = "Escort" }
+  end,
+  afterSpawn = function() end,
+}
+
+--- What a raid on a side's zones would hit: its factories with a building standing first, by how many stand;
+--- else its zone with the most garrison units alive.
+--- @param side string the side that sends the raid
+--- @return table|nil the target zone
+function veafCampaignOps.raidTarget(side)
+  local enemy = veafCampaign.enemyOf(side)
+  local best, bestValue = nil, 0
+  for _, zone in ipairs(veafCampaign.zoneList) do
+    if zone.placed and zone.entry.owner == enemy then
+      local standing = zone:structuresStanding()
+      local value = standing > 0 and 1000 + standing or zone:countUnits()
+      if value > bestValue then
+        best, bestValue = zone, value
+      end
+    end
+  end
+  return best
+end
+
+--- Where a raid leaves from: the side's airfield zone nearest the target that is at least
+--- `bombers.min_distance` from it, so that the defenders have the time to intercept.
+--- @return table|nil the zone
+function veafCampaignOps.raidOrigin(side, target)
+  local best, bestDistance = nil, nil
+  local minimum = veafCampaign.setting("bombers", "min_distance")
+  for _, zone in ipairs(veafCampaign.zoneList) do
+    if zone.placed and zone.entry.owner == side and zone.entry.airbase then
+      local d = distance2d(zone:getCenter(), target:getCenter())
+      if d >= minimum and (not bestDistance or d < bestDistance) then
+        best, bestDistance = zone, d
+      end
+    end
+  end
+  return best
+end
+
+--- Send a bomber raid with its escort at a zone. The AI's is paid from its resources; the players' was paid
+--- in credits (`purchased`).
+--- @param side string the side sending it
+--- @param target table the zone
+--- @param purchased boolean|nil
+--- @return table|nil the raid's record
+function veafCampaignOps.sendRaid(side, target, purchased)
+  local origin = veafCampaignOps.raidOrigin(side, target)
+  if not (origin and veafCampaignOps.aircraft(side, "bomber")) then
+    logger():info(
+      "%s has no bomber, or no airfield %d m from [%s]: no raid",
+      side,
+      veafCampaign.setting("bombers", "min_distance"),
+      target.name
+    )
+    return nil
+  end
+  local price = veafCampaignOps.flightPrice(side, "bomber") + veafCampaignOps.flightPrice(side, "cap")
+  if not purchased and not veafCampaign.canPay(side, price) then
+    veafCampaignOps.counters.unpaid = veafCampaignOps.counters.unpaid + 1
+    logger():info("%s cannot pay a raid on [%s] (%d points)", side, target.name, price)
+    return nil
+  end
+  local airbase = Airbase.getByName(origin.entry.airbase)
+  local aim = target:isFactory() and target:structuresCenter() or target:getCenter()
+  local params = { target = aim, airdromeId = airbase and airbase:getID(), home = origin:getCenter() }
+  local bomber = veafCampaignOps.spawnFlight(side, "bomber", origin, "campaign_bomber", params, veafCampaignOps.BOMBER_ALTITUDE, true)
+  if not bomber then
+    return nil
+  end
+  local escort = nil
+  local group = Group.getByName(bomber)
+  if group and veafCampaignOps.aircraft(side, "cap") then
+    escort = veafCampaignOps.spawnFlight(
+      side,
+      "cap",
+      origin,
+      "campaign_escort",
+      { groupId = group:getID(), airdromeId = params.airdromeId, home = params.home },
+      veafCampaignOps.BOMBER_ALTITUDE,
+      true
+    )
+  end
+  if not purchased then
+    veafCampaign.pay(side, price, "partial", "a bomber raid")
+  end
+  local record = {
+    name = bomber,
+    escort = escort,
+    side = side,
+    target = target.name,
+    from = origin.name,
+    purchased = purchased or nil,
+    startedAt = timer.getTime(),
+  }
+  table.insert(veafCampaignOps.raids, record)
+  veafCampaignOps.counters.raids = veafCampaignOps.counters.raids + 1
+  veafCampaign.keepAwake(target, veafCampaignOps.RAID_TIMEOUT)
+  logger():info("%s bomber raid [%s] leaves [%s] for [%s]", side, bomber, origin.name, target.name)
+  local defender = veafCampaign.SIDES[target.entry.owner]
+  if defender then
+    trigger.action.outTextForCoalition(defender, veaf.t("campaign.raid.inbound", target.name, origin.name), 30)
+  end
+  trigger.action.outTextForCoalition(veafCampaign.SIDES[side], veaf.t("campaign.raid.sent", origin.name, target.name), 20)
+  veafCampaign.notify("raid", record)
+  return record
+end
+
+--- The raid of a side still out, if any.
+function veafCampaignOps.raidUnderway(side)
+  for _, raid in ipairs(veafCampaignOps.raids) do
+    if raid.side == side and not raid.done then
+      return raid
+    end
+  end
+  return nil
+end
+
+--- Follow one raid: its bomber gone is a raid shot down; landed, or out too long, it is over.
+function veafCampaignOps.followRaid(raid, now)
+  if raid.done then
+    return
+  end
+  local unit = liveUnit(raid.name)
+  if not unit then
+    raid.done, raid.outcome = true, "destroyed"
+    veafCampaignOps.counters.raidsDestroyed = veafCampaignOps.counters.raidsDestroyed + 1
+    logger():info("bomber raid [%s] on [%s] destroyed", raid.name, raid.target)
+  elseif (not unit:inAir() and now - raid.startedAt > 300) or now - raid.startedAt > veafCampaignOps.RAID_TIMEOUT then
+    raid.done, raid.outcome = true, "home"
+    destroyGroup(raid.name)
+    logger():info("bomber raid [%s] on [%s] is over", raid.name, raid.target)
+  end
+  if raid.done and raid.escort then
+    -- the escort goes home on its own route; it is taken away with the raid's end rather than left to loiter
+    destroyGroup(raid.escort)
+  end
+end
+
+--- The enemy's raids, on their cadence: every `bombers.seconds`, one raid out at a time.
+function veafCampaignOps.launchRaids(side, now)
+  if not veafCampaign.setting("bombers", "enabled") then
+    return
+  end
+  local due = veafCampaignOps.nextRaid[side]
+  if due == nil then
+    veafCampaignOps.nextRaid[side] = now + veafCampaign.setting("bombers", "seconds")
+    return
+  end
+  if now < due then
+    return
+  end
+  veafCampaignOps.nextRaid[side] = now + veafCampaign.setting("bombers", "seconds")
+  if veafCampaignOps.raidUnderway(side) then
+    return
+  end
+  local target = veafCampaignOps.raidTarget(side)
+  if target then
+    veafCampaignOps.sendRaid(side, target)
+  end
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -789,14 +1108,16 @@ function veafCampaignOps.launchHunter(unit, player)
   if not (origin and group) then
     return nil
   end
-  local spawned = veafCampaignOps.spawnFlight(
-    enemy,
-    "cap",
-    origin,
-    "campaign_intercept",
-    { groupId = group:getID(), target = point },
-    veafCampaignOps.CAP_ALTITUDE
-  )
+  local spawned = veafCampaignOps.paidSortie(enemy, veafCampaignOps.flightPrice(enemy, "cap"), "the Hunter", function()
+    return veafCampaignOps.spawnFlight(
+      enemy,
+      "cap",
+      origin,
+      "campaign_intercept",
+      { groupId = group:getID(), target = point },
+      veafCampaignOps.CAP_ALTITUDE
+    )
+  end)
   if spawned then
     veafCampaignOps.counters.hunters = veafCampaignOps.counters.hunters + 1
     trigger.action.outTextForCoalition(veafCampaign.SIDES[veafCampaign.playerSide()], veaf.t("campaign.hunter", player, origin.name), 20)
@@ -813,6 +1134,9 @@ function veafCampaignOps.beat(now)
   for _, record in ipairs(veafCampaignOps.helicopters) do
     veafCampaignOps.followHelicopter(record, now)
   end
+  for _, raid in ipairs(veafCampaignOps.raids) do
+    veafCampaignOps.followRaid(raid, now)
+  end
   if veafCampaign.over then
     return
   end
@@ -820,6 +1144,7 @@ function veafCampaignOps.beat(now)
   local enemy = veafCampaign.enemyOf(veafCampaign.playerSide())
   veafCampaignOps.maintainCaps(enemy)
   veafCampaignOps.launchStrike(enemy, now)
+  veafCampaignOps.launchRaids(enemy, now)
 end
 
 --- The self-check's lines for the sorties.
@@ -835,6 +1160,7 @@ function veafCampaignOps.selfCheck(verdict)
       c.helicoptersFailed
     ),
     verdict(true, "campaign.check.air", c.flights, veafCampaignOps.flightsUp(enemy, "cap"), veafCampaignOps.wantedCaps(), c.hunters),
+    verdict(true, "campaign.check.raids", c.raids, c.raidsDestroyed, c.unpaid),
   }
 end
 
@@ -843,7 +1169,17 @@ function veafCampaignOps.initialize()
   logger():info("Initializing module")
   veafCampaignOps.helicopters, veafCampaignOps.flights, veafCampaignOps.hunted = {}, {}, {}
   veafCampaignOps.nextSupply, veafCampaignOps.nextStrike, veafCampaignOps.strikeCount = {}, {}, 0
-  veafCampaignOps.counters = { helicoptersSent = 0, helicoptersLanded = 0, helicoptersFailed = 0, flights = 0, hunters = 0 }
+  veafCampaignOps.raids, veafCampaignOps.nextRaid = {}, {}
+  veafCampaignOps.counters = {
+    helicoptersSent = 0,
+    helicoptersLanded = 0,
+    helicoptersFailed = 0,
+    flights = 0,
+    hunters = 0,
+    raids = 0,
+    raidsDestroyed = 0,
+    unpaid = 0,
+  }
   table.insert(veafCampaign.beatHooks, veafCampaignOps.beat)
   table.insert(veafCampaign.selfChecks, veafCampaignOps.selfCheck)
   veafEventHandler.addCallback("veafCampaignOps.onKill", { "S_EVENT_KILL" }, veafCampaignOps.onKill)

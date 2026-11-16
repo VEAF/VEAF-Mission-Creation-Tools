@@ -717,6 +717,46 @@ function TestVeafSpawnCore:test_unknown_parameter_aborts_without_spawning()
   luaunit.assertFalse(spawned)
 end
 
+--- A persistent campaign's spawn gate (FEAT-DYNAMIC-CAMPAIGN ticket 14): asked before the handler with the
+--- command's key, told after it with the group, never for a script's spawn.
+function TestVeafSpawnCore:_runGated(allowed, groupName, scripted)
+  local calls = { handled = false, gate = {}, paid = {} }
+  veafSpawn.commandHandlers = {}
+  veafSpawn.registerCommandHandler("unit", "OPEN", function()
+    calls.handled = true
+    return groupName
+  end)
+  veafSpawn.spawnGate = function(key, options, requester)
+    table.insert(calls.gate, { key, options.side, requester })
+    return allowed
+  end
+  veafSpawn.spawnPaid = function(key, _, group)
+    table.insert(calls.paid, { key, group })
+  end
+  veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, "_spawn unit, name shilka", 1, nil, true, nil, nil, nil, nil, nil, 2, scripted)
+  veafSpawn.spawnGate, veafSpawn.spawnPaid = nil, nil
+  return calls
+end
+
+function TestVeafSpawnCore:test_a_refused_spawn_never_reaches_its_handler()
+  local calls = self:_runGated(false, "g")
+  luaunit.assertFalse(calls.handled)
+  luaunit.assertEquals(calls.gate, { { "unit", 1, 2 } })
+  luaunit.assertEquals(calls.paid, {})
+end
+
+function TestVeafSpawnCore:test_an_allowed_spawn_is_paid_once_it_spawned_something()
+  luaunit.assertEquals(self:_runGated(true, "g").paid, { { "unit", "g" } })
+  luaunit.assertEquals(self:_runGated(true, nil).paid, {})
+end
+
+function TestVeafSpawnCore:test_a_scripted_spawn_is_neither_gated_nor_paid()
+  local calls = self:_runGated(false, "g", true)
+  luaunit.assertTrue(calls.handled)
+  luaunit.assertEquals(calls.gate, {})
+  luaunit.assertEquals(calls.paid, {})
+end
+
 function TestVeafSpawnCore:test_known_parameters_still_spawn()
   -- A valid command (no unknown parameter) still reaches its handler.
   local spawned = false

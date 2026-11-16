@@ -213,6 +213,25 @@ _spawn flare, power 1000000, shells 5
 _spawn bomb, power 500, shells 3
 ```
 
+### Removing what you spawned {#remove-your-spawns}
+
+The mission remembers what **your** markers spawned: an alias (`-sa6`, `-armor`, `-convoy`, `-farp`…), a raw command (`_spawn`, `_cas`…).
+You remove it yourself from **F10 → VEAF → SPAWN → Next page → My spawns → [your name]** (*My spawns* comes after the SPAWN menu's commands, which fill its first page):
+
+- **Remove all** removes everything you spawned;
+- each marker has its own entry, named after what you typed and the mission time (for example `-sa6 14:32`): it removes that marker's spawn only, a whole convoy or group included.
+
+The *My spawns* menu only shows up when you have something to remove.
+What has already been destroyed leaves the list by itself; a partly destroyed group is removed whole.
+
+A few details:
+
+- **The pilot counts, not the aircraft**: switch aircraft and you find your list again.
+- **In a two-seater or a flight**, DCS cannot tell who clicks in the F10 menu: every occupant of the group sees everyone's spawns, each under his own name.
+- **Nobody else can remove your spawns** through this menu. `-destroy` stays the trusted members' command.
+- **Leaving the server removes nothing**: someone may still be using it. Clean up before you go.
+- **Combat zones** are not concerned: they remove their own units when deactivated.
+
 ---
 
 ## Assets

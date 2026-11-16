@@ -430,7 +430,9 @@ veafCasMission.DEFAULT_DISPERSE_DELAY = 15
 -- Event handler functions.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafCasMission.executeCommand(eventPos, eventText, coalition, markId, bypassSecurity)
+--- @param spawnedGroups table|nil collects the CAS target and its AFAC, so that a pilot's marker can be
+---   traced to what it spawned (FEAT-SPAWN-OWNERSHIP-DESPAWN)
+function veafCasMission.executeCommand(eventPos, eventText, coalition, markId, bypassSecurity, spawnedGroups)
   veaf.loggers.get(veafCasMission.Id):debug(string.format("veafCasMission.executeCommand(eventText=[%s])", eventText))
   veaf.loggers.get(veafCasMission.Id):trace(string.format("coalition=%s", veaf.p(coalition)))
   veaf.loggers.get(veafCasMission.Id):trace(string.format("markId=%s", veaf.p(markId)))
@@ -467,6 +469,7 @@ function veafCasMission.executeCommand(eventPos, eventText, coalition, markId, b
         end
 
         -- create the group
+        local wasRunning = veafCasMission.isRunning()
         veafCasMission.generateCasMission(
           eventPos,
           options.size,
@@ -476,6 +479,11 @@ function veafCasMission.executeCommand(eventPos, eventText, coalition, markId, b
           options.disperseOnAttack,
           options.side
         )
+        -- Only a mission this command started: one already running refused it.
+        if spawnedGroups and not wasRunning and veafCasMission.isRunning() then
+          veaf.collectSpawnedGroup(spawnedGroups, veafCasMission.casGroupName)
+          veaf.collectSpawnedGroup(spawnedGroups, veafCasMission.afacName)
+        end
         return true
       end
     end
@@ -1413,7 +1421,7 @@ function veafCasMission.initialize()
   veafCommands.registerCommandHandler(function(pos, event, bypass, fromMarker, groups, route)
     -- Markers spawn the CAS target for the opposing side by default.
     local spawnSide = fromMarker and veaf.getOppositeCoalition(event.coalition) or event.coalition
-    return veafCasMission.executeCommand(pos, event.text, spawnSide, event.idx, bypass)
+    return veafCasMission.executeCommand(pos, event.text, spawnSide, event.idx, bypass, groups)
   end, veafCommands.PRIORITY_CASMISSION, veafCommands.SECURITY_HANDLED)
 end
 

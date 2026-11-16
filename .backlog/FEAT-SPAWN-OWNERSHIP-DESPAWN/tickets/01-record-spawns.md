@@ -1,6 +1,6 @@
 # 01 — Record each marker-spawned group with its author
 
-Status: ⬜ ready
+Status: ✅ done
 
 ## Done when
 

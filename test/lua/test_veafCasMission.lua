@@ -912,4 +912,45 @@ function TestVeafCasMissionLongRange:test_a_missing_template_returns_nil()
   luaunit.assertNil(veafCasMission.generateLongRangeAirDefenseGroup("LR", veafCasMission.SIDE_RED))
 end
 
+-- ---------------------------------------------------------------------------
+-- What a CAS marker spawned (FEAT-SPAWN-OWNERSHIP-DESPAWN): the target and its AFAC, collected so that
+-- the pilot who asked can remove them.
+-- ---------------------------------------------------------------------------
+TestVeafCasSpawnedGroups = {}
+
+function TestVeafCasSpawnedGroups:setUp()
+  self.saved = { generate = veafCasMission.generateCasMission, task = veafCasMission.groupAliveCheckTaskID }
+  veafCasMission.groupAliveCheckTaskID = "none"
+  veafCasMission.generateCasMission = function()
+    if veafCasMission.groupAliveCheckTaskID ~= "none" then
+      return
+    end
+    veafCasMission.casGroupName = "Blue CAS"
+    veafCasMission.afacName = "Blue AFAC"
+    veafCasMission.groupAliveCheckTaskID = 1
+  end
+end
+
+function TestVeafCasSpawnedGroups:tearDown()
+  veafCasMission.generateCasMission = self.saved.generate
+  veafCasMission.groupAliveCheckTaskID = self.saved.task
+end
+
+function TestVeafCasSpawnedGroups:test_a_started_mission_hands_over_its_groups()
+  local groups = {}
+
+  veafCasMission.executeCommand({ x = 0, y = 0, z = 0 }, "_cas", coalition.side.RED, nil, true, groups)
+
+  luaunit.assertEquals(groups, { "Blue CAS", "Blue AFAC" })
+end
+
+function TestVeafCasSpawnedGroups:test_a_refused_mission_hands_over_nothing()
+  veafCasMission.groupAliveCheckTaskID = 1
+  local groups = {}
+
+  veafCasMission.executeCommand({ x = 0, y = 0, z = 0 }, "_cas", coalition.side.RED, nil, true, groups)
+
+  luaunit.assertEquals(groups, {}, "the mission already running is not this marker's")
+end
+
 os.exit(luaunit.LuaUnit.run())

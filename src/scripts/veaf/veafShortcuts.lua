@@ -436,7 +436,12 @@ function VeafAlias:execute(remainingCommand, position, coalition, markId, bypass
     and veafNamedPoints.executeCommand(position, { text = command, coalition = -1 }, _bypassSecurity)
   then
     return true
-  elseif logDebug("checking in veafCasMission") and veafCasMission.executeCommand(position, command, coalition, _bypassSecurity) then
+  elseif
+    logDebug("checking in veafCasMission")
+    -- The marker id where the module expects it: `_bypassSecurity` used to go there, so the module looked
+    -- for the author of mark `false` and asked every pilot for the password (FEAT-SPAWN-OWNERSHIP-DESPAWN).
+    and veafCasMission.executeCommand(position, command, coalition, markId, _bypassSecurity, spawnedGroups)
+  then
     return true
   elseif logDebug("checking in veafSecurity") and veafSecurity.executeCommand(position, command, _bypassSecurity) then
     return true

@@ -105,7 +105,10 @@ veafCampaignOps.RAID_TIMEOUT = 7200
 --- A raid's SEAD and bomber take off, then meet at a hold point before they push (David, 2026-11-16): how near it
 --- a flight counts as holding, in metres; how long it holds at most, in seconds, before it goes on alone — a
 --- partner lost on the way does not keep it circling for ever; how far beyond it the attack begins, in metres.
-veafCampaignOps.HOLD_REACHED = 5000
+--- Not less than a circle's radius: at 200 m/s a flight orbits some 7 km from the point (v^2 / (g tan 30 deg), an
+--- estimation), and at 5 km the Tu-22M3 and its SEAD circled 10 minutes over Kutaisi without ever counting as
+--- holding (2026-11-16). That they had climbed is told by the altitude, not by this distance.
+veafCampaignOps.HOLD_REACHED = 15000
 veafCampaignOps.HOLD_SECONDS = 1200
 veafCampaignOps.PUSH_DISTANCE = 2000
 
@@ -1141,7 +1144,9 @@ veafAircraftSpawn.roles.campaign_bomber = {
     local route
     if params.hold then
       route = {
-        point(spot.x, spot.z, {}),
+        -- no reaction and no jettison from the start: fired at before its push point, a Tu-22M3 jettisoned its
+        -- 33 bombs 50 km short of the target (2026-11-16)
+        point(spot.x, spot.z, pressOn()),
         point(params.hold.x, params.hold.z, { holdTask(params.hold, altitude, params.speed or veafCampaignOps.BOMBER_SPEED) }),
         point(from.x, from.z, tasks),
         point(params.target.x, params.target.z, {}),
@@ -1460,7 +1465,35 @@ end
 
 --- A raid's push from its hold: once the bomber holds and its SEAD too — or the SEAD is lost —, the SEAD's flag
 --- is raised, then the bomber's `bombers.package_delay` after it, so that the bomber comes in right behind.
+--- Seconds between two log lines of a raid still waiting at its hold.
+veafCampaignOps.HOLD_REPORT_SECONDS = 60
+
+--- Where a raid's flight stands from its hold: "<what> <d> km away at <alt> m", "(holds)" when it holds.
+local function holdState(what, unit, hold, altitude)
+  if not unit then
+    return what .. " lost"
+  end
+  local point = unit:getPoint()
+  return string.format(
+    "%s %d km away at %d m%s",
+    what,
+    math.floor(distance2d(point, hold) / 1000),
+    math.floor(point.y),
+    holding(unit, hold, altitude) and " (holds)" or ""
+  )
+end
+
 local function pushFromHold(raid, bomber, now)
+  if not raid.pushedAt and now >= (raid.holdReportAt or 0) then
+    raid.holdReportAt = now + veafCampaignOps.HOLD_REPORT_SECONDS
+    veafCampaign.debug(
+      "FLIGHT",
+      "raid on [%s] waits at its hold: %s, %s",
+      raid.target,
+      holdState("bomber", bomber, raid.hold, raid.bomberAltitude),
+      holdState("SEAD", raid.sead and liveUnit(raid.sead), raid.hold, raid.seadAltitude)
+    )
+  end
   if not raid.pushedAt and holding(bomber, raid.hold, raid.bomberAltitude) then
     local sead = raid.sead and liveUnit(raid.sead)
     if not sead then

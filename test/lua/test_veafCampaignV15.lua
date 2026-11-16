@@ -1033,13 +1033,20 @@ function TestCampaignBombers:test_the_sead_and_the_bomber_hold_together_then_pus
   flightAt(raid.sead, { x = 84000, y = 2500 }, true)
   veafCampaignOps.followRaid(raid, 1150)
   luaunit.assertEquals(flags, {})
-  -- the bomber holds, the SEAD not yet: still nobody
-  flightAt(raid.name, { x = 86000, y = 7000 }, true)
+  -- the bomber holds, the SEAD not yet: still nobody, and the log says where each stands
+  -- (2026-11-16: circling at 200 m/s, a flight stays some 7 km from the point; it held 10 min unseen at 5 km)
+  flightAt(raid.name, { x = 93000, y = 7000 }, true)
   flightAt(raid.sead, { x = 110000, y = 2500 }, true)
   veafCampaignOps.followRaid(raid, 1200)
   luaunit.assertEquals(flags, {})
-  -- both hold: the SEAD pushes, the bomber `package_delay` after it
-  flightAt(raid.sead, { x = 84000, y = 2500 }, true)
+  local waiting = "waits at its hold: bomber 8 km away at 7000 m (holds), SEAD 25 km away at 2500 m"
+  local seen = false
+  for _, entry in ipairs(dcs_mocks.logs) do
+    seen = seen or string.find(entry.text, waiting, 1, true) ~= nil
+  end
+  luaunit.assertTrue(seen, waiting)
+  -- both hold, each on its circle 7-8 km from the point: the SEAD pushes, the bomber `package_delay` after it
+  flightAt(raid.sead, { x = 78000, y = 2500 }, true)
   veafCampaignOps.followRaid(raid, 1300)
   luaunit.assertEquals(flags, { [seadHold.flag] = 1 })
   veafCampaignOps.followRaid(raid, 1329)
@@ -1211,6 +1218,16 @@ function TestCampaignBombers:test_the_bomber_takes_off_holds_then_bombs_from_its
     },
   })
   luaunit.assertEquals(route[1].type, "TakeOffParkingHot")
+  -- no reaction to a threat and no jettison from the take-off on (2026-11-16: fired at before its push point,
+  -- a Tu-22M3 jettisoned its 33 bombs 50 km short of the target)
+  local options = {}
+  for _, task in ipairs(route[1].task.params.tasks) do
+    local action = task.params and task.params.action
+    if action and action.id == "Option" then
+      options[action.params.name] = action.params.value
+    end
+  end
+  luaunit.assertEquals(options, { [1] = 0, [15] = true })
   -- it orbits at the hold until its flag is raised
   local hold = route[2].task.params.tasks[1]
   luaunit.assertEquals({ route[2].x, route[2].y }, { -10000, 0 })

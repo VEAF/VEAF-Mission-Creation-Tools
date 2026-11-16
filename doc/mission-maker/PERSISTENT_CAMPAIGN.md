@@ -333,7 +333,7 @@ Tout **décolle** de l'aérodrome ennemi le plus proche de la cible qui en est a
 
 1. une **BARCAP** tient l'axe, hors de portée de toutes les défenses antiaériennes ennemies (voir la [BARCAP](#shop)) ;
 2. un vol **SEAD**, contre la zone dont la défense antiaérienne couvre la cible (s'il y en a une), et le **bombardier** se retrouvent sur un point d'attente, sur l'axe de la cible, au premier point hors de portée des défenses plus 15 km (au-dessus de leur aérodrome s'il n'y en a pas) ;
-3. quand les deux y tournent, montés à leur altitude (à 1 000 m près) et à moins de 5 km du point, la SEAD repart vers la cible, et le bombardier `bombers.package_delay` (30 s) derrière elle, sur le même axe ; si la SEAD a été abattue en route, le bombardier repart seul. Aucun ne tourne plus de 20 minutes au point d'attente.
+3. quand les deux y tournent, montés à leur altitude (à 1 000 m près) et à moins de 15 km du point (le rayon d'un cercle d'attente), la SEAD repart vers la cible, et le bombardier `bombers.package_delay` (30 s) derrière elle, sur le même axe ; si la SEAD a été abattue en route, le bombardier repart seul. Aucun ne tourne plus de 20 minutes au point d'attente.
 
 Le bombardier vole à la vitesse de la SEAD, pour rester derrière elle, et largue tout son emport d'une passe, en tapis de 1 km sur la cible ; il ne réagit pas à la menace et ne largue pas ses bombes en secours : il va jusqu'à la cible.
 Sans défense à éteindre, pas de SEAD ni d'attente : le bombardier va droit sur la cible.

@@ -94,7 +94,9 @@ class TestTheDynamicBlock:
             "network": {"hop_seconds": 300, "isolated_seconds": 1800, "depot_store": 2, "max_deliveries": 1},
             "demolition": {"troops": "Sapeurs", "range": 4000, "fuse": 90},
             "warehouse": {"enabled": False, "load": 5},
-            "bombers": {"enabled": True, "seconds": 1800, "min_distance": 60000},
+            "bombers": {"enabled": True, "seconds": 1800, "min_distance": 60000, "escort": True, "package_delay": 120},
+            "debug": False,
+            "debug_status_seconds": 600,
             "territory": {"enabled": True, "margin": 50000},
         }
         dynamic = _persistent(dynamic=block).dynamic
@@ -118,6 +120,7 @@ class TestTheDynamicBlock:
             ({"factory": {"types": []}}, "dynamic.factory.types"),
             ({"network": {"hop_seconds": 0}}, "dynamic.network.hop_seconds"),
             ({"economy": {"credits_per_point": 0}}, "dynamic.economy.credits_per_point"),
+            ({"debug": "yes"}, "dynamic.debug"),
             ({"territory": {"enabled": "yes"}}, "dynamic.territory.enabled"),
         ],
     )

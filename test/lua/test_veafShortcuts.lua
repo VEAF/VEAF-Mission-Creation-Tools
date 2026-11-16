@@ -989,4 +989,37 @@ function TestAliasChainCoalitions:test_arty1_is_still_a_batch()
   luaunit.assertNotNil(alias:getBatchAliases(), "-arty1 doit rester un lot")
 end
 
+-- ---------------------------------------------------------------------------
+-- A mission's marker policy holds for a pilot's command from afar too (FEAT-DYNAMIC-CAMPAIGN, 2026-11-16)
+-- ---------------------------------------------------------------------------
+TestRemoteCommandPolicy = {}
+
+function TestRemoteCommandPolicy:_run(allowed)
+  local asked, ran = nil, false
+  local savedCommands, savedExecute = veafCommands, veafShortcuts.executeCommand
+  veafCommands = {
+    allowedByPolicy = function(event)
+      asked = event
+      return allowed
+    end,
+  }
+  veafShortcuts.executeCommand = function()
+    ran = true
+  end
+  veafShortcuts.executeCommandFromRemote({ { name = "Zip" }, "Zip", "nobody", "-shell" })
+  veafCommands, veafShortcuts.executeCommand = savedCommands, savedExecute
+  return asked, ran
+end
+
+function TestRemoteCommandPolicy:test_a_refused_command_never_runs()
+  local asked, ran = self:_run(false)
+  luaunit.assertEquals({ asked.text, asked.idx }, { "-shell", "Zip" })
+  luaunit.assertFalse(ran)
+end
+
+function TestRemoteCommandPolicy:test_an_allowed_command_runs()
+  local _, ran = self:_run(true)
+  luaunit.assertTrue(ran)
+end
+
 os.exit(luaunit.LuaUnit.run())

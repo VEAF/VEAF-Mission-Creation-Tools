@@ -108,6 +108,7 @@ At most `max_awake_zones` (12) zones are awake at once, nearest the players firs
 ## Enemy air {#air}
 
 - **CAP**: the enemy keeps one CAP up per `air.cap_per_players` (3) players of the [opposition level](scripts/veafQraManager.en.md#opposition-level), at least one, over its front zone nearest the players.
+  Its patrol circle (40 km at most) stops 15 km short of our zones' air defence reach, 5 km at least: it does not throw itself at our SAMs.
 - **Strikes**: every `air.strike_seconds` (900 s), a CAS strike (on the zone with the most units) or a SEAD strike (on the one with the most air defence), in turn, on a zone bordering the enemy's territory.
 - They **take off** from the nearest enemy airfield, hot on free stands, or from the runway when there are not enough; no airfield, no sortie. So do the CAP, the BARCAP and the Hunter.
   `air.max_flights` (4) flights in the air at most per side.
@@ -154,7 +155,7 @@ A purchase refused (no target left, nothing in reach) costs nothing.
 | BARCAP | a CAP of our side held in front of an enemy zone, out of its air defence's reach, to cover the helicopters and aircraft going to strike it | 400 |
 | Capture helicopter | a helicopter that goes and takes a neutral zone | 250 |
 | Resupply helicopter | a helicopter that goes and resupplies one of our damaged zones | 200 |
-| Bomber raid | an escorted [bomber](#bombers) that bombs an enemy zone, its buildings first | 1200 |
+| Bomber raid | a [combined raid](#bombers) — BARCAP, SEAD, bomber — on an enemy zone, its buildings first | 1300 |
 | Tanker | respawns the tanker `economy.tanker` names (an asset of the mission); absent without it | 300 |
 
 The BARCAP holds on the axis between the enemy zone and our nearest airfield, at its air defence's reach plus 15 km, and guards a 15 km circle.
@@ -285,6 +286,7 @@ Some commands would be cheating in a persistent campaign: it reserves them to th
 
 **`-cas` is turned off**: a CAS training zone makes no sense in a campaign.
 Everything else keeps its module's level: smoke, signals, named points, beacons, drawings, the tanker's altitude, the commands of an artillery battery already placed.
+The same rule holds for a command a pilot sends from afar.
 A mission with security off (a test copy) lets everything through, `-cas` excepted.
 
 ## The demolition team {#demolition}
@@ -311,12 +313,19 @@ The cargo is lost with the aircraft, and with the server: it is not saved.
 
 ## Strategic bombers {#bombers}
 
-Every `bombers.seconds` (3,600 s), the enemy sends an escorted bomber raid, paid from its resources, at the players' zone with the most to hit: a factory first, else the zone with the most units.
-It starts in the air from the enemy airfield nearest the target that is at least `bombers.min_distance` (80 km) from it, to leave the players time to intercept; the escort is its CAP aircraft.
+Every `bombers.seconds` (3,600 s), the enemy sends a **combined raid** at the players' zone with the most to hit: a factory first, else the zone with the most units, among those one of its airfields can reach.
+Everything starts in the air from the enemy airfield nearest the target that is at least `bombers.min_distance` (80 km) from it, to leave the players time to intercept:
+
+1. a **BARCAP** holds the axis, out of the target's air defence reach;
+2. a **SEAD** flight goes ahead, at the zone whose air defence covers the target (when one does);
+3. the **bomber** follows `bombers.package_delay` (180 s) later; it does not react to threats nor jettison its bombs: it presses on to the target.
+
+No escort by default: the BARCAP holds the approach, and the last leg is the players' interception window; `bombers.escort: true` gives it one back.
+The package is paid whole, from the resources, or does not leave.
 The players are told at once, and the [task board](#tasks) posts an intercept task.
 One raid of a side in the air at a time.
 
-The players buy theirs in the [shop](#shop): **Bomber raid**, on an enemy zone.
+The players buy the same package in the [shop](#shop): **Bomber raid**, on an enemy zone.
 
 The bombers are declared like the other aircraft, role `bomber`:
 
@@ -334,6 +343,20 @@ dynamic:
 Each zone holds the part of the map nearer to it than to any other zone (its Voronoi cell), tinted on the F10 map in its side's colour, grey for a neutral zone; a dark line runs between two cells of different sides: the front, edged on each side with short slanted hatches in the side's colour, plain to see where the tint is faint.
 The map is redrawn only when a zone changes hands.
 `territory.margin` (70 km) extends the cells beyond the outer zones; `territory.hatch_spacing` (3,000 m) and `territory.hatch_length` (2,500 m) set the hatches' spacing and length; `territory.enabled: false` removes the tint.
+
+## The debugging log {#debug-log}
+
+While the campaign is being tuned, `dynamic.debug` (on by default) writes in `dcs.log` what the campaign does, in lines easy to search for:
+
+| Tag | What it says |
+|---|---|
+| `[CAMPAIGN DECISION]` | every decision of the AI and its reason: a sortie sent, or not (no target, no airfield, no room left, nothing to pay with — with the price and the stock); a raid's package |
+| `[CAMPAIGN FLIGHT]` | the fate of every campaign aircraft: a weapon released (with its distance to the aim), a kill or a loss and by whom, a landing |
+| `[CAMPAIGN SUPPLY]` | the network's deliveries ordered, arrived, lost |
+| `[CAMPAIGN ZONE]` | zones captured and turned neutral |
+| `[CAMPAIGN STATUS]` | every `debug_status_seconds` (300 s): per side, zones, stock and production, deliveries on their way, flights up, raid out, and the players' credits |
+
+`debug: false` turns it off, once the campaign is trusted.
 
 ## Checking a mission in game {#self-check}
 
@@ -367,7 +390,9 @@ A `KO` line is enough to know where to look.
 | `network` | see [the network](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3) |
 | `demolition` | see [demolition](#demolition) | `troops` (`Sappers`), `range` (5000), `fuse` (120) |
 | `warehouse` | see [the stocks](#warehouses) | `enabled` (true), `load` (10) |
-| `bombers` | see [the bombers](#bombers) | `enabled` (true), `seconds` (3600), `min_distance` (80000) |
+| `bombers` | see [the bombers](#bombers) | `enabled` (true), `seconds` (3600), `min_distance` (80000), `escort` (false), `package_delay` (180) |
+| `debug` | see [the debugging log](#debug-log) | `true` while testing |
+| `debug_status_seconds` | 300 | seconds between two status lines of the log |
 | `territory` | see [territory](#territory) | `enabled` (true), `margin` (70000), `hatch_spacing` (3000), `hatch_length` (2500) |
 
 The caps are conservative by default; they will be tuned from what the servers hold.
@@ -382,7 +407,7 @@ These are written and tested outside DCS, not yet measured in game:
 - the spy team walking to its zone;
 - a garrison disappearing and reappearing as a player passes;
 - a factory's buildings placed on open ground, and raised again under the captor's flag;
-- the bomber's `Bombing` task and the escort following it;
+- the bomber's `Bombing` task, its "no reaction to threats" and "no jettison" options, and the timing of the combined raid;
 - the sappers' charges, strong enough for a building, and the team out of their blast;
 - an unlimited warehouse's stocks, which `getInventory` may report without counting them;
 - the territory tint, made of triangles, on the F10 map.

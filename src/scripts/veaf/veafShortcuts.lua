@@ -2114,6 +2114,16 @@ function veafShortcuts.executeCommandFromRemote(parameters)
         veaf.loggers.get(veafShortcuts.Id):trace(string.format("_lon=%s", veaf.p(_lon)))
       end
     end
+    -- a mission's marker policy holds for a pilot's command from afar as for his marker (a persistent
+    -- campaign, FEAT-DYNAMIC-CAMPAIGN): the pilot's name stands for the marker, as veafSecurity reads it
+    if
+      _alias
+      and veafCommands
+      and veafCommands.allowedByPolicy
+      and not veafCommands.allowedByPolicy({ text = _alias, idx = _pilot.name, coalition = _coa })
+    then
+      return true
+    end
     if _alias then
       if _lat and _lon then
         local _pos = coord.LLtoLO(_lat, _lon)

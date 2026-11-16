@@ -21,3 +21,13 @@ In game: the bomber flies to the target and drops; the escort follows it.
 2026-11-16, test mission `Dynamic Test`, red starting with 1500 points: the red raid left Senaki for Ozurgeti at about 15 min, and the intercept task was posted. Still to see: the drop, and the escort following its bomber.
 
 The red stock of 300 the test campaign first had could never pay the first raid (CAP, helicopter and the strike leaving at the same beat leave ~200, the raid needs 160 above the reserve of 100): with the default values, a side affords raids only with factories standing — a point for the server tuning (ticket 10).
+
+## Combined raid (David, 2026-11-16, after the first raid in game)
+
+The first raid in game flew into the blue SAM umbrella over Ozurgeti: the Tu-22M3, locked, turned away south-east and jettisoned its bombs, which never armed, and was shot down on its way home; two red MiG-29 of the CAP were shot down by the same SAMs.
+
+- A raid is now a package: a BARCAP on the axis out of the target's air defence reach (`barcapStation`), a SEAD flight ahead at the zone whose air defence covers the target, and the bomber `bombers.package_delay` (180 s) later.
+- No escort by default (David: the BARCAP holds the approach, the last leg is the players' interception window); `bombers.escort: true` brings it back.
+- The bomber does not react to threats (`REACTION_ON_THREAT` = `NO_REACTION`) nor jettison (`PROHIBIT_JETT`).
+- Paid whole or not at all; the shop's raid is the same package, 1300 credits (220 points at 6 credits a point).
+- The enemy's CAP circle stops `BARCAP_MARGIN` short of the players' air defence reach, `CAP_MIN_RADIUS` (5 km) at least.

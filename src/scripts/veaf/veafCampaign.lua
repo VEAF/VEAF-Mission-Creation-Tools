@@ -95,8 +95,12 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   network = { hop_seconds = 600, isolated_seconds = 3600, depot_store = 4, max_deliveries = 3 },
   demolition = { troops = "Sappers", range = 5000, fuse = 120 },
   warehouse = { enabled = true, load = 10 },
-  bombers = { enabled = true, seconds = 3600, min_distance = 80000 },
+  bombers = { enabled = true, seconds = 3600, min_distance = 80000, escort = false, package_delay = 180 },
   territory = { enabled = true, margin = 70000, hatch_spacing = 3000, hatch_length = 2500 },
+  -- the testing period: every decision of the AI and its reason in dcs.log, a status every
+  -- `debug_status_seconds`, the fate of every campaign aircraft (David, 2026-11-16); off once trusted
+  debug = true,
+  debug_status_seconds = 300,
 }
 
 --- What a unit costs in resource points when `resources.prices` does not name its type, by what the DCS
@@ -202,6 +206,23 @@ function veafCampaign.pay(side, cost, mode, what)
     return true
   end
   return logistics.pay(side, cost, mode, what)
+end
+
+--- Whether the campaign tells its every decision in dcs.log: a persistent campaign with `dynamic.debug`.
+function veafCampaign.debugging()
+  return veafCampaign.isPersistent() and veafCampaign.setting("debug") == true
+end
+
+--- Write one line of the testing period's log, when `dynamic.debug` is on: `[CAMPAIGN <TAG>] text`, a tag
+--- to search dcs.log by — DECISION, STATUS, FLIGHT, SUPPLY, ZONE.
+--- @param tag string
+--- @param fmt string a format, as string.format takes it
+function veafCampaign.debug(tag, fmt, ...)
+  if not veafCampaign.debugging() then
+    return
+  end
+  local ok, text = pcall(string.format, fmt, ...)
+  veaf.loggers.get(veafCampaign.Id):info("[CAMPAIGN %s] %s", tag, ok and text or fmt)
 end
 
 --- One setting of the live play: the data table's `dynamic.<key>`, or within a block `dynamic.<key>.<sub>`,
@@ -805,6 +826,7 @@ function VeafCampaignZone:becomeNeutral()
   self.entry.garrison = nil
   veafCampaign.setAirbaseCoalition(self, coalition.side.NEUTRAL)
   veaf.loggers.get(veafCampaign.Id):info("zone [%s] lost its garrison and is now neutral (was %s)", self.name, former)
+  veafCampaign.debug("ZONE", "[%s] neutral, lost by %s", self.name, tostring(former))
   trigger.action.outText(veaf.t("campaign.zone_neutral", self.name), 15)
   veafCampaign.planAssaults(self, timer.getTime())
   veafCampaign.buildAssaultMenu()
@@ -1120,6 +1142,7 @@ function VeafCampaignZone:capturedBy(side)
   end
   veafCampaign.drawTerritory()
   veaf.loggers.get(veafCampaign.Id):info("zone [%s] captured by %s", self.name, side)
+  veafCampaign.debug("ZONE", "[%s] captured by %s", self.name, side)
   trigger.action.outText(veaf.t("campaign.zone_captured", self.name, veaf.t("campaign.side." .. side)), 15)
   for key, pending in pairs(veafCampaign.pendingAssaults) do
     if pending.to == self.name then
@@ -1960,8 +1983,18 @@ function veafCampaign.launchOffensives(now)
         veafCampaign.nextAttack[side] = now + veafCampaign.setting("attack_seconds")
       elseif now >= due then
         veafCampaign.nextAttack[side] = now + veafCampaign.setting("attack_seconds")
-        if veafCampaign.convoysUnderway(side) < veafCampaign.setting("max_convoys") then
+        if veafCampaign.convoysUnderway(side) >= veafCampaign.setting("max_convoys") then
+          veafCampaign.debug(
+            "DECISION",
+            "%s does not counter-attack: %d convoys already on the road",
+            side,
+            veafCampaign.convoysUnderway(side)
+          )
+        else
           local target, from = veafCampaign.attackTarget(side)
+          if not target then
+            veafCampaign.debug("DECISION", "%s does not counter-attack: no enemy zone it borders", side)
+          end
           if target then
             veaf.loggers.get(veafCampaign.Id):info("%s counter-attacks [%s] from [%s]", side, target.name, from.name)
             if veafCampaign.sendConvoy(side, from, target) then

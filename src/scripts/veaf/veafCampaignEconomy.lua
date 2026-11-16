@@ -37,7 +37,7 @@ veafCampaignEconomy.PRICES = {
   intel = 150,
   capture = 250,
   resupply = 200,
-  bomber = 1200,
+  bomber = 1300, -- the raid package without escort, 220 points at 6 credits a point (David, 2026-11-16)
   assault = 300, -- the players' assault order (Campaign > Assault), a purchase in a persistent campaign
 }
 

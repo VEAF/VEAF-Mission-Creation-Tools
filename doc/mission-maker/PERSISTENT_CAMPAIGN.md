@@ -108,6 +108,7 @@ Au plus `max_awake_zones` (12) zones sont éveillées à la fois, les plus proch
 ## L'aviation ennemie {#air}
 
 - **CAP** : l'ennemi tient en l'air une CAP par tranche de `air.cap_per_players` (3) joueurs du [niveau d'opposition](scripts/veafQraManager.md#opposition-level), au moins une, au-dessus de sa zone du front la plus proche des joueurs.
+  Son cercle de patrouille (40 km au plus) s'arrête 15 km avant la portée des défenses antiaériennes de nos zones, 5 km au moins : elle ne vient pas se jeter dans nos SAM.
 - **Frappes** : toutes les `air.strike_seconds` (900 s), une frappe CAS (sur la zone qui a le plus d'unités) ou SEAD (sur celle qui a le plus de défense antiaérienne), en alternance, sur une zone qui borde le territoire ennemi.
 - Elles **décollent** de l'aérodrome ennemi le plus proche, moteur chaud sur des parkings libres, ou de la piste quand il n'y en a pas assez ; sans aérodrome, pas de sortie. Il en va de même pour la CAP, la BARCAP et le Hunter.
   `air.max_flights` (4) vols en l'air au plus par camp.
@@ -154,7 +155,7 @@ Un achat refusé (plus de cible, rien à portée) ne coûte rien.
 | BARCAP | une CAP de notre camp tenue devant une zone ennemie, hors de portée de ses défenses, pour couvrir les hélicoptères et les avions qui vont la frapper | 400 |
 | Hélico de capture | un hélicoptère qui va prendre une zone neutre | 250 |
 | Hélico de ravitaillement | un hélicoptère qui va ravitailler une de nos zones abîmées | 200 |
-| Raid de bombardiers | un [bombardier](#bombers) escorté qui bombarde une zone ennemie, ses bâtiments d'abord | 1200 |
+| Raid de bombardiers | un [raid combiné](#bombers) — BARCAP, SEAD, bombardier — sur une zone ennemie, ses bâtiments d'abord | 1300 |
 | Ravitailleur | fait réapparaître le ravitailleur que nomme `economy.tanker` (un asset de la mission) ; absent sans lui | 300 |
 
 La BARCAP se tient sur l'axe entre la zone ennemie et notre aérodrome le plus proche, à la portée de ses défenses plus 15 km, et garde un cercle de 15 km.
@@ -285,6 +286,7 @@ Certaines commandes seraient de la triche dans une campagne persistante : elle l
 
 **`-cas` est désactivée** : une zone CAS d'entraînement n'a pas de sens dans une campagne.
 Le reste garde le niveau de son module : fumigènes, signaux, points nommés, balises, dessins, altitude du ravitailleur, commandes de l'artillerie posée.
+La même règle vaut pour une commande qu'un pilote passe à distance.
 Une mission dont la sécurité est coupée (une copie de test) laisse tout passer, sauf `-cas`.
 
 ## L'équipe de démolition {#demolition}
@@ -311,12 +313,19 @@ Le chargement est perdu avec l'appareil, et avec le serveur : il n'est pas sauve
 
 ## Les bombardiers stratégiques {#bombers}
 
-Toutes les `bombers.seconds` (3 600 s), l'ennemi envoie un raid de bombardiers escorté, payé sur ses ressources, sur la zone des joueurs qui a le plus à frapper : une usine d'abord, sinon la zone qui a le plus d'unités.
-Il part en vol de l'aérodrome ennemi le plus proche de la cible qui en est au moins à `bombers.min_distance` (80 km), pour laisser aux joueurs le temps d'intercepter ; l'escorte, ce sont ses avions de CAP.
+Toutes les `bombers.seconds` (3 600 s), l'ennemi envoie un **raid combiné** sur la zone des joueurs qui a le plus à frapper : une usine d'abord, sinon la zone qui a le plus d'unités, parmi celles qu'un de ses aérodromes peut atteindre.
+Tout part en vol de l'aérodrome ennemi le plus proche de la cible qui en est au moins à `bombers.min_distance` (80 km), pour laisser aux joueurs le temps d'intercepter :
+
+1. une **BARCAP** tient l'axe, hors de portée des défenses antiaériennes de la cible ;
+2. un vol **SEAD** part devant, contre la zone dont la défense antiaérienne couvre la cible (s'il y en a une) ;
+3. le **bombardier** suit, `bombers.package_delay` (180 s) plus tard ; il ne réagit pas à la menace et ne largue pas ses bombes en secours : il va jusqu'à la cible.
+
+Pas d'escorte par défaut : la BARCAP tient l'approche, et la fin du trajet est la fenêtre d'interception des joueurs ; `bombers.escort: true` lui en rend une.
+Le paquet se paie tout entier, sur les ressources, ou ne part pas.
 Les joueurs en sont prévenus aussitôt, et le [tableau des tâches](#tasks) affiche une tâche d'interception.
 Un seul raid d'un camp en l'air à la fois.
 
-Les joueurs achètent le leur à la [boutique](#shop) : **Raid de bombardiers**, sur une zone ennemie.
+Les joueurs achètent le même paquet à la [boutique](#shop) : **Raid de bombardiers**, sur une zone ennemie.
 
 Les bombardiers se déclarent comme les autres avions, rôle `bomber` :
 
@@ -334,6 +343,20 @@ dynamic:
 Chaque zone tient la part de la carte plus proche d'elle que de toute autre zone (sa cellule de Voronoï), teintée sur la carte F10 de la couleur de son camp, gris pour une zone neutre ; une ligne sombre court entre deux cellules de camps différents : c'est le front, souligné de chaque côté par de petites hachures obliques de la couleur du camp, bien visibles là où la teinte est pâle.
 La carte ne se redessine que quand une zone change de camp.
 `territory.margin` (70 km) prolonge les cellules au-delà des zones du bord ; `territory.hatch_spacing` (3 000 m) et `territory.hatch_length` (2 500 m) règlent l'écart et la longueur des hachures ; `territory.enabled: false` retire la teinte.
+
+## Le journal de mise au point {#debug-log}
+
+Pendant la mise au point, `dynamic.debug` (activé par défaut) écrit dans `dcs.log` ce que fait la campagne, en lignes faciles à chercher :
+
+| Repère | Ce qu'il dit |
+|---|---|
+| `[CAMPAIGN DECISION]` | chaque décision de l'IA et sa raison : sortie envoyée, ou non (pas de cible, pas de terrain, plus de place, pas de quoi payer — avec le prix et le stock) ; composition d'un raid |
+| `[CAMPAIGN FLIGHT]` | le sort de chaque avion de la campagne : largage (avec sa distance au point visé), victoire ou perte et par qui, atterrissage |
+| `[CAMPAIGN SUPPLY]` | livraisons du réseau commandées, arrivées, perdues |
+| `[CAMPAIGN ZONE]` | zones prises et neutralisées |
+| `[CAMPAIGN STATUS]` | toutes les `debug_status_seconds` (300 s) : par camp, zones, stock et production, livraisons en route, vols en l'air, raid en cours, et les crédits des joueurs |
+
+`debug: false` l'éteint, une fois la campagne sûre.
 
 ## Contrôler une mission en jeu {#self-check}
 
@@ -367,7 +390,9 @@ Une ligne `KO` suffit à dire où regarder.
 | `network` | voir [le réseau](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3) |
 | `demolition` | voir [la démolition](#demolition) | `troops` (`Sappers`), `range` (5000), `fuse` (120) |
 | `warehouse` | voir [les stocks](#warehouses) | `enabled` (true), `load` (10) |
-| `bombers` | voir [les bombardiers](#bombers) | `enabled` (true), `seconds` (3600), `min_distance` (80000) |
+| `bombers` | voir [les bombardiers](#bombers) | `enabled` (true), `seconds` (3600), `min_distance` (80000), `escort` (false), `package_delay` (180) |
+| `debug` | voir [le journal de mise au point](#debug-log) | `true` pendant les essais |
+| `debug_status_seconds` | 300 | intervalle entre deux lignes d'état du journal |
 | `territory` | voir [le territoire](#territory) | `enabled` (true), `margin` (70000), `hatch_spacing` (3000), `hatch_length` (2500) |
 
 Les plafonds sont prudents par défaut ; ils se règleront d'après ce que tiennent les serveurs.
@@ -382,7 +407,7 @@ Ces points sont écrits et testés hors de DCS, pas encore mesurés en jeu :
 - l'équipe espion qui marche jusqu'à sa zone ;
 - la disparition et la réapparition d'une garnison au passage d'un joueur ;
 - les bâtiments d'une usine posés sur un terrain dégagé, et relevés sous le drapeau du preneur ;
-- la tâche `Bombing` du bombardier et l'escorte qui le suit ;
+- la tâche `Bombing` du bombardier, ses options « pas de réaction à la menace » et « pas de largage de secours », et la coordination du raid combiné ;
 - les charges des sapeurs, assez fortes pour un bâtiment, et l'équipe hors de leur souffle ;
 - les stocks d'un entrepôt illimité, que `getInventory` rapporte peut-être sans les compter ;
 - la teinte du territoire, faite de triangles, sur la carte F10.

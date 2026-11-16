@@ -925,15 +925,22 @@ function TestCampaignBombers:test_it_leaves_from_the_nearest_airfield_far_enough
   luaunit.assertEquals(veafCampaignOps.raidOrigin("red", veafCampaign.zones["Kobuleti"]).name, "Senaki")
 end
 
-function TestCampaignBombers:test_the_red_raid_is_escorted_paid_announced_and_posted_on_the_board()
+local function rolesFlown(self)
+  local roles = {}
+  for _, flight in ipairs(self.flights) do
+    table.insert(roles, flight.role)
+  end
+  return roles
+end
+
+function TestCampaignBombers:test_the_red_raid_is_a_paid_package_announced_and_posted_on_the_board()
   start({ bombers = { seconds = 60, min_distance = 50000 } })
   veafCampaignLogistics.stocks.red = 1000
   veafCampaignOps.launchRaids("red", 0)
   veafCampaignOps.launchRaids("red", 60)
-  luaunit.assertEquals(#self.flights, 2)
-  luaunit.assertEquals(self.flights[1].role, "campaign_bomber")
-  luaunit.assertEquals(self.flights[1].group.units[1].type, "Tu-22M3")
-  luaunit.assertEquals(self.flights[2].role, "campaign_escort")
+  -- nothing covers Kobuleti: no SEAD, the bomber leaves with its BARCAP; no escort by default
+  luaunit.assertEquals(rolesFlown(self), { "zone_defense", "campaign_bomber" })
+  luaunit.assertEquals(self.flights[2].group.units[1].type, "Tu-22M3")
   luaunit.assertEquals(veafCampaignLogistics.stock("red"), 1000 - 100 - 60)
   -- Kobuleti and Poti hold as many units; Kobuleti, declared first, is the target, Senaki 100 km off the origin
   luaunit.assertEquals(#messagesContaining("escorted enemy bombers are heading for Kobuleti, from Senaki"), 1)
@@ -944,12 +951,33 @@ function TestCampaignBombers:test_the_red_raid_is_escorted_paid_announced_and_po
   luaunit.assertEquals(#self.flights, 2)
 end
 
-function TestCampaignBombers:test_the_escort_starts_beside_its_bomber_not_inside_it()
-  start({ bombers = { min_distance = 50000 } })
+function TestCampaignBombers:test_a_target_under_air_defence_gets_sead_first_and_the_bomber_after()
+  start({ bombers = { min_distance = 50000 } }, function(d)
+    d.zones[1].garrison[1].units[1].type = "SA-11 Buk LN 9A310M1"
+  end)
+  veafCampaignLogistics.stocks.red = 1000
+  dcs_mocks.currentTime = 1000
+  local raid = veafCampaignOps.sendRaid("red", veafCampaign.zones["Kobuleti"])
+  luaunit.assertEquals(rolesFlown(self), { "zone_defense", "campaign_strike" })
+  luaunit.assertEquals(self.flights[2].params.task, "SEAD")
+  luaunit.assertEquals(raid.seadOn, "Kobuleti")
+  luaunit.assertEquals(veafCampaignLogistics.stock("red"), 1000 - 100 - 60 - 60) -- all of it, at once
+  veafCampaignOps.followRaid(raid, 1179)
+  luaunit.assertNil(raid.name)
+  veafCampaignOps.followRaid(raid, 1180)
+  luaunit.assertEquals(rolesFlown(self), { "zone_defense", "campaign_strike", "campaign_bomber" })
+  luaunit.assertNotNil(raid.name)
+end
+
+function TestCampaignBombers:test_the_escort_flies_only_when_asked_and_starts_beside_its_bomber()
+  start({ bombers = { min_distance = 50000, escort = true } })
+  veafCampaignLogistics.stocks.red = 1000
   veafCampaignOps.sendRaid("red", veafCampaign.zones["Poti"])
-  local bomber, escort = self.flights[1].group.units[1], self.flights[2].group.units[1]
+  luaunit.assertEquals(rolesFlown(self), { "zone_defense", "campaign_bomber", "campaign_escort" })
+  local bomber, escort = self.flights[2].group.units[1], self.flights[3].group.units[1]
   luaunit.assertNotEquals({ bomber.x, bomber.y }, { escort.x, escort.y })
   luaunit.assertEquals(escort.alt - bomber.alt, veafCampaignOps.ESCORT_START_OFFSET.alt)
+  luaunit.assertEquals(veafCampaignLogistics.stock("red"), 1000 - 100 - 60 - 60)
 end
 
 function TestCampaignBombers:test_the_intercept_task_is_posted_at_once_even_on_a_full_board()
@@ -1012,9 +1040,11 @@ function TestCampaignBombers:test_the_players_buy_a_raid()
   veafCampaignEconomy.credits = 2000
   local stock = veafCampaignLogistics.stock("blue")
   luaunit.assertTrue(veafCampaignEconomy.buy({ "bomber", "Zugdidi" }))
-  luaunit.assertEquals(veafCampaignEconomy.credits, 800)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 700)
   luaunit.assertEquals(veafCampaignLogistics.stock("blue"), stock)
-  luaunit.assertEquals(self.flights[1].params.target.x, 150000)
+  -- the same package as the enemy's: a BARCAP, then the bomber on the target
+  luaunit.assertEquals(rolesFlown(self), { "zone_defense", "campaign_bomber" })
+  luaunit.assertEquals(self.flights[2].params.target.x, 150000)
 end
 
 function TestCampaignBombers:test_the_bomber_route_bombs_then_lands_at_home()
@@ -1023,8 +1053,12 @@ function TestCampaignBombers:test_the_bomber_route_bombs_then_lands_at_home()
     spot = { x = 1, y = 7000, z = 2 },
     params = { target = { x = 100, z = 200 }, airdromeId = 5, home = { x = 1, z = 2 } },
   })
-  luaunit.assertEquals(route[1].task.params.tasks[2].id, "Bombing")
-  luaunit.assertEquals(route[1].task.params.tasks[2].params.point, { x = 100, y = 200 })
+  local tasks = route[1].task.params.tasks
+  -- weapons free, no reaction to a threat, no jettison, then the bombing
+  luaunit.assertEquals(tasks[2].params.action.params, { name = 1, value = 0 })
+  luaunit.assertEquals(tasks[3].params.action.params, { name = 15, value = true })
+  luaunit.assertEquals(tasks[4].id, "Bombing")
+  luaunit.assertEquals(tasks[4].params.point, { x = 100, y = 200 })
   luaunit.assertEquals(route[3].type, "Land")
   luaunit.assertEquals(route[3].airdromeId, 5)
 end
@@ -1185,6 +1219,97 @@ function TestCampaignMarkerPolicy:test_the_campaign_sets_it()
   start()
   luaunit.assertEquals(veafCommands.markerPolicy, veafCampaignLogistics.markerPolicy)
   veafCommands = nil
+end
+
+-- ---------------------------------------------------------------------------
+-- The testing period's log (dynamic.debug, David 2026-11-16)
+-- ---------------------------------------------------------------------------
+TestCampaignDebugLog = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+local function logged(text)
+  local found = {}
+  for _, entry in ipairs(dcs_mocks.logs) do
+    if string.find(entry.text, text, 1, true) then
+      table.insert(found, entry.text)
+    end
+  end
+  return found
+end
+
+function TestCampaignDebugLog:test_on_by_default_a_decision_and_its_reason_are_told()
+  start()
+  veafCampaignLogistics.stocks.red = 10
+  veafCampaignOps.maintainCaps("red")
+  luaunit.assertEquals(#logged("[CAMPAIGN DECISION] red does not send a CAP: costs 60, stock 10"), 1)
+end
+
+function TestCampaignDebugLog:test_off_nothing_is_told()
+  start({ debug = false })
+  veafCampaignLogistics.stocks.red = 10
+  veafCampaignOps.maintainCaps("red")
+  luaunit.assertEquals(#logged("[CAMPAIGN"), 0)
+end
+
+function TestCampaignDebugLog:test_a_status_every_period()
+  start({ debug_status_seconds = 300 })
+  veafCampaignLogistics.beat(10)
+  veafCampaignLogistics.beat(20)
+  veafCampaignLogistics.beat(310)
+  local status = logged("[CAMPAIGN STATUS]")
+  luaunit.assertEquals(#status, 2)
+  luaunit.assertStrContains(status[1], "red: 3 zones, stock 500 (+150/h)")
+  luaunit.assertStrContains(status[1], "players' credits 500")
+end
+
+function TestCampaignDebugLog:test_a_campaign_aircraft_releasing_a_weapon_is_told_with_its_distance_to_its_aim()
+  start({ bombers = { min_distance = 50000 } })
+  local raid = veafCampaignOps.sendRaid("red", veafCampaign.zones["Poti"])
+  local shooter = unitAt({ x = 52000, z = 0 }, { type = "Tu-22M3" })
+  veafCampaignOps.onFlightEvent({
+    type = { id = world.event.S_EVENT_SHOT },
+    initiator = { unitName = raid.name .. " #1", unitType = "Tu-22M3" },
+    dcsInitiator = shooter,
+    weaponName = "FAB-250",
+  })
+  luaunit.assertEquals(#logged("releases FAB-250, 2000 m from its aim"), 1)
+end
+
+function TestCampaignDebugLog:test_a_campaign_aircraft_shot_down_is_told_with_its_killer()
+  start({ bombers = { min_distance = 50000 } })
+  local raid = veafCampaignOps.sendRaid("red", veafCampaign.zones["Poti"])
+  veafCampaignOps.onFlightEvent({
+    type = { id = world.event.S_EVENT_KILL },
+    initiator = { unitName = "Viper #1", unitType = "F-16C_50" },
+    target = { unitName = raid.name .. " #1", unitType = "Tu-22M3" },
+  })
+  luaunit.assertEquals(#logged("Viper #1 (F-16C_50) kills " .. raid.name .. " #1 (Tu-22M3)"), 1)
+end
+
+-- ---------------------------------------------------------------------------
+-- The enemy's CAP stays out of the players' air defence (David, 2026-11-16)
+-- ---------------------------------------------------------------------------
+TestCampaignCapReach = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+function TestCampaignCapReach:test_the_cap_stops_short_of_the_enemy_air_defence()
+  start()
+  -- Senaki is 50 km from Poti, whose garrison is assumed to reach 20 km: 50 - 20 - 15 = 15 km
+  local radius, limit = veafCampaignOps.capRadius("red", veafCampaign.zones["Senaki"])
+  luaunit.assertEquals({ radius, limit }, { 15000, "Poti" })
+end
+
+function TestCampaignCapReach:test_never_below_its_floor()
+  start(nil, function(d)
+    d.zones[2].x = 90000 -- Poti 10 km from Senaki
+  end)
+  luaunit.assertEquals(veafCampaignOps.capRadius("red", veafCampaign.zones["Senaki"]), veafCampaignOps.CAP_MIN_RADIUS)
+end
+
+function TestCampaignCapReach:test_far_from_any_defence_it_keeps_its_full_reach()
+  start(nil, function(d)
+    d.zones[1].owner, d.zones[1].garrison = "neutral", nil
+    d.zones[2].owner, d.zones[2].garrison = "neutral", nil
+  end)
+  luaunit.assertEquals(veafCampaignOps.capRadius("red", veafCampaign.zones["Senaki"]), veafCampaignOps.CAP_RADIUS)
 end
 
 -- ---------------------------------------------------------------------------

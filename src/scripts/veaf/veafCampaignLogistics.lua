@@ -373,6 +373,15 @@ function veafCampaignLogistics.dispatchDeliveries(now)
             veafCampaignLogistics.depotStores[route.source] = math.max(0, store - 1)
           end
           veafCampaignLogistics.counters.ordered = veafCampaignLogistics.counters.ordered + 1
+          veafCampaign.debug(
+            "SUPPLY",
+            "%s orders the supply of [%s]: %d points, from [%s], there in %d s",
+            side,
+            zone.name,
+            cost,
+            tostring(route and route.source or "cut off"),
+            delay
+          )
           logger():info(
             "%s supply for [%s] from [%s]: %d points, there in %d s",
             side,
@@ -396,11 +405,13 @@ function veafCampaignLogistics.arriveDeliveries(now)
       local zone = veafCampaign.zones[delivery.zone]
       if zone and zone.entry.owner == delivery.side and zone:reinforce() then
         veafCampaignLogistics.counters.arrived = veafCampaignLogistics.counters.arrived + 1
+        veafCampaign.debug("SUPPLY", "the %s supply reaches [%s]", delivery.side, delivery.zone)
         if delivery.side == veafCampaign.playerSide() then
           tell("campaign.network.arrived", zone.name)
         end
       else
         veafCampaignLogistics.counters.lost = veafCampaignLogistics.counters.lost + 1
+        veafCampaign.debug("SUPPLY", "the %s supply for [%s] is lost", delivery.side, delivery.zone)
         logger():info("the %s supply for [%s] is lost: the zone is no longer theirs", delivery.side, delivery.zone)
       end
     else
@@ -925,6 +936,37 @@ function veafCampaignLogistics.buildRadioMenu()
   veafRadio.refreshRadioMenu()
 end
 
+--- The campaign's state in one line, for the testing period's log: each side's stock, production, zones,
+--- deliveries on their way, flights up and raid out, and the players' credits.
+function veafCampaignLogistics.statusText()
+  local parts = {}
+  for _, side in ipairs(SIDE_NAMES) do
+    local zones = 0
+    for _, zone in ipairs(veafCampaign.zoneList) do
+      if zone.placed and zone.entry.owner == side then
+        zones = zones + 1
+      end
+    end
+    local flights = veafCampaignOps and veafCampaignOps.flightsUp and veafCampaignOps.flightsUp(side) or 0
+    local raid = veafCampaignOps and veafCampaignOps.raidUnderway and veafCampaignOps.raidUnderway(side)
+    table.insert(
+      parts,
+      string.format(
+        "%s: %d zones, stock %d (+%d/h), %d deliveries, %d flights up, raid %s",
+        side,
+        zones,
+        math.floor(veafCampaignLogistics.stock(side)),
+        math.floor(veafCampaignLogistics.productionPerHour(side)),
+        veafCampaignLogistics.deliveriesUnderway(side),
+        flights,
+        raid and ("on " .. raid.target) or "none"
+      )
+    )
+  end
+  local credits = veafCampaignEconomy and veafCampaignEconomy.credits or 0
+  return table.concat(parts, " | ") .. string.format(" | players' credits %d", math.floor(credits))
+end
+
 --- One beat, inside veafCampaign's loop.
 function veafCampaignLogistics.beat(now)
   local elapsed = now - (veafCampaignLogistics.lastBeat or now)
@@ -938,6 +980,10 @@ function veafCampaignLogistics.beat(now)
     veafCampaignLogistics.dispatchDeliveries(now)
   end
   veafCampaignLogistics.followSappers(now)
+  if veafCampaign.debugging() and now >= (veafCampaignLogistics.nextStatus or 0) then
+    veafCampaignLogistics.nextStatus = now + veafCampaign.setting("debug_status_seconds")
+    veafCampaign.debug("STATUS", "%s", veafCampaignLogistics.statusText())
+  end
 end
 
 --- What the save keeps: the stocks and the depots' stores, and what is on its way or was bought and still
@@ -1025,7 +1071,7 @@ function veafCampaignLogistics.initialize()
   veafCampaignLogistics.stocks, veafCampaignLogistics.deliveries, veafCampaignLogistics.depotStores = {}, {}, {}
   veafCampaignLogistics.paidSpawns, veafCampaignLogistics.sappers, veafCampaignLogistics.cargo = {}, {}, {}
   veafCampaignLogistics.delivered = {}
-  veafCampaignLogistics.lastBeat = nil
+  veafCampaignLogistics.lastBeat, veafCampaignLogistics.nextStatus = nil, nil
   veafCampaignLogistics.counters = {
     refused = {},
     spent = {},

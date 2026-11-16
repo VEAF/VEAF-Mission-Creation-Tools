@@ -17,6 +17,7 @@ from . import (  # noqa: F401
     explore_cockpit,
     export,
     extract,
+    forest_check,
     inject_presets,
     mcp,
     mission_check,

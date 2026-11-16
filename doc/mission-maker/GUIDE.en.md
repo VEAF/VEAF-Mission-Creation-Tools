@@ -550,6 +550,7 @@ The build tells you how many it added.
 | `ask` | Ask a question about the VEAF documentation (AI assistant). With no question, starts an interactive session. |
 | `capture-map` | Capture a theatre's airbases from a running bridge mission (via dcs-serve) into <theatre>.json; `--parking` also writes the parking spots to `parking/<theatre>.json`. |
 | `clear-ground-check` | Check in DCS, without spawning them, whether a built mission's ground vehicles stand in scenery, and compare with the clear-ground catalogue. |
+| `forest-check` | List the ground vehicles of a built mission standing in a forest, from the map files installed with DCS, without launching the game. |
 | `scenery-objects` | List in DCS the map objects (bridges, buildings) around points, with the id a combat zone's [`scenery_targets`](scripts/veafCombatZone.en.md#scenery-targets) takes. |
 | `farp-spot` | Find in DCS, near a point, the flat spots clear of trees and buildings where a FARP can go — the command `add_farp` gives when it could not check the pad. |
 | `terrain-sweep` | Sweep in DCS the ground elevation of a whole theatre, which the MCP action `terrain_elevation` then reads with no DCS (a target's altitude, a route's floor, terrain masking). |

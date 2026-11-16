@@ -1499,6 +1499,21 @@ limitations:
     `veaf-tools dcs farp-spot` keeps only the points this query calls free: it can miss a usable spot.
     Neither what it lists nor what it leaves out has been checked by eye yet.
 
+- id: forest-check-unexplained-on-marianas-wwii
+  kind: tool
+  area: spawning
+  title: "`forest-check` puts a third of the Marianas WWII parking spots in a forest, unexplained"
+  theatres: [MarianaIslandsWWII]
+  symptom: |
+    Measured on 2026-11-16, the parking spots VMCT ships for each theatre (`data/parking/*.json`) tested
+    with `veaf_libs.dcs_forests`: none in a forest on Syria, Caucasus, Normandy, TheChannel, Afghanistan
+    and MarianaIslands, 0.2 to 2.3% on GermanyCW, PersianGulf, SinaiMap and Falklands — against 3 to 36%
+    for the same spots moved 3 km. On MarianaIslandsWWII, 164 of 534 spots fall in a forest polygon, most
+    of them on two airfields (39 of 41, 34 of 35). Whether the 1944 map draws its dispersal areas under
+    trees, or the reader misses something on that map, has not been looked at in game.
+  workaround: |
+    On MarianaIslandsWWII, take a `forest-check` answer as a hint, and look at the vehicles in game.
+
 - id: disposition-blind-to-akamas-forest
   kind: dcs
   area: spawning
@@ -1525,11 +1540,15 @@ limitations:
     So on Syria a clean `clear-ground-check` — "0 vehicles in the scenery" — proves nothing where the
     probe is blind. Two forests are measured; which others of the map it misses is not.
   workaround: |
-    On Syria, after `clear-ground-check`, look at the placed vehicles in game before trusting a range or a
-    defence in a wooded area. The F10 map in its "Map" mode draws the forests the probe misses (green,
-    dotted with trees; fields are beige with red borders): one capture of it around the placed units
-    settles the question, and its cursor readout gives the mission coordinates to place by. The forests
-    come from the `Trees` meshes of the map's `surface/<map>.surface5`, not yet readable by the tools.
+    Run `veaf-tools dcs forest-check <mission.miz>` as well: it reads the forests from the map files
+    installed with DCS (the `Trees` meshes of `surface/<map>.surface5`, the data the F10 "Map" view
+    draws), without launching the game. Measured on 2026-11-16 against six places known in game on
+    Syria: the old Ceyhan range (219000, 11000), a wood at (212316, 2506) and the Akamas T-72
+    (13404, -326775) come out in a forest; open hills at (212916, 9506), the Ceyhan FARP (221016, 2506)
+    and the current Akamas range (14640, -314461) do not. It sees forests only: for buildings and lone
+    trees, look at the placed vehicles in game before trusting a range or a defence. One capture of the
+    F10 map in its "Map" mode around the placed units settles it, and its cursor readout gives the
+    mission coordinates to place by.
   cost: |
     The Akamas firing range of the Syria Open Training stood in the trees, reported by a player on the
     VEAF Discord (thread 1570181686451507230); it was moved to the Polis plain and checked by smoke in

@@ -217,7 +217,8 @@ The VEAF Open Training missions open 5 slots per role and per side, with vehicle
 #### `forced_options`: the options enforced on every player {#forced-options}
 
 The editor's *Mission options* panel enforces some options on every player, whatever their own settings: labels, F10 map view, external views, wake turbulence…
-The block sets them at every build, in the mission's `forcedOptions` table:
+The block sets them at every build, in the mission's `forcedOptions` table.
+A mission created by VMCT already starts with civil traffic off, no birds and no random failures, as the VEAF Foothold missions; the block takes over those three too:
 
 ```yaml
 mission:

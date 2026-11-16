@@ -215,6 +215,69 @@ function TestConvoyHelpers:test_no_cover_means_straight_out_of_range()
   luaunit.assertTrue(distanceFromThreat >= ConvoyUnitHandler.ENGAGEMENT_RANGE + 500 - 1, "out of range: " .. distanceFromThreat)
 end
 
+--- Run `body` with land.getSurfaceType answering WATER where `wet(point)` is true.
+local function withWater(wet, body)
+  local surface = land.getSurfaceType
+  land.getSurfaceType = function(point)
+    return wet(point) and land.SurfaceType.WATER or land.SurfaceType.LAND
+  end
+  local ok, err = pcall(body)
+  land.getSurfaceType = surface
+  if not ok then
+    error(err, 0)
+  end
+end
+
+--- Whether the straight drive from `a` to `b` stays out of the water, sampled every 50 m.
+local function dryDrive(a, b, wet)
+  local length = math.sqrt((b.x - a.x) ^ 2 + (b.z - a.z) ^ 2)
+  for step = 0, math.ceil(length / 50) do
+    local t = length > 0 and math.min(1, step * 50 / length) or 0
+    if wet({ x = a.x + t * (b.x - a.x), y = a.z + t * (b.z - a.z) }) then
+      return false
+    end
+  end
+  return true
+end
+
+function TestConvoyHelpers:test_the_rally_point_is_never_in_the_water()
+  -- David, 2026-11-16: the blue trucks fell back into the lagoon by Poti and drowned. Everything hidden,
+  -- the friendly place east, beyond the water that covers the whole east (DCS vec2: y is the easting).
+  dcs_mocks.visibilityAnswer = false
+  local wet = function(point)
+    return point.y > 200
+  end
+  withWater(wet, function()
+    local from = { x = 0, y = 0, z = 0 }
+    local rally = veafGroundAI.chooseRallyPoint(from, { { x = 2000, y = 0, z = 0 } }, { x = 0, y = 0, z = 10000 })
+    luaunit.assertTrue(dryDrive(from, rally, wet), "a dry drive to x=" .. rally.x .. " z=" .. rally.z)
+  end)
+end
+
+function TestConvoyHelpers:test_the_drive_to_the_rally_point_does_not_cross_water()
+  -- a river runs east-west 800 m south of the convoy: a rally point beyond it is dry, the drive is not
+  dcs_mocks.visibilityAnswer = false
+  local wet = function(point)
+    return point.x < -700 and point.x > -900
+  end
+  withWater(wet, function()
+    local from = { x = 0, y = 0, z = 0 }
+    local rally = veafGroundAI.chooseRallyPoint(from, { { x = 2000, y = 0, z = 0 } }, { x = -10000, y = 0, z = 0 })
+    luaunit.assertTrue(dryDrive(from, rally, wet), "a dry drive to x=" .. rally.x .. " z=" .. rally.z)
+  end)
+end
+
+function TestConvoyHelpers:test_with_water_all_around_the_convoy_stays_where_it_is()
+  dcs_mocks.visibilityAnswer = true
+  local wet = function(point)
+    return math.sqrt(point.x ^ 2 + point.y ^ 2) > 400
+  end
+  withWater(wet, function()
+    local rally = veafGroundAI.chooseRallyPoint({ x = 0, y = 0, z = 0 }, { { x = 2000, y = 0, z = 0 } }, nil)
+    luaunit.assertEquals({ rally.x, rally.z }, { 0, 0 })
+  end)
+end
+
 function TestConvoyHelpers:test_the_rally_search_is_bounded()
   dcs_mocks.visibilityAnswer = true
   local threats = {}

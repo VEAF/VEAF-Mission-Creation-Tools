@@ -1474,6 +1474,24 @@ limitations:
     Wrong F10 commands fired in multiplayer, among them a CTLD smoke instead of a troop embark
     (VEAF/CTLD#257).
 
+- id: ground-vehicles-drive-into-water-off-road
+  kind: dcs
+  area: ground-ai
+  title: "A ground group sent off road to a point in the water, or across it, drives in and drowns"
+  measured: "2026-11-16"
+  symptom: |
+    A blue assault convoy met a red one by Poti, on the dynamic test campaign. The ground AI split its
+    unarmed vehicles off and sent them, `Off Road`, to a rally point chosen away from the enemy and out
+    of its sight. The point lay in the lagoon north of the town: the trucks drove straight in and drowned
+    (David's F10 capture). DCS neither refuses the waypoint nor routes around the water, and logs
+    nothing.
+  workaround: |
+    Before giving a ground group an off-road waypoint, check the straight line to it with
+    `land.getSurfaceType`, every 50 m, end included: `WATER` or `SHALLOW_WATER` anywhere, pick another
+    point. The convoy ground AI does so since then (`veafGroundAI.isDryDrive`).
+  cost: |
+    A whole column of trucks lost without a shot, in front of the players.
+
 - id: ai-groups-deadlock-on-senaki-open-stands
   kind: dcs
   area: spawning

@@ -219,7 +219,8 @@ Les Open Training VEAF ouvrent 5 slots par rôle et par camp, véhicules pilotab
 #### `forced_options` : les options imposées à tous les joueurs {#forced-options}
 
 Le panneau *Options de mission* de l'éditeur impose à chaque joueur certaines options, quels que soient ses propres réglages : étiquettes, vue de la carte F10, vues externes, turbulence de sillage…
-Le bloc les fixe à chaque build, dans la table `forcedOptions` de la mission :
+Le bloc les fixe à chaque build, dans la table `forcedOptions` de la mission.
+Une mission créée par VMCT part déjà avec le trafic civil coupé, sans oiseaux et sans pannes aléatoires, comme les Foothold VEAF ; le bloc reprend la main sur ces trois-là aussi :
 
 ```yaml
 mission:

@@ -1052,6 +1052,22 @@ the latter (`VeafCampaignZone:groundHolders`). Expect a few percent of slack bey
 distance: the convoy took Poti, was not found in it, and a 24-unit garrison was drawn from blue's
 reserve under it (`a-captured-zone-may-draw-a-garrison-under-its-convoy`).
 
+### A ground group sent off road to a point in the water, or across it, drives in and drowns {#ground-vehicles-drive-into-water-off-road}
+
+Measured **2026-11-16**.
+
+A blue assault convoy met a red one by Poti, on the dynamic test campaign. The ground AI split its
+unarmed vehicles off and sent them, `Off Road`, to a rally point chosen away from the enemy and out
+of its sight. The point lay in the lagoon north of the town: the trucks drove straight in and drowned
+(David's F10 capture). DCS neither refuses the waypoint nor routes around the water, and logs
+nothing.
+
+**What to do:** Before giving a ground group an off-road waypoint, check the straight line to it with
+`land.getSurfaceType`, every 50 m, end included: `WATER` or `SHALLOW_WATER` anywhere, pick another
+point. The convoy ground AI does so since then (`veafGroundAI.isDryDrive`).
+
+*What it cost:* A whole column of trucks lost without a shot, in front of the players.
+
 ### A ground group ordered "On Road" where no road leads stands still, with no message {#on-road-route-with-no-path-stands-still}
 
 Measured **2026-10-28**.

@@ -869,6 +869,10 @@ ConvoyUnitHandler.RALLY_STEP = 15
 ConvoyUnitHandler.RALLY_MAX_THREATS = 5
 --- A rally point this close to a road is moved onto it: off road, the second run's column bogged down.
 ConvoyUnitHandler.ROAD_SNAP_DISTANCE = 300
+
+--- Metres between two points where the off-road drive to a rally point is checked for water: the blue
+--- trucks of 2026-11-16 fell back into the lagoon by Poti and drowned.
+ConvoyUnitHandler.DRY_STEP = 50
 --- A town masks a rally point when its centre lies this close to the line from the enemy to it.
 ConvoyUnitHandler.TOWN_COVER_RADIUS = 400
 --- The name the unarmed vehicles' group takes, after the convoy's.
@@ -1234,13 +1238,32 @@ function veafGroundAI.nearestFriendlyPlace(side, from)
   return best
 end
 
+--- Whether the straight, off-road drive from one point to another stays out of the water, the end included.
+--- @param from table a vec3
+--- @param to table a vec3
+--- @return boolean
+function veafGroundAI.isDryDrive(from, to)
+  local length = dist2D(from, to)
+  local steps = math.ceil(length / ConvoyUnitHandler.DRY_STEP)
+  for step = 0, steps do
+    local t = steps > 0 and step / steps or 0
+    local surface = land.getSurfaceType({ x = from.x + t * (to.x - from.x), y = from.z + t * (to.z - from.z) })
+    if surface == land.SurfaceType.WATER or surface == land.SurfaceType.SHALLOW_WATER then
+      return false
+    end
+  end
+  return true
+end
+
 --- The point a convoy falls back to: out of the enemy's sight, preferably toward a friendly place.
 ---
 --- Candidates are sampled on rings around the convoy, across the half-plane away from the enemy, and
---- moved onto a road when one is near. A candidate the threats cannot see (terrain or a town in the
+--- moved onto a road when one is near; one in the water, or across water from the convoy, is left out
+--- (`isDryDrive`: the first leg is off road, straight). A candidate the threats cannot see (terrain or a town in the
 --- way) wins over one they can; among the hidden ones the cheapest is the shortest drive there plus the
 --- drive on to the friendly place. When none is hidden, the cheapest one out of the enemy's range wins;
---- when there is none of those either, straight away from the nearest threat, out of its range.
+--- when there is none of those either, straight away from the nearest threat, out of its range, if that drive
+--- is dry; otherwise where the convoy stands.
 ---
 --- Bounded work: `#RALLY_RINGS * (2 * RALLY_SPREAD / RALLY_STEP + 1)` candidates, each tested against
 --- at most `RALLY_MAX_THREATS` threats — 325 lines of sight at most, ~5 ms by the 2026-10-08 measure.
@@ -1270,11 +1293,12 @@ function veafGroundAI.chooseRallyPoint(from, threatPoints, destination)
         candidate = { x = roadX, y = 0, z = roadZ }
       end
       local cost = dist2D(from, candidate) + (destination and dist2D(candidate, destination) or 0)
-      if veafGroundAI.isMaskedFrom(candidate, threats) then
+      local dry = veafGroundAI.isDryDrive(from, candidate) -- in the water, or across it: never
+      if dry and veafGroundAI.isMaskedFrom(candidate, threats) then
         if cost < bestHiddenCost then
           bestHidden, bestHiddenCost = candidate, cost
         end
-      else
+      elseif dry then
         local closest = math.huge
         for _, threat in ipairs(threats) do
           closest = math.min(closest, dist2D(threat, candidate))
@@ -1293,7 +1317,11 @@ function veafGroundAI.chooseRallyPoint(from, threatPoints, destination)
   end
   local alreadyAway = dist2D(from, nearest)
   local run = math.max(outOfRange - alreadyAway, ConvoyUnitHandler.RALLY_RINGS[1])
-  return { x = from.x + run * math.cos(away), y = 0, z = from.z + run * math.sin(away) }, false
+  local straight = { x = from.x + run * math.cos(away), y = 0, z = from.z + run * math.sin(away) }
+  if not veafGroundAI.isDryDrive(from, straight) then
+    return { x = from.x, y = 0, z = from.z }, false
+  end
+  return straight, false
 end
 
 --- A route point in mission-table form, where `y` is the easting (docs/agents/dcs-coordinates.md).

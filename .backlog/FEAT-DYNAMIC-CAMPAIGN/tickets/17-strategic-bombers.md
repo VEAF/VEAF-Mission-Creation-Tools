@@ -67,3 +67,14 @@ Measured in game through dcs-bridge (side session of PR #1289). The raid deadloc
 - A late-activated aircraft wakes nothing: DCS answers `isExist()` and `inAir()` true before its activation, so `isActive()` is checked.
 - Unchanged, decided: a spectator or game master slot wakes nothing.
 - To measure in game: the cost of the pass over every group every beat.
+
+## Waking by the front and by reach, and no take-off under a SAM (David, 2026-11-16)
+
+The next test: with `max_awake_zones: 3` and AI aircraft waking every zone near them, five zones fought for three places and swapped at every pass (27 wakes in 3 minutes); Kobuleti, the SEAD's target, was evicted mid-raid. Kobuleti awake, its Patriot shot the whole raid package down over Senaki within 70 s of the take-off, then a lone SEAD strike too.
+David: the front must always be awake, and a zone with an air defence must wake by the reach of that defence. Skynet considered and set aside for waking (it only sees through radars that exist, and a sleeping zone has none); putting woken SAMs into Skynet is a later lot.
+
+- A zone on the front (connected to a zone its owner does not hold) or targeted by a sortie is always awake, outside `max_awake_zones`; only the rear counts against the cap.
+- A zone of the rear wakes for its enemies only: an enemy player within `wake_radius`, or within its reach plus `reach_wake_margin` (20 km) when longer; an enemy aircraft in the air within that reach plus margin; an enemy ground group (not garrison, not built) within `ground_wake_radius`.
+- The reach is measured from the missiles (`threatRange`) and remembered in `entry.reach`, saved with the zone; `sleep` measures it before the units go.
+- Under the cap: a zone nobody wants any more gives its place first; a zone wanted by a player takes the place of one wanted by AI; between players the nearer wins; between AI zones the first keeps its place. A sleep logs its real reason.
+- `canTakeOffFrom`: no sortie (CAP, BARCAP, strike, raid, Hunter, shop CAP) takes off from an airfield within an enemy zone's measured or remembered reach; an assumed reach grounds nobody.

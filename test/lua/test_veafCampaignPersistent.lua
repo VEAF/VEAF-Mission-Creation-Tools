@@ -127,10 +127,10 @@ end
 
 local SAVE = "C:\\Saved Games\\DCS\\Missions\\Saves\\Caucasus Front\\persistent.state"
 
---- Players' aircraft where the list says, as coalition.getPlayers hands them over.
-local function playersAt(points)
-  coalition.getPlayers = function(side)
-    if side ~= BLUE then
+--- Players' aircraft where the list says, as coalition.getPlayers hands them over: blue unless `side` says.
+local function playersAt(points, side)
+  coalition.getPlayers = function(asked)
+    if asked ~= (side or BLUE) then
       return {}
     end
     local units = {}
@@ -291,6 +291,17 @@ function TestCampaignSave:test_losses_survive_the_reload()
   veafCampaign.initialize()
   luaunit.assertFalse(veafCampaign.zones["Poti"].entry.garrison[1].units[2].alive)
   luaunit.assertEquals(veafCampaign.zones["Poti"]:strengthPercent(), 67)
+end
+
+function TestCampaignSave:test_a_zone_remembers_its_air_defence_reach_across_the_reload()
+  -- measured while it was awake: a sleeping zone wakes at its true reach, not an assumed one
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  veafCampaign.zones["Poti"].entry.reach = 75000
+  veafCampaign.writeState()
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  luaunit.assertEquals(veafCampaign.zones["Poti"].entry.reach, 75000)
 end
 
 function TestCampaignSave:test_no_save_is_a_fresh_campaign()
@@ -462,166 +473,215 @@ end
 -- ---------------------------------------------------------------------------
 TestCampaignDormancy = { setUp = setUpSuite, tearDown = tearDownSuite }
 
+-- Kobuleti (blue, x=0) and Senaki (red, 50 km) are the front; Poti (red, 100 km) and Zugdidi (red, 150 km)
+-- the rear. Players and groups are blue: the enemies of every zone but Kobuleti.
+
+--- Run dormancy passes from `from`, one second apart.
+local function passes(count, from)
+  for pass = 0, count - 1 do
+    veafCampaign.updateDormancy((from or 100) + pass)
+  end
+end
+
+local function awakeZones()
+  local names = {}
+  for _, zone in ipairs(veafCampaign.zoneList) do
+    if zone.awake then
+      table.insert(names, zone.name)
+    end
+  end
+  return names
+end
+
 function TestCampaignDormancy:test_a_persistent_campaign_starts_with_every_zone_asleep()
   veafCampaign.data = persistentData()
   veafCampaign.initialize()
   luaunit.assertEquals(#dcs_mocks.groupsAdded, 0)
 end
 
-function TestCampaignDormancy:test_a_player_near_wakes_the_zone()
+function TestCampaignDormancy:test_the_front_is_always_awake_the_rear_asleep_with_nobody_near()
+  -- David, 2026-11-16: every zone near the front stays awake
+  veafCampaign.data = persistentData({ sleep_seconds = 60 })
+  veafCampaign.initialize()
+  passes(4)
+  passes(1, 1000)
+  luaunit.assertEquals(awakeZones(), { "Kobuleti", "Senaki" })
+end
+
+function TestCampaignDormancy:test_an_enemy_player_near_wakes_a_rear_zone()
   veafCampaign.data = persistentData()
   veafCampaign.initialize()
-  playersAt({ { x = 52000 } }) -- 2 km from Senaki
-  veafCampaign.updateDormancy(100)
-  luaunit.assertEquals(groupsSubmitted(), { "Senaki garrison" })
-  luaunit.assertTrue(veafCampaign.zones["Senaki"].awake)
+  playersAt({ { x = 102000 } }) -- 2 km from Poti
+  passes(3)
+  luaunit.assertEquals(awakeZones(), { "Kobuleti", "Senaki", "Poti" })
 end
 
-function TestCampaignDormancy:test_one_zone_wakes_per_pass_the_nearest_first()
-  veafCampaign.data = persistentData({ wake_radius = 200000 })
+function TestCampaignDormancy:test_a_friendly_player_wakes_nothing()
+  veafCampaign.data = persistentData()
   veafCampaign.initialize()
-  playersAt({ { x = 95000 } }) -- Poti, then Senaki, then Zugdidi, then Kobuleti
-  veafCampaign.updateDormancy(100)
-  luaunit.assertEquals(groupsSubmitted(), { "Poti garrison" })
-  veafCampaign.updateDormancy(110)
-  luaunit.assertEquals(groupsSubmitted(), { "Poti garrison", "Senaki garrison" })
-end
-
-function TestCampaignDormancy:test_the_cap_keeps_the_nearest_zones_awake()
-  veafCampaign.data = persistentData({ wake_radius = 200000, max_awake_zones = 2 })
-  veafCampaign.initialize()
-  playersAt({ { x = 0 } }) -- Kobuleti, Senaki, Poti, Zugdidi
-  for pass = 1, 4 do
-    veafCampaign.updateDormancy(100 + pass)
-  end
-  luaunit.assertTrue(veafCampaign.zones["Kobuleti"].awake)
-  luaunit.assertTrue(veafCampaign.zones["Senaki"].awake)
+  playersAt({ { x = 102000 } }, RED)
+  passes(4)
   luaunit.assertFalse(veafCampaign.zones["Poti"].awake)
-  -- the player moves east: Poti is nearer than Kobuleti, which gives its place
-  playersAt({ { x = 90000 } })
-  veafCampaign.updateDormancy(200)
+end
+
+function TestCampaignDormancy:test_an_enemy_ai_aircraft_in_the_air_wakes_within_the_defence_reach_and_margin()
+  -- no veafCampaignOps here: a reach of 0, so the 20 km margin alone
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  worldGroups({ { name = "cap", category = Group.Category.AIRPLANE, x = 125000, inAir = true } }) -- 25 km
+  passes(4)
+  luaunit.assertFalse(veafCampaign.zones["Poti"].awake)
+  worldGroups({ { name = "parked", category = Group.Category.AIRPLANE, x = 115000, inAir = false } })
+  passes(4, 200)
+  luaunit.assertFalse(veafCampaign.zones["Poti"].awake)
+  worldGroups({ { name = "cap", category = Group.Category.HELICOPTER, x = 115000, inAir = true } }) -- 15 km
+  passes(1, 300)
   luaunit.assertTrue(veafCampaign.zones["Poti"].awake)
-  luaunit.assertFalse(veafCampaign.zones["Kobuleti"].awake)
 end
 
-function TestCampaignDormancy:test_a_zone_sleeps_once_nobody_has_been_near_for_the_delay()
-  veafCampaign.data = persistentData({ sleep_seconds = 600 })
+function TestCampaignDormancy:test_a_long_range_defence_wakes_farther_out()
+  -- a SAM reaching 75 km: an enemy at 90 km is within its reach and the 20 km margin
+  veafCampaign.data = persistentData()
   veafCampaign.initialize()
-  dcs_mocks.addGroup("Senaki garrison", {})
-  local destroyed = false
-  Group.getByName("Senaki garrison").destroy = function()
-    destroyed = true
+  local zoneReach = veafCampaign.zoneReach
+  veafCampaign.zoneReach = function(zone)
+    return zone.name == "Poti" and 75000 or 0
   end
-  playersAt({ { x = 50000 } })
-  veafCampaign.updateDormancy(100)
-  playersAt({})
-  veafCampaign.updateDormancy(650)
-  luaunit.assertTrue(veafCampaign.zones["Senaki"].awake)
-  luaunit.assertFalse(destroyed)
-  veafCampaign.updateDormancy(700)
-  luaunit.assertFalse(veafCampaign.zones["Senaki"].awake)
-  luaunit.assertTrue(destroyed)
-end
-
-function TestCampaignDormancy:test_a_sleep_is_not_a_loss_and_losses_survive_it()
-  veafCampaign.data = persistentData()
-  veafCampaign.initialize()
-  local senaki = veafCampaign.zones["Senaki"]
-  playersAt({ { x = 50000 } })
-  veafCampaign.updateDormancy(100)
-  veafCampaign.onUnitDead({ initiator = { unitName = "Senaki garrison #2" } })
-  senaki:sleep()
-  -- whatever DCS says of the units removed by the sleep is not a loss
-  veafCampaign.onUnitDead({ initiator = { unitName = "Senaki garrison #1" } })
-  luaunit.assertEquals({ senaki:countUnits() }, { 2, 3 })
-  dcs_mocks.groupsAdded = {}
-  senaki:wake()
-  luaunit.assertEquals(#dcs_mocks.groupsAdded[1].group.units, 2)
-end
-
-function TestCampaignDormancy:test_the_target_of_a_sortie_stays_awake()
-  veafCampaign.data = persistentData()
-  veafCampaign.initialize()
-  dcs_mocks.currentTime = 100
-  veafCampaign.keepAwake(veafCampaign.zones["Zugdidi"], 600)
-  veafCampaign.updateDormancy(100)
-  luaunit.assertTrue(veafCampaign.zones["Zugdidi"].awake)
-end
-
-function TestCampaignDormancy:test_an_ai_aircraft_in_the_air_wakes_the_zone_not_one_on_the_ground()
-  -- David, 2026-11-16: not only the players' aircraft
-  veafCampaign.data = persistentData()
-  veafCampaign.initialize()
-  worldGroups({ { name = "parked", category = Group.Category.AIRPLANE, x = 52000, inAir = false } })
-  veafCampaign.updateDormancy(100)
-  luaunit.assertFalse(veafCampaign.zones["Senaki"].awake)
-  worldGroups({ { name = "cap", category = Group.Category.HELICOPTER, x = 52000, inAir = true } })
-  veafCampaign.updateDormancy(110)
-  luaunit.assertTrue(veafCampaign.zones["Senaki"].awake)
+  worldGroups({ { name = "cap", category = Group.Category.AIRPLANE, x = 190000, inAir = true } })
+  passes(4)
+  veafCampaign.zoneReach = zoneReach
+  luaunit.assertTrue(veafCampaign.zones["Poti"].awake)
+  luaunit.assertFalse(veafCampaign.zones["Zugdidi"].awake) -- 40 km, beyond its 0 + 20 km
 end
 
 function TestCampaignDormancy:test_a_late_activated_aircraft_wakes_nothing()
   -- DCS answers isExist() and inAir() true for a group not yet activated (dcs-runtime-traps.md)
   veafCampaign.data = persistentData()
   veafCampaign.initialize()
-  worldGroups({ { name = "qra", category = Group.Category.AIRPLANE, x = 52000, inAir = true, active = false } })
-  veafCampaign.updateDormancy(100)
-  luaunit.assertFalse(veafCampaign.zones["Senaki"].awake)
+  worldGroups({ { name = "qra", category = Group.Category.AIRPLANE, x = 102000, inAir = true, active = false } })
+  passes(4)
+  luaunit.assertFalse(veafCampaign.zones["Poti"].awake)
 end
 
-function TestCampaignDormancy:test_a_ground_group_spawned_just_after_initialize_counts_as_built()
-  -- the FARPs' vehicles (veafGrass) come 2 s after the module initializes
-  veafCampaign.data = persistentData()
-  veafCampaign.initialize()
-  worldGroups({ { name = "FARP vehicles", category = Group.Category.GROUND, x = 52000 } })
-  veafCampaign.updateDormancy(100)
-  luaunit.assertFalse(veafCampaign.zones["Senaki"].awake)
-end
-
-function TestCampaignDormancy:test_a_convoy_wakes_the_zone_within_the_ground_radius()
+function TestCampaignDormancy:test_an_enemy_convoy_wakes_a_zone_within_the_ground_radius()
   veafCampaign.data = persistentData()
   veafCampaign.initialize()
   worldGroups({})
-  veafCampaign.updateDormancy(90) -- the mission as built: nothing on the ground
-  worldGroups({ { name = "convoy", category = Group.Category.GROUND, x = 61000 } }) -- 11 km from Senaki
-  veafCampaign.updateDormancy(100)
-  luaunit.assertFalse(veafCampaign.zones["Senaki"].awake)
-  worldGroups({ { name = "convoy", category = Group.Category.GROUND, x = 59000 } }) -- 9 km
-  veafCampaign.updateDormancy(110)
-  luaunit.assertTrue(veafCampaign.zones["Senaki"].awake)
+  passes(1, 90) -- the mission as built: nothing on the ground
+  worldGroups({ { name = "convoy", category = Group.Category.GROUND, x = 111000 } }) -- 11 km from Poti
+  passes(4)
+  luaunit.assertFalse(veafCampaign.zones["Poti"].awake)
+  worldGroups({ { name = "convoy", category = Group.Category.GROUND, x = 109000 } }) -- 9 km
+  passes(1, 200)
+  luaunit.assertTrue(veafCampaign.zones["Poti"].awake)
 end
 
 function TestCampaignDormancy:test_a_garrison_does_not_wake_its_neighbour()
   veafCampaign.data = persistentData()
   veafCampaign.initialize()
   worldGroups({})
-  veafCampaign.updateDormancy(90) -- the mission as built: nothing on the ground
-  veafCampaign.unitIndex["Poti garrison #1"] = veafCampaign.zones["Poti"]
-  worldGroups({ { name = "Poti garrison", category = Group.Category.GROUND, x = 52000 } })
-  veafCampaign.updateDormancy(100)
-  luaunit.assertFalse(veafCampaign.zones["Senaki"].awake)
+  passes(1, 90)
+  veafCampaign.unitIndex["Kobuleti garrison #1"] = veafCampaign.zones["Kobuleti"]
+  worldGroups({ { name = "Kobuleti garrison", category = Group.Category.GROUND, x = 102000 } })
+  passes(4)
+  luaunit.assertFalse(veafCampaign.zones["Poti"].awake)
 end
 
 function TestCampaignDormancy:test_a_ground_group_the_mission_was_built_with_wakes_nothing()
-  local parked = { { name = "fuel truck", category = Group.Category.GROUND, x = 52000 } }
+  local parked = { { name = "fuel truck", category = Group.Category.GROUND, x = 102000 } }
   worldGroups(parked)
   veafCampaign.data = persistentData()
   veafCampaign.initialize()
-  veafCampaign.updateDormancy(100)
-  luaunit.assertFalse(veafCampaign.zones["Senaki"].awake)
+  passes(4)
+  luaunit.assertFalse(veafCampaign.zones["Poti"].awake)
   -- a group spawned later, at the same place, does
-  table.insert(parked, { name = "troops", category = Group.Category.GROUND, x = 52000 })
-  veafCampaign.updateDormancy(110)
-  luaunit.assertTrue(veafCampaign.zones["Senaki"].awake)
+  table.insert(parked, { name = "troops", category = Group.Category.GROUND, x = 102000 })
+  passes(1, 200)
+  luaunit.assertTrue(veafCampaign.zones["Poti"].awake)
 end
 
-function TestCampaignDormancy:test_at_the_same_distance_the_player_zone_wakes_first()
+function TestCampaignDormancy:test_a_ground_group_spawned_just_after_initialize_counts_as_built()
+  -- the FARPs' vehicles (veafGrass) come 2 s after the module initializes
   veafCampaign.data = persistentData()
   veafCampaign.initialize()
-  playersAt({ { x = 52000 } }) -- 2 km from Senaki
-  worldGroups({ { name = "cap", category = Group.Category.AIRPLANE, x = -2000, inAir = true } }) -- 2 km from Kobuleti
-  veafCampaign.updateDormancy(100)
-  luaunit.assertEquals(groupsSubmitted(), { "Senaki garrison" })
+  worldGroups({ { name = "FARP vehicles", category = Group.Category.GROUND, x = 102000 } })
+  passes(4)
+  luaunit.assertFalse(veafCampaign.zones["Poti"].awake)
+end
+
+function TestCampaignDormancy:test_a_rear_zone_sleeps_once_nobody_has_been_near_for_the_delay()
+  veafCampaign.data = persistentData({ sleep_seconds = 600 })
+  veafCampaign.initialize()
+  playersAt({ { x = 100000 } })
+  passes(3)
+  luaunit.assertTrue(veafCampaign.zones["Poti"].awake)
+  playersAt({})
+  passes(1, 650)
+  luaunit.assertTrue(veafCampaign.zones["Poti"].awake)
+  passes(1, 710)
+  luaunit.assertFalse(veafCampaign.zones["Poti"].awake)
+  luaunit.assertTrue(veafCampaign.zones["Senaki"].awake) -- the front never sleeps
+end
+
+function TestCampaignDormancy:test_a_sleep_is_not_a_loss_and_losses_survive_it()
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  local poti = veafCampaign.zones["Poti"]
+  playersAt({ { x = 100000 } })
+  passes(3)
+  veafCampaign.onUnitDead({ initiator = { unitName = "Poti garrison #2" } })
+  poti:sleep()
+  -- whatever DCS says of the units removed by the sleep is not a loss
+  veafCampaign.onUnitDead({ initiator = { unitName = "Poti garrison #1" } })
+  luaunit.assertEquals({ poti:countUnits() }, { 2, 3 })
+  dcs_mocks.groupsAdded = {}
+  poti:wake()
+  luaunit.assertEquals(#dcs_mocks.groupsAdded[1].group.units, 2)
+end
+
+function TestCampaignDormancy:test_the_target_of_a_sortie_wakes_even_when_the_rear_is_full()
+  veafCampaign.data = persistentData({ max_awake_zones = 1 })
+  veafCampaign.initialize()
+  playersAt({ { x = 100000 } })
+  passes(3)
+  luaunit.assertTrue(veafCampaign.zones["Poti"].awake)
+  dcs_mocks.currentTime = 200
+  veafCampaign.keepAwake(veafCampaign.zones["Zugdidi"], 600)
+  passes(1, 200)
+  luaunit.assertTrue(veafCampaign.zones["Zugdidi"].awake)
+  luaunit.assertTrue(veafCampaign.zones["Poti"].awake)
+end
+
+function TestCampaignDormancy:test_zones_wanted_by_ai_do_not_swap_when_the_rear_is_full()
+  -- measured 2026-11-16: moving aircraft swapped two zones at every pass, 27 wakes in 3 minutes
+  -- a 40 km margin: both rear zones are within reach of an aircraft between them
+  veafCampaign.data = persistentData({ max_awake_zones = 1, reach_wake_margin = 40000, wake_radius = 30000 })
+  veafCampaign.initialize()
+  worldGroups({ { name = "cap", category = Group.Category.AIRPLANE, x = 115000, inAir = true } })
+  passes(3)
+  luaunit.assertTrue(veafCampaign.zones["Poti"].awake)
+  -- nearer Zugdidi now, still within Poti's reach: Poti keeps its place
+  worldGroups({ { name = "cap", category = Group.Category.AIRPLANE, x = 135000, inAir = true } })
+  passes(5, 200)
+  luaunit.assertTrue(veafCampaign.zones["Poti"].awake)
+  luaunit.assertFalse(veafCampaign.zones["Zugdidi"].awake)
+  -- a player wants Zugdidi: it takes the place of the zone only AI wanted
+  playersAt({ { x = 150000 } })
+  passes(1, 300)
+  luaunit.assertTrue(veafCampaign.zones["Zugdidi"].awake)
+  luaunit.assertFalse(veafCampaign.zones["Poti"].awake)
+end
+
+function TestCampaignDormancy:test_between_players_the_nearer_zone_takes_the_place()
+  veafCampaign.data = persistentData({ wake_radius = 200000, max_awake_zones = 1 })
+  veafCampaign.initialize()
+  playersAt({ { x = 100000 } })
+  passes(3)
+  luaunit.assertTrue(veafCampaign.zones["Poti"].awake)
+  playersAt({ { x = 150000 } })
+  passes(1, 200)
+  luaunit.assertTrue(veafCampaign.zones["Zugdidi"].awake)
+  luaunit.assertFalse(veafCampaign.zones["Poti"].awake)
 end
 
 function TestCampaignDormancy:test_an_episodic_campaign_has_no_dormancy_unless_asked()

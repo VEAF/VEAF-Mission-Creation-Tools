@@ -360,7 +360,7 @@ veafCampaignEconomy.effects = {
   end,
   cap = function(zone)
     local side = veafCampaign.playerSide()
-    local origin = zone.entry.airbase and zone or veafCampaignOps.nearestOwnZone(side, zone, true)
+    local origin = veafCampaignOps.canTakeOffFrom(side, zone) and zone or veafCampaignOps.nearestOwnZone(side, zone, true)
     if not origin then
       return false, "campaign.shop.refused_no_airfield"
     end

@@ -801,6 +801,30 @@ function TestCampaignTakeoff:test_a_sortie_takes_off_from_its_airfield()
   luaunit.assertEquals(flight.group.units[1].alt, land.getHeight({ x = 1004, y = 2000 }))
 end
 
+function TestCampaignTakeoff:test_nothing_takes_off_from_a_field_under_an_enemy_defence_measured()
+  -- 2026-11-16: the whole raid package of Senaki, under Kobuleti's Patriot, lost within 70 s of the take-off
+  start()
+  local senaki, kobuleti = veafCampaign.zones["Senaki"], veafCampaign.zones["Kobuleti"]
+  kobuleti.entry.reach = 120000 -- measured while Kobuleti was awake: Senaki, 100 km away, is under it
+  luaunit.assertEquals(veafCampaignOps.coveringEnemy("red", senaki), "Kobuleti")
+  luaunit.assertFalse(veafCampaignOps.canTakeOffFrom("red", senaki))
+  luaunit.assertNil(veafCampaignOps.nearestOwnZone("red", kobuleti, true))
+  luaunit.assertNil(veafCampaignOps.raidOrigin("red", kobuleti))
+  veafCampaignOps.maintainCaps("red")
+  luaunit.assertEquals(#self.flights, 0)
+  -- out of its reach, it does
+  kobuleti.entry.reach = 80000
+  luaunit.assertTrue(veafCampaignOps.canTakeOffFrom("red", senaki))
+end
+
+function TestCampaignTakeoff:test_an_assumed_reach_grounds_nobody()
+  -- a sleeping zone never measured: its reach is a guess, which must not ground a side
+  start()
+  veafCampaign.zones["Kobuleti"].entry.size.long_range_sam = true -- 75 km assumed; Poti is 50 km away
+  luaunit.assertEquals({ veafCampaignOps.threatRange(veafCampaign.zones["Kobuleti"]) }, { 75000, false })
+  luaunit.assertNil(veafCampaignOps.coveringEnemy("red", veafCampaign.zones["Poti"]))
+end
+
 function TestCampaignTakeoff:test_a_strike_takes_off_then_flies_at_its_altitude()
   local takeoff = { type = "TakeOffParkingHot", action = "From Parking Area Hot", airdromeId = 23 }
   local route = veafAircraftSpawn.roles.campaign_strike.buildRoute({
@@ -836,6 +860,21 @@ function TestCampaignTakeoff:test_a_barcap_holds_beyond_the_measured_air_defence
   -- on the line from Senaki (x = 100000) back to Kobuleti (x = 0)
   luaunit.assertEquals({ station.x, station.y, station.radius }, { 100000 - 65000, 0, 15000 })
   dcs_mocks.removeUnit("Senaki garrison #1")
+end
+
+function TestCampaignTakeoff:test_a_reach_measured_is_remembered_once_the_zone_sleeps()
+  start()
+  local senaki = veafCampaign.zones["Senaki"]
+  dcs_mocks.addUnit("Senaki garrison #1", {
+    getAmmo = function()
+      return { { count = 4, desc = { category = Weapon.Category.MISSILE, rangeMaxAltMax = 35000 } } }
+    end,
+  })
+  veafCampaignOps.threatRange(senaki)
+  dcs_mocks.removeUnit("Senaki garrison #1")
+  -- asleep: no live unit, the reach measured is still known, and saved with the zone
+  luaunit.assertEquals({ veafCampaignOps.threatRange(senaki) }, { 35000, true })
+  luaunit.assertEquals(veafCampaign.stateTable().zones.Senaki.reach, 35000)
 end
 
 function TestCampaignTakeoff:test_a_sleeping_zone_s_reach_is_assumed()

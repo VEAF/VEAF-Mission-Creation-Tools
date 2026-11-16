@@ -59,6 +59,7 @@ dynamic:
   save_seconds: 60
   wake_radius: 60000
   ground_wake_radius: 10000
+  reach_wake_margin: 20000
   sleep_seconds: 600
   max_awake_zones: 12
   attacks: [red]

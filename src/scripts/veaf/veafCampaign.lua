@@ -62,8 +62,9 @@ veafCampaign.counters = {}
 --- The tools check the block and pass it on; this table is the one place its defaults are read from.
 veafCampaign.DYNAMIC_DEFAULTS = {
   save_seconds = 60, -- seconds between two saves of a persistent campaign
-  wake_radius = 60000, -- metres: a player aircraft, or any aircraft in the air, this close wakes a zone's garrison
-  ground_wake_radius = 10000, -- metres: a ground group that is no garrison (convoy, troops, spawn) this close too
+  wake_radius = 60000, -- metres: an enemy player's aircraft this close wakes a zone's garrison
+  ground_wake_radius = 10000, -- metres: an enemy ground group that is no garrison (convoy, troops, spawn) this close too
+  reach_wake_margin = 20000, -- metres: an enemy aircraft this far beyond a zone's air defence reach wakes it
   sleep_seconds = 600, -- a zone nobody has come near for this long goes back to sleep
   max_awake_zones = 12, -- zones whose garrison is in the world at once, nearest the players first
   attacks = { "red" }, -- the sides that counter-attack an enemy zone on their own
@@ -741,7 +742,8 @@ end
 --- Remove the zone's garrison from the world, keeping its record: it comes back as it was when a player
 --- approaches (ticket 02). Its units are unregistered **before** they are destroyed, so that whatever
 --- DCS says of their removal can never read as a loss.
-function VeafCampaignZone:sleep()
+function VeafCampaignZone:sleep(reason)
+  veafCampaign.zoneReach(self) -- measured while the units are there, and remembered
   for _, group in ipairs(self.entry.garrison or {}) do
     for unitIndex in ipairs(group.units) do
       veafCampaign.unitIndex[veafCampaign.unitName(group, unitIndex)] = nil
@@ -753,7 +755,7 @@ function VeafCampaignZone:sleep()
   end
   self.awake = false
   veafCampaign.counters.sleeps = veafCampaign.counters.sleeps + 1
-  veaf.loggers.get(veafCampaign.Id):info("zone [%s] sleeps: no player near it", self.name)
+  veaf.loggers.get(veafCampaign.Id):info("zone [%s] sleeps: %s", self.name, reason or "put to sleep")
 end
 
 --- Bring a sleeping zone's garrison back into the world, as its record left it.
@@ -2427,6 +2429,7 @@ function veafCampaign.stateTable()
       warehouse = zone:readWarehouse(),
       structures = zone.entry.structures,
       structures_side = zone.entry.structures_side,
+      reach = zone.entry.reach,
     }
   end
   local convoys = {}
@@ -2636,6 +2639,7 @@ function veafCampaign.applySave(state)
       entry.structures = saved.structures or entry.structures
       entry.structures_side = saved.structures_side or entry.structures_side
       entry.saved_warehouse = saved.warehouse
+      entry.reach = saved.reach
     end
   end
   for name in pairs(state.zones) do
@@ -2751,13 +2755,16 @@ function veafCampaign.dormancyEnabled()
   return veafCampaign.isPersistent() or (dynamic ~= nil and dynamic.wake_radius ~= nil)
 end
 
---- Where the players' aircraft are, both sides together: a list of vec3.
-function veafCampaign.playerPoints()
+--- Where the players' aircraft are: a list of vec3, both sides together, or one side's only.
+--- @param side string|nil "red" or "blue"; nil for both
+function veafCampaign.playerPoints(side)
   local points = {}
-  for _, side in ipairs({ coalition.side.RED, coalition.side.BLUE }) do
-    for _, unit in ipairs(coalition.getPlayers(side) or {}) do
-      if unit and unit.isExist and unit:isExist() then
-        table.insert(points, unit:getPoint())
+  for _, dcsSide in ipairs({ coalition.side.RED, coalition.side.BLUE }) do
+    if not side or veafCampaign.SIDES[side] == dcsSide then
+      for _, unit in ipairs(coalition.getPlayers(dcsSide) or {}) do
+        if unit and unit.isExist and unit:isExist() then
+          table.insert(points, unit:getPoint())
+        end
       end
     end
   end
@@ -2791,32 +2798,33 @@ local function firstUnit(group)
   return nil
 end
 
---- What wakes a zone besides the players (David, 2026-11-16), one point per group, both sides:
---- the aircraft in the air, AI or not, and the ground groups that are neither a zone's garrison nor part
---- of the mission as it was built — convoys, troops dropped, spawns. A garrison waking its neighbour would
+--- What wakes an enemy zone besides the players (David, 2026-11-16), one point per group, by side: the
+--- aircraft in the air, AI or not, and the ground groups that are neither a zone's garrison nor part of
+--- the mission as it was built — convoys, troops dropped, spawns. A garrison waking its neighbour would
 --- wake the whole map in a chain.
---- @return table the aircraft's points (vec3)
---- @return table the ground groups' points (vec3)
+--- @return table by side ("red", "blue"): `{ air = { vec3 }, ground = { vec3 } }`
 function veafCampaign.wakerPoints()
-  local air, ground = {}, {}
+  local points = {}
   local built = veafCampaign.builtGroups or {}
-  for _, side in ipairs({ coalition.side.RED, coalition.side.BLUE }) do
+  for side, dcsSide in pairs(veafCampaign.SIDES) do
+    local air, ground = {}, {}
     for _, category in ipairs({ Group.Category.AIRPLANE, Group.Category.HELICOPTER }) do
-      for _, group in ipairs(coalition.getGroups(side, category) or {}) do
+      for _, group in ipairs(coalition.getGroups(dcsSide, category) or {}) do
         local unit = firstUnit(group)
         if unit and unit:inAir() then
           table.insert(air, unit:getPoint())
         end
       end
     end
-    for _, group in ipairs(coalition.getGroups(side, Group.Category.GROUND) or {}) do
+    for _, group in ipairs(coalition.getGroups(dcsSide, Group.Category.GROUND) or {}) do
       local unit = not built[group:getName()] and firstUnit(group)
       if unit and not veafCampaign.unitIndex[unit:getName()] then
         table.insert(ground, unit:getPoint())
       end
     end
+    points[side] = { air = air, ground = ground }
   end
-  return air, ground
+  return points
 end
 
 --- The distance from a zone's centre to the nearest point of a list, in metres; nil for an empty list.
@@ -2829,61 +2837,114 @@ local function nearestDistance(zone, points)
   return best and math.sqrt(best)
 end
 
---- One pass of the dormancy: zones wanted — a player or an aircraft in the air within `wake_radius`, a
---- ground group of `wakerPoints` within `ground_wake_radius`, or the target of a sortie — stay or come
---- awake, nearest first (a player first at the same distance), one waking per pass, `max_awake_zones` at
---- most; zones nobody has wanted for `sleep_seconds` go to sleep, and so does the farthest awake zone
---- when the cap is reached.
+--- How far a zone's air defence reaches, in metres, for its dormancy: veafCampaignOps measures it, or
+--- remembers it from the last time the zone was awake; 0 without that module.
+--- @param zone table
+--- @return number
+function veafCampaign.zoneReach(zone)
+  if veafCampaignOps and veafCampaignOps.threatRange then
+    return (veafCampaignOps.threatRange(zone))
+  end
+  return 0
+end
+
+--- Whether a zone is on the front: connected to a zone its owner does not hold.
+--- @param zone table
+--- @return boolean
+function veafCampaign.isFront(zone)
+  for _, neighbour in ipairs(veafCampaign.neighbours(zone.name)) do
+    if neighbour.entry.owner ~= zone.entry.owner then
+      return true
+    end
+  end
+  return false
+end
+
+--- Why a zone is wanted awake, most pressing first: "always" (on the front, or the target of a sortie),
+--- "player" (an enemy player within `wake_radius`, or within its air defence's reach plus
+--- `reach_wake_margin` when that is longer), "ai" (an enemy aircraft in the air within that reach plus
+--- the margin, or an enemy ground group within `ground_wake_radius`).
+local WAKE_RANK = { always = 1, player = 2, ai = 3 }
+
+--- One pass of the dormancy (David, 2026-11-16). A zone on the front or targeted by a sortie is always
+--- awake, outside `max_awake_zones`; a zone of the rear wakes for its enemies only, and only the rear
+--- counts against the cap. One waking per pass, the most pressing first, then the nearest. When the cap
+--- is reached, a zone waiting takes the place of an awake zone nobody wants any more, or of one wanted
+--- for a lesser reason; between zones wanted by players the nearer takes the farther's place; between
+--- zones wanted by AI the first one keeps it — moving aircraft swapped two zones at every pass
+--- (measured 2026-11-16). Zones nobody has wanted for `sleep_seconds` go to sleep.
 --- @param now number the mission time
 function veafCampaign.updateDormancy(now)
-  local points = veafCampaign.playerPoints()
   veafCampaign.builtGroups = veafCampaign.builtGroups or veafCampaign.groundGroupNames()
-  local air, ground = veafCampaign.wakerPoints()
+  local wakers = veafCampaign.wakerPoints()
   local radius, delay = veafCampaign.setting("wake_radius"), veafCampaign.setting("sleep_seconds")
-  local groundRadius = veafCampaign.setting("ground_wake_radius")
+  local groundRadius, margin = veafCampaign.setting("ground_wake_radius"), veafCampaign.setting("reach_wake_margin")
+  local players = {}
   local awake, waking = {}, {}
   for _, zone in ipairs(veafCampaign.zoneList) do
     if zone.placed and veafCampaign.SIDES[zone.entry.owner] and zone.entry.garrison then
-      zone.playerDistance = nearestDistance(zone, points) or math.huge
-      local airDistance = math.min(zone.playerDistance, nearestDistance(zone, air) or math.huge)
-      local groundDistance = nearestDistance(zone, ground) or math.huge
-      zone.wakeDistance = math.min(airDistance, groundDistance)
-      if airDistance <= radius or groundDistance <= groundRadius or (zone.keepAwakeUntil or 0) > now then
+      local enemy = veafCampaign.enemyOf(zone.entry.owner)
+      players[enemy] = players[enemy] or veafCampaign.playerPoints(enemy)
+      local reach = veafCampaign.zoneReach(zone) + margin
+      zone.playerDistance = nearestDistance(zone, players[enemy]) or math.huge
+      local airDistance = nearestDistance(zone, wakers[enemy].air) or math.huge
+      local groundDistance = nearestDistance(zone, wakers[enemy].ground) or math.huge
+      zone.wakeDistance = math.min(zone.playerDistance, airDistance, groundDistance)
+      if (zone.keepAwakeUntil or 0) > now or veafCampaign.isFront(zone) then
+        zone.wakeReason = "always"
+      elseif zone.playerDistance <= math.max(radius, reach) then
+        zone.wakeReason = "player"
+      elseif airDistance <= reach or groundDistance <= groundRadius then
+        zone.wakeReason = "ai"
+      else
+        zone.wakeReason = nil
+      end
+      if zone.wakeReason then
         zone.wantedAt = now
       end
       if zone.awake then
         if now - (zone.wantedAt or -math.huge) >= delay then
-          zone:sleep()
-        else
+          zone:sleep("nobody has come near it")
+        elseif zone.wakeReason ~= "always" then
           table.insert(awake, zone)
         end
-      elseif zone.wantedAt == now then
+      elseif zone.wakeReason then
         table.insert(waking, zone)
       end
     end
   end
-  local byDistance = function(a, b)
-    if a.wakeDistance ~= b.wakeDistance then
-      return a.wakeDistance < b.wakeDistance
-    end
-    return a.playerDistance < b.playerDistance
+  local rank = function(zone)
+    return WAKE_RANK[zone.wakeReason] or 4
   end
-  table.sort(waking, byDistance)
-  local nearest = waking[1]
-  if not nearest then
+  table.sort(waking, function(a, b)
+    if rank(a) ~= rank(b) then
+      return rank(a) < rank(b)
+    end
+    return a.wakeDistance < b.wakeDistance
+  end)
+  local candidate = waking[1]
+  if not candidate then
     return
   end
-  local cap = veafCampaign.setting("max_awake_zones")
-  if #awake >= cap then
-    -- full: the farthest awake zone gives its place, if the one waiting is nearer
-    table.sort(awake, byDistance)
-    local farthest = awake[#awake]
-    if not byDistance(nearest, farthest) then
+  if candidate.wakeReason ~= "always" and #awake >= veafCampaign.setting("max_awake_zones") then
+    -- full: the one that gives its place is the least wanted, the farthest at the same rank
+    table.sort(awake, function(a, b)
+      if rank(a) ~= rank(b) then
+        return rank(a) > rank(b)
+      end
+      return a.wakeDistance > b.wakeDistance
+    end)
+    local victim = awake[1]
+    local lesser = rank(victim) > rank(candidate)
+    local nearerPlayer = rank(victim) == WAKE_RANK.player
+      and candidate.wakeReason == "player"
+      and candidate.playerDistance < victim.playerDistance
+    if not (lesser or nearerPlayer) then
       return
     end
-    farthest:sleep()
+    victim:sleep(string.format("it gives its place to [%s]", candidate.name))
   end
-  nearest:wake()
+  candidate:wake()
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

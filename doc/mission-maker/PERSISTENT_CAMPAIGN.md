@@ -95,8 +95,20 @@ La campagne repart de son état déclaré au prochain chargement de la mission ;
 ## Les zones en sommeil {#dormancy}
 
 Loin des joueurs, une zone n'a aucune unité dans le monde : sa garnison n'est qu'une ligne de la sauvegarde, avec ses pertes.
-Elle apparaît quand un avion de joueur, ou n'importe quel avion en vol (IA comprise, des deux camps), arrive à moins de `wake_radius` (60 km), quand un groupe au sol qui n'est pas une garnison (convoi, troupes déposées, spawn) arrive à moins de `ground_wake_radius` (10 km), ou qu'une sortie la vise, exactement comme elle était, et disparaît quand personne n'est venu depuis `sleep_seconds` (600 s).
-Au plus `max_awake_zones` (12) zones sont éveillées à la fois, les plus proches des joueurs d'abord, et une seule se réveille à chaque battement de 10 s, pour ne pas faire apparaître tout le front d'un coup.
+Elle réapparaît exactement comme elle était :
+
+- **toujours**, si elle est sur le front (reliée à une zone qu'elle ne tient pas) ou visée par une sortie ;
+- quand un **avion de joueur ennemi** arrive à moins de `wake_radius` (60 km), ou à portée de sa défense antiaérienne plus `reach_wake_margin` (20 km) quand cette portée va plus loin ;
+- quand un **avion ennemi en vol**, IA comprise, arrive à portée de sa défense antiaérienne plus `reach_wake_margin` : un SAM longue portée se réveille donc bien plus tôt qu'une zone qui n'a que des canons ;
+- quand un **groupe au sol ennemi** qui n'est pas une garnison (convoi, troupes déposées, spawn) arrive à moins de `ground_wake_radius` (10 km).
+
+Seuls les ennemis d'une zone la réveillent ; les véhicules posés dans l'éditeur et les avions pas encore activés ne réveillent rien.
+La portée d'une défense est celle de ses missiles, lue dans DCS pendant que la zone est éveillée et retenue dans la sauvegarde ; une zone jamais vue éveillée a une portée supposée (75 km avec un SAM longue portée, 20 km sinon).
+Elle disparaît quand personne n'est venu depuis `sleep_seconds` (600 s), sauf sur le front.
+
+Au plus `max_awake_zones` (12) zones de l'arrière sont éveillées à la fois ; le front et les cibles de sorties ne comptent pas.
+Quand la limite est atteinte, une zone voulue par un joueur prend la place d'une zone voulue seulement par une IA, ou d'une zone voulue par un joueur plus lointain ; entre zones voulues par des IA, la première garde sa place, pour que des avions qui passent ne fassent pas apparaître et disparaître les zones en boucle.
+Une seule zone se réveille à chaque battement de 10 s, pour ne pas faire apparaître tout le front d'un coup.
 
 ## Un front qui bouge tout seul {#front}
 
@@ -111,6 +123,7 @@ Au plus `max_awake_zones` (12) zones sont éveillées à la fois, les plus proch
   Son cercle de patrouille (40 km au plus) s'arrête 15 km avant la portée des défenses antiaériennes de nos zones ; quand même un cercle de 5 km serait à leur portée, elle ne part pas : elle ne vient pas se jeter dans nos SAM.
 - **Frappes** : toutes les `air.strike_seconds` (900 s), une frappe CAS (sur la zone qui a le plus d'unités) ou SEAD (sur celle qui a le plus de défense antiaérienne), en alternance, sur une zone qui borde le territoire ennemi.
 - Elles **décollent** de l'aérodrome ennemi le plus proche, moteur chaud sur des parkings libres (les abris d'abord, les places ouvertes ensuite ; un gros avion, bombardier ou transport, jamais dans un abri), ou de la piste quand il n'y en a pas assez ; sans aérodrome, pas de sortie. Il en va de même pour la CAP, la BARCAP et le Hunter.
+  Rien ne décolle d'un aérodrome à portée d'une défense antiaérienne ennemie mesurée (un Patriot abattrait les avions pendant qu'ils montent) : la sortie part d'un autre aérodrome, ou ne part pas, et `dcs.log` le dit (`[CAMPAIGN DECISION] nothing of red takes off from [Senaki]: it is under the air defence of [Kobuleti]`).
   `air.max_flights` (4) vols en l'air au plus par camp.
 - **Hunter** : un joueur qui enchaîne les victoires (entre 8 et 16 au sol, ou entre 4 et 8 en l'air, tiré une fois par vie) a ensuite 10 % de chances à chaque victoire de voir décoller deux chasseurs ennemis contre ce joueur ; son camp est prévenu.
 
@@ -372,10 +385,11 @@ Une ligne `KO` suffit à dire où regarder.
 | Clé de `dynamic:` | Par défaut | Ce qu'elle règle |
 |---|---|---|
 | `save_seconds` | 60 | intervalle entre deux sauvegardes |
-| `wake_radius` | 60000 | mètres : un joueur, ou un avion en vol, aussi près réveille une zone |
-| `ground_wake_radius` | 10000 | mètres : un groupe au sol qui n'est pas une garnison, aussi près, réveille une zone ; les véhicules posés dans l'éditeur ne réveillent rien |
+| `wake_radius` | 60000 | mètres : un joueur ennemi aussi près réveille une zone |
+| `ground_wake_radius` | 10000 | mètres : un groupe au sol ennemi qui n'est pas une garnison, aussi près, réveille une zone ; les véhicules posés dans l'éditeur ne réveillent rien |
+| `reach_wake_margin` | 20000 | mètres : un avion ennemi aussi loin au-delà de la portée de la défense d'une zone la réveille |
 | `sleep_seconds` | 600 | une zone sans joueur près d'elle depuis ce temps se rendort |
-| `max_awake_zones` | 12 | zones éveillées à la fois |
+| `max_awake_zones` | 12 | zones de l'arrière éveillées à la fois (le front et les cibles de sorties ne comptent pas) |
 | `attacks` | `[red]` | les camps qui contre-attaquent seuls |
 | `attack_seconds` | 900 | intervalle entre deux contre-attaques d'un camp |
 | `max_convoys` | 2 | convois d'assaut d'un camp sur la route |

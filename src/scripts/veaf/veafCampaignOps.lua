@@ -246,11 +246,54 @@ function veafCampaignOps.supplyTarget(side)
   return nil
 end
 
---- The side's zone a helicopter leaves from: the nearest to the target, the target itself excepted.
+--- The enemy zone whose air defence covers a zone's centre, by the reach measured (or remembered from the
+--- last time it was awake); nil when none does. An assumed reach does not count: it would ground a side on a
+--- guess. What takes off from a field under it is shot down while it climbs (2026-11-16: the whole raid
+--- package of Senaki, under Kobuleti's Patriot, lost within 70 s of the take-off).
+--- @param side string the zone's side
+--- @param zone table
+--- @return string|nil the enemy zone's name
+function veafCampaignOps.coveringEnemy(side, zone)
+  local enemy = veafCampaign.enemyOf(side)
+  for _, other in ipairs(veafCampaign.zoneList) do
+    if other.placed and other.entry.owner == enemy and other.entry.garrison then
+      local reach, measured = veafCampaignOps.threatRange(other)
+      if measured and distance2d(zone:getCenter(), other:getCenter()) <= reach then
+        return other.name
+      end
+    end
+  end
+  return nil
+end
+
+--- Whether a side's aircraft may take off from an airfield zone: it has an airbase and no enemy air defence
+--- covers it. A field refused is logged with the defence that covers it.
+--- @param side string
+--- @param zone table
+--- @return boolean
+function veafCampaignOps.canTakeOffFrom(side, zone)
+  if not zone.entry.airbase then
+    return false
+  end
+  local covering = veafCampaignOps.coveringEnemy(side, zone)
+  if covering then
+    veafCampaign.debug("DECISION", "nothing of %s takes off from [%s]: it is under the air defence of [%s]", side, zone.name, covering)
+    return false
+  end
+  return true
+end
+
+--- The side's zone a helicopter leaves from: the nearest to the target, the target itself excepted. With
+--- `airfieldsOnly`, the nearest airfield its aircraft may take off from (`canTakeOffFrom`).
 function veafCampaignOps.nearestOwnZone(side, target, airfieldsOnly)
   local best, bestDistance = nil, nil
   for _, zone in ipairs(veafCampaign.zoneList) do
-    if zone.placed and zone ~= target and zone.entry.owner == side and (not airfieldsOnly or zone.entry.airbase) then
+    if
+      zone.placed
+      and zone ~= target
+      and zone.entry.owner == side
+      and (not airfieldsOnly or veafCampaignOps.canTakeOffFrom(side, zone))
+    then
       local d = distance2d(zone:getCenter(), target:getCenter())
       if not bestDistance or d < bestDistance then
         best, bestDistance = zone, d
@@ -795,8 +838,9 @@ function veafCampaignOps.spawnFlight(side, aircraftRole, origin, roleName, param
 end
 
 --- How far a zone's air defence reaches, in metres: the longest maximum range of the missiles its live
---- units carry, read from DCS (`getAmmo`, `rangeMaxAltMax`). A sleeping zone has no live unit to ask:
---- its reach is then assumed, the long-range figure when its class has a long-range battery.
+--- units carry, read from DCS (`getAmmo`, `rangeMaxAltMax`), and remembered in the zone's entry (saved with
+--- the campaign). A sleeping zone has no live unit to ask: its reach is then the one remembered, else assumed,
+--- the long-range figure when its class has a long-range battery.
 --- @param zone table
 --- @return number metres
 --- @return boolean true when measured, false when assumed
@@ -818,7 +862,11 @@ function veafCampaignOps.threatRange(zone)
     end
   end
   if measured then
+    zone.entry.reach = reach
     return reach, true
+  end
+  if zone.entry.reach then
+    return zone.entry.reach, true
   end
   local size = zone.entry.size or {}
   return size.long_range_sam and veafCampaignOps.ASSUMED_LONG_RANGE or veafCampaignOps.ASSUMED_SHORT_RANGE, false
@@ -894,7 +942,7 @@ function veafCampaignOps.maintainCaps(side)
   end
   local zone = veafCampaignOps.capZone(side)
   local origin = zone and veafCampaignOps.nearestOwnZone(side, zone, true)
-  if zone and zone.entry.airbase then
+  if zone and zone.entry.airbase and veafCampaignOps.canTakeOffFrom(side, zone) then
     origin = zone
   end
   if not (zone and origin) then
@@ -1176,7 +1224,8 @@ function veafCampaignOps.raidTarget(side)
 end
 
 --- Where a raid leaves from: the side's airfield zone nearest the target that is at least
---- `bombers.min_distance` from it, so that the defenders have the time to intercept.
+--- `bombers.min_distance` from it, so that the defenders have the time to intercept, and that no enemy air
+--- defence covers (`canTakeOffFrom`).
 --- @return table|nil the zone
 function veafCampaignOps.raidOrigin(side, target)
   local best, bestDistance = nil, nil
@@ -1184,7 +1233,7 @@ function veafCampaignOps.raidOrigin(side, target)
   for _, zone in ipairs(veafCampaign.zoneList) do
     if zone.placed and zone.entry.owner == side and zone.entry.airbase then
       local d = distance2d(zone:getCenter(), target:getCenter())
-      if d >= minimum and (not bestDistance or d < bestDistance) then
+      if d >= minimum and (not bestDistance or d < bestDistance) and veafCampaignOps.canTakeOffFrom(side, zone) then
         best, bestDistance = zone, d
       end
     end
@@ -1628,7 +1677,7 @@ function veafCampaignOps.launchHunter(unit, player)
   for _, zone in ipairs(veafCampaign.zoneList) do
     if zone.placed and zone.entry.owner == enemy and zone.entry.airbase then
       local d = distance2d(zone:getCenter(), point)
-      if not best or d < best then
+      if (not best or d < best) and veafCampaignOps.canTakeOffFrom(enemy, zone) then
         origin, best = zone, d
       end
     end

@@ -351,4 +351,4 @@ class TestAPersistentCampaign:
         deck = _deck(tmp_path, self._campaign())
         flow = "\n".join("\n".join(slide) for slide in deck if "Déroulement" in slide[0])
         assert "Aviation ennemie active" in flow
-        assert "au départ de Senaki" in flow
+        assert "au départ de ses bases : Senaki" in flow

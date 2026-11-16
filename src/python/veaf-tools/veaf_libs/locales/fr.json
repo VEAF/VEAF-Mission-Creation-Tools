@@ -1716,7 +1716,7 @@
   "campaign.mission_deck.counter_attack": "Contre-attaque terrestre ennemie attendue vers {zones} : des colonnes peuvent quitter leurs positions pendant la mission.",
   "campaign.mission_deck.qra_scaled": "La chasse adverse renforce son alerte face à un dispositif important.",
   "campaign.mission_deck.no_air": "Aucune activité aérienne adverse signalée.",
-  "campaign.mission_deck.air_persistent": "Aviation ennemie active : CAP au-dessus de son front, frappes CAS et SEAD, raids de bombardiers, au départ de {airfields}.",
+  "campaign.mission_deck.air_persistent": "Aviation ennemie active : CAP au-dessus de son front, frappes CAS et SEAD, raids de bombardiers, au départ de ses bases : {airfields}.",
   "campaign.mission_deck.escort_defences": "Chaque position ennemie a sa défense aérienne d'accompagnement : rester haut ou passer vite.",
   "campaign.mission_deck.refuelling": "Ravitaillement en vol : {tankers}.",
   "campaign.mission_deck.diversion": "Terrains de dégagement : {fields}.",

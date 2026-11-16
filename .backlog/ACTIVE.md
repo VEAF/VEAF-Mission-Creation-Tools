@@ -8,10 +8,6 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🧑 Waiting for a human
 
-### [FEAT-FOREST-CHECK](FEAT-FOREST-CHECK/PRD.md) · 🧑
-
-Forests read from a DCS map's `.surface5` file without the game, and `veaf-tools dcs forest-check <mission.miz>` to list the vehicles standing in one. Merged in #1285, validated on Syria and against the parking spots of the eleven maps. Waits for ticket 03: a look in game at Marianas WWII, where a third of the parking spots come out in a forest (R55 of DCS-SESSION-TODO.md).
-
 ### [FIX-OPEN-TRAINING-PILOT-FEEDBACK](FIX-OPEN-TRAINING-PILOT-FEEDBACK/PRD.md) · 🧑
 
 David's notes after flying the Open Trainings: the helicopter hard tier is really a medium one (no radar-guided short-range system, add Tor, Tunguska, Osa), and the QNH must show inHg as well as hPa in the welcome message and the ATIS. The training ranges must stand out of the forests, starting with the Ceyhan helicopter range of Syria. His third note, the radio menu order, is already done by FEAT-RADIO-MENU-ORDER and waits for the next release. Three tickets, three decisions with a reco each (2026-11-15). QNH done in VMCT (#1280); the hard tier done in the six Open Trainings; the Ceyhan range moved out of the forest, waiting for David's look in game and for `clear-ground-check` on the other theatres.

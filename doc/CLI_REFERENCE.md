@@ -859,7 +859,8 @@ Les positions sont lues dans le `.miz` ; les marqueurs de combat zone (`#command
 
 C'est le complément de [`clear-ground-check`](#clear-ground-check) là où la sonde de DCS ne voit pas les arbres : sur Syria, elle disait dégagés le champ de tir d'Akamas et celui des hélicoptères de Ceyhan, tous deux en plein bois ; `forest-check` les trouve tous les deux (limitation connue `disposition-blind-to-akamas-forest`).
 Elle ne voit que les forêts : les bâtiments, les villes et les arbres isolés restent l'affaire de `clear-ground-check`.
-Elle lit les onze cartes de DCS. Contrôle du 16/11/2026 sur les places de parking des aérodromes : aucune ou presque en forêt, contre 3 à 36 % des mêmes places décalées de 3 km ; seule Marianas WWII en met un tiers en forêt, sans explication à ce jour (limitation connue `forest-check-unexplained-on-marianas-wwii`).
+Un point n'est en forêt que si la forêt est la couche dessinée au-dessus à cet endroit, comme sur la vue F10 : sur les Marianas, la forêt est une texture du sol, et un aérodrome, un champ ou un village dessiné par-dessus la masque. Les routes, rivières et plages ne sont pas lues : un véhicule sur une route qui traverse un bois compte comme dans le bois.
+Elle lit les onze cartes de DCS. Contrôle du 16/11/2026 sur les places de parking des aérodromes : 0 à 2,5 % en forêt selon la carte, contre 3 à 36 % des mêmes places décalées de 3 km.
 
 Le dossier de DCS est celui que DCS a inscrit dans le registre de Windows ; `--dcs-dir` en donne un autre (le dossier qui contient `Mods`).
 

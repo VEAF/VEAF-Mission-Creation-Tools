@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-FOREST-CHECK](FEAT-FOREST-CHECK/PRD.md) · ✅
+
+Forests read from a DCS map's `.surface5` file without the game, and `veaf-tools dcs forest-check <mission.miz>` to list the vehicles standing in one (#1285). A point counts as forest only when the forest is the overlay drawn on top there: Agana's airfield on Marianas WWII, checked on David's F10 captures, is drawn over a forest texture. Validated on David's six Syria places and on the parking stands of the eleven maps (2026-11-16).
+
 ### [FEAT-SPAWN-OWNERSHIP-DESPAWN](FEAT-SPAWN-OWNERSHIP-DESPAWN/PRD.md) · ✅
 
 Each pilot can remove from the F10 menu what his markers spawned (`-sa6`, `-armor`, `-cas`, `-convoy`, `-farp`…), all at once or one by one: the runtime records every marker-spawned group with its author, combat zones left out since they clean their own. `-destroy` stays a trusted member's command. Three tickets, eight questions with a reco each; asked by David while correcting the Open Training conduct sheet (2026-11-10). Done 2026-11-16: `veafCommands` hands marker handlers a watched collection, `veafSpawnOwnership.lua` files each marker's groups under its author and builds SPAWN › Next page › My spawns › [name] (remove all, or one marker), `-cas` passes its marker id; pilot guide, veafSpawn page, OT sheets and demo step (VEAF/VEAF-Demo-Mission-v6#14). Left: one look in game that the marker author matches the slot's player name.

@@ -1,6 +1,6 @@
 # FEAT-FOREST-CHECK — Read where a DCS map has forests, without the game
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Problem
 
@@ -23,7 +23,7 @@ Checked against the ground truth David gave, on Syria: the old Ceyhan range (219
 ## Every map
 
 The same layout is on the eleven maps installed on 2026-11-16; only the material name changes (`Simple5.1`/`Trees` on Syria and Afghanistan, `CaucasusSimple5.1`/`Forest`, `HardSplat5.1`/`Forest` on Normandy...). The theatre a mission names is the `id` of the terrain's `entry.lua` (`GermanyCW` in folder `GermanyColdWar`).
-Checked against the parking spots VMCT ships: none or almost none in a forest on ten maps, against 3 to 36% of the same spots moved 3 km. Marianas WWII puts 164 of 534 in a forest, unexplained: known limitation `forest-check-unexplained-on-marianas-wwii`.
+Checked against the parking stands VMCT ships: none or almost none in a forest on ten maps, against 3 to 36% of the same stands moved 3 km. Marianas WWII put 164 of 534 in a forest; David's F10 captures of Agana showed open ground, and the cause was an airfield overlay drawn above a forest texture (ticket 03). With the topmost overlay deciding (ticket 04): 0 of 512 on Marianas WWII, 0 to 2.5% elsewhere, David's six Syria places still right.
 
 ## Solution
 

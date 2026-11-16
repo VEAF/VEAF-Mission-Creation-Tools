@@ -8,7 +8,7 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ### [FEAT-FOREST-CHECK](FEAT-FOREST-CHECK/PRD.md) · ✅
 
-Forests read from a DCS map's `.surface5` file without the game: the `Trees`/`Forest` meshes index the node's `Pbase` through `baseIndex`, the pool starts at the u64 at offset 8. `veaf-tools dcs forest-check <mission.miz>` lists the vehicles standing in one. Validated 6/6 on David's Syria places and against the shipped parking spots of the eleven maps; Marianas WWII left as a measured doubt. From the Akamas and Ceyhan ranges of the Syria Open Training (2026-11-16).
+Forests read from a DCS map's `.surface5` file without the game, and `veaf-tools dcs forest-check <mission.miz>` to list the vehicles standing in one (#1285). A point counts as forest only when the forest is the overlay drawn on top there: Agana's airfield on Marianas WWII, checked on David's F10 captures, is drawn over a forest texture. Validated on David's six Syria places and on the parking stands of the eleven maps (2026-11-16).
 
 ### [FEAT-SPAWN-OWNERSHIP-DESPAWN](FEAT-SPAWN-OWNERSHIP-DESPAWN/PRD.md) · ✅
 

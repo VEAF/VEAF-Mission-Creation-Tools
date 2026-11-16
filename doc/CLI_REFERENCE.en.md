@@ -855,7 +855,8 @@ The positions are read from the `.miz`; combat-zone markers (`#command`) are not
 
 It completes [`clear-ground-check`](#clear-ground-check) where the DCS probe does not see the trees: on Syria, the probe called the Akamas firing range and the Ceyhan helicopter range clear, both in the middle of a wood; `forest-check` finds both (known limitation `disposition-blind-to-akamas-forest`).
 It sees forests only: buildings, towns and lone trees stay with `clear-ground-check`.
-It reads all eleven DCS maps. Checked on 2026-11-16 against the airfields' parking spots: none or almost none in a forest, against 3 to 36% of the same spots moved 3 km; only Marianas WWII puts a third of them in a forest, unexplained so far (known limitation `forest-check-unexplained-on-marianas-wwii`).
+A point is in a forest only when the forest is the layer drawn on top there, as on the F10 view: on the Marianas the forest is a ground texture, and an airfield, a field or a village drawn over it hides it. Roads, rivers and beaches are not read: a vehicle on a road through a wood counts as in the wood.
+It reads all eleven DCS maps. Checked on 2026-11-16 against the airfields' parking spots: 0 to 2.5% in a forest depending on the map, against 3 to 36% of the same spots moved 3 km.
 
 The DCS folder is the one DCS wrote in the Windows registry; `--dcs-dir` gives another one (the folder holding `Mods`).
 

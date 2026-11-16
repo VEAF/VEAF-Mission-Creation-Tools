@@ -18,6 +18,12 @@ A forest mesh has no vertex of its own: its ``baseIndex`` array indexes the node
 followed by a parameter count, two u32, two bytes and its bounding box (six f32, relative to the node
 origin). The same layout was found on the eleven maps installed on 2026-11-16.
 
+**The topmost overlay decides.** On some maps the forest is a ground texture (``Splatmap5.1`` /
+``Forest`` on the Marianas) and other overlays are drawn over it: Agana's airfield on Marianas WWII is a
+``Runway`` overlay, draw order 103, over a ``Forest`` one, draw order 49, and the F10 map shows the
+clearing (David's captures, 2026-11-16). The draw order is the u32 after the material's parameter
+count. A point is in a forest only when no overlay of higher draw order covers its forest triangle.
+
 **Axes.** World ``x`` is mission ``x`` (north), world ``z`` is mission ``y`` (east); ``y`` is height,
 unused here. Checked against six places David knows in game, on Syria: the three in a wood are inside a
 forest triangle, the three in the open are not.
@@ -41,14 +47,21 @@ _MAGIC = b"landscape5::Surface5File"
 _MAGIC_AT = 0x24
 _POOL_START_AT = 0x08
 _NODE_MATRIX = re.compile(re.escape(struct.pack("<12f", 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0)))
-#: A forest material: ``<u32 len><shader><u32 len><kind>``. The shader varies by map (``Simple5.1`` on
-#: Syria and Afghanistan, ``CaucasusSimple5.1``, ``HardSplat5.1`` on Normandy...), the kind is ``Trees``
-#: or ``Forest``; the arrays before it are laid out the same way on every map installed (2026-11-16).
-_FOREST_MATERIAL = re.compile(
-    rb"([\x05-\x20])\x00\x00\x00([A-Za-z]+[0-9]\.[0-9])(\x05\x00\x00\x00Trees|\x06\x00\x00\x00Forest)"
+#: An overlay material: ``<u32 len><shader><u32 len><kind>``, then its parameter count, 0 for every
+#: overlay read here. The shader varies by map (``Simple5.1`` on Syria, ``CaucasusSimple5.1``,
+#: ``HardSplat5.1`` on Normandy, ``Splatmap5.1`` on the Marianas...); the arrays before it are laid out
+#: the same way on every map installed (2026-11-16).
+_MATERIAL = re.compile(
+    rb"([\x05-\x20])\x00\x00\x00([A-Za-z]+[0-9]\.[0-9])([\x03-\x20])\x00\x00\x00([A-Za-z]+)\x00\x00\x00\x00"
 )
+#: The kinds that are a forest. Every other overlay drawn above a forest hides it where it covers it.
+_FOREST_KINDS = (b"Trees", b"Forest")
+#: An array record, ``<u32 len><name>`` then 22 bytes; in a group, the next one starts 4 bytes after.
+_RECORD = re.compile(rb"([\x01-\x30])\x00\x00\x00([A-Za-z][A-Za-z0-9_]*)")
+_RECORD_TAIL = 22
+_RECORD_GAP = 4
 _PBASE = struct.pack("<I", 5) + b"Pbase"
-#: How far before a forest material its arrays are looked for. A group of arrays is a few hundred bytes.
+#: How far before a material its arrays are looked for. A group of arrays is a few hundred bytes.
 _GROUP_WINDOW = 1024
 #: Between the end of the ``TRI`` record and the material, measured: 8 bytes. The material table at the
 #: end of the file names the same shader with no mesh before it; this is how it is told apart.
@@ -75,9 +88,13 @@ class _ArrayRef:
 
 
 @dataclass(frozen=True)
-class _ForestMesh:
-    """A forest mesh, located: its node's origin, its box in world coordinates, and its arrays."""
+class _Mesh:
+    """An overlay mesh, located: what it is, where it is drawn, its node's origin, its box, its arrays."""
 
+    forest: bool
+    #: The draw order, read after the material: of two overlays at a point, the higher one is what the
+    #: F10 map shows. An airfield over a forest texture on Marianas WWII: Runway 103, Forest 49.
+    priority: int
     origin_x: float
     origin_z: float
     min_x: float
@@ -179,25 +196,35 @@ class SurfaceForests:
     @property
     def mesh_count(self) -> int:
         """How many forest meshes the file holds."""
-        return len(self._meshes)
+        return sum(1 for mesh in self._meshes if mesh.forest)
 
     def in_forest(self, x: float, y: float) -> bool:
-        """Whether a mission point stands in a forest.
+        """Whether a mission point stands in a forest, as the F10 map draws it.
+
+        The point must be inside a forest triangle, and no other overlay drawn above that forest (a
+        field, a town, an airfield, the sea) may cover it there.
 
         Args:
             x: Mission ``x`` (north).
             y: Mission ``y`` (east).
 
         Returns:
-            True when the point is inside (or on the edge of) a forest triangle.
+            True when the topmost overlay at the point is a forest.
 
         Raises:
-            SurfaceFormatError: If a forest mesh around the point holds indices past its vertices.
+            SurfaceFormatError: If a mesh around the point holds indices past its vertices.
         """
-        for number, mesh in enumerate(self._meshes):
-            if mesh.holds(x, y) and self._load(number).contains(x, y):
-                return True
-        return False
+        around = [number for number, mesh in enumerate(self._meshes) if mesh.holds(x, y)]
+        forest = max(
+            (self._meshes[n].priority for n in around if self._meshes[n].forest and self._load(n).contains(x, y)),
+            default=None,
+        )
+        if forest is None:
+            return False
+        return not any(
+            not self._meshes[n].forest and self._meshes[n].priority > forest and self._load(n).contains(x, y)
+            for n in around
+        )
 
     def _read_header(self) -> int:
         data = self._map
@@ -208,54 +235,86 @@ class SurfaceForests:
             raise SurfaceFormatError(f"{self.path}: data pool at {pool}, past the end of the file")
         return int(pool)
 
-    def _index_meshes(self) -> list[_ForestMesh]:
+    def _index_meshes(self) -> list[_Mesh]:
         data, pool = self._map, self._pool
         nodes = [m.start() for m in _NODE_MATRIX.finditer(data, 0, pool)]
-        meshes: list[_ForestMesh] = []
+        meshes: list[_Mesh] = []
         node = -1
-        for material in _FOREST_MATERIAL.finditer(data, 0, pool):
-            if material.group(1)[0] != len(material.group(2)):
+        for material in _MATERIAL.finditer(data, 0, pool):
+            if material.group(1)[0] != len(material.group(2)) or material.group(3)[0] != len(material.group(4)):
                 continue
             at = material.start()
             while node + 1 < len(nodes) and nodes[node + 1] < at:
                 node += 1
-            mesh = self._mesh_at(at, material.end(), nodes, node)
+            mesh = self._mesh_at(at, material.end() - 4, material.group(4) in _FOREST_KINDS, nodes, node)
             if mesh is not None:
                 meshes.append(mesh)
         return meshes
 
-    def _mesh_at(self, at: int, end: int, nodes: list[int], node: int) -> _ForestMesh | None:
-        """Locate the forest mesh whose material spans ``[at, end)``, or ``None`` for the material table."""
+    def _mesh_at(self, at: int, end: int, forest: bool, nodes: list[int], node: int) -> _Mesh | None:
+        """Locate the overlay whose material spans ``[at, end)``.
+
+        Returns ``None`` for the material table (no array group before it), and for an overlay whose
+        vertices are not where their base vertices are: roads, rivers and beaches carry a float
+        ``parametricUVW``, an offset from the base vertex, so their shape cannot be read from ``Pbase``.
+        Forests, fields, towns, airfields and the sea carry none, or a u32 texture index.
+        """
         data = self._map
-        start = max(0, at - _GROUP_WINDOW)
-        triangles = self._last_array(b"TRI", start, at)
-        if triangles is None or at - triangles[1] > _TRI_TO_MATERIAL_MAX or node < 0:
+        group = self._group(at)
+        if group is None or node < 0:
             return None
-        base_index = self._last_array(b"baseIndex", start, at)
+        uvw = group.get(b"parametricUVW")
+        if uvw is not None and uvw.elem_size != 4:
+            return None
+        base_index = group.get(b"baseIndex")
         node_end = nodes[node + 1] if node + 1 < len(nodes) else self._pool
         pbase_at = data.find(_PBASE, end, node_end)
         if base_index is None or pbase_at < 0:
+            if not forest:
+                return None
             raise SurfaceFormatError(f"{self.path}: forest mesh at {at} without its baseIndex or its node's Pbase")
         vertices = self._array_at(pbase_at, len(b"Pbase"))[0]
         origin_x, _origin_y, origin_z = struct.unpack_from("<3f", data, nodes[node] + 48)
+        (priority,) = struct.unpack_from("<I", data, end + 4)
         box_at = end + 14
         lo_x, _lo_y, lo_z, hi_x, _hi_y, hi_z = struct.unpack_from("<6f", data, box_at)
-        return _ForestMesh(
+        return _Mesh(
+            forest,
+            priority,
             origin_x,
             origin_z,
             origin_x + lo_x,
             origin_z + lo_z,
             origin_x + hi_x,
             origin_z + hi_z,
-            triangles[0],
-            base_index[0],
+            group[b"TRI"],
+            base_index,
             vertices,
         )
 
-    def _last_array(self, name: bytes, start: int, end: int) -> tuple[_ArrayRef, int] | None:
-        """The last array named *name* in ``[start, end)``, with where its record ends."""
-        at = self._map.rfind(struct.pack("<I", len(name)) + name, start, end)
-        return None if at < 0 else self._array_at(at, len(name))
+    def _group(self, at: int) -> dict[bytes, _ArrayRef] | None:
+        """The group of arrays just before the material at *at*: the records chained up to its ``TRI``.
+
+        Records follow one another 4 bytes apart; walking that chain back from the ``TRI`` keeps an
+        array of the previous mesh out of this one, which a search by name alone would not.
+
+        Returns:
+            The arrays by name, or ``None`` when no ``TRI`` record ends just before *at*.
+        """
+        start = max(0, at - _GROUP_WINDOW)
+        records: list[tuple[int, int, bytes]] = []
+        for found in _RECORD.finditer(self._map, start, at):
+            length = found.group(1)[0]
+            name = found.group(2)[:length]
+            if len(name) == length:
+                records.append((found.start(), found.start() + 4 + length + _RECORD_TAIL, name))
+        chain = [r for r in records if r[2] == b"TRI" and 0 <= at - r[1] <= _TRI_TO_MATERIAL_MAX][-1:]
+        if not chain:
+            return None
+        ends = {end: (begin, end, name) for begin, end, name in records}
+        while (previous := ends.get(chain[0][0] - _RECORD_GAP)) is not None:
+            chain.insert(0, previous)
+        return {name: self._array_at(begin, len(name))[0] for begin, _end, name in chain}
 
     def _array_at(self, at: int, name_length: int) -> tuple[_ArrayRef, int]:
         record = at + 4 + name_length
@@ -281,9 +340,9 @@ class SurfaceForests:
         base_index = self._numbers(mesh.base_index, "I")
         vertices = self._numbers(mesh.vertices, "f")
         if triangles and max(triangles) >= len(base_index):
-            raise SurfaceFormatError(f"{self.path}: forest mesh {number}: a TRI index past its baseIndex")
+            raise SurfaceFormatError(f"{self.path}: mesh {number}: a TRI index past its baseIndex")
         if base_index and max(base_index) >= len(vertices) // 3:
-            raise SurfaceFormatError(f"{self.path}: forest mesh {number}: a baseIndex past its node's Pbase")
+            raise SurfaceFormatError(f"{self.path}: mesh {number}: a baseIndex past its node's Pbase")
         xs = [mesh.origin_x + vertices[3 * i] for i in base_index]
         zs = [mesh.origin_z + vertices[3 * i + 2] for i in base_index]
         loaded = _LoadedMesh(xs, zs, triangles)

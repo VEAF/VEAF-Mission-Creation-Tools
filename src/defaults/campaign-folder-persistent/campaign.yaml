@@ -3,9 +3,11 @@
 # ---------------------------------------------------------------------------
 # Blue holds Batumi and Kobuleti; red holds Senaki, Kutaisi and the outposts between.
 # Poti is in nobody's hands. The enemy counter-attacks, resupplies by helicopter and
-# flies CAP and strikes; the players take the coast and the valley zone by zone, with
-# their credits, their tasks and their reconnaissance. The campaign saves itself and
-# reloads at every restart; it is won when red holds no zone left.
+# flies CAP, strikes and bomber raids; the players take the coast and the valley zone by
+# zone, with their credits, their tasks and their reconnaissance. Each side has a factory
+# behind its lines and a depot on the way to the front: the resources the AI spends are
+# made there, and reach the front hop by hop. The campaign saves itself and reloads at
+# every restart; it is won when red holds no zone left.
 #
 # To use it: copy this folder, add a `template/` mission folder next to this file
 # (`.\veaf-tools.exe mission prepare --theatre Caucasus` in it), then
@@ -26,18 +28,23 @@ zones:
   # blue
   - { name: Batumi, at: { airfield: Batumi }, size: airfield, side: blue, radius: 3000 }
   - { name: Kobuleti, at: { airfield: Kobuleti }, size: airfield, side: blue, radius: 3000 }
+  - { name: Ozurgeti, at: { lat: 41.925, lon: 42.005 }, size: outpost, side: blue, kind: factory }
+  - { name: Supsa, at: { lat: 42.030, lon: 41.800 }, size: outpost, side: blue, kind: depot }
   # nobody's
   - { name: Poti, at: { lat: 42.155, lon: 41.705 }, size: outpost, side: neutral }
   # red
   - { name: Khobi, at: { lat: 42.315, lon: 41.905 }, size: outpost, side: red }
   - { name: Senaki, at: { airfield: Senaki-Kolkhi }, size: airfield, side: red, radius: 3000 }
-  - { name: Samtredia, at: { lat: 42.165, lon: 42.335 }, size: outpost, side: red }
+  - { name: Samtredia, at: { lat: 42.165, lon: 42.335 }, size: outpost, side: red, kind: depot }
   - { name: Kutaisi, at: { airfield: Kutaisi }, size: airfield, side: red, radius: 3000 }
+  - { name: Tkibuli, at: { lat: 42.350, lon: 42.998 }, size: outpost, side: red, kind: factory }
   - { name: Zugdidi, at: { lat: 42.505, lon: 41.870 }, size: outpost, side: red }
 
 connections:
   - [Batumi, Kobuleti]
-  - [Kobuleti, Poti]
+  - [Kobuleti, Ozurgeti]
+  - [Kobuleti, Supsa]
+  - [Supsa, Poti]
   - [Kobuleti, Samtredia]
   - [Poti, Khobi]
   - [Poti, Senaki]
@@ -45,6 +52,7 @@ connections:
   - [Khobi, Senaki]
   - [Senaki, Samtredia]
   - [Samtredia, Kutaisi]
+  - [Kutaisi, Tkibuli]
 
 # Every key is optional; these are the defaults, written out to show them.
 dynamic:
@@ -62,3 +70,23 @@ dynamic:
     count: 3
   intel:
     hidden: true
+  # the V1.5: resources, factories, the supply network, sappers, warehouses, bombers, territory
+  resources:
+    start: 500
+    background_per_hour: 30
+    reserve: 100
+  factory:
+    buildings: 3
+    per_hour: 120
+  network:
+    hop_seconds: 600
+    isolated_seconds: 3600
+  demolition:
+    troops: Sappers
+  warehouse:
+    enabled: true
+  bombers:
+    seconds: 3600
+    min_distance: 80000
+  territory:
+    enabled: true

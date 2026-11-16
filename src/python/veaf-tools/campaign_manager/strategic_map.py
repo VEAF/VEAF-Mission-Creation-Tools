@@ -8,11 +8,12 @@ between zones, a scale in kilometres and nautical miles, the OpenStreetMap credi
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 from veaf_libs.dcs_airdromes import airfields_for_theatre
+from veaf_libs.map_labels import Box, LabelPlacer
 from veaf_libs.map_tiles import CREDIT, Fetch, metres_per_pixel, render_base_map
 
 from campaign_manager.models import CampaignDefinition, CampaignState, CampaignZone
@@ -38,6 +39,8 @@ class MapReport:
     path: Path
     offline: bool
     """Whether tiles were missing and the zones stand on a plain background."""
+    labels: list[Box] = field(default_factory=list)
+    """Each zone's label box, in pixels, as placed."""
 
 
 def zone_position(campaign: CampaignDefinition, zone: CampaignZone) -> tuple[float, float]:
@@ -133,28 +136,41 @@ def render_strategic_map(
     draw = ImageDraw.Draw(overlay)
     label_font, small_font = _font(22, bold=True), _font(16)
 
-    for a, b in campaign.connections:
-        _dashed(draw, base.pixel(*points[a]), base.pixel(*points[b]))
+    width, height = background.size
+    bar = _SCALE_KM * 1000 / metres_per_pixel(sum(lats) / len(lats), base.zoom)
+    x, y = 20, height - 50
+    credit_box = draw.textbbox((0, 0), CREDIT, font=small_font)
+    # every label beside its circle, inside the picture and clear of the circles, the scale and the credit
+    # (2026-11-16: labels drawn always to the right ran off the eastern edge of the Syria map)
+    placer = LabelPlacer(width, height)
+    placer.reserve((x - 6, y - 26, x + bar + 60, y + 14))
+    placer.reserve((width - credit_box[2] - 14, height - credit_box[3] - 10, width, height))
+    circles: dict[str, Box] = {}
     for zone in campaign.zones:
         lat, lon = points[zone.name]
         cx, cy = base.pixel(lat, lon)
         radius = zone.radius / metres_per_pixel(lat, base.zoom)
-        colour = OWNER_COLOURS[state.zones[zone.name].owner]
-        draw.ellipse(
-            (cx - radius, cy - radius, cx + radius, cy + radius), fill=(*colour, 90), outline=(*colour, 255), width=3
-        )
-        _boxed_text(draw, (cx + radius + 6, cy - 12), zone.label, label_font, (*colour, 255))
+        circles[zone.name] = (cx - radius, cy - radius, cx + radius, cy + radius)
+        placer.reserve(circles[zone.name])
 
-    width, height = background.size
-    bar = _SCALE_KM * 1000 / metres_per_pixel(sum(lats) / len(lats), base.zoom)
-    x, y = 20, height - 50
+    for a, b in campaign.connections:
+        _dashed(draw, base.pixel(*points[a]), base.pixel(*points[b]))
+    labels: list[Box] = []
+    for zone in campaign.zones:
+        colour = OWNER_COLOURS[state.zones[zone.name].owner]
+        draw.ellipse(circles[zone.name], fill=(*colour, 90), outline=(*colour, 255), width=3)
+        text = draw.textbbox((0, 0), zone.label, font=label_font)
+        size = (text[2] - text[0] + 8, text[3] - text[1] + 4)
+        left, top = placer.place(circles[zone.name], size)
+        _boxed_text(draw, (left + 4 - text[0], top + 2 - text[1]), zone.label, label_font, (*colour, 255))
+        labels.append((left, top, left + size[0], top + size[1]))
+
     draw.rectangle((x - 6, y - 26, x + bar + 60, y + 14), fill=(255, 255, 255, 220))
     draw.line((x, y, x + bar, y), fill=(0, 0, 0, 255), width=4)
     draw.text((x + bar + 8, y - 10), f"{_SCALE_KM} km", font=small_font, fill=(0, 0, 0, 255))
     draw.text((x, y - 26), f"≈ {_SCALE_KM / 1.852:.0f} nm", font=small_font, fill=(0, 0, 0, 255))
-    credit_box = draw.textbbox((0, 0), CREDIT, font=small_font)
     _boxed_text(draw, (width - credit_box[2] - 10, height - credit_box[3] - 8), CREDIT, small_font, (0, 0, 0, 255))
 
     out.parent.mkdir(parents=True, exist_ok=True)
     Image.alpha_composite(background.convert("RGBA"), overlay).convert("RGB").save(out)
-    return MapReport(path=out, offline=base.offline)
+    return MapReport(path=out, offline=base.offline, labels=labels)

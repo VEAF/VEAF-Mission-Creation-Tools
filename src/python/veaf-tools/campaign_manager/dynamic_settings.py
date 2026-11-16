@@ -91,6 +91,7 @@ _SCHEMA: dict[str, Check | dict[str, Check]] = {
     "wake_radius": _positive,
     "ground_wake_radius": _positive,
     "reach_wake_margin": _positive,
+    "front_depth": _positive,
     "sleep_seconds": _positive,
     "max_awake_zones": _positive,
     "attacks": _sides,

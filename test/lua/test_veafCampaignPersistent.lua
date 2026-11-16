@@ -508,6 +508,26 @@ function TestCampaignDormancy:test_the_front_is_always_awake_the_rear_asleep_wit
   luaunit.assertEquals(awakeZones(), { "Kobuleti", "Senaki" })
 end
 
+function TestCampaignDormancy:test_the_front_is_the_line_drawn_not_the_connections()
+  -- David, 2026-11-16: a zone just behind the line, connected or not, must not be empty when the enemy
+  -- goes round. The line between Kobuleti (0) and Senaki (50 km) runs at 25 km.
+  local data = persistentData({ front_depth = 80000 })
+  data.connections = {}
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  luaunit.assertEquals(veafCampaign.frontDistance(veafCampaign.zones["Poti"]), 75000)
+  passes(4)
+  luaunit.assertEquals(awakeZones(), { "Kobuleti", "Senaki", "Poti" }) -- Zugdidi is 125 km from it
+end
+
+function TestCampaignDormancy:test_the_front_line_moves_with_a_capture()
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  luaunit.assertEquals(veafCampaign.frontDistance(veafCampaign.zones["Poti"]), 75000)
+  veafCampaign.zones["Senaki"].entry.owner = "blue"
+  luaunit.assertEquals(veafCampaign.frontDistance(veafCampaign.zones["Poti"]), 25000)
+end
+
 function TestCampaignDormancy:test_an_enemy_player_near_wakes_a_rear_zone()
   veafCampaign.data = persistentData()
   veafCampaign.initialize()

@@ -97,14 +97,14 @@ The campaign starts again from its declared state at the next load of the missio
 Away from the players, a zone has no unit in the world: its garrison is only a line of the save, losses included.
 It comes back exactly as it was:
 
-- **always**, when it is on the front (connected to a zone it does not hold) or targeted by a sortie;
+- **always**, when it is within `front_depth` (40 km) of the front line drawn on the map, connected to an enemy zone or not, or targeted by a sortie: an enemy going round finds someone there;
 - when an **enemy player's aircraft** comes within `wake_radius` (60 km), or within its air defence's reach plus `reach_wake_margin` (20 km) when that reach is longer;
 - when an **enemy aircraft in the air**, AI included, comes within its air defence's reach plus `reach_wake_margin`: a long-range SAM therefore wakes much earlier than a zone with guns only;
 - when an **enemy ground group** that is no garrison (a convoy, troops dropped, a spawn) comes within `ground_wake_radius` (10 km).
 
 Only a zone's enemies wake it; vehicles placed in the editor and aircraft not yet activated wake nothing.
 A defence's reach is its missiles', read from DCS while the zone is awake and kept in the save; a zone never seen awake has an assumed reach (75 km with a long-range SAM, 20 km otherwise).
-It disappears when nobody has come near for `sleep_seconds` (600 s), except on the front.
+It disappears when nobody has come near for `sleep_seconds` (600 s), except near the front.
 
 At most `max_awake_zones` (12) zones of the rear are awake at once; the front and the targets of sorties do not count.
 When the cap is reached, a zone wanted by a player takes the place of a zone only AI wants, or of a zone wanted by a player farther away; between zones wanted by AI, the first keeps its place, so that passing aircraft do not make zones appear and disappear in a loop.
@@ -388,6 +388,7 @@ A `KO` line is enough to know where to look.
 | `wake_radius` | 60000 | metres: an enemy player this close wakes a zone |
 | `ground_wake_radius` | 10000 | metres: an enemy ground group that is no garrison, this close, wakes a zone; vehicles placed in the editor wake nothing |
 | `reach_wake_margin` | 20000 | metres: an enemy aircraft this far beyond a zone's air defence reach wakes it |
+| `front_depth` | 40000 | metres: a zone this close to the front line drawn on the map is always awake |
 | `sleep_seconds` | 600 | a zone with no player near it for this long goes back to sleep |
 | `max_awake_zones` | 12 | zones of the rear awake at once (the front and the targets of sorties do not count) |
 | `attacks` | `[red]` | the sides that counter-attack on their own |

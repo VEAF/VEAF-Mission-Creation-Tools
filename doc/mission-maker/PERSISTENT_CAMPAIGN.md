@@ -97,14 +97,14 @@ La campagne repart de son état déclaré au prochain chargement de la mission ;
 Loin des joueurs, une zone n'a aucune unité dans le monde : sa garnison n'est qu'une ligne de la sauvegarde, avec ses pertes.
 Elle réapparaît exactement comme elle était :
 
-- **toujours**, si elle est sur le front (reliée à une zone qu'elle ne tient pas) ou visée par une sortie ;
+- **toujours**, si elle est à moins de `front_depth` (40 km) de la ligne de front tracée sur la carte, qu'elle soit reliée ou non à une zone ennemie, ou si une sortie la vise : l'ennemi qui contourne trouve du monde ;
 - quand un **avion de joueur ennemi** arrive à moins de `wake_radius` (60 km), ou à portée de sa défense antiaérienne plus `reach_wake_margin` (20 km) quand cette portée va plus loin ;
 - quand un **avion ennemi en vol**, IA comprise, arrive à portée de sa défense antiaérienne plus `reach_wake_margin` : un SAM longue portée se réveille donc bien plus tôt qu'une zone qui n'a que des canons ;
 - quand un **groupe au sol ennemi** qui n'est pas une garnison (convoi, troupes déposées, spawn) arrive à moins de `ground_wake_radius` (10 km).
 
 Seuls les ennemis d'une zone la réveillent ; les véhicules posés dans l'éditeur et les avions pas encore activés ne réveillent rien.
 La portée d'une défense est celle de ses missiles, lue dans DCS pendant que la zone est éveillée et retenue dans la sauvegarde ; une zone jamais vue éveillée a une portée supposée (75 km avec un SAM longue portée, 20 km sinon).
-Elle disparaît quand personne n'est venu depuis `sleep_seconds` (600 s), sauf sur le front.
+Elle disparaît quand personne n'est venu depuis `sleep_seconds` (600 s), sauf près du front.
 
 Au plus `max_awake_zones` (12) zones de l'arrière sont éveillées à la fois ; le front et les cibles de sorties ne comptent pas.
 Quand la limite est atteinte, une zone voulue par un joueur prend la place d'une zone voulue seulement par une IA, ou d'une zone voulue par un joueur plus lointain ; entre zones voulues par des IA, la première garde sa place, pour que des avions qui passent ne fassent pas apparaître et disparaître les zones en boucle.
@@ -388,6 +388,7 @@ Une ligne `KO` suffit à dire où regarder.
 | `wake_radius` | 60000 | mètres : un joueur ennemi aussi près réveille une zone |
 | `ground_wake_radius` | 10000 | mètres : un groupe au sol ennemi qui n'est pas une garnison, aussi près, réveille une zone ; les véhicules posés dans l'éditeur ne réveillent rien |
 | `reach_wake_margin` | 20000 | mètres : un avion ennemi aussi loin au-delà de la portée de la défense d'une zone la réveille |
+| `front_depth` | 40000 | mètres : une zone aussi près de la ligne de front tracée sur la carte est toujours éveillée |
 | `sleep_seconds` | 600 | une zone sans joueur près d'elle depuis ce temps se rendort |
 | `max_awake_zones` | 12 | zones de l'arrière éveillées à la fois (le front et les cibles de sorties ne comptent pas) |
 | `attacks` | `[red]` | les camps qui contre-attaquent seuls |

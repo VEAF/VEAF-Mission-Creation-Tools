@@ -65,6 +65,7 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   wake_radius = 60000, -- metres: an enemy player's aircraft this close wakes a zone's garrison
   ground_wake_radius = 10000, -- metres: an enemy ground group that is no garrison (convoy, troops, spawn) this close too
   reach_wake_margin = 20000, -- metres: an enemy aircraft this far beyond a zone's air defence reach wakes it
+  front_depth = 40000, -- metres: a zone this close to the front line drawn on the map is always awake
   sleep_seconds = 600, -- a zone nobody has come near for this long goes back to sleep
   max_awake_zones = 12, -- zones whose garrison is in the world at once, nearest the players first
   attacks = { "red" }, -- the sides that counter-attack an enemy zone on their own
@@ -2850,16 +2851,57 @@ function veafCampaign.zoneReach(zone)
   return 0
 end
 
---- Whether a zone is on the front: connected to a zone its owner does not hold.
+--- The front line, as the territory draws it on the F10 map: the edges between the Voronoi cells of zones
+--- of different owners. Recomputed only when an owner changed.
+--- @return table segments `{ { a = { x, z }, b = { x, z } } }`
+function veafCampaign.frontSegments()
+  local sites, owners = {}, {}
+  for _, zone in ipairs(veafCampaign.zoneList) do
+    if zone.placed then
+      table.insert(sites, { x = zone.entry.x, z = zone.entry.z })
+      table.insert(owners, zone.entry.owner)
+    end
+  end
+  local signature = table.concat(owners, "|")
+  if veafCampaign.frontCache and veafCampaign.frontCache.signature == signature then
+    return veafCampaign.frontCache.segments
+  end
+  local segments = {}
+  for index, cell in ipairs(veafCampaign.voronoiCells(sites, veafCampaign.setting("territory", "margin"))) do
+    for k, vertex in ipairs(cell) do
+      local other = vertex.edge
+      if other and other > index and owners[other] ~= owners[index] then
+        table.insert(segments, { a = vertex, b = cell[k % #cell + 1] })
+      end
+    end
+  end
+  veafCampaign.frontCache = { signature = signature, segments = segments }
+  return segments
+end
+
+--- How far a zone's centre is from the front line, in metres; math.huge when there is no front.
+--- @param zone table
+--- @return number
+function veafCampaign.frontDistance(zone)
+  local px, pz, best = zone.entry.x, zone.entry.z, math.huge
+  for _, segment in ipairs(veafCampaign.frontSegments()) do
+    local ax, az, bx, bz = segment.a.x, segment.a.z, segment.b.x, segment.b.z
+    local dx, dz = bx - ax, bz - az
+    local length2 = dx * dx + dz * dz
+    local t = length2 > 0 and math.max(0, math.min(1, ((px - ax) * dx + (pz - az) * dz) / length2)) or 0
+    local cx, cz = ax + t * dx, az + t * dz
+    best = math.min(best, math.sqrt((px - cx) ^ 2 + (pz - cz) ^ 2))
+  end
+  return best
+end
+
+--- Whether a zone is on the front: within `front_depth` of the front line drawn on the map (David,
+--- 2026-11-16) — not only connected to an enemy zone, or a zone just behind the line would be empty when
+--- the enemy goes round.
 --- @param zone table
 --- @return boolean
 function veafCampaign.isFront(zone)
-  for _, neighbour in ipairs(veafCampaign.neighbours(zone.name)) do
-    if neighbour.entry.owner ~= zone.entry.owner then
-      return true
-    end
-  end
-  return false
+  return veafCampaign.frontDistance(zone) <= veafCampaign.setting("front_depth")
 end
 
 --- Why a zone is wanted awake, most pressing first: "always" (on the front, or the target of a sortie),
@@ -2868,7 +2910,7 @@ end
 --- the margin, or an enemy ground group within `ground_wake_radius`).
 local WAKE_RANK = { always = 1, player = 2, ai = 3 }
 
---- One pass of the dormancy (David, 2026-11-16). A zone on the front or targeted by a sortie is always
+--- One pass of the dormancy (David, 2026-11-16). A zone near the front line or targeted by a sortie is always
 --- awake, outside `max_awake_zones`; a zone of the rear wakes for its enemies only, and only the rear
 --- counts against the cap. One waking per pass, the most pressing first, then the nearest. When the cap
 --- is reached, a zone waiting takes the place of an awake zone nobody wants any more, or of one wanted
@@ -3078,7 +3120,7 @@ function veafCampaign.initialize()
   veaf.loggers.get(veafCampaign.Id):info("Initializing module")
   veafCampaign.zones, veafCampaign.zoneList, veafCampaign.unitIndex = {}, {}, {}
   veafCampaign.structureIndex, veafCampaign.homecoming, veafCampaign.territoryMarks = {}, {}, {}
-  veafCampaign.territorySignature = nil
+  veafCampaign.territorySignature, veafCampaign.frontCache = nil, nil
   veafCampaign.convoys, veafCampaign.pendingAssaults, veafCampaign.assaultPath = {}, {}, nil
   veafCampaign.nextAttack, veafCampaign.over, veafCampaign.savedParts = {}, nil, {}
   veafCampaign.beatHooks, veafCampaign.selfChecks = {}, {}

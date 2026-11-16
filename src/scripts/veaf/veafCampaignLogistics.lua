@@ -95,6 +95,15 @@ local function tell(key, ...)
   trigger.action.outTextForCoalition(playerCoalition(), veaf.t(key, ...), 15)
 end
 
+--- Answer the person who asked for a spawn: their coalition when it is known, everybody otherwise.
+local function answerRequester(requester, text)
+  if requester then
+    trigger.action.outTextForCoalition(requester, text, 15)
+  else
+    trigger.action.outText(text, 15)
+  end
+end
+
 local function distance2d(a, b)
   return math.sqrt((a.x - b.x) ^ 2 + (a.z - b.z) ^ 2)
 end
@@ -297,12 +306,14 @@ function veafCampaignLogistics.deliveriesUnderway(side)
 end
 
 --- Order the deliveries the side's damaged zones need, paid at the order, on their way for the zone's delay
---- (`network.isolated_seconds` for a zone no source reaches), `network.max_deliveries` at once.
+--- (`network.isolated_seconds` for a zone no source reaches), `network.max_deliveries` at once. Only for the
+--- sides listed in `supply`, whose AI supplies its zones (the enemy by default): the players' side
+--- reinforces its own with crates, troops and helicopters, which the network would otherwise make pointless.
 --- @param now number the mission time
 function veafCampaignLogistics.dispatchDeliveries(now)
   for _, side in ipairs(SIDE_NAMES) do
-    local delays = veafCampaignLogistics.supplyDelays(side)
-    for _, zone in ipairs(veafCampaign.zoneList) do
+    local delays = veafCampaign.sideListed("supply", side) and veafCampaignLogistics.supplyDelays(side) or nil
+    for _, zone in ipairs(delays and veafCampaign.zoneList or {}) do
       if veafCampaignLogistics.deliveriesUnderway(side) >= veafCampaign.setting("network", "max_deliveries") then
         break
       end
@@ -419,21 +430,20 @@ function veafCampaignLogistics.spawnGate(key, options, requester)
     local credits = veafCampaignEconomy and veafCampaignEconomy.credits or 0
     if credits < price then
       veafCampaignLogistics.counters.spawnsRefused = veafCampaignLogistics.counters.spawnsRefused + 1
-      trigger.action.outTextForCoalition(requester or options.side, veaf.t("campaign.spawn.refused_credits", key, price, credits), 15)
+      answerRequester(requester, veaf.t("campaign.spawn.refused_credits", key, price, credits))
       return false
     end
   elseif veafCampaignLogistics.active and not veafCampaignLogistics.canPay(side, price, "essential") then
     veafCampaignLogistics.counters.spawnsRefused = veafCampaignLogistics.counters.spawnsRefused + 1
-    trigger.action.outTextForCoalition(
-      requester or options.side,
+    answerRequester(
+      requester,
       veaf.t(
         "campaign.spawn.refused_resources",
         key,
         veaf.t("campaign.side." .. side),
         price,
         math.floor(veafCampaignLogistics.stock(side))
-      ),
-      15
+      )
     )
     return false
   end
@@ -451,11 +461,7 @@ function veafCampaignLogistics.spawnPaid(key, options, groupName, requester)
   if side == veafCampaign.playerSide() then
     if veafCampaignEconomy then
       veafCampaignEconomy.credits = math.max(0, veafCampaignEconomy.credits - price)
-      trigger.action.outTextForCoalition(
-        requester or options.side,
-        veaf.t("campaign.spawn.paid_credits", key, price, veafCampaignEconomy.credits),
-        10
-      )
+      answerRequester(requester, veaf.t("campaign.spawn.paid_credits", key, price, veafCampaignEconomy.credits))
     end
   elseif veafCampaignLogistics.active then
     veafCampaignLogistics.pay(side, price, "partial", "spawn " .. key)

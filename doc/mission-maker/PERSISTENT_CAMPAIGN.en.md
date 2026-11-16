@@ -12,7 +12,9 @@
   A neutral zone is taken by holding the ground: ground units of a single side staying there for `capture_seconds` (120 s by default) — CTLD 2 troops or crate, a convoy, a `_spawn` group, a Combined Arms vehicle, a **landed** helicopter.
   The new garrison appears at once.
 - **Slots follow the bases**: an airfield taken goes to the side that took it, with its dynamic slots.
-- **The front moves on its own**: the enemy [counter-attacks](#front), reinforces its zones by helicopter, and sends CAP and strikes.
+- **The front moves on its own**: the enemy [counter-attacks](#front), reinforces its zones by helicopter, and sends CAP, strikes and [bombers](#bombers).
+- **The enemy pays for what it sends** with the [resources](#resources) its factories make: destroying its [factories](#zone-kinds) or cutting its [supply network](#network) grounds its CAP in the end.
+- **The map is tinted** by side, each zone holding the [territory](#territory) nearest to it, and the front reads between the two colours.
 - **The F10 → Other → Campaign menu** gives the situation, the credits, the tasks, the intelligence and the shop.
 - **The game ends** when one side holds no zone left: a victory if it is the enemy, a defeat if it is us.
   Everyone is told, and the campaign starts afresh at the next load of the mission.
@@ -61,7 +63,7 @@ Then the mission of the `missions\mission-01\mission` folder is built like any m
 `campaign next` run again on the same folder updates it without touching the rest of the work done in it.
 `campaign apply` has no use here: there is no "between two missions".
 
-`campaign next` also adds to the mission's `ctld-config.yaml` what the players carry for the campaign: the **"Zone supplies"** crate (one per side) and the **"Spy"** troop group (one man).
+`campaign next` also adds to the mission's `ctld-config.yaml` what the players carry for the campaign: the **"Zone supplies"** crate (one per side), the **"Spy"** troop group (one man) and the **"Sappers"** group (two men, the [demolition team](#demolition)).
 It also enforces the "fog of war" F10 view (`mission.forced_options.f10_view: fog_of_war`): a pilot sees only the enemies their side has detected, and a garrison's strength is learned by [reconnaissance](#intel). A view already chosen in `mission.yaml` is kept.
 
 ## The save {#save}
@@ -72,10 +74,11 @@ The mission writes its state every `save_seconds` (60 s) and at mission end to:
 <Saved Games>\DCS\Missions\Saves\<campaign name>\persistent.state
 ```
 
-At start it reads that file back: each zone takes back its owner, its garrison with its losses, and its capture in progress; the credits and the current intelligence come back too.
+At start it reads that file back: each zone takes back its owner, its garrison with its losses and its capture in progress, a factory its buildings standing or destroyed, an airfield its weapon stocks; the credits, each side's resources and the current intelligence come back too.
 A zone added to `campaign.yaml` since starts from its declared state; a zone removed is ignored, and the log says so.
 
 What is **not** restored after a restart: the aircraft, helicopters and convoys under way. They are lost; the zones and garrisons are not, and the survivors of a convoy paid from a reserve go back to it.
+What survives comes home: an assault convoy, a paid spawn still standing or a delivery of the network on its way when the server stopped pay their price back into their side's resources at the next load.
 
 The file is a Lua table read with no access to anything: it cannot run code.
 The server's `MissionScripting.lua` must leave `io` and `lfs` open, as the VEAF servers do.
@@ -146,12 +149,14 @@ A purchase refused (no target left, nothing in reach) costs nothing.
 | BARCAP | a CAP of our side held in front of an enemy zone, out of its air defence's reach, to cover the helicopters and aircraft going to strike it | 400 |
 | Capture helicopter | a helicopter that goes and takes a neutral zone | 250 |
 | Resupply helicopter | a helicopter that goes and resupplies one of our damaged zones | 200 |
+| Bomber raid | an escorted [bomber](#bombers) that bombs an enemy zone, its buildings first | 1200 |
 | Tanker | respawns the tanker `economy.tanker` names (an asset of the mission); absent without it | 300 |
 
 The BARCAP holds on the axis between the enemy zone and our nearest airfield, at its air defence's reach plus 15 km, and guards a 15 km circle.
 The reach is measured on the missiles the zone's units carry when it is awake; a sleeping zone is assumed to reach 75 km when its class has a long-range SAM, 20 km otherwise, and the message says so.
 
-Prices change in `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `tanker`).
+Prices change in `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `tanker`, and `assault` for the assault order of F10 → Campaign → Assault, 300).
+What the players buy is paid in credits, never from the [resources](#resources).
 
 ## The task board {#tasks}
 
@@ -163,6 +168,7 @@ F10 → Other → Campaign → **Tasks**: `tasks.count` (3) tasks at once, drawn
 | Capture a neutral zone bordering ours | it is ours | 300 |
 | Resupply our most damaged zone | it is back to full strength | 200 |
 | Air superiority | `tasks.air_kills` (2) aircraft shot down | 200 |
+| Intercept the enemy bombers on their way | the bomber is shot down; withdrawn if it goes home | 400 |
 
 A task whose target went to the enemy is withdrawn, without reward.
 
@@ -177,9 +183,145 @@ An enemy zone's garrison is **unknown** to the players ("strength unknown" on th
 A reconnoitred zone shows its strength on the map, and F10 → Other → Campaign → **Intel** gives its composition, air defence first.
 `intel.hidden: false` shows every garrison to everyone.
 
+## Factories and depots {#zone-kinds}
+
+A zone is declared of a kind, `kind:`, besides its location:
+
+| Kind | How it plays |
+|---|---|
+| none, on an airfield | an **airfield**: it is captured, its slots follow |
+| none, on a point | an **outpost**: a garrison |
+| `factory` | a **factory**: a few buildings and a small garrison; it makes its side's [resources](#resources) while its buildings stand |
+| `depot` | a **depot**: it speeds the [supply network](#network) up and keeps a store of it |
+
+```yaml
+zones:
+  - { name: Tkibuli, at: { lat: 42.350, lon: 42.998 }, size: outpost, side: red, kind: factory }
+  - { name: Samtredia, at: { lat: 42.165, lon: 42.335 }, size: outpost, side: red, kind: depot }
+```
+
+A factory's buildings are drawn once, at the first start: `factory.buildings` (3) among `factory.types` (`Workshop A`, `Tech combine`, `Tech hangar A`), in a row 60 m apart on open ground in the zone.
+They are statics: they stay in the world even while the zone sleeps.
+The map counts those standing, "factory 2/3".
+They are destroyed by bombs or by the [demolition team](#demolition); a factory is also captured like any other zone, and what stands of it then works for its new side.
+A delivery (crate, troops, helicopter) to a factory whose garrison is whole rebuilds one building.
+
+## The AI's resources {#resources}
+
+Each side has **one stock of resource points** (`resources.start`, 500), saved with the campaign, and **everything the AI puts into play is paid from it** at the price of its units: the garrison of a captured zone, a reinforcement by the [network](#network), an assault convoy, a supply helicopter, a CAP, a strike, the Hunter, a [bomber raid](#bombers).
+An empty stock sends nothing: a sortie leaves only if the stock stays above `resources.reserve` (100) once it is paid, so that the AI keeps what it needs to rebuild its zones.
+A captured zone its side cannot pay gets a token garrison.
+
+**Production** is added at every beat: a background production, `resources.background_per_hour` (30 points an hour), even with no factory, enough to just about hold a base; and each factory, `factory.per_hour` (120) times the share of its buildings standing.
+
+**A unit's price** is read from the DCS unit database, by what the unit is:
+
+| Unit | Points |
+|---|---|
+| infantry | 1 |
+| unarmed vehicle | 2 |
+| APC, IFV | 4 |
+| tank | 6 |
+| artillery | 5 |
+| AAA, short-range air defence | 4 |
+| short-range SAM | 8 |
+| medium- or long-range SAM element | 15 |
+| helicopter | 15 |
+| aeroplane | 30 |
+| bomber | 100 |
+| anything else | 5 |
+
+`resources.prices` changes a type's price: `{ "T-72B": 7 }`.
+These are starting values, to be tuned on a server: one factory pays for about one counter-attack and one CAP an hour.
+
+Credits stay the players': what they buy does not come out of the resources, and what survives of a purchase is added to them at the next load.
+`resources.enabled: false` makes the AI free and unlimited, as before.
+
+## The supply network {#network}
+
+A side's factories feed its zones hop by hop, along the connections, and only through the side's zones: an enemy or neutral zone cuts the path, and the rest of the network is served by a detour, later.
+
+- **A hop** from one zone to the next takes `network.hop_seconds` (600 s); **a hop that touches a depot** half of it: factory → base → base is two full hops, factory → depot → base one.
+- **A depot** keeps a store of `network.depot_store` (4) deliveries, full while a factory reaches it: cut from its factories, it still feeds the zones around it until it runs dry.
+- **A damaged zone** of a side listed in `supply` (red by default: the players resupply theirs with their crates) orders a delivery, paid from the resources at the order; its first damaged group comes back whole after the zone's delay; `network.max_deliveries` (3) deliveries of a side on their way at once. A zone lost meanwhile receives nothing.
+- **A zone cut off** from every factory and depot is still served, from the background production, after `network.isolated_seconds` (3,600 s).
+
+F10 → Campaign → **Supply network** gives the players their stock, their production, and for each of their zones its delay or "cut off".
+
+## Paid spawns {#paid-spawns}
+
+In a persistent campaign, every VEAF spawn command a person issues — a `_spawn` marker, `-armor`, `-cap`, a convoy, a crate, through the interpreter too, game masters included — is paid:
+
+- **in credits** when it spawns units for the players' side;
+- **from the resources** of the other side otherwise;
+- at its category's price, `economy.spawn_prices`;
+- refused with a message saying what it costs and what is left when the side cannot pay: nothing is charged, nothing appears.
+
+| Command | Price | | Command | Price |
+|---|---|---|---|---|
+| `unit` | 100 | | `convoy` | 300 |
+| `group` | 150 | | `cap` | 400 |
+| `infantryGroup` | 50 | | `afac` | 300 |
+| `armoredPlatoon` | 150 | | `awacs` | 500 |
+| `airDefenseBattery` | 250 | | `escort` | 400 |
+| `transportCompany` | 100 | | `farp` | 200 |
+| `fullCombatGroup` | 400 | | `fob` | 300 |
+| `cargo` | 50 | | `logistic` | 100 |
+
+Smoke, flares, drawings, destroy, teleport and mission master stay free; so does a category set to 0.
+What a script spawns (a combat zone, the campaign's own sorties) is no person's action and is not paid here.
+
+## The demolition team {#demolition}
+
+The CTLD 2 troop group **"Sappers"** (`demolition.troops`), dropped by the players' side, walks to the enemy factory whose buildings are within `demolition.range` (5 km) of where it was dropped.
+Within 200 m of the buildings, it plants its charges on every one standing, says so, and walks back to its drop point.
+The charges blow `demolition.fuse` (120 s) later, even if the team was killed meanwhile.
+Each building destroyed is worth `economy.demolition` (50) credits, and the factory makes that much less.
+With no enemy factory in range, the team says so and stays where it is.
+
+## Weapon stocks {#warehouses}
+
+The weapon stocks of each airfield of the campaign, read at every save, are set back as they were at the restart; an unlimited stock is left as it is.
+The campaign makes no warehouse limited or unlimited: that is the Mission Editor's choice.
+
+The players move stock from one field to another, in a helicopter or a transport aircraft:
+
+1. on the ground at an airfield of the coalition, F10 → Campaign → Warehouse → **Load weapons** takes `warehouse.load` (10) of each weapon the warehouse holds (fewer when it has fewer);
+2. on the ground at **another** airfield of the coalition, **Unload weapons** puts in exactly what is aboard, and earns `economy.warehouse_delivery` (50) credits;
+3. **Cargo** tells what is aboard.
+
+The cargo is lost with the aircraft, and with the server: it is not saved.
+`warehouse.enabled: false` removes the menu and the restoring of the stocks.
+
+## Strategic bombers {#bombers}
+
+Every `bombers.seconds` (3,600 s), the enemy sends an escorted bomber raid, paid from its resources, at the players' zone with the most to hit: a factory first, else the zone with the most units.
+It starts in the air from the enemy airfield nearest the target that is at least `bombers.min_distance` (80 km) from it, to leave the players time to intercept; the escort is its CAP aircraft.
+The players are told at once, and the [task board](#tasks) posts an intercept task.
+One raid of a side in the air at a time.
+
+The players buy theirs in the [shop](#shop): **Bomber raid**, on an enemy zone.
+
+The bombers are declared like the other aircraft, role `bomber`:
+
+```yaml
+dynamic:
+  air:
+    red:
+      bomber: { type: Tu-22M3, loadout: "FAB-250*33", count: 1 }
+    blue:
+      bomber: { type: B-1B, loadout: "Mk-82*84", count: 1 }
+```
+
+## Territory {#territory}
+
+Each zone holds the part of the map nearer to it than to any other zone (its Voronoi cell), tinted on the F10 map in its side's colour, grey for a neutral zone; a dark line runs between two cells of different sides: the front.
+The map is redrawn only when a zone changes hands.
+`territory.margin` (70 km) extends the cells beyond the outer zones; `territory.enabled: false` removes the tint.
+
 ## Checking a mission in game {#self-check}
 
-F10 → Other → Campaign → **Self-check (admin)** prints one `OK` or `KO` line per mechanism: zones placed, save read and written, outcome, dormancy, captures, helicopters, air, credits, tasks, intelligence.
+F10 → Other → Campaign → **Self-check (admin)** prints one `OK` or `KO` line per mechanism: zones placed, save read and written, outcome, dormancy, captures, factories, territory, both sides' resources, network (deliveries and zones cut off), paid spawns, sappers, warehouses, helicopters, air, bombers, credits, tasks, intelligence.
 A `KO` line is enough to know where to look.
 
 ## Every setting {#settings}
@@ -201,9 +343,16 @@ A `KO` line is enough to know where to look.
 | `supply_crate` | `Zone supplies` | the name of the CTLD 2 crate that resupplies |
 | `hunter` | `{enabled: true, ground_kills: 8, air_kills: 4, chance: 10}` | the Hunter |
 | `air` | see [enemy air](#air) | `strike_seconds` (900), `max_flights` (4), `cap_per_players` (3), and each side's aircraft |
-| `economy` | see [the shop](#shop) | `start_credits`, `kill_ground`, `kill_air`, `capture`, `delivery`, `prices`, `tanker` |
-| `tasks` | see [the tasks](#tasks) | `count`, `refresh_seconds`, `air_kills`, `rewards` (`attack`, `capture`, `resupply`, `air`) |
+| `economy` | see [the shop](#shop) | `start_credits`, `kill_ground`, `kill_air`, `capture`, `delivery`, `prices`, `tanker`, `spawn_prices`, `demolition` (50), `warehouse_delivery` (50) |
+| `tasks` | see [the tasks](#tasks) | `count`, `refresh_seconds`, `air_kills`, `rewards` (`attack`, `capture`, `resupply`, `air`, `intercept`) |
 | `intel` | see [intelligence](#intel) | `hidden`, `seconds`, `overflight_altitude`, `spy_troops`, `spy_range` |
+| `resources` | see [the resources](#resources) | `enabled` (true), `start` (500), `background_per_hour` (30), `reserve` (100), `prices` |
+| `factory` | see [the factories](#zone-kinds) | `buildings` (3), `per_hour` (120), `types` |
+| `network` | see [the network](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3) |
+| `demolition` | see [demolition](#demolition) | `troops` (`Sappers`), `range` (5000), `fuse` (120) |
+| `warehouse` | see [the stocks](#warehouses) | `enabled` (true), `load` (10) |
+| `bombers` | see [the bombers](#bombers) | `enabled` (true), `seconds` (3600), `min_distance` (80000) |
+| `territory` | see [territory](#territory) | `enabled` (true), `margin` (70000) |
 
 The caps are conservative by default; they will be tuned from what the servers hold.
 
@@ -215,6 +364,11 @@ These are written and tested outside DCS, not yet measured in game:
 - aircraft taking off from a free stand (is the stand `getParking()` gives the one DCS seats them on?);
 - the CAS and SEAD strikes and their return;
 - the spy team walking to its zone;
-- a garrison disappearing and reappearing as a player passes.
+- a garrison disappearing and reappearing as a player passes;
+- a factory's buildings placed on open ground, and raised again under the captor's flag;
+- the bomber's `Bombing` task and the escort following it;
+- the sappers' charges, strong enough for a building, and the team out of their blast;
+- an unlimited warehouse's stocks, which `getInventory` may report without counting them;
+- the territory tint, made of triangles, on the F10 map.
 
 See also the [`veafCampaign` module reference](scripts/veafCampaign.en.md).

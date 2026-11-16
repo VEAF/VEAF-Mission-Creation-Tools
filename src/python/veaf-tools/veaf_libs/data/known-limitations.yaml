@@ -207,11 +207,30 @@ limitations:
     The save of a persistent campaign (FEAT-DYNAMIC-CAMPAIGN) keeps each zone's owner, garrison and
     losses, its capture in progress, the credits and the intelligence. It does not keep the AI flights,
     supply helicopters and assault convoys on their way: after a restart they are gone, their side
-    sends new ones on its cadence, and a convoy's survivors go back to its side's reserve. The scenery destroyed is recorded in the save but not destroyed
-    again at start.
+    sends new ones on its cadence, and a convoy's survivors go back to its side's reserve and, since the
+    V1.5, their price to its resources. The weapons a player carries from one warehouse to another are
+    lost too. The scenery destroyed is recorded in the save but not destroyed again at start.
   workaround: |
     None needed for the front: zones and garrisons come back. Restart a server between two sorties
     when it matters.
+
+- id: persistent-campaign-v15-unmeasured-in-game
+  kind: tool
+  area: runtime
+  title: "A persistent campaign's bombers, sappers, warehouse stocks and territory tint are not measured in game yet"
+  symptom: |
+    The V1.5 of the persistent campaign (FEAT-DYNAMIC-CAMPAIGN tickets 11 to 18) is tested outside DCS
+    only. Not measured in game: whether the bomber's `Bombing` task (weapon flag `2147485694`, any bomb)
+    makes it drop on the target point and the `Escort` task keeps its escort with it; whether a sapper
+    charge (`trigger.action.explosion`, the building's life or 200 at least) destroys a factory building and
+    leaves the team, 600 m away, unhurt; what `Warehouse:getInventory` reports for an unlimited warehouse,
+    which the campaign skips only when the count is a million or more; whether a factory's buildings,
+    respawned under a new owner's country, replace the previous ones; and whether the territory, drawn as
+    free-form triangles with `markupToAll(7, …)`, fills as expected on the F10 map.
+  workaround: |
+    Read **Campaign → Self-check (admin)** in game: its factories, sappers, warehouses, bombers and
+    territory lines count what happened. Turn a mechanism off in `dynamic:` (`bombers.enabled`,
+    `warehouse.enabled`, `territory.enabled`) if it misbehaves.
 
 - id: transport-mission-menu-piles-up-in-french
   kind: tool

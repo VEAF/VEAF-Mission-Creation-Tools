@@ -67,6 +67,14 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Everything is set in a `dynamic:` block, whose aircraft are declared by DCS type and loadout name and resolved into pylons by the tools; **Campaign → Self-check (admin)** gives one OK/KO line per mechanism.
   New page: *Persistent campaign*; an example ships in `src/defaults/campaign-folder-persistent/`.
 
+- **The persistent campaign's V1.5: an economy of war for the AI** (FEAT-DYNAMIC-CAMPAIGN tickets 11 to 18).
+  A zone can be a `factory` — a few buildings that make its side's resources while they stand, demolished by bombs or by a CTLD 2 sapper team, captured like any zone — or a `depot`.
+  Each side has one stock of resource points, made by a background production and its factories, and everything the AI puts into play is paid from it at a price per unit type: garrisons of captured zones, reinforcements, convoys, helicopters, CAP, strikes, the Hunter and bomber raids; an empty stock sends nothing.
+  Production reaches the zones hop by hop along the connections of the side's own zones, a hop touching a depot at half time, so capturing a node cuts or delays the network.
+  Every VEAF spawn command a person issues is paid, in credits for the players' side and from the resources for the other, and refused with the price and the balance when it cannot be.
+  Weapon stocks survive a restart and are moved by players in helicopters or transports, the enemy sends escorted bomber raids (the players buy their own, and an intercept task is posted), and the F10 map is tinted by territory with the front drawn between the sides.
+  New runtime module `veafCampaignLogistics`; every setting under `dynamic:` with its default in *Persistent campaign*.
+
 ## [6.36.0] — 2026-11-05
 
 ### Documentation

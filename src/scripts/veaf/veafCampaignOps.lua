@@ -1023,8 +1023,9 @@ function veafCampaignOps.followRaid(raid, now)
     destroyGroup(raid.name)
     logger():info("bomber raid [%s] on [%s] is over", raid.name, raid.target)
   end
-  if raid.done and raid.escort then
-    -- the escort goes home on its own route; it is taken away with the raid's end rather than left to loiter
+  if raid.outcome == "home" and raid.escort then
+    -- a raid back home takes its escort with it; a bomber shot down leaves its escort fighting, then
+    -- flying home on its own route
     destroyGroup(raid.escort)
   end
 end

@@ -426,7 +426,7 @@ function VeafAlias:execute(remainingCommand, position, coalition, markId, bypass
       nil,
       route,
       nil,
-      nil,
+      requesterCoalition, -- who to answer: a refused paid spawn tells the pilot who asked (FEAT-DYNAMIC-CAMPAIGN ticket 14)
       bypassSecurity
     )
   then

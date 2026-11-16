@@ -567,6 +567,18 @@ function TestCampaignNetwork:test_a_zone_cut_off_waits_the_isolated_delay()
   luaunit.assertEquals(veafCampaignLogistics.deliveries[1].at, 3600)
 end
 
+function TestCampaignNetwork:test_only_the_sides_listed_in_supply_are_reinforced_by_it()
+  network()
+  veafCampaign.zones["Poti"].entry.garrison = garrison("Poti", { 1 })
+  veafCampaignLogistics.dispatchDeliveries(0)
+  luaunit.assertEquals(#veafCampaignLogistics.deliveries, 0) -- blue reinforces with its crates
+  network({ supply = { "red", "blue" } })
+  veafCampaign.zones["Poti"].entry.garrison = garrison("Poti", { 1 })
+  veafCampaignLogistics.dispatchDeliveries(0)
+  luaunit.assertEquals(veafCampaignLogistics.deliveries[1].zone, "Poti")
+  luaunit.assertEquals(veafCampaignLogistics.deliveries[1].at, 3600) -- blue has no factory: cut off
+end
+
 function TestCampaignNetwork:test_no_more_deliveries_than_the_cap()
   network({ network = { max_deliveries = 1 } })
   veafCampaign.zones["Senaki"].entry.garrison = garrison("Senaki", { 1 })
@@ -863,6 +875,33 @@ function TestCampaignBombers:test_shot_down_the_intercept_task_pays()
   luaunit.assertEquals(raid.outcome, "destroyed")
   veafCampaignEconomy.checkTasks()
   luaunit.assertEquals(veafCampaignEconomy.credits, credits + 400)
+end
+
+function TestCampaignBombers:test_the_escort_keeps_fighting_when_its_bomber_falls_and_goes_with_it_home()
+  start({ bombers = { min_distance = 50000 } })
+  local destroyed = {}
+  local function flight(name, alive)
+    dcs_mocks.addGroup(name, {
+      getUnits = function()
+        return alive and { unitAt({ x = 0 }, { inAir = true }) } or {}
+      end,
+      destroy = function()
+        table.insert(destroyed, name)
+      end,
+    })
+  end
+  local shot = { name = "bomber A", escort = "escort A", side = "red", target = "Poti", startedAt = 0 }
+  flight("bomber A", false)
+  flight("escort A", true)
+  veafCampaignOps.followRaid(shot, 100)
+  luaunit.assertEquals(shot.outcome, "destroyed")
+  luaunit.assertEquals(destroyed, {})
+  local back = { name = "bomber B", escort = "escort B", side = "red", target = "Poti", startedAt = 0 }
+  flight("bomber B", true)
+  flight("escort B", true)
+  veafCampaignOps.followRaid(back, veafCampaignOps.RAID_TIMEOUT + 1)
+  luaunit.assertEquals(back.outcome, "home")
+  luaunit.assertEquals(destroyed, { "bomber B", "escort B" })
 end
 
 function TestCampaignBombers:test_no_raid_when_red_cannot_pay()

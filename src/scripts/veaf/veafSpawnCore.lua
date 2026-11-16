@@ -401,7 +401,7 @@ function veafSpawn.executeCommand(
           end
           -- a person's spawn may have to be paid for (a persistent campaign, FEAT-DYNAMIC-CAMPAIGN ticket 14):
           -- refused before anything is spawned, charged once something was
-          if veafSpawn.spawnGate and not scripted and not veafSpawn.spawnGate(_key, options, requesterCoalition or coalition) then
+          if veafSpawn.spawnGate and not scripted and not veafSpawn.spawnGate(_key, options, requesterCoalition) then
             return
           end
           local _g, _done, _abort = _handler(eventPos, options, coalition, markId, bypassSecurity)
@@ -411,7 +411,7 @@ function veafSpawn.executeCommand(
           if _g then
             spawnedGroup = _g
             if veafSpawn.spawnPaid and not scripted then
-              veafSpawn.spawnPaid(_key, options, _g, requesterCoalition or coalition)
+              veafSpawn.spawnPaid(_key, options, _g, requesterCoalition)
             end
           end
           if _done then

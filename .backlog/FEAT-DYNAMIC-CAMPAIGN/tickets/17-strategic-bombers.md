@@ -15,3 +15,9 @@ PRD row "Strategic bombers"; analysis note 03 §12.
 
 Lua tests: the raid's target, origin and timing; nothing sent when the side cannot pay or has no airfield far enough; the intercept task posted and closed; the shop item.
 In game: the bomber flies to the target and drops; the escort follows it.
+
+## Checked in game
+
+2026-11-16, test mission `Dynamic Test`, red starting with 1500 points: the red raid left Senaki for Ozurgeti at about 15 min, and the intercept task was posted. Still to see: the drop, and the escort following its bomber.
+
+The red stock of 300 the test campaign first had could never pay the first raid (CAP, helicopter and the strike leaving at the same beat leave ~200, the raid needs 160 above the reserve of 100): with the default values, a side affords raids only with factories standing — a point for the server tuning (ticket 10).

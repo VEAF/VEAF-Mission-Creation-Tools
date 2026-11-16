@@ -4,10 +4,6 @@
 
 Lots written up and ready to take.
 
-### [FIX-OPEN-TRAINING-PILOT-FEEDBACK](FIX-OPEN-TRAINING-PILOT-FEEDBACK/PRD.md) · ⬜
-
-David's notes after flying the Open Trainings: the helicopter hard tier is really a medium one (no radar-guided short-range system, add Tor, Tunguska, Osa), and the QNH must show inHg as well as hPa in the welcome message and the ATIS. The training ranges must stand out of the forests, starting with the Ceyhan helicopter range of Syria. His third note, the radio menu order, is already done by FEAT-RADIO-MENU-ORDER and waits for the next release. Three tickets, three decisions with a reco each (2026-11-15).
-
 ### [FEAT-BRIEFING-PER-LANGUAGE](FEAT-BRIEFING-PER-LANGUAGE/PRD.md) · ⬜
 
 A `language` parameter for `build_mission_briefing`, writing only the archives of that language, so a bilingual mission (the demo's `_FR` and `_EN`) gets its briefing and kneeboard pages in each language. One ticket; asked from the demo's kneeboard step (2026-10-26).

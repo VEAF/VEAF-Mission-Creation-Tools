@@ -138,9 +138,12 @@ function TestVeafWeatherUnitSystem:test_IcaoMetric_has_mps_wind()
   luaunit.assertTrue(veaf.tableContains(veafWeatherUnitSystem.Systems.IcaoMetric.WindSpeeds, veafWeatherUnitSystem.Units.Mps))
 end
 
-function TestVeafWeatherUnitSystem:test_Faa_pressure_is_inHg()
-  luaunit.assertTrue(veaf.tableContains(veafWeatherUnitSystem.Systems.Faa.Pressures, veafWeatherUnitSystem.Units.InHg))
-  luaunit.assertFalse(veaf.tableContains(veafWeatherUnitSystem.Systems.Faa.Pressures, veafWeatherUnitSystem.Units.Hpa))
+function TestVeafWeatherUnitSystem:test_every_system_lists_hpa_and_inHg()
+  -- the QNH reaches every pilot in hPa and inHg, whatever the aircraft or the theatre
+  for sName, unitSystem in pairs(veafWeatherUnitSystem.Systems) do
+    luaunit.assertTrue(veaf.tableContains(unitSystem.Pressures, veafWeatherUnitSystem.Units.Hpa), sName .. " lacks Hpa")
+    luaunit.assertTrue(veaf.tableContains(unitSystem.Pressures, veafWeatherUnitSystem.Units.InHg), sName .. " lacks InHg")
+  end
 end
 
 function TestVeafWeatherUnitSystem:test_MetricEastern_pressure_is_mmHg()
@@ -295,36 +298,25 @@ end
 -- ============================================================================
 TestVeafWeatherPressure = {}
 
-function TestVeafWeatherPressure:test_icao_hpa_only()
-  local result = veafWeatherData:toStringPressure(veafWeatherUnitSystem.Systems.Icao, 1013)
-  luaunit.assertEquals(result, "1013Hpa")
+function TestVeafWeatherPressure:test_every_system_shows_hpa_and_inHg()
+  -- 1013 * 0.02953 = 29.91389 -> "29.91inHg"; 1013 * 0.75006375541921 ~ 759.81 -> "760mmHg"
+  local expected = {
+    Full = "1013Hpa|29.91inHg|760mmHg",
+    Icao = "1013Hpa|29.91inHg",
+    IcaoMetric = "1013Hpa|29.91inHg",
+    Faa = "1013Hpa|29.91inHg",
+    FaaMetric = "1013Hpa|29.91inHg",
+    FaaNavy = "1013Hpa|29.91inHg",
+    Metric = "1013Hpa|29.91inHg",
+    MetricEastern = "1013Hpa|29.91inHg|760mmHg",
+  }
+  for sName, unitSystem in pairs(veafWeatherUnitSystem.Systems) do
+    luaunit.assertEquals(veafWeatherData:toStringPressure(unitSystem, 1013), expected[sName], sName)
+  end
 end
 
-function TestVeafWeatherPressure:test_faa_inhg_only()
-  -- 1013 * 0.02953 = 29.91389 → "29.91inHg"
-  local result = veafWeatherData:toStringPressure(veafWeatherUnitSystem.Systems.Faa, 1013)
-  luaunit.assertStrContains(result, "inHg")
-  luaunit.assertStrContains(result, "29.91")
-end
-
-function TestVeafWeatherPressure:test_metriceastern_mmhg_only()
-  -- 1013 * 0.75006375541921 ≈ 759.81 → %.0f → "760mmHg"
-  local result = veafWeatherData:toStringPressure(veafWeatherUnitSystem.Systems.MetricEastern, 1013)
-  luaunit.assertStrContains(result, "mmHg")
-  luaunit.assertStrContains(result, "760")
-end
-
-function TestVeafWeatherPressure:test_full_system_all_three_units()
-  local result = veafWeatherData:toStringPressure(veafWeatherUnitSystem.Systems.Full, 1013)
-  luaunit.assertStrContains(result, "Hpa")
-  luaunit.assertStrContains(result, "inHg")
-  luaunit.assertStrContains(result, "mmHg")
-end
-
-function TestVeafWeatherPressure:test_icaometric_hpa_only()
-  -- IcaoMetric uses same pressure unit as Icao (Hpa)
-  local result = veafWeatherData:toStringPressure(veafWeatherUnitSystem.Systems.IcaoMetric, 1013)
-  luaunit.assertEquals(result, "1013Hpa")
+function TestVeafWeatherPressure:test_default_system_shows_hpa_and_inHg()
+  luaunit.assertEquals(veafWeatherData:toStringPressure(nil, 1013), "1013Hpa|29.91inHg")
 end
 
 -- ============================================================================

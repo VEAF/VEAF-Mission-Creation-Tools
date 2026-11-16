@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
+### [FIX-OPEN-TRAINING-PILOT-FEEDBACK](FIX-OPEN-TRAINING-PILOT-FEEDBACK/PRD.md) · 🔄
+
+David's notes after flying the Open Trainings: the helicopter hard tier is really a medium one (no radar-guided short-range system, add Tor, Tunguska, Osa), and the QNH must show inHg as well as hPa in the welcome message and the ATIS. The training ranges must stand out of the forests, starting with the Ceyhan helicopter range of Syria. His third note, the radio menu order, is already done by FEAT-RADIO-MENU-ORDER and waits for the next release. Three tickets, three decisions with a reco each (2026-11-15). Ticket 02 (QNH) done in VMCT; tickets 01 and 03 in the Open Training repositories.
+
 ## 🧑 Waiting for a human
 
 ### [FEAT-MISSION-WIND-CHECK](FEAT-MISSION-WIND-CHECK/PRD.md) · 🧑

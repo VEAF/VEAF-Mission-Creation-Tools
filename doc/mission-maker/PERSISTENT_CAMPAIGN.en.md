@@ -335,7 +335,7 @@ Everything **takes off** from the enemy airfield nearest the target that is at l
 2. a **SEAD** flight, at the zone whose air defence covers the target (when one does), and the **bomber** meet at a hold point on the target's axis, the first point out of the defences' reach plus 15 km (over their airfield when there is none);
 3. once both circle there, climbed to their altitude (within 1,000 m) and within 15 km of the point (a holding circle's radius), the SEAD pushes to the target, and the bomber `bombers.package_delay` (30 s) behind it, on the same axis; when the SEAD was shot down on the way, the bomber pushes alone. Neither circles the hold point longer than 20 minutes.
 
-The bomber flies at the SEAD's speed, to stay behind it, and drops its whole load in one pass, in a 1 km carpet on the target; it does not react to threats nor jettison its bombs: it presses on to the target.
+The bomber flies at the SEAD's speed, to stay behind it, and drops its whole load in one pass, in a 100 m carpet on the target; it does not react to threats nor jettison its bombs: it presses on to the target.
 With no defence to put out, no SEAD and no hold: the bomber flies straight to the target.
 
 No escort by default: the BARCAP holds the approach, and the last leg is the players' interception window; `bombers.escort: true` gives it one back.
@@ -351,9 +351,9 @@ The bombers are declared like the other aircraft, role `bomber`:
 dynamic:
   air:
     red:
-      bomber: { type: Tu-22M3, loadout: "FAB-250*33", count: 1 }
+      bomber: { type: Tu-22M3, loadout: "FAB-500*33", count: 1 }
     blue:
-      bomber: { type: B-1B, loadout: "Mk-82*84", count: 1 }
+      bomber: { type: B-1B, loadout: "Mk-84*24", count: 1 }
 ```
 
 ## Territory {#territory}

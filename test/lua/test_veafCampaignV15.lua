@@ -1253,11 +1253,15 @@ function TestCampaignBombers:test_the_sead_holds_then_engages_from_its_push_poin
       hold = { x = -10000, z = 0, flag = "raid 1 sead" },
     },
   })
-  -- nothing engaged before the hold, where it orbits until its flag is raised
-  luaunit.assertEquals(#route[1].task.params.tasks, 0)
+  -- its targets given from the start, weapons held (2026-11-16: given only at the push point, the SEAD flew over
+  -- Kobuleti without a shot; sent straight, with its targets from the start, it had fired)
+  local first = route[1].task.params.tasks
+  luaunit.assertEquals(first[1].params.action.params, { name = 0, value = 4 })
+  luaunit.assertEquals(first[2].id, "EngageTargetsInZone")
+  -- it orbits at the hold until its flag is raised, then is weapons free from its push point
   luaunit.assertEquals(route[2].task.params.tasks[1].params.stopCondition.userFlag, "raid 1 sead")
-  local engage = route[3].task.params.tasks[2]
-  luaunit.assertEquals(engage.id, "EngageTargetsInZone")
+  luaunit.assertEquals(route[3].task.params.tasks[1].params.action.params, { name = 0, value = 0 })
+  luaunit.assertEquals(#route[3].task.params.tasks, 1)
   luaunit.assertEquals({ route[4].x, route[4].y }, { -40000, 0 })
 end
 

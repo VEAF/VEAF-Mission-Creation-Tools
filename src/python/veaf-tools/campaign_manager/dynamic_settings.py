@@ -33,13 +33,13 @@ DEFAULT_AIR: dict[str, dict[str, dict[str, Any]]] = {
         "cap": {"type": "MiG-29A", "loadout": "R-73*2,R-60M*2,R-27R*2", "count": 2},
         "cas": {"type": "Su-25", "loadout": "FAB-250*4,UB-13*2,R-60M*2,Fuel*2", "count": 2},
         "sead": {"type": "MiG-27K", "loadout": "Kh-25MPU*2,R-60M*2,Fuel", "count": 2},
-        "bomber": {"type": "Tu-22M3", "loadout": "FAB-250*33", "count": 1},
+        "bomber": {"type": "Tu-22M3", "loadout": "FAB-500*33", "count": 1},
     },
     "blue": {
         "cap": {"type": "F-15C", "loadout": "AIM-9*2,AIM-120*2,AIM-7*4,Fuel*3", "count": 2},
         "cas": {"type": "A-10C", "loadout": "AGM-65D*2,Mk-82*6,AIM-9*2,ECM", "count": 2},
         "sead": {"type": "FA-18C_hornet", "loadout": "AIM-9X*2, AIM-120C-5*2, AGM-88C*2, FUEL", "count": 2},
-        "bomber": {"type": "B-1B", "loadout": "Mk-82*84", "count": 1},
+        "bomber": {"type": "B-1B", "loadout": "Mk-84*24", "count": 1},
     },
 }
 

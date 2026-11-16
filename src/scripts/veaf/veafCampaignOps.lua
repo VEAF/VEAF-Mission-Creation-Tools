@@ -116,8 +116,9 @@ veafCampaignOps.PUSH_DISTANCE = 2000
 --- out of its field does not hold (2026-11-16: with the hold over the field, both pushed straight after take-off).
 veafCampaignOps.HOLD_ALTITUDE_SLACK = 1000
 
---- The length of the bomber's carpet, in metres.
-veafCampaignOps.CARPET_LENGTH = 1000
+--- The length of the bomber's carpet, in metres: at 1 km, 33 FAB-250 hit only the town around Ozurgeti's factory
+--- (2026-11-16); David wants it tight on the target.
+veafCampaignOps.CARPET_LENGTH = 100
 
 --- Seconds during which a flight just spawned counts as up even when DCS does not answer it by name yet
 --- (2026-11-16: a CAP spawned on its parking was taken for lost the next beat, and a second one sent and paid).
@@ -663,10 +664,13 @@ veafAircraftSpawn.roles.campaign_strike = {
     local route
     if params.hold then
       local push = pushPoint(params.hold, params.target)
+      -- its targets from the start, weapons held until the push: given only at the push point, a SEAD flew over
+      -- Kobuleti without a shot, where sent straight, with its targets from the start, it had fired (2026-11-16)
+      local hold = { id = "WrappedAction", params = { action = { id = "Option", params = { name = 0, value = 4 } } } }
       route = {
-        point(spot.x, spot.z, {}),
+        point(spot.x, spot.z, { hold, engage }),
         point(params.hold.x, params.hold.z, { holdTask(params.hold, altitude, speed) }),
-        point(push.x, push.z, { roe, engage }),
+        point(push.x, push.z, { roe }),
         point(params.target.x, params.target.z, { orbit }),
       }
     else

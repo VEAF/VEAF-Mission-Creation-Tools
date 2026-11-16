@@ -310,14 +310,14 @@ function veafCampaignLogistics.deliveriesUnderway(side)
 end
 
 --- Order the deliveries the side's damaged zones need, paid at the order, on their way for the zone's delay
---- (`network.isolated_seconds` for a zone no source reaches), `network.max_deliveries` at once. Only for the
---- sides listed in `supply`, whose AI supplies its zones (the enemy by default): the players' side
---- reinforces its own with crates, troops and helicopters, which the network would otherwise make pointless.
+--- (`network.isolated_seconds` for a zone no source reaches), `network.max_deliveries` at once. Both sides,
+--- the players' too: many players never fly logistics, and the network keeps their zones alive; those who do
+--- bring crates, troops and helicopters on top of it, which reinforce at once (David, 2026-11-16).
 --- @param now number the mission time
 function veafCampaignLogistics.dispatchDeliveries(now)
   for _, side in ipairs(SIDE_NAMES) do
-    local delays = veafCampaign.sideListed("supply", side) and veafCampaignLogistics.supplyDelays(side) or nil
-    for _, zone in ipairs(delays and veafCampaign.zoneList or {}) do
+    local delays = veafCampaignLogistics.supplyDelays(side)
+    for _, zone in ipairs(veafCampaign.zoneList) do
       if veafCampaignLogistics.deliveriesUnderway(side) >= veafCampaign.setting("network", "max_deliveries") then
         break
       end

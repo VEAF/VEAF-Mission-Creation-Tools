@@ -567,12 +567,8 @@ function TestCampaignNetwork:test_a_zone_cut_off_waits_the_isolated_delay()
   luaunit.assertEquals(veafCampaignLogistics.deliveries[1].at, 3600)
 end
 
-function TestCampaignNetwork:test_only_the_sides_listed_in_supply_are_reinforced_by_it()
+function TestCampaignNetwork:test_the_players_zones_are_reinforced_too()
   network()
-  veafCampaign.zones["Poti"].entry.garrison = garrison("Poti", { 1 })
-  veafCampaignLogistics.dispatchDeliveries(0)
-  luaunit.assertEquals(#veafCampaignLogistics.deliveries, 0) -- blue reinforces with its crates
-  network({ supply = { "red", "blue" } })
   veafCampaign.zones["Poti"].entry.garrison = garrison("Poti", { 1 })
   veafCampaignLogistics.dispatchDeliveries(0)
   luaunit.assertEquals(veafCampaignLogistics.deliveries[1].zone, "Poti")

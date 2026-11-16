@@ -243,7 +243,8 @@ A side's factories feed its zones hop by hop, along the connections, and only th
 
 - **A hop** from one zone to the next takes `network.hop_seconds` (600 s); **a hop that touches a depot** half of it: factory → base → base is two full hops, factory → depot → base one.
 - **A depot** keeps a store of `network.depot_store` (4) deliveries, full while a factory reaches it: cut from its factories, it still feeds the zones around it until it runs dry.
-- **A damaged zone** of a side listed in `supply` (red by default: the players resupply theirs with their crates) orders a delivery, paid from the resources at the order; its first damaged group comes back whole after the zone's delay; `network.max_deliveries` (3) deliveries of a side on their way at once. A zone lost meanwhile receives nothing.
+- **A damaged zone**, of either side, orders a delivery, paid from the resources at the order; its first damaged group comes back whole after the zone's delay; `network.max_deliveries` (3) deliveries of a side on their way at once. A zone lost meanwhile receives nothing.
+  Players who fly logistics go faster: a crate, troops or a helicopter reinforce at once, without waiting for the network or paying for it.
 - **A zone cut off** from every factory and depot is still served, from the background production, after `network.isolated_seconds` (3,600 s).
 
 F10 → Campaign → **Supply network** gives the players their stock, their production, and for each of their zones its delay or "cut off".

@@ -9,7 +9,7 @@ PRD row "Weapon stocks per warehouse, moved by players"; analysis note 07 §9, �
 - **The stocks survive a restart**: each airfield zone's weapon counts, read from its DCS warehouse at every save (V1 already records them), are set back at the next load. A count DCS reports as unlimited is left alone.
 - **Players move stock**: in a helicopter or a transport aircraft, on the ground at an airfield zone of their side, Campaign → Warehouse → *Load weapons* takes `warehouse.load` (10) of each weapon the warehouse holds (fewer when it has fewer) into the aircraft; *Unload weapons*, on the ground at another airfield zone of the side, puts exactly that into its warehouse; *Cargo* tells what is aboard.
 - The cargo is lost with the aircraft, and with the server: it is not saved.
-- An unload at another zone pays `economy.warehouse_delivery` (50) credits.
+- An unload at another zone pays `economy.warehouse_delivery` (50) credits, once per airfield in each life of the aircraft: weapons carried back and forth earn nothing more.
 - Off with `warehouse.enabled: false`.
 
 ## Decided here, not in the PRD

@@ -560,10 +560,10 @@ end
 --- Fill the board's empty places.
 function veafCampaignEconomy.refreshTasks()
   for _, candidate in ipairs(veafCampaignEconomy.candidateTasks()) do
-    if #veafCampaignEconomy.tasks >= veafCampaign.setting("tasks", "count") then
-      return
+    -- an interception does not wait for a place: the bombers are out now (ticket 17)
+    if candidate.kind == "intercept" or #veafCampaignEconomy.tasks < veafCampaign.setting("tasks", "count") then
+      veafCampaignEconomy.post(candidate)
     end
-    veafCampaignEconomy.post(candidate)
   end
 end
 
@@ -753,6 +753,11 @@ function veafCampaignEconomy.initialize()
   end)
   veafCampaign.listen("neutral", function()
     veafCampaignEconomy.buildRadioMenu()
+  end)
+  veafCampaign.listen("raid", function(raid)
+    if raid.side ~= veafCampaign.playerSide() then
+      veafCampaignEconomy.refreshTasks()
+    end
   end)
   veafCampaign.listen("delivered", function(zone, side)
     if side == veafCampaign.playerSide() then

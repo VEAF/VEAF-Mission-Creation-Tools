@@ -67,6 +67,9 @@ veafCampaignOps.BOMBER_SPEED = 220
 --- What DCS calls any bomb, for the `Bombing` task's `weaponType` (Moose's `ENUMS.WeaponFlag.AnyBomb`).
 veafCampaignOps.ANY_BOMB = 2147485694
 
+--- Where an escort starts from its bomber, in metres: beside, behind and above it.
+veafCampaignOps.ESCORT_START_OFFSET = { x = -600, z = 600, alt = 300 }
+
 --- Seconds after which a raid still out is over, landed or not.
 veafCampaignOps.RAID_TIMEOUT = 7200
 
@@ -642,12 +645,13 @@ function veafCampaignOps.spawnFlight(side, aircraftRole, origin, roleName, param
   end
   local name = uniqueGroupName(string.format("%s %s %s", side, aircraftRole, origin.name))
   local units = {}
+  local offset = params.startOffset or { x = 0, z = 0, alt = 0 }
   for index = 1, aircraft.count do
-    local position = positions[index] or { x = center.x - 150 * (index - 1), z = center.z - 150 * (index - 1) }
+    local position = positions[index] or { x = center.x - 150 * (index - 1) + offset.x, z = center.z - 150 * (index - 1) + offset.z }
     table.insert(units, {
       x = position.x,
       y = position.z,
-      alt = takeoff and land.getHeight({ x = position.x, y = position.z }) or cruise,
+      alt = takeoff and land.getHeight({ x = position.x, y = position.z }) or cruise + offset.alt,
       parking = position.parking,
       type = aircraft.type,
       name = string.format("%s #%d", name, index),
@@ -968,7 +972,13 @@ function veafCampaignOps.sendRaid(side, target, purchased)
       "cap",
       origin,
       "campaign_escort",
-      { groupId = group:getID(), airdromeId = params.airdromeId, home = params.home },
+      -- beside and above its bomber, not inside it: both start in the air over the same field
+      {
+        groupId = group:getID(),
+        airdromeId = params.airdromeId,
+        home = params.home,
+        startOffset = veafCampaignOps.ESCORT_START_OFFSET,
+      },
       veafCampaignOps.BOMBER_ALTITUDE,
       true
     )

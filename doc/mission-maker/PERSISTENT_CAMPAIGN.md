@@ -287,7 +287,7 @@ La campagne ne rend aucun entrepôt limité ni illimité : c'est le choix de l'�
 Les joueurs déplacent du stock d'un terrain à l'autre, en hélicoptère ou en avion de transport :
 
 1. posé sur un aérodrome de la coalition, F10 → Campagne → Entrepôt → **Charger de l'armement** prend `warehouse.load` (10) de chaque arme de l'entrepôt (moins s'il en a moins) ;
-2. posé sur un **autre** aérodrome de la coalition, **Décharger l'armement** dépose exactement ce qui est à bord, et rapporte `economy.warehouse_delivery` (50) crédits ;
+2. posé sur un **autre** aérodrome de la coalition, **Décharger l'armement** dépose exactement ce qui est à bord, et rapporte `economy.warehouse_delivery` (50) crédits, une fois par terrain pour chaque vol ;
 3. **Armement à bord** dit ce qu'on transporte.
 
 Le chargement est perdu avec l'appareil, et avec le serveur : il n'est pas sauvegardé.

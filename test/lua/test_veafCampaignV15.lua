@@ -779,33 +779,56 @@ function TestCampaignWarehouse:test_a_helicopter_carries_weapons_from_one_airfie
   self.stocks["Poti"] = nil
   veafCampaign.zones["Poti"].entry.airbase = "Poti"
   pilot("Huey", { x = 100 }, { category = Unit.Category.HELICOPTER })
-  veafCampaignLogistics.loadWeapons({ nil, "Huey" })
+  veafCampaignLogistics.loadWeapons("Huey")
   luaunit.assertEquals(self.stocks["Kobuleti"]["weapons.missiles.AIM_9"], 20)
   luaunit.assertEquals(self.stocks["Kobuleti"]["weapons.bombs.Mk_82"], 0)
   luaunit.assertEquals(veafCampaignLogistics.cargo["Huey"].total, 14)
   -- not at the airfield it loaded at
-  veafCampaignLogistics.unloadWeapons({ nil, "Huey" })
+  veafCampaignLogistics.unloadWeapons("Huey")
   luaunit.assertNotNil(veafCampaignLogistics.cargo["Huey"])
   pilot("Huey", { x = 50000 }, { category = Unit.Category.HELICOPTER })
   local credits = veafCampaignEconomy.credits
-  veafCampaignLogistics.unloadWeapons({ nil, "Huey" })
+  veafCampaignLogistics.unloadWeapons("Huey")
   luaunit.assertEquals(self.stocks["Poti"]["weapons.missiles.AIM_9"], 10)
   luaunit.assertEquals(self.stocks["Poti"]["weapons.bombs.Mk_82"], 4)
   luaunit.assertNil(veafCampaignLogistics.cargo["Huey"])
   luaunit.assertEquals(veafCampaignEconomy.credits, credits + 50)
 end
 
+function TestCampaignWarehouse:test_weapons_carried_back_and_forth_pay_once_per_new_airfield()
+  start()
+  warehouses(self)
+  self.stocks["Poti"] = { ["weapons.missiles.AIM_9"] = 30 }
+  veafCampaign.zones["Poti"].entry.airbase = "Poti"
+  local credits = veafCampaignEconomy.credits
+  local function trip(fromX, toX)
+    pilot("Huey", { x = fromX }, { category = Unit.Category.HELICOPTER })
+    veafCampaignLogistics.loadWeapons("Huey")
+    pilot("Huey", { x = toX }, { category = Unit.Category.HELICOPTER })
+    veafCampaignLogistics.unloadWeapons("Huey")
+  end
+  trip(100, 50000)
+  trip(50000, 100)
+  trip(100, 50000)
+  -- Poti, Kobuleti, then Poti again: the last one is a delivery already paid
+  luaunit.assertEquals(veafCampaignEconomy.credits, credits + 100)
+  -- a new life starts afresh
+  veafCampaignLogistics.onAircraftGone({ initiator = { unitName = "Huey" } })
+  trip(100, 50000)
+  luaunit.assertEquals(veafCampaignEconomy.credits, credits + 150)
+end
+
 function TestCampaignWarehouse:test_a_fighter_or_an_aircraft_in_flight_carries_nothing()
   start()
   warehouses(self)
   pilot("Viper", { x = 100 }, { category = Unit.Category.AIRPLANE })
-  veafCampaignLogistics.loadWeapons({ nil, "Viper" })
+  veafCampaignLogistics.loadWeapons("Viper")
   luaunit.assertNil(veafCampaignLogistics.cargo["Viper"])
   pilot("Huey", { x = 100 }, { category = Unit.Category.HELICOPTER, inAir = true })
-  veafCampaignLogistics.loadWeapons({ nil, "Huey" })
+  veafCampaignLogistics.loadWeapons("Huey")
   luaunit.assertNil(veafCampaignLogistics.cargo["Huey"])
   pilot("Herc", { x = 100 }, { category = Unit.Category.AIRPLANE, attributes = { Transports = true } })
-  veafCampaignLogistics.loadWeapons({ nil, "Herc" })
+  veafCampaignLogistics.loadWeapons("Herc")
   luaunit.assertNotNil(veafCampaignLogistics.cargo["Herc"])
 end
 
@@ -813,7 +836,7 @@ function TestCampaignWarehouse:test_the_cargo_is_lost_with_the_aircraft()
   start()
   warehouses(self)
   pilot("Huey", { x = 100 }, { category = Unit.Category.HELICOPTER })
-  veafCampaignLogistics.loadWeapons({ nil, "Huey" })
+  veafCampaignLogistics.loadWeapons("Huey")
   veafCampaignLogistics.onAircraftGone({ initiator = { unitName = "Huey" } })
   luaunit.assertNil(veafCampaignLogistics.cargo["Huey"])
 end
@@ -863,6 +886,23 @@ function TestCampaignBombers:test_the_red_raid_is_escorted_paid_announced_and_po
   -- one out at a time
   veafCampaignOps.launchRaids("red", 120)
   luaunit.assertEquals(#self.flights, 2)
+end
+
+function TestCampaignBombers:test_the_escort_starts_beside_its_bomber_not_inside_it()
+  start({ bombers = { min_distance = 50000 } })
+  veafCampaignOps.sendRaid("red", veafCampaign.zones["Poti"])
+  local bomber, escort = self.flights[1].group.units[1], self.flights[2].group.units[1]
+  luaunit.assertNotEquals({ bomber.x, bomber.y }, { escort.x, escort.y })
+  luaunit.assertEquals(escort.alt - bomber.alt, veafCampaignOps.ESCORT_START_OFFSET.alt)
+end
+
+function TestCampaignBombers:test_the_intercept_task_is_posted_at_once_even_on_a_full_board()
+  start({ bombers = { min_distance = 50000 }, tasks = { count = 1 } })
+  veafCampaignEconomy.refreshTasks()
+  luaunit.assertEquals(#veafCampaignEconomy.tasks, 1)
+  veafCampaignOps.sendRaid("red", veafCampaign.zones["Poti"])
+  luaunit.assertEquals(#veafCampaignEconomy.tasks, 2)
+  luaunit.assertEquals(veafCampaignEconomy.tasks[2].kind, "intercept")
 end
 
 function TestCampaignBombers:test_shot_down_the_intercept_task_pays()

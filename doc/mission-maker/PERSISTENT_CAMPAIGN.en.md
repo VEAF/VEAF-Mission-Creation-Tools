@@ -287,7 +287,7 @@ The campaign makes no warehouse limited or unlimited: that is the Mission Editor
 The players move stock from one field to another, in a helicopter or a transport aircraft:
 
 1. on the ground at an airfield of the coalition, F10 → Campaign → Warehouse → **Load weapons** takes `warehouse.load` (10) of each weapon the warehouse holds (fewer when it has fewer);
-2. on the ground at **another** airfield of the coalition, **Unload weapons** puts in exactly what is aboard, and earns `economy.warehouse_delivery` (50) credits;
+2. on the ground at **another** airfield of the coalition, **Unload weapons** puts in exactly what is aboard, and earns `economy.warehouse_delivery` (50) credits, once per airfield in each flight;
 3. **Cargo** tells what is aboard.
 
 The cargo is lost with the aircraft, and with the server: it is not saved.

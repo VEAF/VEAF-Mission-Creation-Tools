@@ -79,6 +79,10 @@ veafCampaignLogistics.sappers = {}
 --- The weapons aboard a player's aircraft, by unit name: `{ from, items = { [name] = count } }`.
 veafCampaignLogistics.cargo = {}
 
+--- The airfields each player's aircraft has delivered weapons to in this life, by unit name: a second
+--- delivery to one of them pays nothing.
+veafCampaignLogistics.delivered = {}
+
 veafCampaignLogistics.counters = {}
 
 local function logger()
@@ -664,9 +668,13 @@ local function isTransport(unit)
   return desc.category == Unit.Category.HELICOPTER or (desc.attributes and desc.attributes["Transports"]) == true
 end
 
---- The player's unit a radio command of the group menu comes from, and how to answer it.
+--- The player's unit a radio command of the group menu comes from, and how to answer it. veafRadio hands
+--- a command registered without parameters the unit name alone, and `{ parameters, unitName }` otherwise.
 local function caller(parameters)
-  local _, unitName = veaf.safeUnpack(parameters)
+  local unitName = parameters
+  if type(parameters) == "table" then
+    unitName = parameters[2]
+  end
   local unit = unitName and Unit.getByName(unitName)
   if not unit then
     return nil
@@ -730,7 +738,12 @@ function veafCampaignLogistics.unloadWeapons(parameters)
   veafCampaignLogistics.cargo[unitName] = nil
   veafCampaignLogistics.counters.unloads = veafCampaignLogistics.counters.unloads + 1
   answer("campaign.warehouse.unloaded", cargo.total, zone.name)
-  if veafCampaignEconomy and veafCampaignEconomy.earn then
+  -- paid once per airfield and per life of the aircraft: weapons carried back and forth earn nothing more
+  local delivered = veafCampaignLogistics.delivered[unitName] or {}
+  veafCampaignLogistics.delivered[unitName] = delivered
+  local paid = not delivered[zone.name]
+  delivered[zone.name] = true
+  if paid and veafCampaignEconomy and veafCampaignEconomy.earn then
     veafCampaignEconomy.earn(veafCampaign.setting("economy", "warehouse_delivery"), "campaign.credits.warehouse", zone.name)
   end
 end
@@ -751,6 +764,9 @@ end
 --- A player's aircraft is lost, or a new one is born under its name: its cargo is gone.
 function veafCampaignLogistics.onAircraftGone(event)
   local name = veafEventHandler.unitNameFromEvent(event)
+  if name then
+    veafCampaignLogistics.delivered[name] = nil
+  end
   if name and veafCampaignLogistics.cargo[name] then
     veafCampaignLogistics.cargo[name] = nil
     logger():info("the weapons aboard [%s] are lost", name)
@@ -901,6 +917,7 @@ function veafCampaignLogistics.initialize()
   veafCampaignLogistics.active = veafCampaign.setting("resources", "enabled") == true
   veafCampaignLogistics.stocks, veafCampaignLogistics.deliveries, veafCampaignLogistics.depotStores = {}, {}, {}
   veafCampaignLogistics.paidSpawns, veafCampaignLogistics.sappers, veafCampaignLogistics.cargo = {}, {}, {}
+  veafCampaignLogistics.delivered = {}
   veafCampaignLogistics.lastBeat = nil
   veafCampaignLogistics.counters = {
     refused = {},

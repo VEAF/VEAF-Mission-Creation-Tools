@@ -845,10 +845,11 @@ end
 --- @return number metres
 --- @return boolean true when measured, false when assumed
 function veafCampaignOps.threatRange(zone)
-  local reach, measured = 0, false
+  local reach, measured, present = 0, false, false
   for _, group in ipairs(zone.entry.garrison or {}) do
     for unitIndex, record in ipairs(group.units) do
       local unit = record.alive and Unit.getByName(veafCampaign.unitName(group, unitIndex))
+      present = present or unit ~= nil
       if unit and unit.getAmmo then
         local ok, ammo = pcall(unit.getAmmo, unit)
         for _, item in ipairs(ok and type(ammo) == "table" and ammo or {}) do
@@ -865,7 +866,10 @@ function veafCampaignOps.threatRange(zone)
     zone.entry.reach = reach
     return reach, true
   end
-  if zone.entry.reach then
+  if present then
+    -- awake, and no missile left: its launchers are gone, what was remembered no longer holds
+    zone.entry.reach = nil
+  elseif zone.entry.reach then
     return zone.entry.reach, true
   end
   local size = zone.entry.size or {}

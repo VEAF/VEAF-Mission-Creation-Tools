@@ -877,6 +877,32 @@ function TestCampaignTakeoff:test_a_reach_measured_is_remembered_once_the_zone_s
   luaunit.assertEquals(veafCampaign.stateTable().zones.Senaki.reach, 35000)
 end
 
+function TestCampaignTakeoff:test_a_reach_remembered_is_forgotten_once_the_launchers_are_gone()
+  -- a SEAD destroyed the launchers, the radars stand: the zone no longer grounds the fields around it
+  start()
+  local senaki = veafCampaign.zones["Senaki"]
+  senaki.entry.reach = 35000
+  dcs_mocks.addUnit("Senaki garrison #2", {
+    getAmmo = function()
+      return nil
+    end,
+  })
+  luaunit.assertEquals({ veafCampaignOps.threatRange(senaki) }, { 20000, false })
+  luaunit.assertNil(senaki.entry.reach)
+  dcs_mocks.removeUnit("Senaki garrison #2")
+end
+
+function TestCampaignTakeoff:test_a_zone_that_changes_hands_forgets_the_reach_remembered()
+  start()
+  local senaki = veafCampaign.zones["Senaki"]
+  senaki.entry.reach = 35000
+  senaki:becomeNeutral()
+  luaunit.assertNil(senaki.entry.reach)
+  senaki.entry.reach = 35000
+  senaki:capturedBy("blue")
+  luaunit.assertNil(senaki.entry.reach)
+end
+
 function TestCampaignTakeoff:test_a_sleeping_zone_s_reach_is_assumed()
   start()
   local senaki = veafCampaign.zones["Senaki"]

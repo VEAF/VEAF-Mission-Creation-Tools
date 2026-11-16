@@ -827,6 +827,7 @@ function VeafCampaignZone:becomeNeutral()
   local former = self.entry.owner
   self.entry.owner = "neutral"
   self.entry.garrison = nil
+  self.entry.reach = nil -- the air defence remembered went with its garrison
   veafCampaign.setAirbaseCoalition(self, coalition.side.NEUTRAL)
   veaf.loggers.get(veafCampaign.Id):info("zone [%s] lost its garrison and is now neutral (was %s)", self.name, former)
   veafCampaign.debug("ZONE", "[%s] neutral, lost by %s", self.name, tostring(former))
@@ -1130,6 +1131,7 @@ end
 function VeafCampaignZone:capturedBy(side)
   self.entry.owner = side
   self.entry.capture = nil
+  self.entry.reach = nil -- the former owner's air defence is not the captor's
   veafCampaign.setAirbaseCoalition(self, veafCampaign.SIDES[side])
   -- an assault convoy that took the zone stays as its garrison: paid once, from the reserve, when it left
   if not veafCampaign.absorbConvoy(self, side) then

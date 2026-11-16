@@ -980,6 +980,24 @@ function TestCampaignBombers:test_the_whole_package_takes_off_from_the_ground()
   luaunit.assertEquals(airStarts, { false, false, false, false })
 end
 
+function TestCampaignBombers:test_a_raid_keeps_the_sead_zone_awake_as_well_as_its_target()
+  -- measured 2026-11-16: Kobuleti, the SEAD's zone, slept while the raid on Ozurgeti flew at it
+  start({ bombers = { min_distance = 50000 } })
+  veafCampaignLogistics.stocks.red = 1000
+  local covering, keepAwake = veafCampaignOps.coveringAirDefence, veafCampaign.keepAwake
+  veafCampaignOps.coveringAirDefence = function()
+    return veafCampaign.zones["Poti"]
+  end
+  local kept = {}
+  veafCampaign.keepAwake = function(zone, seconds)
+    kept[zone.name] = seconds
+  end
+  local raid = veafCampaignOps.sendRaid("red", veafCampaign.zones["Kobuleti"])
+  veafCampaignOps.coveringAirDefence, veafCampaign.keepAwake = covering, keepAwake
+  luaunit.assertEquals(raid.seadOn, "Poti")
+  luaunit.assertEquals(kept, { Kobuleti = veafCampaignOps.RAID_TIMEOUT, Poti = veafCampaignOps.RAID_TIMEOUT })
+end
+
 function TestCampaignBombers:test_the_sead_and_the_bomber_hold_together_then_push_the_bomber_behind()
   start({ bombers = { min_distance = 50000 } }, function(d)
     d.zones[1].garrison[1].units[1].type = "SA-11 Buk LN 9A310M1"

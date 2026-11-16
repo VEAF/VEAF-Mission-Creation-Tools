@@ -78,6 +78,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   A raid is a combined package — a BARCAP out of every enemy air defence's reach, a SEAD and a bomber that take off, meet at a hold point once climbed and push 30 s apart on the same axis at the same speed, the bomber carpet-bombing in one pass and pressing on without jettisoning — paid whole, the shop's included; the enemy's CAP stops short of the players' air defence.
   `dynamic.debug`, on while the campaign is tuned, writes every AI decision and its reason, the fate of every campaign aircraft (what it has left at each release), a periodic status and each zone's missiles left to `dcs.log`.
   The enemy sends no CAP where even its smallest circle is under the players' SAMs; a flight just spawned is no longer taken for lost before DCS registers it, which sent and paid a second CAP of the same name.
+  Campaign fighters take the shelters before the open stands and a large aircraft never a shelter, as groups lined up on Senaki's open stands deadlocked on the taxiway; a raid keeps the zone its SEAD attacks awake as well as its target; any aircraft in the air and any ground group that is no garrison nor part of the built mission now wake a zone (`ground_wake_radius`, 10 km), not only the players.
   A batch alias's commands (`-arty1`) now answer the pilot who dropped it, in every mission: they were silent as if a script had asked.
   New runtime module `veafCampaignLogistics`; every setting under `dynamic:` with its default in *Persistent campaign*.
 

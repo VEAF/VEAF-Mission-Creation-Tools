@@ -148,6 +148,41 @@ local function playersAt(points)
   end
 end
 
+--- Groups in the world as coalition.getGroups hands them over: `{ name, category, x, inAir, unit }`, blue
+--- side, one unit each (named `unit`, else `<name> #1`).
+local function worldGroups(groups)
+  coalition.getGroups = function(side, category)
+    local found = {}
+    for _, spec in ipairs(side == BLUE and groups or {}) do
+      if spec.category == category then
+        local unit = {
+          isExist = function()
+            return true
+          end,
+          inAir = function()
+            return spec.inAir == true
+          end,
+          getName = function()
+            return spec.unit or (spec.name .. " #1")
+          end,
+          getPoint = function()
+            return { x = spec.x, y = 0, z = 0 }
+          end,
+        }
+        table.insert(found, {
+          getName = function()
+            return spec.name
+          end,
+          getUnits = function()
+            return { unit }
+          end,
+        })
+      end
+    end
+    return found
+  end
+end
+
 local function groupsSubmitted()
   local names = {}
   for _, call in ipairs(dcs_mocks.groupsAdded) do
@@ -161,6 +196,7 @@ local function setUpSuite(self)
   self.saved = {
     fileSystem = veafCampaign.fileSystem,
     getPlayers = coalition.getPlayers,
+    getGroups = coalition.getGroups,
     callbacks = veafEventHandler.callbacks,
     sendConvoy = veafCampaign.sendConvoy,
     surface = land.getSurfaceType,
@@ -183,6 +219,7 @@ end
 local function tearDownSuite(self)
   veafCampaign.fileSystem = self.saved.fileSystem
   coalition.getPlayers = self.saved.getPlayers
+  coalition.getGroups = self.saved.getGroups
   veafEventHandler.callbacks = self.saved.callbacks
   veafCampaign.sendConvoy = self.saved.sendConvoy
   land.getSurfaceType = self.saved.surface
@@ -506,6 +543,60 @@ function TestCampaignDormancy:test_the_target_of_a_sortie_stays_awake()
   veafCampaign.keepAwake(veafCampaign.zones["Zugdidi"], 600)
   veafCampaign.updateDormancy(100)
   luaunit.assertTrue(veafCampaign.zones["Zugdidi"].awake)
+end
+
+function TestCampaignDormancy:test_an_ai_aircraft_in_the_air_wakes_the_zone_not_one_on_the_ground()
+  -- David, 2026-11-16: not only the players' aircraft
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  worldGroups({ { name = "parked", category = Group.Category.AIRPLANE, x = 52000, inAir = false } })
+  veafCampaign.updateDormancy(100)
+  luaunit.assertFalse(veafCampaign.zones["Senaki"].awake)
+  worldGroups({ { name = "cap", category = Group.Category.HELICOPTER, x = 52000, inAir = true } })
+  veafCampaign.updateDormancy(110)
+  luaunit.assertTrue(veafCampaign.zones["Senaki"].awake)
+end
+
+function TestCampaignDormancy:test_a_convoy_wakes_the_zone_within_the_ground_radius()
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  worldGroups({ { name = "convoy", category = Group.Category.GROUND, x = 61000 } }) -- 11 km from Senaki
+  veafCampaign.updateDormancy(100)
+  luaunit.assertFalse(veafCampaign.zones["Senaki"].awake)
+  worldGroups({ { name = "convoy", category = Group.Category.GROUND, x = 59000 } }) -- 9 km
+  veafCampaign.updateDormancy(110)
+  luaunit.assertTrue(veafCampaign.zones["Senaki"].awake)
+end
+
+function TestCampaignDormancy:test_a_garrison_does_not_wake_its_neighbour()
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  veafCampaign.unitIndex["Poti garrison #1"] = veafCampaign.zones["Poti"]
+  worldGroups({ { name = "Poti garrison", category = Group.Category.GROUND, x = 52000 } })
+  veafCampaign.updateDormancy(100)
+  luaunit.assertFalse(veafCampaign.zones["Senaki"].awake)
+end
+
+function TestCampaignDormancy:test_a_ground_group_the_mission_was_built_with_wakes_nothing()
+  local parked = { { name = "fuel truck", category = Group.Category.GROUND, x = 52000 } }
+  worldGroups(parked)
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  veafCampaign.updateDormancy(100)
+  luaunit.assertFalse(veafCampaign.zones["Senaki"].awake)
+  -- a group spawned later, at the same place, does
+  table.insert(parked, { name = "troops", category = Group.Category.GROUND, x = 52000 })
+  veafCampaign.updateDormancy(110)
+  luaunit.assertTrue(veafCampaign.zones["Senaki"].awake)
+end
+
+function TestCampaignDormancy:test_at_the_same_distance_the_player_zone_wakes_first()
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  playersAt({ { x = 52000 } }) -- 2 km from Senaki
+  worldGroups({ { name = "cap", category = Group.Category.AIRPLANE, x = -2000, inAir = true } }) -- 2 km from Kobuleti
+  veafCampaign.updateDormancy(100)
+  luaunit.assertEquals(groupsSubmitted(), { "Senaki garrison" })
 end
 
 function TestCampaignDormancy:test_an_episodic_campaign_has_no_dormancy_unless_asked()

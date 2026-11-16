@@ -482,6 +482,27 @@ DCS reports as `RUNWAY`) therefore places vehicles on runways, taxiways and park
 **What to do:** To keep something off an airfield, refuse the `RUNWAY` surface for each unit's own position
 (`veafCampaign.isOnConcrete`), not only for the group's anchor: a group spreads its units around it.
 
+### AI groups starting hot on Senaki-Kolkhi's open stands deadlock on the taxiway {#ai-groups-deadlock-on-senaki-open-stands}
+
+Measured **2026-11-16**.
+
+Senaki-Kolkhi's free stands with the lowest `Term_Index`, 2 to 6, are open stands (`Term_Type` 104)
+lined on the strip that leads to the runway threshold; 7 to 69 are mostly shelters (68). DCS seats
+a group added by script on the stand its unit's `parking` asks for. Measured through dcs-bridge:
+
+| Stands | Result |
+|---|---|
+| 2-6 imposed: 2 MiG-29A, 2 MiG-27K, 1 Tu-22M3, three groups | deadlocked on the strip |
+| none imposed (DCS chooses): MiG-29A on 2 and 4, Tu-22M3 on 6, MiG-27K in shelters 14/15 | the MiG-27K leave; the MiG-29A and the Tu-22M3 deadlocked 7 min and more |
+| MiG-29A in shelters 15/16, Tu-22M3 alone on 6 | all take off |
+
+Nothing is raised or logged: the aircraft just stop, 70 m apart.
+
+**What to do:** Seat fighters in shelters first and keep the open stands for aircraft too large for a shelter
+(`getParking` gives no stand size, so they are listed by type). The campaign does so since then.
+
+*What it cost:* The dynamic campaign's raid package (BARCAP, SEAD, bomber) never left Senaki.
+
 ### A client helicopter placed on an aircraft stand is seated elsewhere when the player takes the slot {#client-helicopter-on-an-aircraft-stand-is-seated-elsewhere}
 
 Measured **2026-10-10**.

@@ -95,7 +95,7 @@ La campagne repart de son état déclaré au prochain chargement de la mission ;
 ## Les zones en sommeil {#dormancy}
 
 Loin des joueurs, une zone n'a aucune unité dans le monde : sa garnison n'est qu'une ligne de la sauvegarde, avec ses pertes.
-Elle apparaît quand un avion de joueur arrive à moins de `wake_radius` (60 km) ou qu'une sortie la vise, exactement comme elle était, et disparaît quand personne n'est venu depuis `sleep_seconds` (600 s).
+Elle apparaît quand un avion de joueur, ou n'importe quel avion en vol (IA comprise, des deux camps), arrive à moins de `wake_radius` (60 km), quand un groupe au sol qui n'est pas une garnison (convoi, troupes déposées, spawn) arrive à moins de `ground_wake_radius` (10 km), ou qu'une sortie la vise, exactement comme elle était, et disparaît quand personne n'est venu depuis `sleep_seconds` (600 s).
 Au plus `max_awake_zones` (12) zones sont éveillées à la fois, les plus proches des joueurs d'abord, et une seule se réveille à chaque battement de 10 s, pour ne pas faire apparaître tout le front d'un coup.
 
 ## Un front qui bouge tout seul {#front}
@@ -110,7 +110,7 @@ Au plus `max_awake_zones` (12) zones sont éveillées à la fois, les plus proch
 - **CAP** : l'ennemi tient en l'air une CAP par tranche de `air.cap_per_players` (3) joueurs du [niveau d'opposition](scripts/veafQraManager.md#opposition-level), au moins une, au-dessus de sa zone du front la plus proche des joueurs.
   Son cercle de patrouille (40 km au plus) s'arrête 15 km avant la portée des défenses antiaériennes de nos zones ; quand même un cercle de 5 km serait à leur portée, elle ne part pas : elle ne vient pas se jeter dans nos SAM.
 - **Frappes** : toutes les `air.strike_seconds` (900 s), une frappe CAS (sur la zone qui a le plus d'unités) ou SEAD (sur celle qui a le plus de défense antiaérienne), en alternance, sur une zone qui borde le territoire ennemi.
-- Elles **décollent** de l'aérodrome ennemi le plus proche, moteur chaud sur des parkings libres, ou de la piste quand il n'y en a pas assez ; sans aérodrome, pas de sortie. Il en va de même pour la CAP, la BARCAP et le Hunter.
+- Elles **décollent** de l'aérodrome ennemi le plus proche, moteur chaud sur des parkings libres (les abris d'abord, les places ouvertes ensuite ; un gros avion, bombardier ou transport, jamais dans un abri), ou de la piste quand il n'y en a pas assez ; sans aérodrome, pas de sortie. Il en va de même pour la CAP, la BARCAP et le Hunter.
   `air.max_flights` (4) vols en l'air au plus par camp.
 - **Hunter** : un joueur qui enchaîne les victoires (entre 8 et 16 au sol, ou entre 4 et 8 en l'air, tiré une fois par vie) a ensuite 10 % de chances à chaque victoire de voir décoller deux chasseurs ennemis contre ce joueur ; son camp est prévenu.
 
@@ -372,7 +372,8 @@ Une ligne `KO` suffit à dire où regarder.
 | Clé de `dynamic:` | Par défaut | Ce qu'elle règle |
 |---|---|---|
 | `save_seconds` | 60 | intervalle entre deux sauvegardes |
-| `wake_radius` | 60000 | mètres : un joueur aussi près réveille une zone |
+| `wake_radius` | 60000 | mètres : un joueur, ou un avion en vol, aussi près réveille une zone |
+| `ground_wake_radius` | 10000 | mètres : un groupe au sol qui n'est pas une garnison, aussi près, réveille une zone ; les véhicules posés dans l'éditeur ne réveillent rien |
 | `sleep_seconds` | 600 | une zone sans joueur près d'elle depuis ce temps se rendort |
 | `max_awake_zones` | 12 | zones éveillées à la fois |
 | `attacks` | `[red]` | les camps qui contre-attaquent seuls |
@@ -406,7 +407,6 @@ Les plafonds sont prudents par défaut ; ils se règleront d'après ce que tienn
 Ces points sont écrits et testés hors de DCS, pas encore mesurés en jeu :
 
 - un hélicoptère IA qui se pose dans une zone (les pièges connus de DCS sur un poser scripté sont dans [les pièges du runtime DCS](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/agents/dcs-runtime-traps.md)) ;
-- les avions qui décollent d'un parking libre (le stand donné par `getParking()` est-il celui où DCS les pose ?) ;
 - les frappes CAS et SEAD et leur retour ;
 - l'équipe espion qui marche jusqu'à sa zone ;
 - la disparition et la réapparition d'une garnison au passage d'un joueur ;

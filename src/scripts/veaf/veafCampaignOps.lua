@@ -50,6 +50,33 @@ veafCampaignOps.CAP_MIN_RADIUS = 5000
 --- helicopter pads (40). Read from `Airbase:getParking()`'s `Term_Type`.
 veafCampaignOps.EXCLUDED_STAND_TYPES = { [16] = true, [40] = true }
 
+--- The hardened shelters' `Term_Type`. A fighter takes them first: at Senaki the open stands line the strip
+--- to the runway, and groups sharing them deadlock on the taxiway (measured 2026-11-16).
+veafCampaignOps.SHELTER_STAND_TYPE = 68
+
+--- The aircraft too large for a shelter: `getParking` gives no stand size, so they are listed. They start
+--- on open stands only.
+veafCampaignOps.LARGE_AIRCRAFT = {
+  ["Tu-22M3"] = true,
+  ["Tu-95MS"] = true,
+  ["Tu-142"] = true,
+  ["Tu-160"] = true,
+  ["B-52H"] = true,
+  ["B-1B"] = true,
+  ["IL-76MD"] = true,
+  ["IL-78M"] = true,
+  ["A-50"] = true,
+  ["KJ-2000"] = true,
+  ["E-3A"] = true,
+  ["KC-135"] = true,
+  ["KC135MPRS"] = true,
+  ["KC130"] = true,
+  ["C-130"] = true,
+  ["C-17A"] = true,
+  ["An-26B"] = true,
+  ["An-30M"] = true,
+}
+
 --- How far beyond the enemy zone's air defence a BARCAP holds, in metres, and the radius it guards.
 veafCampaignOps.BARCAP_MARGIN = 15000
 veafCampaignOps.BARCAP_RADIUS = 15000
@@ -658,20 +685,29 @@ veafAircraftSpawn.roles.campaign_intercept = {
 ---
 --- Free stands are the ones `Airbase:getParking()` reports with no aircraft on them (`TO_AC`), runway and
 --- helicopter pads left out. Seating an aircraft by its stand's `Term_Index` is what the scripting API
---- offers; whether DCS honours it for a group added by script is to be read in game (ticket 05).
+--- offers, and DCS honours it (measured 2026-11-16). Shelters come first, open stands after; a large
+--- aircraft (`LARGE_AIRCRAFT`) takes open stands only.
 --- @param airbase table the DCS airbase
 --- @param count number
+--- @param aircraftType string|nil the DCS type of the flight
 --- @return table|nil the take-off waypoint (mission-table `x`, `y`)
 --- @return table the positions: `{ x, z, parking }`
-function veafCampaignOps.takeoffFrom(airbase, count)
+function veafCampaignOps.takeoffFrom(airbase, count, aircraftType)
   local center = airbase:getPoint()
+  local large = veafCampaignOps.LARGE_AIRCRAFT[aircraftType or ""]
+  local shelter = veafCampaignOps.SHELTER_STAND_TYPE
   local stands = {}
   for _, spot in pairs(airbase:getParking() or {}) do
-    if not spot.TO_AC and not veafCampaignOps.EXCLUDED_STAND_TYPES[spot.Term_Type] and spot.vTerminalPos then
+    local usable = not spot.TO_AC and not veafCampaignOps.EXCLUDED_STAND_TYPES[spot.Term_Type] and spot.vTerminalPos
+    if usable and not (large and spot.Term_Type == shelter) then
       table.insert(stands, spot)
     end
   end
   table.sort(stands, function(a, b)
+    local aShelter, bShelter = a.Term_Type == shelter, b.Term_Type == shelter
+    if aShelter ~= bShelter then
+      return aShelter
+    end
     return (a.Term_Index or 0) < (b.Term_Index or 0)
   end)
   local point = {
@@ -722,7 +758,7 @@ function veafCampaignOps.spawnFlight(side, aircraftRole, origin, roleName, param
   local airbase = origin.entry.airbase and Airbase.getByName(origin.entry.airbase)
   local takeoff, positions = nil, {}
   if airbase and airbase.getParking and not airStart then
-    takeoff, positions = veafCampaignOps.takeoffFrom(airbase, aircraft.count)
+    takeoff, positions = veafCampaignOps.takeoffFrom(airbase, aircraft.count, aircraft.type)
     params.takeoffPoint = takeoff
   end
   local name = uniqueGroupName(string.format("%s %s %s", side, aircraftRole, origin.name))
@@ -1264,6 +1300,10 @@ function veafCampaignOps.sendRaid(side, target, purchased)
   table.insert(veafCampaignOps.raids, record)
   veafCampaignOps.counters.raids = veafCampaignOps.counters.raids + 1
   veafCampaign.keepAwake(target, veafCampaignOps.RAID_TIMEOUT)
+  if defence then
+    -- the SEAD's zone too, or its defence is not there when the SEAD comes (measured 2026-11-16)
+    veafCampaign.keepAwake(defence, veafCampaignOps.RAID_TIMEOUT)
+  end
   logger():info(
     "%s raid package on [%s] from [%s]: BARCAP [%s], SEAD [%s] on [%s], bomber [%s]",
     side,

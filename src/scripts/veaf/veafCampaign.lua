@@ -62,7 +62,8 @@ veafCampaign.counters = {}
 --- The tools check the block and pass it on; this table is the one place its defaults are read from.
 veafCampaign.DYNAMIC_DEFAULTS = {
   save_seconds = 60, -- seconds between two saves of a persistent campaign
-  wake_radius = 60000, -- metres: a player aircraft this close wakes a zone's garrison
+  wake_radius = 60000, -- metres: a player aircraft, or any aircraft in the air, this close wakes a zone's garrison
+  ground_wake_radius = 10000, -- metres: a ground group that is no garrison (convoy, troops, spawn) this close too
   sleep_seconds = 600, -- a zone nobody has come near for this long goes back to sleep
   max_awake_zones = 12, -- zones whose garrison is in the world at once, nearest the players first
   attacks = { "red" }, -- the sides that counter-attack an enemy zone on their own
@@ -2763,6 +2764,59 @@ function veafCampaign.playerPoints()
   return points
 end
 
+--- The names of the ground groups in the world, both sides: at initialize, the ones the mission was built
+--- with, which never wake a zone (a vehicle parked by the mission maker would keep its zone awake forever).
+--- @return table name → true
+function veafCampaign.groundGroupNames()
+  local names = {}
+  for _, side in ipairs({ coalition.side.RED, coalition.side.BLUE }) do
+    for _, group in ipairs(coalition.getGroups(side, Group.Category.GROUND) or {}) do
+      if group and group.getName then
+        names[group:getName()] = true
+      end
+    end
+  end
+  return names
+end
+
+--- The first living unit of a group, or nil.
+local function firstUnit(group)
+  for _, unit in ipairs(group and group.getUnits and group:getUnits() or {}) do
+    if unit and unit.isExist and unit:isExist() then
+      return unit
+    end
+  end
+  return nil
+end
+
+--- What wakes a zone besides the players (David, 2026-11-16), one point per group, both sides:
+--- the aircraft in the air, AI or not, and the ground groups that are neither a zone's garrison nor part
+--- of the mission as it was built — convoys, troops dropped, spawns. A garrison waking its neighbour would
+--- wake the whole map in a chain.
+--- @return table the aircraft's points (vec3)
+--- @return table the ground groups' points (vec3)
+function veafCampaign.wakerPoints()
+  local air, ground = {}, {}
+  local built = veafCampaign.builtGroups or {}
+  for _, side in ipairs({ coalition.side.RED, coalition.side.BLUE }) do
+    for _, category in ipairs({ Group.Category.AIRPLANE, Group.Category.HELICOPTER }) do
+      for _, group in ipairs(coalition.getGroups(side, category) or {}) do
+        local unit = firstUnit(group)
+        if unit and unit:inAir() then
+          table.insert(air, unit:getPoint())
+        end
+      end
+    end
+    for _, group in ipairs(coalition.getGroups(side, Group.Category.GROUND) or {}) do
+      local unit = not built[group:getName()] and firstUnit(group)
+      if unit and not veafCampaign.unitIndex[unit:getName()] then
+        table.insert(ground, unit:getPoint())
+      end
+    end
+  end
+  return air, ground
+end
+
 --- The distance from a zone's centre to the nearest point of a list, in metres; nil for an empty list.
 local function nearestDistance(zone, points)
   local center, best = zone:getCenter(), nil
@@ -2773,18 +2827,25 @@ local function nearestDistance(zone, points)
   return best and math.sqrt(best)
 end
 
---- One pass of the dormancy: zones wanted — a player within `wake_radius`, or the target of a sortie —
---- stay or come awake, nearest first, one waking per pass, `max_awake_zones` at most; zones nobody has
---- wanted for `sleep_seconds` go to sleep, and so does the farthest awake zone when the cap is reached.
+--- One pass of the dormancy: zones wanted — a player or an aircraft in the air within `wake_radius`, a
+--- ground group of `wakerPoints` within `ground_wake_radius`, or the target of a sortie — stay or come
+--- awake, nearest first (a player first at the same distance), one waking per pass, `max_awake_zones` at
+--- most; zones nobody has wanted for `sleep_seconds` go to sleep, and so does the farthest awake zone
+--- when the cap is reached.
 --- @param now number the mission time
 function veafCampaign.updateDormancy(now)
   local points = veafCampaign.playerPoints()
+  local air, ground = veafCampaign.wakerPoints()
   local radius, delay = veafCampaign.setting("wake_radius"), veafCampaign.setting("sleep_seconds")
+  local groundRadius = veafCampaign.setting("ground_wake_radius")
   local awake, waking = {}, {}
   for _, zone in ipairs(veafCampaign.zoneList) do
     if zone.placed and veafCampaign.SIDES[zone.entry.owner] and zone.entry.garrison then
       zone.playerDistance = nearestDistance(zone, points) or math.huge
-      if zone.playerDistance <= radius or (zone.keepAwakeUntil or 0) > now then
+      local airDistance = math.min(zone.playerDistance, nearestDistance(zone, air) or math.huge)
+      local groundDistance = nearestDistance(zone, ground) or math.huge
+      zone.wakeDistance = math.min(airDistance, groundDistance)
+      if airDistance <= radius or groundDistance <= groundRadius or (zone.keepAwakeUntil or 0) > now then
         zone.wantedAt = now
       end
       if zone.awake then
@@ -2799,6 +2860,9 @@ function veafCampaign.updateDormancy(now)
     end
   end
   local byDistance = function(a, b)
+    if a.wakeDistance ~= b.wakeDistance then
+      return a.wakeDistance < b.wakeDistance
+    end
     return a.playerDistance < b.playerDistance
   end
   table.sort(waking, byDistance)
@@ -2811,7 +2875,7 @@ function veafCampaign.updateDormancy(now)
     -- full: the farthest awake zone gives its place, if the one waiting is nearer
     table.sort(awake, byDistance)
     local farthest = awake[#awake]
-    if farthest.playerDistance <= nearest.playerDistance then
+    if not byDistance(nearest, farthest) then
       return
     end
     farthest:sleep()
@@ -2952,6 +3016,7 @@ function veafCampaign.initialize()
   veafCampaign.convoys, veafCampaign.pendingAssaults, veafCampaign.assaultPath = {}, {}, nil
   veafCampaign.nextAttack, veafCampaign.over, veafCampaign.savedParts = {}, nil, {}
   veafCampaign.beatHooks, veafCampaign.selfChecks = {}, {}
+  veafCampaign.builtGroups = veafCampaign.groundGroupNames()
   veafCampaign.counters = {
     structuresLost = 0,
     territoryDrawings = 0,

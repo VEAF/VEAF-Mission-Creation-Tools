@@ -757,6 +757,28 @@ function TestCampaignTakeoff:test_a_flight_starts_hot_on_free_aircraft_stands()
   luaunit.assertEquals({ positions[1].x, positions[1].z }, { 1004, 2000 })
 end
 
+function TestCampaignTakeoff:test_a_fighter_takes_the_shelters_before_the_open_stands()
+  -- Senaki, measured 2026-11-16: open stands 2-6 (104) line the strip to the runway, and groups
+  -- sharing them deadlock; the shelters (68) come first
+  local airbase = airbaseWithStands({ { 2, 104 }, { 3, 104 }, { 14, 68 }, { 15, 68 } })
+  local _, positions = veafCampaignOps.takeoffFrom(airbase, 2, "MiG-29A")
+  luaunit.assertEquals({ positions[1].parking, positions[2].parking }, { 14, 15 })
+end
+
+function TestCampaignTakeoff:test_a_fighter_falls_back_on_open_stands_when_the_shelters_are_full()
+  local airbase = airbaseWithStands({ { 2, 104 }, { 14, 68 } })
+  local _, positions = veafCampaignOps.takeoffFrom(airbase, 2, "MiG-29A")
+  luaunit.assertEquals({ positions[1].parking, positions[2].parking }, { 14, 2 })
+end
+
+function TestCampaignTakeoff:test_a_large_aircraft_never_takes_a_shelter()
+  local airbase = airbaseWithStands({ { 6, 104 }, { 14, 68 } })
+  local _, positions = veafCampaignOps.takeoffFrom(airbase, 1, "Tu-22M3")
+  luaunit.assertEquals(positions[1].parking, 6)
+  local point = veafCampaignOps.takeoffFrom(airbaseWithStands({ { 14, 68 }, { 15, 68 } }), 1, "Tu-22M3")
+  luaunit.assertEquals(point.type, "TakeOff")
+end
+
 function TestCampaignTakeoff:test_too_few_free_stands_start_on_the_runway()
   local airbase = airbaseWithStands({ { 5, 72 } })
   local point, positions = veafCampaignOps.takeoffFrom(airbase, 2)

@@ -95,7 +95,7 @@ The campaign starts again from its declared state at the next load of the missio
 ## Sleeping zones {#dormancy}
 
 Away from the players, a zone has no unit in the world: its garrison is only a line of the save, losses included.
-It appears when a player's aircraft comes within `wake_radius` (60 km) or a sortie targets it, exactly as it was, and disappears when nobody has come near for `sleep_seconds` (600 s).
+It appears when a player's aircraft, or any aircraft in the air (AI included, either side), comes within `wake_radius` (60 km), when a ground group that is no garrison (a convoy, troops dropped, a spawn) comes within `ground_wake_radius` (10 km), or a sortie targets it, exactly as it was, and disappears when nobody has come near for `sleep_seconds` (600 s).
 At most `max_awake_zones` (12) zones are awake at once, nearest the players first, and only one wakes per 10-second beat, so the whole front does not appear in one go.
 
 ## A front that moves on its own {#front}
@@ -110,7 +110,7 @@ At most `max_awake_zones` (12) zones are awake at once, nearest the players firs
 - **CAP**: the enemy keeps one CAP up per `air.cap_per_players` (3) players of the [opposition level](scripts/veafQraManager.en.md#opposition-level), at least one, over its front zone nearest the players.
   Its patrol circle (40 km at most) stops 15 km short of our zones' air defence reach; when even a 5 km circle would be in their reach, it does not fly: it does not throw itself at our SAMs.
 - **Strikes**: every `air.strike_seconds` (900 s), a CAS strike (on the zone with the most units) or a SEAD strike (on the one with the most air defence), in turn, on a zone bordering the enemy's territory.
-- They **take off** from the nearest enemy airfield, hot on free stands, or from the runway when there are not enough; no airfield, no sortie. So do the CAP, the BARCAP and the Hunter.
+- They **take off** from the nearest enemy airfield, hot on free stands (shelters first, open stands after; a large aircraft, bomber or transport, never in a shelter), or from the runway when there are not enough; no airfield, no sortie. So do the CAP, the BARCAP and the Hunter.
   `air.max_flights` (4) flights in the air at most per side.
 - **Hunter**: a player on a kill streak (between 8 and 16 on the ground, or between 4 and 8 in the air, drawn once per life) then has a 10 % chance at every kill to have two enemy fighters scrambled at that player, whose side is told.
 
@@ -372,7 +372,8 @@ A `KO` line is enough to know where to look.
 | `dynamic:` key | Default | What it sets |
 |---|---|---|
 | `save_seconds` | 60 | interval between two saves |
-| `wake_radius` | 60000 | metres: a player this close wakes a zone |
+| `wake_radius` | 60000 | metres: a player, or an aircraft in the air, this close wakes a zone |
+| `ground_wake_radius` | 10000 | metres: a ground group that is no garrison, this close, wakes a zone; vehicles placed in the editor wake nothing |
 | `sleep_seconds` | 600 | a zone with no player near it for this long goes back to sleep |
 | `max_awake_zones` | 12 | zones awake at once |
 | `attacks` | `[red]` | the sides that counter-attack on their own |
@@ -406,7 +407,6 @@ The caps are conservative by default; they will be tuned from what the servers h
 These are written and tested outside DCS, not yet measured in game:
 
 - an AI helicopter landing in a zone (DCS's known traps on a scripted landing are in [the DCS runtime traps](https://github.com/VEAF/VEAF-Mission-Creation-Tools/blob/develop/docs/agents/dcs-runtime-traps.md));
-- aircraft taking off from a free stand (is the stand `getParking()` gives the one DCS seats them on?);
 - the CAS and SEAD strikes and their return;
 - the spy team walking to its zone;
 - a garrison disappearing and reappearing as a player passes;

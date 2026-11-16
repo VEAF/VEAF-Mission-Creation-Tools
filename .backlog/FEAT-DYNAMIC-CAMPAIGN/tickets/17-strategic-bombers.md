@@ -56,3 +56,13 @@ The third raid took off and pushed 40 s later: the hold sat over Senaki (no poin
 - `[CAMPAIGN AIRDEF]`, every `debug_status_seconds`: each zone's air defence units and their missiles left, empty launchers included.
 - A flight counts as up for `FLIGHT_GRACE` (60 s) after its spawn even when DCS does not answer it by name yet, and a group name is never given twice.
 - No enemy CAP where even its `CAP_MIN_RADIUS` circle is under the players' air defence (`capRadius` returns whether it was squeezed).
+
+## Stuck on the taxiway, a sleeping SEAD target, and who wakes a zone (David, 2026-11-16)
+
+Measured in game through dcs-bridge (side session of PR #1289). The raid deadlocked taxiing at Senaki: `takeoffFrom` took the free stands by `Term_Index`, and 2-6 are open stands (104) lined on the strip to the runway; DCS deadlocks there too when it picks the stands itself. Fighters in shelters (68) and the Tu-22M3 alone on the strip all took off. Kobuleti, the SEAD's zone, fell asleep 19 s after the raid was sent: only the bomber's target was kept awake. David asked that AI aircraft and ground units wake zones too, not only players.
+
+- `takeoffFrom` takes shelters (`SHELTER_STAND_TYPE` 68) first, then open stands by `Term_Index`; an aircraft of `LARGE_AIRCRAFT` never takes a shelter (`getParking` gives no stand size). DCS honours the imposed stand (measured).
+- `sendRaid` keeps the SEAD's zone awake for `RAID_TIMEOUT` too.
+- `wakerPoints`: any aircraft in the air (AI or player, either side) within `wake_radius`, and any ground group that is neither a garrison (`unitIndex`) nor present at initialize (`builtGroups`: a vehicle the mission maker parked would keep its zone awake forever) within `ground_wake_radius` (10 km). The nearest waker of any kind comes first under `max_awake_zones`, a player first at the same distance.
+- Unchanged, decided: a spectator or game master slot wakes nothing.
+- To measure in game: the cost of the pass over every group every beat.

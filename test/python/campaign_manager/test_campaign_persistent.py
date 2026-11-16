@@ -78,6 +78,7 @@ class TestTheDynamicBlock:
         block = {
             "save_seconds": 30,
             "wake_radius": 50000,
+            "ground_wake_radius": 8000,
             "attacks": ["red"],
             "helicopter": {"red": "Mi-8MT"},
             "supply_crate": "Zone supplies",
@@ -108,6 +109,7 @@ class TestTheDynamicBlock:
         [
             ({"wake_radius": 0}, "dynamic.wake_radius"),
             ({"wake_radius": True}, "dynamic.wake_radius"),
+            ({"ground_wake_radius": 0}, "dynamic.ground_wake_radius"),
             ({"attacks": ["green"]}, "dynamic.attacks"),
             ({"helicopter": {"red": "MiG-29A"}}, "dynamic.helicopter"),
             ({"economy": {"start_credits": -1}}, "dynamic.economy.start_credits"),

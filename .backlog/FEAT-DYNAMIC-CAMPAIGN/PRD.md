@@ -151,6 +151,9 @@ Restoring aircraft and convoys in flight after a restart is not in V1 either: th
 **MCP actions and the prompt** (`create_campaign`, `add_campaign_zone`, `connect_zones`, a
 composite from a theatre description, the authoring skill) are the **next lot**, opened once the
 `campaign.yaml` format has survived this one.
+Decided for that lot (David, 2026-11-16): what the MCP places in a persistent campaign is written into `campaign.yaml` as zones and garrisons, never as `#veafInterpreter` commands.
+The interpreter runs at every mission start, so what it spawns comes back whole after each restart, outside the save and paid by nobody; a zone is saved with its losses and rebuilt from its side's resources.
+`campaign next` already reports an interpreter command found in a persistent campaign's mission (ticket 14).
 
 ## Related
 

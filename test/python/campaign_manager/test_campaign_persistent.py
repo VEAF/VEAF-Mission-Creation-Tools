@@ -19,7 +19,13 @@ from campaign_manager.campaign_manager import initial_state, parse_campaign, sav
 from campaign_manager.campaign_worker import CampaignWorker
 from campaign_manager.dynamic_settings import DEFAULT_AIR
 from campaign_manager.models import CampaignDefinition
-from campaign_manager.next_mission import add_campaign_cargo, hide_enemies_on_the_map, mission_data
+from campaign_manager.next_mission import (
+    add_campaign_cargo,
+    hide_enemies_on_the_map,
+    interpreter_commands,
+    mission_data,
+    prepare_next_mission,
+)
 from veaf_libs.mission_validator import ERROR, ValidationIssue
 
 
@@ -268,3 +274,40 @@ class TestTheF10View:
         assert (
             yaml.safe_load(path.read_text(encoding="utf-8"))["mission"]["forced_options"]["f10_view"] == "allies_only"
         )
+
+
+class TestTheInterpreterInAPersistentCampaign:
+    """What the interpreter spawns comes back whole at every restart, outside the save (David, 2026-11-16)."""
+
+    def _mission(self, folder: Path) -> Path:
+        (folder / "src" / "mission").mkdir(parents=True, exist_ok=True)
+        # the mission file escapes the name's quotes, as DCS writes it
+        (folder / "src" / "mission" / "mission").write_text(
+            r'["name"] = "#veafInterpreter[\"-samLR\"]",' + "\n" + r'["name"] = "plain",' + "\n"
+            r'["name"] = "#veafInterpreter[\"_spawn armoredPlatoon\"]",' + "\n",
+            encoding="utf-8",
+        )
+        (folder / "src" / "spawn-groups.yaml").write_text("- name: '#veafInterpreter[\"-samLR\"]'\n", encoding="utf-8")
+        (folder / "src" / "scripts").mkdir(exist_ok=True)
+        (folder / "src" / "scripts" / "veaf-config.lua").write_text('veafInterpreter["x"] = 1\n', encoding="utf-8")
+        return folder
+
+    def test_its_commands_are_found_each_once(self, tmp_path: Path) -> None:
+        assert interpreter_commands(self._mission(tmp_path)) == ["-samLR", "_spawn armoredPlatoon"]
+
+    def test_a_mission_without_any_has_none(self, tmp_path: Path) -> None:
+        assert interpreter_commands(tmp_path) == []
+
+    def test_campaign_next_reports_them_for_a_persistent_campaign_only(self, tmp_path: Path) -> None:
+        template = mission_template(tmp_path)
+        # in a YAML source only: the template's mission file is a real one, which campaign next reads
+        (template / "src" / "spawn-groups.yaml").write_text(
+            "- name: '#veafInterpreter[\"-samLR\"]'\n", encoding="utf-8"
+        )
+        persistent = _persistent()
+        report = prepare_next_mission(persistent, initial_state(persistent), tmp_path, tmp_path / "m1")
+        assert report.interpreter_commands == ["-samLR"]
+        episodic, _ = _parse()
+        assert episodic is not None
+        report = prepare_next_mission(episodic, initial_state(episodic), tmp_path, tmp_path / "m2")
+        assert report.interpreter_commands == []

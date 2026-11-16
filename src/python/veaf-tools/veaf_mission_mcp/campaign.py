@@ -145,6 +145,7 @@ def campaign_next(campaign_folder: Path, players: int | str | None = None) -> di
         "created": report.created,
         "name": report.name,
         "security_restored": report.security_restored,
+        "interpreter_commands": report.interpreter_commands,
         "airbases": report.airbases,
         "conditions": (
             {

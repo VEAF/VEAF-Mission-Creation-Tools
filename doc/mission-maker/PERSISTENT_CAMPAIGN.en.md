@@ -66,6 +66,11 @@ Then the mission of the `missions\mission-01\mission` folder is built like any m
 `campaign next` also adds to the mission's `ctld-config.yaml` what the players carry for the campaign: the **"Zone supplies"** crate (one per side), the **"Spy"** troop group (one man) and the **"Sappers"** group (two men, the [demolition team](#demolition)).
 It also enforces the "fog of war" F10 view (`mission.forced_options.f10_view: fog_of_war`): a pilot sees only the enemies their side has detected, and a garrison's strength is learned by [reconnaissance](#intel). A view already chosen in `mission.yaml` is kept.
 
+**No interpreter command in a persistent campaign.**
+A unit named `#veafInterpreter["…"]` in the Mission Editor spawns its units afresh at every start of the mission: in a persistent campaign, they come back whole after each server restart, their losses forgotten, paid by nobody.
+What the campaign must hold is declared in `campaign.yaml`, as a zone with its garrison (an explicit `garrison:` list when the composition matters): the zone is saved with its losses, and the [network](#network) rebuilds it at its side's expense.
+`campaign next` reports the interpreter commands it finds in the mission.
+
 ## The save {#save}
 
 The mission writes its state every `save_seconds` (60 s) and at mission end to:

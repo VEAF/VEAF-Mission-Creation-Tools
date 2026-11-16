@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 import shutil
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -72,6 +72,9 @@ class NextMissionReport:
     """The mission's name, written into `mission.yaml`; the build appends its date to it."""
     security_restored: bool = False
     """Whether security overrides (`disabled`, passwords) were removed from `mission.yaml`."""
+    interpreter_commands: list[str] = field(default_factory=list)
+    """The `#veafInterpreter` commands a persistent campaign's mission holds: they spawn afresh at every
+    restart, outside the save."""
 
 
 def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str, Any]:
@@ -415,6 +418,34 @@ def _set_opposition(mission_yaml: Path, block: dict[str, Any]) -> None:
     save_yaml(mission_yaml, data)
 
 
+#: A unit or static named with a command the runtime interpreter runs at every mission start; the mission
+#: file escapes the quotes of the name (`#veafInterpreter[\"-samLR\"]`), a YAML source does not.
+_INTERPRETER_COMMAND = re.compile(r'#veafInterpreter\[\\?"(.*?)\\?"\]')
+
+
+def interpreter_commands(mission_folder: Path) -> list[str]:
+    """Find the interpreter commands a mission folder places: in its mission file and its YAML sources.
+
+    In a persistent campaign they are outside the save: the interpreter runs them at every start, so what
+    they spawn comes back whole after each restart, its losses forgotten, and nobody pays for it. What a
+    persistent campaign places belongs in `campaign.yaml`, as zones and garrisons (FEAT-DYNAMIC-CAMPAIGN,
+    David 2026-11-16).
+
+    Args:
+        mission_folder: The mission folder.
+
+    Returns:
+        The commands, each once, sorted.
+    """
+    source = mission_folder / "src"
+    files = list((source / "mission").rglob("*")) + list(source.glob("*.yaml"))
+    found: set[str] = set()
+    for path in files:
+        if path.is_file():
+            found.update(_INTERPRETER_COMMAND.findall(path.read_text(encoding="utf-8", errors="replace")))
+    return sorted(found)
+
+
 def prepare_next_mission(
     campaign: CampaignDefinition,
     state: CampaignState,
@@ -498,4 +529,5 @@ def prepare_next_mission(
         waypoints=waypoints,
         name=name,
         security_restored=security_restored,
+        interpreter_commands=interpreter_commands(mission_folder) if campaign.mode == "persistent" else [],
     )

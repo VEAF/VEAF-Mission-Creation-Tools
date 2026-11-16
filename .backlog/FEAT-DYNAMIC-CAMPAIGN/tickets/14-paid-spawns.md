@@ -16,6 +16,7 @@ In a persistent campaign every VEAF spawn command a person issues — `_spawn`, 
 - what survives joins its side's resources at the next load (ticket 12).
 
 A spawn a script makes (a combat zone, a command the interpreter reads from a name placed in the editor — veafCommands calls it trusted —, the campaign's own sorties) is not a person's action and is not charged here; the campaign's sorties pay their own way (ticket 12).
+The interpreter's commands are not paid, and do not belong in a persistent campaign at all (David, 2026-11-16): they spawn afresh at every restart, outside the save. What the MCP or a mission maker places goes into `campaign.yaml` as zones and garrisons; `campaign next` reports any interpreter command it finds in the mission.
 The players' assault order (Campaign → Assault) is a purchase too: `economy.prices.assault` (300 credits).
 
 ## Defaults (credits or points)

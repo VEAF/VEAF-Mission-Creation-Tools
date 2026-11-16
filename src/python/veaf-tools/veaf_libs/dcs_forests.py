@@ -103,6 +103,9 @@ class _LoadedMesh:
         self.cells: dict[tuple[int, int], list[int]] = {}
         for t in range(len(triangles) // 3):
             a, b, c = triangles[3 * t], triangles[3 * t + 1], triangles[3 * t + 2]
+            if (xs[b] - xs[a]) * (zs[c] - zs[a]) == (zs[b] - zs[a]) * (xs[c] - xs[a]):
+                # Flat: covers nothing, and three equal corners would pass the sign test at any point.
+                continue
             x0, x1 = min(xs[a], xs[b], xs[c]), max(xs[a], xs[b], xs[c])
             z0, z1 = min(zs[a], zs[b], zs[c]), max(zs[a], zs[b], zs[c])
             for i in range(int(x0 // _CELL), int(x1 // _CELL) + 1):

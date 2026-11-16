@@ -312,3 +312,15 @@ def test_the_mission_check_lists_the_vehicles_in_a_forest(tmp_path: Path) -> Non
     assert report.groups == {"in-the-wood": 2}
     assert report.markers_skipped == 1
     assert report.to_dict()["units_in_forest"] == 2
+
+
+def test_a_flat_triangle_covers_nothing(tmp_path: Path) -> None:
+    """Three equal corners make every sign test zero: such a triangle must not claim its whole cell."""
+    flat = Node(
+        origin=(0.0, 0.0),
+        vertices=[(100.0, 0.0, 100.0), (100.0, 0.0, 100.0), (100.0, 0.0, 100.0), (120.0, 0.0, 100.0)],
+        trees=[TreesMesh(base_index=[0, 1, 2, 3], triangles=[(0, 1, 2), (0, 3, 3)])],
+    )
+    with SurfaceForests(_write(tmp_path, [flat])) as forests:
+        assert not forests.in_forest(100.0, 100.0)
+        assert not forests.in_forest(110.0, 100.0)

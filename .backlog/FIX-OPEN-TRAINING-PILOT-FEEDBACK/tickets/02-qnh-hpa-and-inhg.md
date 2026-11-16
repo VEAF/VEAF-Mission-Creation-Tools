@@ -1,6 +1,6 @@
 # 02 — The QNH in hPa and inHg everywhere
 
-Status: ⬜ ready
+Status: ✅ done
 
 Files: `src/scripts/veaf/veafWeather.lua` (`veafWeatherUnitSystem.Systems`, `veafWeatherData:toStringPressure`), `test/lua/`, the weather page of `doc/` (FR and EN), `CHANGELOG.md`.
 

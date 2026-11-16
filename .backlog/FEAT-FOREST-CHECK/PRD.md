@@ -1,6 +1,6 @@
 # FEAT-FOREST-CHECK — Read where a DCS map has forests, without the game
 
-Status: 🧑 waiting-human
+Status: 🔄 in-progress
 
 ## Problem
 
@@ -43,4 +43,5 @@ A separate command rather than a forest test inside `clear-ground-check`: the fo
 |---|---|---|
 | 01 | [Surface5 forest reader](tickets/01-surface5-forest-reader.md) | ✅ |
 | 02 | [`dcs forest-check` command, doc and limitation](tickets/02-forest-check-command.md) | ✅ |
-| 03 | [Check the Marianas WWII forests in game](tickets/03-check-marianas-wwii-in-game.md) | 🧑 |
+| 03 | [Check the Marianas WWII forests in game](tickets/03-check-marianas-wwii-in-game.md) | ✅ |
+| 04 | [The topmost overlay decides](tickets/04-topmost-overlay-decides.md) | ✅ |

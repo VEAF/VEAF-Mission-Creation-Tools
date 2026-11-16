@@ -18,6 +18,12 @@ A forest mesh has no vertex of its own: its ``baseIndex`` array indexes the node
 followed by a parameter count, two u32, two bytes and its bounding box (six f32, relative to the node
 origin). The same layout was found on the eleven maps installed on 2026-11-16.
 
+**The topmost overlay decides.** On some maps the forest is a ground texture (``Splatmap5.1`` /
+``Forest`` on the Marianas) and other overlays are drawn over it: Agana's airfield on Marianas WWII is a
+``Runway`` overlay, draw order 103, over a ``Forest`` one, draw order 49, and the F10 map shows the
+clearing (David's captures, 2026-11-16). The draw order is the u32 after the material's parameter
+count. A point is in a forest only when no overlay of higher draw order covers its forest triangle.
+
 **Axes.** World ``x`` is mission ``x`` (north), world ``z`` is mission ``y`` (east); ``y`` is height,
 unused here. Checked against six places David knows in game, on Syria: the three in a wood are inside a
 forest triangle, the three in the open are not.

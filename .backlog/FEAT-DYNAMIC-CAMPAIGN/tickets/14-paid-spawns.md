@@ -1,6 +1,6 @@
 # 14 — VEAF spawn commands paid in credits or resources
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 PRD row "VEAF spawn commands paid in credits" and player experience point 9 (David, 2026-10-08 and 2026-11-16).
 

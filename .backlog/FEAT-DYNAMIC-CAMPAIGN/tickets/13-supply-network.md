@@ -1,6 +1,6 @@
 # 13 — The supply network: hop by hop, depots at half time
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 PRD row "Resources for the AI", supply network (David, 2026-11-16); analysis note 07 §26–§28.
 

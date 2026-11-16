@@ -1,6 +1,6 @@
 # 16 — Weapon stocks per warehouse, moved by players
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 PRD row "Weapon stocks per warehouse, moved by players"; analysis note 07 §9, §17.
 

@@ -1,6 +1,6 @@
 # 17 — Strategic bombers: an escorted red raid, a blue raid bought
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 PRD row "Strategic bombers"; analysis note 03 §12.
 

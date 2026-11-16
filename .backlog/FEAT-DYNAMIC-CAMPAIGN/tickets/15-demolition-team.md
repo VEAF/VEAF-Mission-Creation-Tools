@@ -1,6 +1,6 @@
 # 15 — Demolition team: sappers who blow up a factory
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 PRD row "Demolition team"; analysis note 07 §10. Needs ticket 11: only a factory has buildings to blow up.
 

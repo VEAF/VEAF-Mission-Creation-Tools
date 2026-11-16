@@ -1,6 +1,6 @@
 # 12 — Resources for the AI: one stock per side, prices, production
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 PRD row "Resources for the AI, credits for the players" (David, 2026-11-16); analysis note 07 §26.
 

@@ -1,6 +1,6 @@
 # 18 — Territory cells (Voronoi) tinted by owner
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 PRD row "Territory cells (Voronoi)"; analysis note 01 §14 (the mechanism, rewritten here: Foothold's code is GPL-3.0).
 

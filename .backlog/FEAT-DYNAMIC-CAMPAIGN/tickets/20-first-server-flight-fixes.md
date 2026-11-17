@@ -35,6 +35,8 @@ The branch already holds the CAP sized on the fighters, the escort item (`c066c5
 17. **The log**: a sortie refusal is said once per reason until it changes; no `nil` in `[CAMPAIGN FLIGHT]`; a wreck killing scenery is not a kill.
    The supply helicopters that landed back at Aleppo: see the findings below.
 
+19. **The next campaign generated must not repeat it** (David, through the control session, 2026-11-17): `campaign validate` / `campaign next` warn about a zone of no kind within 4 km of an airfield, a persistent campaign with no `dynamic.support.assets`, no `economy.tanker`, assets its template lacks, and a template radio plan of another theatre; the persistent example names its AWACS and tanker; the MCP authoring guide carries the rules; the SA-5's measured 240 km joins the DCS traps. The Syria campaign is rebuilt the normal way: template fixed, `campaign validate` clean, `campaign next`, build, briefing.
+
 ## Findings
 
 - **Combat zones and CTLD need no change for point 1.** A combat zone counts its own elements and searches no foreign unit; the VEAF CTLD build has no airbase occupation. Minakh going blue was DCS's own airbase capture (`Airbase.autoCapture`), now off on every airfield of a persistent campaign (known limitation `airbase-captured-by-nearby-ground-units`).

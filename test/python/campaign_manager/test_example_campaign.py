@@ -42,7 +42,7 @@ def test_its_briefing_deck_generates_from_a_fresh_copy(tmp_path: Path) -> None:
         t("campaign.issue.no_built_mission", folder=worker.mission_folder(1) / "mission")
     ]
     assert report is not None and report.prose
-    assert report.path == folder / "missions" / "mission-01" / "briefing-campagne.pptx"
+    assert report.path == folder / "missions" / "mission-01" / "Cote-d-Ebene_mission-01_briefing-campagne.pptx"
 
 
 def test_the_example_is_valid_without_a_single_warning() -> None:

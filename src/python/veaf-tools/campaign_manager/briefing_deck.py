@@ -33,6 +33,7 @@ from campaign_manager.turn_manager import enemy_of
 
 #: The deck, in the mission's sub-folder (`missions/mission-NN/`).
 DECK_FILE = "briefing-campagne.pptx"
+"""The suffix of the campaign deck's file, after the operation and the mission (`deck_file`)."""
 
 #: The map the deck shows, next to it.
 MAP_FILE = "carte-strategique.png"
@@ -545,6 +546,28 @@ def _write_map(deck: PresentationType, title: str, report: MapReport) -> None:
         _run(legend.add_paragraph(), t("campaign.deck.map_offline"), 12, italic=True, colour=_GREY)
 
 
+def deck_file(campaign: CampaignDefinition, prose: BriefingProse | None, kind: str, mission: int | None) -> str:
+    """A briefing's file name: the operation (else the campaign), the mission, then what it is.
+
+    David, 2026-11-17: "dossier-de-theatre.pptx" said what the file is, never whose; a squadron keeps several.
+
+    Args:
+        campaign: The campaign.
+        prose: `briefing.yaml`, for the operation's name.
+        kind: What the file is, its last part: ``briefing-campagne.pptx``, ``dossier-de-theatre.pptx``…
+        mission: The mission's number, or ``None`` for a file of the whole campaign.
+
+    Returns:
+        ``Kolkhida_mission-02_briefing-campagne.pptx``, ``Bouclier-de-l-Oronte_dossier-de-theatre.pptx``.
+    """
+    from campaign_manager.next_mission import _name_part
+
+    parts = [_name_part(prose.operation if prose and prose.operation else campaign.name)]
+    if mission is not None:
+        parts.append(f"mission-{mission:02d}")
+    return "_".join([*parts, kind])
+
+
 def map_notes(report: MapReport, extra: list[str] | None = None) -> list[tuple[str, bool]]:
     """A map page's legend as the PDF's notes: ``(text, is_heading)``, as the slide writes it.
 
@@ -622,7 +645,7 @@ def campaign_deck(
         for part in paginate(page):
             _write_page(deck, part)
             sheets.append(part)
-    out = folder / DECK_FILE
+    out = folder / deck_file(campaign, prose, DECK_FILE, mission)
     deck.save(str(out))
     cover = Cover(
         f"{t('campaign.deck.operation')} {(prose.operation if prose and prose.operation else campaign.name).upper()}",

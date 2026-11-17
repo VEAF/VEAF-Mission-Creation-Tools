@@ -434,7 +434,7 @@ class TestTheWorker:
         worker.init()
         _, report = worker.next()
         assert report is not None
-        assert report.deck == folder / "missions" / "mission-01" / "briefing-campagne.pptx"
+        assert report.deck == folder / "missions" / "mission-01" / "Caucasus-Front_mission-01_briefing-campagne.pptx"
         assert report.deck.is_file()
 
     def test_an_error_in_briefing_yaml_does_not_stop_the_next_mission(self, tmp_path: Path) -> None:
@@ -472,7 +472,7 @@ class TestTheWorker:
         CampaignWorker(folder).init()
         result = CliRunner().invoke(app, ["campaign-briefing", str(folder)])
         assert result.exit_code == 0, result.output
-        assert (folder / "missions" / "mission-01" / "briefing-campagne.pptx").is_file()
+        assert (folder / "missions" / "mission-01" / "Caucasus-Front_mission-01_briefing-campagne.pptx").is_file()
 
 
 class TestTheDcsBriefing:

@@ -1799,10 +1799,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ActionSpec(
             name="campaign_briefing",
             description=(
-                "Write the coming mission's strategic briefing deck (missions/mission-NN/"
-                "briefing-campagne.pptx, VEAF briefing template, imports into Google Slides) and its "
+                "Write the coming mission's strategic briefing deck (missions/mission-NN/<operation>_mission-NN_"
+                "briefing-campagne.pptx and its PDF, VEAF briefing template, imports into Google Slides) and its "
                 "strategic map; once the mission is BUILT (a .miz in missions/mission-NN/mission), also its "
-                "own MISSION briefing (briefing-mission.pptx, returned in `mission_deck`): general "
+                "own MISSION briefing (<operation>_mission-NN_briefing-mission.pptx, returned in `mission_deck`): general "
                 "situation, ATO, tactical map and one zoom per objective, mission flow, frequency plan, "
                 "objective coordinates -- read from the built mission (flights, support, carrier, QRA, "
                 "date, time, weather), so build first, and call it again after any change to the mission. "

@@ -19,7 +19,7 @@
 - **L'ennemi paie ce qu'il envoie** avec les [ressources](#resources) que font ses usines : détruire ses [usines](#zone-kinds) ou couper son [réseau d'approvisionnement](#network) finit par clouer sa CAP au sol.
 - **La carte est teintée** par camp, chaque zone tenant le [territoire](#territory) le plus proche d'elle, et le front se lit entre les deux couleurs.
 - **Chaque annonce dit qui parle** : « Commandement bleu : » (ou rouge) pour ce que fait ou subit un camp, « Renseignement : » pour ce qu'on apprend de l'ennemi — un convoi ou un hélicoptère qui part, un raid qui arrive.
-- **Le menu F10 → Autres → Campagne** donne la situation, les crédits, les tâches, le renseignement et la boutique ; les commandes « (admin) » viennent en dernier.
+- **Le menu F10 → Autres → VEAF → Campagne** donne la situation, les crédits, les tâches, le renseignement et la boutique ; les commandes « (admin) » viennent en dernier.
 - **La partie se termine** quand un camp ne tient plus aucune zone : victoire si c'est l'ennemi, défaite si c'est nous.
   C'est annoncé à tous, et la campagne repart de zéro au prochain chargement de la mission.
 
@@ -102,23 +102,23 @@ Quand il crée le dossier de la mission, `campaign next` écrit le plan radio de
 
 | Radio | Canaux |
 |---|---|
-| VHF, la radio des aérodromes | 1 **Home Base**, que chaque pilote règle sur le terrain d'où il a décollé ; puis les aérodromes du camp des joueurs, avec les fréquences que DCS leur donne sur ce théâtre |
-| UHF | l'AWACS, puis les ravitailleurs de `dynamic.support.assets` et `economy.tanker` (la perche et le panier), sur la fréquence de leur groupe ; **Air-Sol**, la fréquence air-sol commune (305,0) ; puis les vols VEAF, Archer en tête |
+| VHF, la radio des aérodromes | 1 **Home Base**, que chaque pilote règle sur le terrain d'où il a décollé ; puis les aérodromes du camp des joueurs, avec les fréquences que DCS leur donne sur ce théâtre ; puis les vols VEAF, sur leur fréquence VHF : un vol branché sur l'UHF d'un ravitailleur se parle encore sur la VHF |
+| UHF | l'AWACS, puis les ravitailleurs de `dynamic.support.assets` et `economy.tanker`, sur la fréquence de leur groupe, chacun nommé avec son type de ravitaillement (« Tanker Texaco (boom) », « Tanker Arco (panier) ») ; **Air-Sol**, la fréquence air-sol commune (305,0) ; puis les vols VEAF, Archer en tête |
 
 Un canal a besoin d'une fréquence pour que le build le garde sur la radio et la planchette : Home Base porte une fréquence d'attente qu'aucun aérodrome de DCS n'utilise (VHF 118,025, UHF 230,025), que le pilote remplace.
 L'AWACS et les ravitailleurs doivent donc être dans le template avant le premier `campaign next`.
 
 ### Le dossier de théâtre et la planchette {#theatre-dossier}
 
-Une campagne persistante n'a pas de mission du jour : à la place du [briefing de campagne](CAMPAIGN.md#briefing-deck) et du [briefing de mission](CAMPAIGN.md#mission-briefing), `campaign next` et `campaign briefing` écrivent dans `missions\mission-01\` le **dossier de théâtre**, `dossier-de-theatre.pptx`, avec ses deux cartes (`carte-du-reseau.png`, `carte-des-defenses.png`).
+Une campagne persistante n'a pas de mission du jour : à la place du [briefing de campagne](CAMPAIGN.md#briefing-deck) et du [briefing de mission](CAMPAIGN.md#mission-briefing), `campaign next` et `campaign briefing` écrivent dans `missions\mission-01\` le **dossier de théâtre**, `<opération>_dossier-de-theatre.pptx`, avec ses deux cartes (`carte-du-reseau.png`, `carte-des-defenses.png`).
 C'est un état de la situation, daté (« État au 17/11/2026 »), pas un ordre d'opération : ni objectifs, ni ATO, ni météo.
-Le même dossier s'écrit aussi en PDF à côté, `dossier-de-theatre.pdf`, lisible sans PowerPoint ([comme chaque briefing](CAMPAIGN.md#briefing-deck)).
+Le même dossier s'écrit aussi en PDF à côté, `<opération>_dossier-de-theatre.pdf`, lisible sans PowerPoint ([comme chaque briefing](CAMPAIGN.md#briefing-deck)).
 
 | Page | Ce qu'elle dit |
 |---|---|
 | Couverture | l'opération, le théâtre, la date de l'état |
 | Situation stratégique | `briefing.yaml` : politique, économique, mode d'action ennemi |
-| Carte du réseau | chaque zone dans la couleur de son camp, un symbole par sorte (carré aérodrome, rond avant-poste, triangle usine, losange dépôt), son numéro de [waypoint](#waypoints), les liaisons, le territoire teinté et le front |
+| Carte du réseau | chaque zone dans la couleur de son camp, un symbole par sorte (carré aérodrome, rond avant-poste, triangle usine, losange dépôt), son numéro de [waypoint](#waypoints), les liaisons, le territoire hachuré dans la couleur de son camp et le front en trait fin, comme sur la carte F10 |
 | Le réseau ennemi | quelle usine alimente quelles zones, ce que chaque dépôt accélère, les zones déjà coupées, et les **nœuds critiques** : les zones ennemies dont la prise isole d'autres zones de leur usine |
 | Défenses aériennes connues | les [SAM longue portée](#long-range-sams) avec leur portée en cercle, et ce que le renseignement en sait (« probable » tant qu'aucune reconnaissance ne l'a confirmé) ; les nôtres aussi |
 | Axes d'effort | `axes:` de `briefing.yaml`, présentés comme indicatifs : la situation évolue, adaptez-vous |
@@ -182,7 +182,7 @@ Le fichier est un tableau Lua lu sans aucun accès : il ne peut rien exécuter.
 Il faut que `io` et `lfs` soient ouverts dans le `MissionScripting.lua` du serveur, ce qui est le cas sur les serveurs VEAF.
 Sans eux, la campagne tourne quand même, mais ne se sauvegarde pas, et le dit une fois.
 
-**Remettre à zéro** : F10 → Autres → Campagne → **Remettre la campagne à zéro (admin)**.
+**Remettre à zéro** : F10 → Autres → VEAF → Campagne → **Remettre la campagne à zéro (admin)**.
 La campagne repart de son état déclaré au prochain chargement de la mission ; une victoire ou une défaite fait la même chose.
 
 ## Les zones en sommeil {#dormancy}
@@ -206,7 +206,7 @@ Une seule zone se réveille à chaque battement de 10 s, pour ne pas faire appar
 ## Un front qui bouge tout seul {#front}
 
 - **Contre-attaques** : toutes les `attack_seconds` (900 s), un camp listé dans `attacks` (le rouge par défaut) envoie un convoi d'assaut contre la zone ennemie la plus faible qui le borde, `max_convoys` (2) sur la route au plus.
-  Seuls ces camps envoient aussi d'eux-mêmes des convois vers une zone neutre ; le camp des joueurs achète les siens (F10 → Campagne → Assauts), et aucun convoi automatique ne part vers une zone qu'un convoi du même camp vise déjà.
+  Seuls ces camps envoient aussi d'eux-mêmes des convois vers une zone neutre ; le camp des joueurs achète les siens (F10 → Autres → VEAF → Campagne → Assauts), et aucun convoi automatique ne part vers une zone qu'un convoi du même camp vise déjà.
 - **Un convoi qui n'arrivera pas libère sa place** : dès que sa cible est à son camp (un hélicoptère l'a prise avant lui), ou après `convoy_timeout` (2 700 s) de route, il est retiré de la carte et le prix de ses survivants retourne à son camp.
 - **L'autre camp est prévenu aussitôt** du départ d'un convoi, et voit son axe sur la carte.
 - **Ravitaillement** : une livraison dans une zone amie abîmée ramène au complet son premier groupe touché.
@@ -262,7 +262,7 @@ Une victoire d'un joueur paie en deux temps : `economy.landing_share` (50 %) en 
 Les deux parts vont au compte de la coalition.
 Les autres gains, qu'aucun pilote seul ne porte, sont payés en entier.
 
-F10 → Autres → Campagne → **Boutique** : chaque article donne la liste des zones auxquelles il s'applique.
+F10 → Autres → VEAF → Campagne → **Boutique** : chaque article donne la liste des zones auxquelles il s'applique.
 Un achat refusé (plus de cible, rien à portée) ne coûte rien.
 
 | Article | Effet | Prix |
@@ -282,12 +282,12 @@ Un achat refusé (plus de cible, rien à portée) ne coûte rien.
 La BARCAP se tient sur l'axe entre la zone ennemie et notre aérodrome le plus proche, au premier point hors de portée de **toutes** les défenses ennemies (pas seulement celles de la zone visée) plus 15 km, et garde un cercle de 15 km ; quand aucun point de l'axe n'est hors de portée, elle tient au-dessus de son aérodrome.
 La portée se mesure sur les missiles que portent les unités de la zone quand elle est éveillée ; une zone endormie est supposée porter à 75 km si elle a un [SAM longue portée](#long-range-sams), 20 km sinon, et le message le dit.
 
-Les prix se changent dans `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `escort`, `tanker`, et `assault` pour l'ordre d'assaut de F10 → Campagne → Assaut, 300).
+Les prix se changent dans `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `escort`, `tanker`, et `assault` pour l'ordre d'assaut de F10 → Autres → VEAF → Campagne → Assaut, 300).
 Ce que les joueurs achètent se paie en crédits, jamais sur les [ressources](#resources).
 
 ## Le tableau des tâches {#tasks}
 
-F10 → Autres → Campagne → **Tâches** : `tasks.count` (3) tâches à la fois, tirées de la situation et complétées toutes les `tasks.refresh_seconds` (300 s), chacune marquée sur la carte de notre camp.
+F10 → Autres → VEAF → Campagne → **Tâches** : `tasks.count` (3) tâches à la fois, tirées de la situation et complétées toutes les `tasks.refresh_seconds` (300 s), chacune marquée sur la carte de notre camp.
 
 | Tâche | Accomplie quand | Récompense |
 |---|---|---|
@@ -307,7 +307,7 @@ La garnison d'une zone ennemie est **inconnue** des joueurs (« force inconnue �
 - par un **drone JTAC** ou du **renseignement** acheté à la boutique ;
 - par une **équipe espion** : le groupe de troupes CTLD 2 « Spy » déposé à moins de `intel.spy_range` (5 km) d'une zone ennemie y marche tout seul, et la révèle en y entrant.
 
-Une zone reconnue affiche sa force sur la carte, et F10 → Autres → Campagne → **Renseignement** donne sa composition, défense antiaérienne en tête.
+Une zone reconnue affiche sa force sur la carte, et F10 → Autres → VEAF → Campagne → **Renseignement** donne sa composition, défense antiaérienne en tête.
 `intel.hidden: false` montre toutes les garnisons à tout le monde.
 
 ## Usines et dépôts {#zone-kinds}
@@ -376,7 +376,7 @@ Les usines d'un camp nourrissent ses zones de proche en proche, le long des liai
   Les joueurs qui font de la logistique vont plus vite : une caisse, des troupes ou un hélicoptère renforcent sur-le-champ, sans attendre le réseau ni le payer.
 - **Une zone coupée** de toute usine et de tout dépôt est encore servie, sur la production de fond, au bout de `network.isolated_seconds` (3 600 s).
 
-F10 → Campagne → **Réseau d'approvisionnement** donne aux joueurs leur stock, leur production, et pour chacune de leurs zones son délai ou « coupée du réseau ».
+F10 → Autres → VEAF → Campagne → **Réseau d'approvisionnement** donne aux joueurs leur stock, leur production, et pour chacune de leurs zones son délai ou « coupée du réseau ».
 
 ## Les spawns payants {#paid-spawns}
 
@@ -426,7 +426,7 @@ La campagne ne rend aucun entrepôt limité ni illimité : c'est le choix de l'�
 
 Les joueurs déplacent du stock d'un terrain à l'autre, en hélicoptère ou en avion de transport :
 
-1. posé sur un aérodrome de la coalition, F10 → Campagne → Entrepôt → **Charger de l'armement** prend `warehouse.load` (10) de chaque arme de l'entrepôt (moins s'il en a moins) ;
+1. posé sur un aérodrome de la coalition, F10 → Autres → VEAF → Campagne → Entrepôt → **Charger de l'armement** prend `warehouse.load` (10) de chaque arme de l'entrepôt (moins s'il en a moins) ;
 2. posé sur un **autre** aérodrome de la coalition, **Décharger l'armement** dépose exactement ce qui est à bord, et rapporte `economy.warehouse_delivery` (50) crédits, une fois par terrain pour chaque vol ;
 3. **Armement à bord** dit ce qu'on transporte.
 
@@ -508,7 +508,7 @@ Pendant la mise au point, `dynamic.debug` (activé par défaut) écrit dans `dcs
 
 ## Contrôler une mission en jeu {#self-check}
 
-F10 → Autres → Campagne → **Auto-contrôle (admin)** affiche une ligne `OK` ou `KO` par mécanisme : zones placées, sauvegarde relue et écrite, issue, dormance, captures, usines, territoire, ressources des deux camps, réseau (livraisons et zones coupées), spawns payants, sapeurs, entrepôts, hélicoptères, aviation, bombardiers, crédits, tâches, renseignement.
+F10 → Autres → VEAF → Campagne → **Auto-contrôle (admin)** affiche une ligne `OK` ou `KO` par mécanisme : zones placées, sauvegarde relue et écrite, issue, dormance, captures, usines, territoire, ressources des deux camps, réseau (livraisons et zones coupées), spawns payants, sapeurs, entrepôts, hélicoptères, aviation, bombardiers, crédits, tâches, renseignement.
 Une ligne `KO` suffit à dire où regarder.
 
 ## Tous les réglages {#settings}

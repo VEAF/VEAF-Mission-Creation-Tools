@@ -15,13 +15,9 @@ from veaf_libs.dcs_airdromes import airfields_for_theatre
 from veaf_libs.i18n import t
 from veaf_libs.magnetic import ground_distance_m
 from veaf_libs.mission_validator import WARNING, ValidationIssue
+from veaf_libs.tankers import BASKET_TANKERS, BOOM_TANKERS
 
 from campaign_manager.models import CampaignDefinition
-
-#: The tankers that refuel with a boom (the F-16, the F-15, the A-10) and with a basket, a hose and drogue (the
-#: F/A-18, the AV-8B, the F-14, the Rafale); the KC-10 does both. DCS types.
-BOOM_TANKERS = frozenset({"KC-135", "KC-10A"})
-BASKET_TANKERS = frozenset({"KC135MPRS", "KC130", "KC130J", "S-3B Tanker", "IL-78M", "KC-10A"})
 
 #: A zone at coordinates this close to an airfield is taken for that airfield's zone set beside it, in metres.
 NEAR_AIRFIELD_METRES = 4000

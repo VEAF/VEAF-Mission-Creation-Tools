@@ -62,6 +62,27 @@ class TestTheNetwork:
         assert picture.critical == ()
 
 
+class TestTheTerritory:
+    """David, 2026-11-17: the front a thin line and the territory hatched, as on the F10 map — not 6-px blocks."""
+
+    def test_each_zone_holds_what_is_nearer_to_it_and_the_front_runs_between_two_owners(self) -> None:
+        from campaign_manager.network_map import front_segments, territory_cells
+
+        centres = {"A": (100.0, 100.0), "B": (300.0, 100.0), "C": (350.0, 150.0)}
+        cells = territory_cells(centres, 400, 200)
+        xs = [x for (x, _), _ in cells["A"]]
+        assert max(xs) == 200 and min(xs) == 0, "A's cell runs to the bisector with B"
+        segments = front_segments(cells, {"A": "blue", "B": "red", "C": "red"})
+        # B and C share a side: no front between them, one straight front between A and B
+        assert segments == [((200.0, 0.0), (200.0, 200.0))] or segments == [((200.0, 200.0), (200.0, 0.0))]
+
+    def test_no_front_inside_one_side(self) -> None:
+        from campaign_manager.network_map import front_segments, territory_cells
+
+        cells = territory_cells({"A": (100.0, 100.0), "B": (300.0, 100.0)}, 400, 200)
+        assert front_segments(cells, {"A": "blue", "B": "blue"}) == []
+
+
 class TestTheNetworkMap:
     def test_drawn_with_numbers_tint_and_circles_at_the_kneeboard_aspect(self, tmp_path: Any) -> None:
         from campaign_manager.network_map import ReachCircle, kind_of, render_network_map

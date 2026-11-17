@@ -638,7 +638,7 @@ Write the coming mission's strategic briefing deck (PPTX), from the campaign and
 | `--verbose` | `boolean` | `false` | If set, the script will output a lot of debug information. |
 | `--pause` | `boolean` | `false` | If set, the script will pause when finished and wait for the user to press a key. |
 
-Writes `missions/mission-NN/briefing-campagne.pptx` and its map; `campaign next` does too. The prose comes from `briefing.yaml`, the facts from the campaign.
+Writes `missions/mission-NN/<operation>_mission-NN_briefing-campagne.pptx` and its map; `campaign next` does too. The prose comes from `briefing.yaml`, the facts from the campaign.
 
 ```powershell
 .\veaf-tools.exe campaign briefing C:\Campaigns\Caucasus

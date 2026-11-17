@@ -107,7 +107,7 @@ def test_next_returns_the_folder_and_both_briefings(tmp_path: Path) -> None:
     assert result["airbases"] == ["Kobuleti", "Senaki-Kolkhi"]
     assert "SITUATION STRATÉGIQUE" in result["strategic_situation"]["fr"]
     assert "STRATEGIC SITUATION" in result["strategic_situation"]["en"]
-    assert Path(result["briefing_deck"]) == folder / "missions" / "mission-01" / "briefing-campagne.pptx"
+    assert Path(result["briefing_deck"]).name.endswith("_mission-01_briefing-campagne.pptx")
     assert Path(result["briefing_deck"]).is_file()
 
 

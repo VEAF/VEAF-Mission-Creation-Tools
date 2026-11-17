@@ -8,7 +8,6 @@ from pathlib import Path
 
 from campaign_fixture import PROSE, VALID
 from campaign_manager.briefing_deck import (
-    DECK_FILE,
     MAP_FILE,
     Block,
     Page,
@@ -62,7 +61,9 @@ def _deck(tmp_path: Path, with_prose: bool = True) -> list[list[str]]:
             cache_dir=tmp_path / "tiles",
             fetch=_offline,
         )
-    assert report.path == tmp_path / "mission-01" / DECK_FILE
+    # David, 2026-11-17: named after the operation (else the campaign) and the mission, not "briefing-campagne"
+    name = "Kolkhida" if with_prose else "Caucasus-Front"
+    assert report.path == tmp_path / "mission-01" / f"{name}_mission-01_briefing-campagne.pptx"
     assert (tmp_path / "mission-01" / MAP_FILE).is_file()
     return _slides(report.path)
 

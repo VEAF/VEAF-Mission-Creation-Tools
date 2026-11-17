@@ -26,7 +26,9 @@ from pptx.presentation import Presentation as PresentationType
 from pptx.util import Emu
 from veaf_libs.i18n import t
 from veaf_libs.map_tiles import Fetch
+from veaf_libs.tankers import with_refuelling
 
+from campaign_manager.air_defence_names import describe_garrison_entry
 from campaign_manager.briefing_deck import (
     _BLUE,
     _GREY,
@@ -39,10 +41,12 @@ from campaign_manager.briefing_deck import (
     _run,
     _titled_slide,
     _write_page,
+    deck_file,
     map_notes,
     paginate,
 )
 from campaign_manager.briefing_prose import BriefingProse
+from campaign_manager.campaign_checks import _group_types
 from campaign_manager.intelligence import enemy_picture
 from campaign_manager.models import CampaignDefinition, CampaignState, CampaignZone
 from campaign_manager.network import NetworkPicture, network_picture
@@ -200,8 +204,9 @@ def _air_defence_page(campaign: CampaignDefinition, state: CampaignState, number
     for zone in campaign.zones:
         if owners.get(zone.name) != player:
             continue
+        # David, 2026-11-17: what each is, not its template's alias
         declared = [
-            entry
+            describe_garrison_entry(entry)
             for entry in (zone.garrison or ())
             if any(word in entry.lower().replace("-", "").split("_")[0] for word in _AIR_DEFENCE_WORDS)
         ]
@@ -234,12 +239,18 @@ def _axes_page(prose: BriefingProse | None) -> Page:
     )
 
 
-def _means_page(campaign: CampaignDefinition, state: CampaignState, numbers: Mapping[str, int]) -> Page:
+def _means_page(
+    campaign: CampaignDefinition, state: CampaignState, numbers: Mapping[str, int], types: Mapping[str, str]
+) -> Page:
     owners = owners_of(state)
     player = campaign.player_side
     bases = [_title(z, numbers) for z in campaign.zones if owners.get(z.name) == player and z.location.airfield]
     depots = [_title(z, numbers) for z in campaign.zones if owners.get(z.name) == player and z.kind == "depot"]
-    support = [str(name) for name in ((campaign.dynamic.get("support") or {}).get("assets") or [])]
+    # David, 2026-11-17: each tanker says whether it is a boom or a basket
+    support = [
+        with_refuelling(str(name), types.get(str(name), ""))
+        for name in ((campaign.dynamic.get("support") or {}).get("assets") or [])
+    ]
     return Page(
         t("campaign.dossier.title.means"),
         [
@@ -440,7 +451,7 @@ def theatre_dossier(
         ),
         _air_defence_page(campaign, state, numbers),
         _axes_page(prose),
-        _means_page(campaign, state, numbers),
+        _means_page(campaign, state, numbers, (_group_types(mission_folder) or {}) if mission_folder else {}),
         _radio_page(mission_folder, campaign.player_side),
         Page(t("campaign.dossier.title.guide"), guide_blocks(campaign)),
         _roe_page(prose),
@@ -467,7 +478,7 @@ def theatre_dossier(
         if page.title.endswith(t("campaign.dossier.title.defences")):
             _write_map(deck, page.title, defence_map, circles_legend)
             sheets.append(MapSheet(page.title, defence_map.path, map_notes(defence_map, circles_legend)))
-    out = folder / DOSSIER_FILE
+    out = folder / deck_file(campaign, prose, DOSSIER_FILE, None)
     deck.save(str(out))
     cover = Cover(
         f"{t('campaign.deck.operation')} {(prose.operation if prose and prose.operation else campaign.name).upper()}",

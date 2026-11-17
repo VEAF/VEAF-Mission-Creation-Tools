@@ -56,6 +56,7 @@ class TestTheDossier:
             )
             slides = _slides(report.path)
         whole = "\n".join(slides)
+        assert report.path.name == "Kolkhida_dossier-de-theatre.pptx"
         assert "État au 17/11/2026" in slides[0]
         assert "campagne persistante" in slides[0]
         for title in (

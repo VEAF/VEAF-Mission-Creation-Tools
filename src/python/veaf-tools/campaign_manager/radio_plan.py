@@ -4,7 +4,8 @@ The first server evening flew on the scaffold's Open Training plan of the Caucas
 kneeboards of a Syria campaign, carriers that were not there, no AWACS. David's plan for a persistent campaign:
 
 - **VHF** (the airfields' radio in the VEAF convention): channel 1 "Home Base", which each pilot sets to the field
-  he took off from, then the players' side's airfields, with the frequencies DCS gives them on this theatre;
+  he took off from, then the players' side's airfields, with the frequencies DCS gives them on this theatre, then
+  the VEAF flights (so a flight on a tanker's UHF still talks on the VHF);
 - **UHF**: the AWACS and the tankers, one common air-to-ground frequency ("Air-Sol"), then the VEAF flights.
 
 The build needs a frequency on every channel — a channel with none is dropped and leaves the kneeboard — so Home
@@ -19,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from veaf_libs.tankers import with_refuelling
 
 from campaign_manager.models import CampaignDefinition
 
@@ -83,7 +85,9 @@ def _support_channels(campaign: CampaignDefinition, mission_folder: Path) -> dic
         group = groups.get(name)
         frequency = group.group_dcs.get("frequency") if group else None
         if isinstance(frequency, (int, float)) and frequency > 0:
-            channels[name.replace(" ", "-")] = {"title": name, "freqs": {"uhf": float(frequency)}}
+            # David, 2026-11-17: a tanker's channel says whether it is a boom or a basket
+            title = with_refuelling(name, str(group.unit_type or "")) if group else name
+            channels[name.replace(" ", "-")] = {"title": title, "freqs": {"uhf": float(frequency)}}
     return channels
 
 
@@ -102,11 +106,15 @@ def campaign_radio_plan(
     """
     side = campaign.player_side
     airfields = [zone.location.airfield for zone in campaign.zones if zone.side == side and zone.location.airfield]
-    vhf = ["Home-Base", *_airport_aliases(presets, [str(name) for name in airfields])][:CHANNELS]
-    collection = [str(alias) for alias in ((presets.get("channels_collection") or {}).get("flights") or {})]
+    flight_channels = (presets.get("channels_collection") or {}).get("flights") or {}
+    collection = [str(alias) for alias in flight_channels]
     # the shipped plan's flights first, in its order, then the collection's others
     flights = [flight for flight in FLIGHTS if not collection or flight in collection]
     flights += [flight for flight in collection if flight not in flights]
+    # David, 2026-11-17: the flights on the VHF too, after the airfields, so a flight on a tanker's UHF still talks
+    # on the other radio; only those with a VHF frequency, the build dropping a channel with none on its band
+    vhf_flights = [flight for flight in flights if "vhf" in ((flight_channels.get(flight) or {}).get("freqs") or {})]
+    vhf = ["Home-Base", *_airport_aliases(presets, [str(name) for name in airfields]), *vhf_flights][:CHANNELS]
     uhf = [*support, "Air-Sol", *flights][:CHANNELS]
     return {"primary_1": uhf, "primary_2": vhf}
 

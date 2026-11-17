@@ -33,7 +33,7 @@ channels_collection:
     flights:
       Archer:
         title: Archer
-        freqs: { uhf: 390 }
+        freqs: { uhf: 390, vhf: 120 }
       Astro:
         title: Astro
         freqs: { uhf: 391 }
@@ -60,11 +60,12 @@ def _campaign(**dynamic: Any) -> CampaignDefinition:
 
 
 class TestThePlan:
-    def test_vhf_home_base_then_our_airfields_uhf_support_air_to_ground_then_flights(self) -> None:
+    def test_vhf_home_base_our_airfields_then_flights_uhf_support_air_to_ground_then_flights(self) -> None:
         support = {"AWACS-Magic": {"title": "AWACS Magic", "freqs": {"uhf": 282.2}}}
         lists = campaign_radio_plan(_campaign(), yaml.safe_load(_PLAN), support)
-        # blue holds Kobuleti; Senaki is red's
-        assert lists["primary_2"] == ["Home-Base", "Kobuleti"]
+        # blue holds Kobuleti; Senaki is red's. David, 2026-11-17: then the flights that have a VHF frequency, so a
+        # flight on a tanker's UHF still talks on the VHF
+        assert lists["primary_2"] == ["Home-Base", "Kobuleti", "Archer"]
         assert lists["primary_1"] == ["AWACS-Magic", "Air-Sol", "Archer", "Arctic", "Astro"]
 
     def test_home_base_is_a_frequency_no_airfield_uses(self) -> None:
@@ -90,7 +91,7 @@ class TestTheFile:
         assert write_campaign_radio_plan(_campaign(), tmp_path)
         written = yaml.safe_load(presets.read_text(encoding="utf-8"))
         radios = written["channel_lists"]["blue"]
-        assert radios["primary_2"] == {1: "Home-Base", 2: "Kobuleti"}
+        assert radios["primary_2"] == {1: "Home-Base", 2: "Kobuleti", 3: "Archer"}
         assert radios["primary_1"] == {1: "Air-Sol", 2: "Archer", 3: "Arctic", 4: "Astro"}
         assert radios["fm_supplement"] == {1: 30}
         assert written["channels_collection"]["campaign"]["Home-Base"]["title"] == "Home Base"

@@ -14,7 +14,7 @@ from campaign_fixture import CARRIER_XY, PROSE, VALID, built_mission, mission_te
 from campaign_manager.briefing_prose import BriefingProse, parse_prose
 from campaign_manager.campaign_manager import initial_state, parse_campaign
 from campaign_manager.campaign_worker import CampaignWorker
-from campaign_manager.mission_deck import MISSION_DECK_FILE, mission_deck, objective_zones
+from campaign_manager.mission_deck import mission_deck, objective_zones
 from campaign_manager.mission_pages import altitude as _altitude
 from campaign_manager.mission_picture import MissionPicture, Waypoint, read_mission_picture
 from campaign_manager.models import CampaignDefinition
@@ -193,7 +193,7 @@ def _deck(tmp_path: Path, campaign: CampaignDefinition | None = None) -> list[li
             cache_dir=tmp_path,
             fetch=_offline,
         )
-    assert report.path == tmp_path / "mission-01" / MISSION_DECK_FILE
+    assert report.path == tmp_path / "mission-01" / "Kolkhida_mission-01_briefing-mission.pptx"
     assert all(path.is_file() for path in report.maps)
     return [
         [shape.text_frame.text for shape in slide.shapes if shape.has_text_frame]
@@ -327,7 +327,9 @@ class TestTheWorker:
         built_mission(worker.mission_folder(1) / "mission")
         issues, report = worker.briefing()
         assert report is not None, issues
-        assert report.mission_deck == worker.mission_folder(1) / MISSION_DECK_FILE
+        assert report.mission_deck is not None and report.mission_deck.name.endswith(
+            "_mission-01_briefing-mission.pptx"
+        )
         assert report.mission_deck.is_file()
         assert not any("build" in issue.message for issue in issues)
 

@@ -2205,6 +2205,9 @@ veaf.i18nCatalog = {
   ["menu.campaign.intel"] = { fr = "Renseignement", en = "Intel" },
   ["menu.campaign.shop"] = { fr = "Boutique", en = "Shop" },
   ["menu.campaign.shop_item"] = { fr = "%s (%d cr.)", en = "%s (%d cr.)" },
+  ["tanker.kind.boom"] = { fr = "boom", en = "boom" },
+  ["tanker.kind.basket"] = { fr = "panier", en = "basket" },
+  ["tanker.kind.both"] = { fr = "boom et panier", en = "boom and basket" },
   ["campaign.check.credits"] = { fr = "crédits : %d ; achats : %d", en = "credits: %d; purchases: %d" },
   ["campaign.check.tasks"] = {
     fr = "tâches : %d affichée(s), %d postée(s), %d accomplie(s)",

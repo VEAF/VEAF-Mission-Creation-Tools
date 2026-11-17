@@ -39,8 +39,8 @@ Caucase/
     ├── mission-01/
     │   ├── mission/         le dossier de mission de la mission 1
     │   ├── mission-01.state le fichier d'état écrit par la mission
-    │   ├── briefing-campagne.pptx / .pdf / carte-strategique.png
-    │   ├── briefing-mission.pptx / .pdf / carte-tactique.png / zoom-<zone>.png
+    │   ├── <opération>_mission-NN_briefing-campagne.pptx / .pdf / carte-strategique.png
+    │   ├── <opération>_mission-NN_briefing-mission.pptx / .pdf / carte-tactique.png / zoom-<zone>.png
     │   ├── debriefing.fr.txt / debriefing.en.txt
     │   ├── campaign-state.before.yaml
     │   └── campaign-state.after.yaml
@@ -302,11 +302,13 @@ Le format du fichier est décrit dans la [référence du pipeline](../PIPELINE_R
 
 Une [campagne persistante](PERSISTENT_CAMPAIGN.md#theatre-dossier) reçoit à la place de ce document et du briefing de mission son dossier de théâtre et ses pages de planchette.
 
-`campaign next` écrit aussi, dans `missions/mission-NN/`, le **briefing stratégique de la campagne** en PPTX (`briefing-campagne.pptx`) et sa carte (`carte-strategique.png`).
+`campaign next` écrit aussi, dans `missions/mission-NN/`, le **briefing stratégique de la campagne** en PPTX (`<opération>_mission-NN_briefing-campagne.pptx`) et sa carte (`carte-strategique.png`).
 C'est un briefing de situation au format des briefings VEAF — 16:9, fond blanc, titre en gras en haut à gauche — qui s'importe tel quel dans Google Slides.
 `.\veaf-tools.exe campaign briefing <dossier>` le régénère à tout moment, par exemple après avoir retouché le texte.
 
-Chaque briefing PowerPoint s'écrit aussi en **PDF**, à côté, sous le même nom (`briefing-campagne.pdf`, `briefing-mission.pdf`, `dossier-de-theatre.pdf`) : les mêmes pages, dans le même ordre, lisibles sans PowerPoint. L'outil le dessine lui-même avec sa propre police, sans rien demander à la machine : ce n'est pas une copie au pixel des diapositives, et une page longue peut déborder sur la suivante.
+Chaque fichier de briefing porte le nom de l'opération (`operation:` de `briefing.yaml`, sinon le nom de la campagne) et le numéro de la mission : `Kolkhida_mission-02_briefing-campagne.pptx`.
+
+Chaque briefing PowerPoint s'écrit aussi en **PDF**, à côté, sous le même nom (`<opération>_mission-NN_briefing-campagne.pdf`, `<opération>_mission-NN_briefing-mission.pdf`, `<opération>_dossier-de-theatre.pdf`) : les mêmes pages, dans le même ordre, lisibles sans PowerPoint. L'outil le dessine lui-même avec sa propre police, sans rien demander à la machine : ce n'est pas une copie au pixel des diapositives, et une page longue peut déborder sur la suivante.
 
 | Page | D'où elle vient |
 |---|---|
@@ -371,7 +373,7 @@ Sans réseau, la carte est tracée sur un fond uni et le document le signale : r
 
 ## Le briefing de mission {#mission-briefing}
 
-À côté du briefing de campagne, chaque mission a son **briefing de mission** : `missions/mission-NN/briefing-mission.pptx`, au format du briefing de mission VEAF, avec sa carte tactique (`carte-tactique.png`) et un zoom par objectif (`zoom-<zone>.png`).
+À côté du briefing de campagne, chaque mission a son **briefing de mission** : `missions/mission-NN/<opération>_mission-NN_briefing-mission.pptx`, au format du briefing de mission VEAF, avec sa carte tactique (`carte-tactique.png`) et un zoom par objectif (`zoom-<zone>.png`).
 Il se lit dans la mission **construite** : `campaign briefing` l'écrit dès qu'un `.miz` existe dans `missions/mission-NN/mission` (à la racine ou dans `build/`), et dit sinon comment en obtenir un.
 Relancez `campaign briefing` après chaque modification de la mission.
 

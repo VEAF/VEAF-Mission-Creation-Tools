@@ -381,7 +381,7 @@ or a red base with slots nobody asked for, is an inconsistency.
 about most of them: a warning there is a defect to fix before the server, not a remark.
 - **The radio plan is David's, and the theatre's** (2026-11-17). VHF: channel 1 "Home Base" (each pilot
   sets it to the field he took off from), then the players' side's airfields, with this theatre's
-  frequencies. UHF: the AWACS, the tankers, one common air-to-ground frequency "Air-Sol", then the VEAF
+  frequencies, then the VEAF flights on their VHF frequency (a flight on a tanker's UHF still talks on the VHF). UHF: the AWACS, the tankers, one common air-to-ground frequency "Air-Sol", then the VEAF
   flights (Archer, Arctic, Ninja, Pinder, Bengal, Blade…). No carriers unless the mission has them, no
   range of another map, nothing of the Caucasus off the Caucasus. `campaign next` writes this plan when it
   creates the mission folder, from the zones and the support groups of the template: put the AWACS and the
@@ -409,7 +409,7 @@ about most of them: a warning there is a defect to fix before the server, not a 
   in `mission.yaml` from `dynamic.support`: do not move their orbits by hand.
 - **Axes of effort, not objectives**: a persistent campaign has no mission of the day. Write its priorities
   in `briefing.yaml` under `axes:` (a title and a text each), indicative; `campaign_next` turns them, the
-  network and the air defences into a theatre dossier (`dossier-de-theatre.pptx`) and kneeboard pages (map,
+  network and the air defences into a theatre dossier (`<operation>_dossier-de-theatre.pptx`) and kneeboard pages (map,
   zone table, radio plan, cheat sheet), in place of the campaign and mission decks.
 - **A campaign already running keeps what its save drew**: a garrison change (a long-range SAM taken off,
   a zone moved onto its airfield) shows on the server after a reset of the campaign, or on the zones the

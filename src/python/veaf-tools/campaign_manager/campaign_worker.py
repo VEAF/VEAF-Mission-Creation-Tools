@@ -250,8 +250,8 @@ class CampaignWorker:
         )
 
     def briefing(self) -> tuple[list[ValidationIssue], DeckReport | None]:
-        """Write the coming mission's briefings: ``missions/mission-NN/briefing-campagne.pptx``, and
-        ``briefing-mission.pptx`` once the mission has been built.
+        """Write the coming mission's briefings: ``missions/mission-NN/<operation>_mission-NN_briefing-campagne.pptx``,
+        and ``…_briefing-mission.pptx`` once the mission has been built, each with its PDF.
 
         Returns:
             Every issue found — a mission not built yet is a warning saying how to build it —, and the

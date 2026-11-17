@@ -640,7 +640,7 @@ Le dossier est copié depuis `template/` la première fois, et seulement rafraî
 | `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
 | `--pause` | `boolean` | `false` | Si activé, le script attend que l'utilisateur appuie sur une touche avant de quitter. |
 
-Écrit `missions/mission-NN/briefing-campagne.pptx` et sa carte ; `campaign next` le fait aussi. La prose vient de `briefing.yaml`, les faits de la campagne.
+Écrit `missions/mission-NN/<opération>_mission-NN_briefing-campagne.pptx` et sa carte ; `campaign next` le fait aussi. La prose vient de `briefing.yaml`, les faits de la campagne.
 
 ```powershell
 .\veaf-tools.exe campaign briefing C:\Campagnes\Caucase

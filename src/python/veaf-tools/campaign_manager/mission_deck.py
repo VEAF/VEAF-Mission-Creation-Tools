@@ -26,6 +26,7 @@ from veaf_libs.i18n import t
 from veaf_libs.magnetic import grid_heading_to_magnetic, ground_distance, magnetic_bearing
 from veaf_libs.map_tiles import Fetch
 from veaf_libs.mgrs import target_coordinates
+from veaf_libs.tankers import with_refuelling
 from veaf_libs.terrain_elevation import grid_for_theatre, metres_to_feet
 
 from campaign_manager.briefing_deck import (
@@ -42,6 +43,7 @@ from campaign_manager.briefing_deck import (
     _run,
     _write_page,
     _zone_line,
+    deck_file,
     paginate,
 )
 from campaign_manager.briefing_prose import BriefingProse, MissionPage
@@ -261,7 +263,7 @@ def _flow_page(
     defences.append(t("campaign.mission_deck.escort_defences"))
     blocks.append(Block(t("campaign.mission_deck.heading.air_defence"), tuple(defences)))
     others = []
-    tankers = [s.callsign for s in picture.support if s.role != "awacs"]
+    tankers = [with_refuelling(s.callsign, s.aircraft) for s in picture.support if s.role != "awacs"]
     if tankers:
         others.append(t("campaign.mission_deck.refuelling", tankers=_join(tankers)))
     diversions = [a.name for a in picture.airfields] + [c.name for c in picture.carriers]
@@ -417,7 +419,7 @@ def mission_deck(
     for part in [part for closing_page in closing for part in paginate(closing_page)]:
         _write_page(deck, part)
         sheets.append(part)
-    out = folder / MISSION_DECK_FILE
+    out = folder / deck_file(campaign, prose, MISSION_DECK_FILE, mission)
     deck.save(str(out))
     operation = (prose.operation if prose and prose.operation else campaign.name).upper()
     count = "" if campaign.mode == "persistent" else f" {mission}/{campaign.missions}"

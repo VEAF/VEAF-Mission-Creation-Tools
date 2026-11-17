@@ -1122,6 +1122,28 @@ function TestCampaignTankers:test_each_tanker_is_bought_apart()
   luaunit.assertEquals(veafCampaignEconomy.tankers(), { "Tanker Texaco", "Tanker Arco" })
 end
 
+-- David, 2026-11-17: the shop says whether each tanker is a boom or a basket
+function TestCampaignTankers:test_each_tanker_says_how_it_refuels()
+  local function tanker(name, typeName)
+    dcs_mocks.addGroup(name, {
+      getUnit = function()
+        return {
+          getTypeName = function()
+            return typeName
+          end,
+        }
+      end,
+    })
+  end
+  tanker("Tanker Texaco", "KC-135")
+  tanker("Tanker Arco", "KC135MPRS")
+  luaunit.assertEquals(veafCampaignEconomy.tankerTitle("Tanker Texaco"), "Tanker Texaco (" .. veaf.t("tanker.kind.boom") .. ")")
+  luaunit.assertEquals(veafCampaignEconomy.tankerTitle("Tanker Arco"), "Tanker Arco (" .. veaf.t("tanker.kind.basket") .. ")")
+  luaunit.assertEquals(veafCampaignEconomy.tankerTitle("Tanker Shell"), "Tanker Shell", "a group not in the mission")
+  dcs_mocks.removeGroup("Tanker Texaco")
+  dcs_mocks.removeGroup("Tanker Arco")
+end
+
 function TestCampaignTankers:test_one_name_still_works()
   start({ economy = { tanker = "Tanker Texaco" } })
   luaunit.assertEquals(veafCampaignEconomy.tankers(), { "Tanker Texaco" })

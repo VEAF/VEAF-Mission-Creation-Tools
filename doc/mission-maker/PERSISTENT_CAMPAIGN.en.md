@@ -19,7 +19,7 @@
 - **The enemy pays for what it sends** with the [resources](#resources) its factories make: destroying its [factories](#zone-kinds) or cutting its [supply network](#network) grounds its CAP in the end.
 - **The map is tinted** by side, each zone holding the [territory](#territory) nearest to it, and the front reads between the two colours.
 - **Every announcement says who speaks**: "Blue command:" (or red) for what a side does or suffers, "Intelligence:" for what is learnt of the enemy — a convoy or a helicopter leaving, a raid inbound.
-- **The F10 → Other → Campaign menu** gives the situation, the credits, the tasks, the intelligence and the shop; the "(admin)" commands come last.
+- **The F10 → Other → VEAF → Campaign menu** gives the situation, the credits, the tasks, the intelligence and the shop; the "(admin)" commands come last.
 - **The game ends** when one side holds no zone left: a victory if it is the enemy, a defeat if it is us.
   Everyone is told, and the campaign starts afresh at the next load of the mission.
 
@@ -102,23 +102,23 @@ When it creates the mission folder, `campaign next` writes the players' radio pl
 
 | Radio | Channels |
 |---|---|
-| VHF, the airfields' radio | 1 **Home Base**, which each pilot sets to the field taken off from; then the players' side's airfields, with the frequencies DCS gives them on this theatre |
-| UHF | the AWACS, then the tankers of `dynamic.support.assets` and `economy.tanker` (the boom and the basket), on their group's frequency; **Air-Sol**, the common air-to-ground frequency (305.0); then the VEAF flights, Archer first |
+| VHF, the airfields' radio | 1 **Home Base**, which each pilot sets to the field taken off from; then the players' side's airfields, with the frequencies DCS gives them on this theatre; then the VEAF flights, on their VHF frequency: a flight tuned to a tanker's UHF still talks on the VHF |
+| UHF | the AWACS, then the tankers of `dynamic.support.assets` and `economy.tanker`, on their group's frequency, each named with how it refuels ("Tanker Texaco (boom)", "Tanker Arco (basket)"); **Air-Sol**, the common air-to-ground frequency (305.0); then the VEAF flights, Archer first |
 
 A channel needs a frequency for the build to keep it on the radio and the kneeboard: Home Base carries a placeholder no airfield of DCS uses (VHF 118.025, UHF 230.025), which the pilot overwrites.
 The AWACS and the tankers must therefore be in the template before the first `campaign next`.
 
 ### The theatre dossier and the kneeboard {#theatre-dossier}
 
-A persistent campaign has no mission of the day: instead of the [campaign briefing](CAMPAIGN.en.md#briefing-deck) and the [mission briefing](CAMPAIGN.en.md#mission-briefing), `campaign next` and `campaign briefing` write the **theatre dossier** into `missions\mission-01\`, `dossier-de-theatre.pptx`, with its two maps (`carte-du-reseau.png`, `carte-des-defenses.png`).
+A persistent campaign has no mission of the day: instead of the [campaign briefing](CAMPAIGN.en.md#briefing-deck) and the [mission briefing](CAMPAIGN.en.md#mission-briefing), `campaign next` and `campaign briefing` write the **theatre dossier** into `missions\mission-01\`, `<operation>_dossier-de-theatre.pptx`, with its two maps (`carte-du-reseau.png`, `carte-des-defenses.png`).
 It is a dated picture of the situation ("État au 17/11/2026"), not an operation order: no objectives, no ATO, no weather.
-The same dossier is also written as a PDF beside it, `dossier-de-theatre.pdf`, readable without PowerPoint ([as every briefing is](CAMPAIGN.en.md#briefing-deck)).
+The same dossier is also written as a PDF beside it, `<operation>_dossier-de-theatre.pdf`, readable without PowerPoint ([as every briefing is](CAMPAIGN.en.md#briefing-deck)).
 
 | Page | What it says |
 |---|---|
 | Cover | the operation, the theatre, the date of the picture |
 | Strategic situation | `briefing.yaml`: political, economic, enemy course of action |
-| Network map | each zone in its side's colour, a symbol per kind (square airfield, circle outpost, triangle factory, diamond depot), its [waypoint](#waypoints) number, the connections, the tinted territory and the front |
+| Network map | each zone in its side's colour, a symbol per kind (square airfield, circle outpost, triangle factory, diamond depot), its [waypoint](#waypoints) number, the connections, the territory hatched in its side's colour and the front as a thin line, as on the F10 map |
 | The enemy network | which factory feeds which zones, what each depot speeds up, the zones already cut off, and the **critical nodes**: the enemy zones whose capture cuts other zones off from their factory |
 | Known air defences | the [long-range SAMs](#long-range-sams) with their reach drawn as a circle, and what intelligence knows of them ("probable" until a reconnaissance confirms it); ours too |
 | Axes of effort | `axes:` from `briefing.yaml`, given as indicative: the situation moves, adapt |
@@ -182,7 +182,7 @@ The file is a Lua table read with no access to anything: it cannot run code.
 The server's `MissionScripting.lua` must leave `io` and `lfs` open, as the VEAF servers do.
 Without them the campaign runs anyway, but does not save, and says so once.
 
-**Reset**: F10 → Other → Campaign → **Reset the campaign (admin)**.
+**Reset**: F10 → Other → VEAF → Campaign → **Reset the campaign (admin)**.
 The campaign starts again from its declared state at the next load of the mission; a victory or a defeat does the same.
 
 ## Sleeping zones {#dormancy}
@@ -206,7 +206,7 @@ Only one zone wakes per 10-second beat, so the whole front does not appear in on
 ## A front that moves on its own {#front}
 
 - **Counter-attacks**: every `attack_seconds` (900 s), a side listed in `attacks` (red by default) sends an assault convoy against the weakest enemy zone it borders, `max_convoys` (2) on the road at most.
-  Only those sides send convoys on their own toward a neutral zone too; the players' side buys theirs (F10 → Campaign → Assaults), and no automatic convoy leaves for a zone a convoy of the same side already drives to.
+  Only those sides send convoys on their own toward a neutral zone too; the players' side buys theirs (F10 → Other → VEAF → Campaign → Assaults), and no automatic convoy leaves for a zone a convoy of the same side already drives to.
 - **A convoy that will not arrive frees its place**: once its target is its side's (a helicopter took it first), or after `convoy_timeout` (2,700 s) on the road, it is taken off the map and the price of its survivors goes back to its side.
 - **The other side is told at once** of a convoy leaving, and sees its axis on the map.
 - **Resupply**: a delivery to a damaged friendly zone brings its first damaged group back to full strength.
@@ -262,7 +262,7 @@ A player's kill pays in two parts: `economy.landing_share` (50 %) of it is held 
 Both parts go to the coalition's account.
 The other gains, which no single pilot carries, are paid whole.
 
-F10 → Other → Campaign → **Shop**: each item lists the zones it applies to.
+F10 → Other → VEAF → Campaign → **Shop**: each item lists the zones it applies to.
 A purchase refused (no target left, nothing in reach) costs nothing.
 
 | Item | Effect | Price |
@@ -282,12 +282,12 @@ A purchase refused (no target left, nothing in reach) costs nothing.
 The BARCAP holds on the axis between the enemy zone and our nearest airfield, at the first point out of the reach of **every** enemy air defence (not only the target zone's) plus 15 km, and guards a 15 km circle; when no point of the axis is out of reach, it holds over its airfield.
 The reach is measured on the missiles the zone's units carry when it is awake; a sleeping zone is assumed to reach 75 km when it holds a [long-range SAM](#long-range-sams), 20 km otherwise, and the message says so.
 
-Prices change in `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `escort`, `tanker`, and `assault` for the assault order of F10 → Campaign → Assault, 300).
+Prices change in `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `escort`, `tanker`, and `assault` for the assault order of F10 → Other → VEAF → Campaign → Assault, 300).
 What the players buy is paid in credits, never from the [resources](#resources).
 
 ## The task board {#tasks}
 
-F10 → Other → Campaign → **Tasks**: `tasks.count` (3) tasks at once, drawn from the situation and filled up every `tasks.refresh_seconds` (300 s), each marked on our side's map.
+F10 → Other → VEAF → Campaign → **Tasks**: `tasks.count` (3) tasks at once, drawn from the situation and filled up every `tasks.refresh_seconds` (300 s), each marked on our side's map.
 
 | Task | Done when | Reward |
 |---|---|---|
@@ -307,7 +307,7 @@ An enemy zone's garrison is **unknown** to the players ("strength unknown" on th
 - by a **JTAC drone** or **intel** bought in the shop;
 - by a **spy team**: the "Spy" CTLD 2 troop group deployed within `intel.spy_range` (5 km) of an enemy zone walks into it on its own, and reveals it on arrival.
 
-A reconnoitred zone shows its strength on the map, and F10 → Other → Campaign → **Intel** gives its composition, air defence first.
+A reconnoitred zone shows its strength on the map, and F10 → Other → VEAF → Campaign → **Intel** gives its composition, air defence first.
 `intel.hidden: false` shows every garrison to everyone.
 
 ## Factories and depots {#zone-kinds}
@@ -376,7 +376,7 @@ A side's factories feed its zones hop by hop, along the connections, and only th
   Players who fly logistics go faster: a crate, troops or a helicopter reinforce at once, without waiting for the network or paying for it.
 - **A zone cut off** from every factory and depot is still served, from the background production, after `network.isolated_seconds` (3,600 s).
 
-F10 → Campaign → **Supply network** gives the players their stock, their production, and for each of their zones its delay or "cut off".
+F10 → Other → VEAF → Campaign → **Supply network** gives the players their stock, their production, and for each of their zones its delay or "cut off".
 
 ## Paid spawns {#paid-spawns}
 
@@ -426,7 +426,7 @@ The campaign makes no warehouse limited or unlimited: that is the Mission Editor
 
 The players move stock from one field to another, in a helicopter or a transport aircraft:
 
-1. on the ground at an airfield of the coalition, F10 → Campaign → Warehouse → **Load weapons** takes `warehouse.load` (10) of each weapon the warehouse holds (fewer when it has fewer);
+1. on the ground at an airfield of the coalition, F10 → Other → VEAF → Campaign → Warehouse → **Load weapons** takes `warehouse.load` (10) of each weapon the warehouse holds (fewer when it has fewer);
 2. on the ground at **another** airfield of the coalition, **Unload weapons** puts in exactly what is aboard, and earns `economy.warehouse_delivery` (50) credits, once per airfield in each flight;
 3. **Cargo** tells what is aboard.
 
@@ -508,7 +508,7 @@ While the campaign is being tuned, `dynamic.debug` (on by default) writes in `dc
 
 ## Checking a mission in game {#self-check}
 
-F10 → Other → Campaign → **Self-check (admin)** prints one `OK` or `KO` line per mechanism: zones placed, save read and written, outcome, dormancy, captures, factories, territory, both sides' resources, network (deliveries and zones cut off), paid spawns, sappers, warehouses, helicopters, air, bombers, credits, tasks, intelligence.
+F10 → Other → VEAF → Campaign → **Self-check (admin)** prints one `OK` or `KO` line per mechanism: zones placed, save read and written, outcome, dormancy, captures, factories, territory, both sides' resources, network (deliveries and zones cut off), paid spawns, sappers, warehouses, helicopters, air, bombers, credits, tasks, intelligence.
 A `KO` line is enough to know where to look.
 
 ## Every setting {#settings}

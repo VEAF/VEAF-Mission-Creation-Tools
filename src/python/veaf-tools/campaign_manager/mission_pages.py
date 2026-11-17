@@ -15,6 +15,7 @@ from pptx.util import Emu
 from veaf_libs.coordinates import to_dms, xy_to_latlon
 from veaf_libs.i18n import t
 from veaf_libs.mission_wind import SEA_LEVEL
+from veaf_libs.tankers import with_refuelling
 from veaf_libs.terrain_elevation import metres_to_feet
 
 from campaign_manager.briefing_deck import _HEIGHT, _MARGIN, _WIDTH, Block, Page, _frame, _run, _titled_slide
@@ -164,7 +165,7 @@ def ato_page(
             t(
                 "campaign.mission_deck.support",
                 callsign=aircraft.callsign,
-                role=t(f"campaign.mission_deck.role.{aircraft.role}"),
+                role=with_refuelling(t(f"campaign.mission_deck.role.{aircraft.role}"), aircraft.aircraft),
                 aircraft=aircraft.aircraft,
                 frequency=mhz(aircraft.frequency),
                 tacan=tacan,

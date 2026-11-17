@@ -387,6 +387,31 @@ function veafCampaignEconomy.tankers()
   return type(setting) == "table" and setting or {}
 end
 
+--- How each tanker type refuels (`veaf_libs/tankers.py` holds the same lists): the KC-10 does both.
+veafCampaignEconomy.BOOM_TANKERS = { ["KC-135"] = true, ["KC-10A"] = true }
+veafCampaignEconomy.BASKET_TANKERS = {
+  ["KC135MPRS"] = true,
+  ["KC130"] = true,
+  ["KC130J"] = true,
+  ["S-3B Tanker"] = true,
+  ["IL-78M"] = true,
+  ["KC-10A"] = true,
+}
+
+--- A tanker's name and how it refuels, "Tanker Arco (panier)" (David, 2026-11-17); the name alone when its
+--- group is not in the mission or its type is no tanker known here.
+function veafCampaignEconomy.tankerTitle(name)
+  local group = Group.getByName(name)
+  local unit = group and group.getUnit and group:getUnit(1)
+  local typeName = unit and unit:getTypeName()
+  local boom, basket = veafCampaignEconomy.BOOM_TANKERS[typeName], veafCampaignEconomy.BASKET_TANKERS[typeName]
+  local kind = (boom and basket and "both") or (boom and "boom") or (basket and "basket")
+  if not kind then
+    return name
+  end
+  return string.format("%s (%s)", name, veaf.t("tanker.kind." .. kind))
+end
+
 local function zoneSuits(rule, zone)
   local own, owner = veafCampaign.playerSide(), zone.entry.owner
   return (rule == "any")
@@ -899,7 +924,7 @@ function veafCampaignEconomy.buildRadioMenu()
       veafRadio.addCommandToSubmenu(title, veafCampaignEconomy.shopPath, veafCampaignEconomy.buyEscort, nil, veafRadio.USAGE_ForGroup)
     elseif item.id == "tanker" then
       for _, name in ipairs(veafCampaignEconomy.tankers()) do
-        local tankerTitle = veaf.t("menu.campaign.shop_item", name, veafCampaignEconomy.price(item.id))
+        local tankerTitle = veaf.t("menu.campaign.shop_item", veafCampaignEconomy.tankerTitle(name), veafCampaignEconomy.price(item.id))
         veafRadio.addCommandToSubmenu(
           tankerTitle,
           veafCampaignEconomy.shopPath,

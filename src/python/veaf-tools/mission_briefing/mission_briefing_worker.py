@@ -74,6 +74,7 @@ from veaf_libs.magnetic import grid_heading_to_magnetic, ground_distance, magnet
 from veaf_libs.map_tiles import OSM, Fetch, TileSource
 from veaf_libs.mgrs import target_coordinates
 from veaf_libs.mission_table import indexed
+from veaf_libs.tankers import with_refuelling
 from veaf_libs.terrain_elevation import grid_for_theatre, metres_to_feet
 from veaf_mission_mcp.add_sound import _folder_l10n
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
@@ -375,7 +376,7 @@ def _ato_page(content: BriefingContent, picture: MissionPicture, warnings: list[
     support = [
         (
             aircraft.callsign,
-            t(f"campaign.mission_deck.role.{aircraft.role}"),
+            with_refuelling(t(f"campaign.mission_deck.role.{aircraft.role}"), aircraft.aircraft),
             aircraft.aircraft,
             f"{mhz(aircraft.frequency)} MHz",
             aircraft.tacan or "—",
@@ -553,7 +554,7 @@ def _flow_page(
     if defences:
         blocks.append(Block(t("campaign.mission_deck.heading.air_defence"), tuple(defences)))
     others = list(content.other)
-    tankers = [s.callsign for s in picture.support if s.role != "awacs"]
+    tankers = [with_refuelling(s.callsign, s.aircraft) for s in picture.support if s.role != "awacs"]
     if tankers:
         others.append(t("campaign.mission_deck.refuelling", tankers=_join(tankers)))
     # the departure is no diversion: the deck said "Diversion fields: Senaki" for a flight leaving

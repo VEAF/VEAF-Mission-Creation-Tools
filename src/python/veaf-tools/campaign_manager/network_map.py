@@ -2,7 +2,7 @@
 
 Each zone in its owner's colour with one symbol per kind (an airfield a square, an outpost a circle, a factory a
 triangle, a depot a diamond), its waypoint number before its name, the connections, the territory tinted by owner
-— each point of the map in the colour of its nearest zone, as the F10 map tints it — and the front between two
+— hatched in the colour of its nearest zone, as the F10 map draws it — and the front, a thin line between two
 colours. Optional reach circles show the long-range air defences.
 """
 
@@ -23,8 +23,16 @@ from campaign_manager.strategic_map import OWNER_COLOURS, MapReport, _boxed_text
 #: Degrees of margin around the zones.
 _MARGIN_LAT, _MARGIN_LON = 0.2, 0.3
 
-#: The side of a cell of the territory tint, pixels.
-_CELL = 6
+#: The territory's hatching: the gap between two lines and their width, pixels, and the lines' opacity.
+_HATCH_GAP, _HATCH_WIDTH, _HATCH_ALPHA = 14, 2, 110
+
+#: The front line: its width, pixels, and colour.
+_FRONT_WIDTH, _FRONT_COLOUR = 3, (30, 30, 30, 230)
+
+Point = tuple[float, float]
+Cell = list[tuple[Point, str | None]]
+"""A territory cell: its corners, each with what lies across the side that starts there (a zone's name, or
+``None`` for the picture's edge)."""
 
 #: The symbol's half size, pixels.
 _SYMBOL = 13
@@ -63,6 +71,85 @@ def _symbol(draw: ImageDraw.ImageDraw, kind: str, cx: float, cy: float, colour: 
         )
     else:
         draw.ellipse((cx - s, cy - s, cx + s, cy + s), fill=fill, outline=outline, width=3)
+
+
+def _clip(cell: Cell, a: Point, b: Point, other: str) -> Cell:
+    """Keep the part of a cell nearer to ``a`` than to ``b``; the new side, on the bisector, faces ``other``."""
+
+    def nearer(point: Point) -> float:
+        # negative on a's side of the bisector
+        return (point[0] - (a[0] + b[0]) / 2) * (b[0] - a[0]) + (point[1] - (a[1] + b[1]) / 2) * (b[1] - a[1])
+
+    def crossing(p: Point, q: Point) -> Point:
+        fp, fq = nearer(p), nearer(q)
+        ratio = fp / (fp - fq)
+        return (p[0] + (q[0] - p[0]) * ratio, p[1] + (q[1] - p[1]) * ratio)
+
+    kept: Cell = []
+    for index, (p, side) in enumerate(cell):
+        q = cell[(index + 1) % len(cell)][0]
+        p_in, q_in = nearer(p) <= 0, nearer(q) <= 0
+        if p_in:
+            kept.append((p, side))
+            if not q_in:
+                kept.append((crossing(p, q), other))
+        elif q_in:
+            kept.append((crossing(p, q), side))
+    return kept
+
+
+def territory_cells(centres: Mapping[str, Point], width: int, height: int) -> dict[str, Cell]:
+    """Each zone's territory on the picture: what is nearer to it than to any other zone, as the F10 map tints it.
+
+    Args:
+        centres: Each zone's centre, pixels.
+        width: The picture's width.
+        height: The picture's height.
+
+    Returns:
+        Each zone's cell, a convex polygon whose sides say what lies across them.
+    """
+    frame: Cell = [((0.0, 0.0), None), ((float(width), 0.0), None), ((float(width), float(height)), None)]
+    frame.append(((0.0, float(height)), None))
+    cells: dict[str, Cell] = {}
+    for name, centre in centres.items():
+        cell = list(frame)
+        for other, point in centres.items():
+            if other != name and point != centre and cell:
+                cell = _clip(cell, centre, point, other)
+        cells[name] = cell
+    return cells
+
+
+def front_segments(cells: Mapping[str, Cell], owners: Mapping[str, str]) -> list[tuple[Point, Point]]:
+    """The sides between two cells of different owners: the front, each side once.
+
+    Args:
+        cells: The territory cells.
+        owners: Each zone's owner.
+
+    Returns:
+        The front's segments.
+    """
+    segments = []
+    for name, cell in cells.items():
+        for index, (start, other) in enumerate(cell):
+            if other is None or other < name or owners.get(other, "neutral") == owners.get(name, "neutral"):
+                continue
+            end = cell[(index + 1) % len(cell)][0]
+            if start != end:
+                segments.append((start, end))
+    return segments
+
+
+def _hatched(size: tuple[int, int], colour: tuple[int, int, int]) -> Image.Image:
+    """Diagonal lines over a whole picture, in a side's colour."""
+    hatch = Image.new("RGBA", size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(hatch)
+    width, height = size
+    for offset in range(-height, width, _HATCH_GAP):
+        draw.line((offset, height, offset + height, 0), fill=(*colour, _HATCH_ALPHA), width=_HATCH_WIDTH)
+    return hatch
 
 
 def _box(points: Sequence[tuple[float, float]], aspect: float | None) -> tuple[float, float, float, float]:
@@ -117,27 +204,22 @@ def render_network_map(
     width, height = background.size
     centres = {name: base.pixel(*points[name]) for name in points}
 
-    # the territory: each cell in its nearest zone's colour, a dark edge where two owners meet
-    columns, rows = width // _CELL + 1, height // _CELL + 1
-    nearest: list[list[str]] = []
-    for row in range(rows):
-        line = []
-        for column in range(columns):
-            x, y = column * _CELL + _CELL / 2, row * _CELL + _CELL / 2
-            line.append(min(centres, key=lambda name: (centres[name][0] - x) ** 2 + (centres[name][1] - y) ** 2))
-        nearest.append(line)
-    tint = Image.new("RGBA", background.size, (0, 0, 0, 0))
-    tint_draw = ImageDraw.Draw(tint)
-    for row in range(rows):
-        for column in range(columns):
-            owner = owners.get(nearest[row][column], "neutral")
-            box = (column * _CELL, row * _CELL, column * _CELL + _CELL, row * _CELL + _CELL)
-            tint_draw.rectangle(box, fill=(*OWNER_COLOURS[owner], 40))
-            right = column + 1 < columns and owners.get(nearest[row][column + 1], "neutral") != owner
-            below = row + 1 < rows and owners.get(nearest[row + 1][column], "neutral") != owner
-            if right or below:
-                tint_draw.rectangle(box, fill=(30, 30, 30, 150))
-    background = Image.alpha_composite(background, tint)
+    # the territory hatched in its owner's colour, a thin line where two owners meet, as on the F10 map
+    cells = territory_cells(centres, width, height)
+    for owner in sorted({owners.get(name, "neutral") for name in cells}):
+        mask = Image.new("L", background.size, 0)
+        mask_draw = ImageDraw.Draw(mask)
+        for name, cell in cells.items():
+            if owners.get(name, "neutral") == owner and len(cell) >= 3:
+                mask_draw.polygon([point for point, _ in cell], fill=255)
+        layer = Image.new("RGBA", background.size, (0, 0, 0, 0))
+        layer.paste(_hatched(background.size, OWNER_COLOURS[owner]), (0, 0), mask)
+        background = Image.alpha_composite(background, layer)
+    front = Image.new("RGBA", background.size, (0, 0, 0, 0))
+    front_draw = ImageDraw.Draw(front)
+    for start, end in front_segments(cells, owners):
+        front_draw.line((start, end), fill=_FRONT_COLOUR, width=_FRONT_WIDTH)
+    background = Image.alpha_composite(background, front)
 
     overlay = Image.new("RGBA", background.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)

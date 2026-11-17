@@ -279,10 +279,10 @@ function veafSupport.follow(name, now)
   local side = group:getCoalition()
   local state = veafSupport.state[name] or {}
   veafSupport.state[name] = state
-  -- a group respawned (the assets menu, the shop) comes back on its Mission Editor orbit, with a new id
-  local id = group.getID and group:getID()
-  if state.groupId ~= id then
-    veafSupport.state[name] = { groupId = id, marks = state.marks }
+  -- first seen, or respawned (the assets menu, the shop: back on its Mission Editor orbit, its id unchanged):
+  -- weighed again from that orbit
+  if not state.seen or state.respawned then
+    veafSupport.state[name] = { seen = true, marks = state.marks }
     state = veafSupport.state[name]
     veafSupport.drawMarks(state, name, side, anchor, anchorLeg or legEnd(anchor, 90))
   end
@@ -315,6 +315,19 @@ function veafSupport.follow(name, now)
   end
 end
 
+--- The birth of a unit: an asset's group born again is a respawn. DCS keeps the Mission Editor's group id on a
+--- respawn (`VeafGroupSpawn:respawn`, measured in game), so the id cannot tell it; the birth of its units does.
+--- @param event table the event as `veafEventHandler` hands it
+function veafSupport.onBirth(event)
+  local unit = event and event.dcsInitiator
+  local group = unit and unit.getGroup and unit:getGroup()
+  local name = group and group.getName and group:getName()
+  local state = name and veafSupport.state[name]
+  if state then
+    state.respawned = true
+  end
+end
+
 --- One pass over every asset.
 function veafSupport.beat()
   local now = timer.getTime()
@@ -332,6 +345,9 @@ function veafSupport.initialize()
   if not (veafMove and veafMove.moveTanker) then
     logger():error("veafMove is needed to move an orbit: the SUPPORT module does nothing")
     return false
+  end
+  if veafEventHandler and veafEventHandler.addCallback then
+    veafEventHandler.addCallback("veafSupport.onBirth", { "S_EVENT_BIRTH" }, veafSupport.onBirth)
   end
   veafSupport.beat()
   veafSupport.loopId =

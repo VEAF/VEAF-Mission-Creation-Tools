@@ -1757,7 +1757,16 @@ function veafCampaign.retireConvoy(record, reason)
       group:destroy()
     end
   end
-  local refund = record.purchased and 0 or veafCampaign.unitsPrice(survivors)
+  -- as a restart does (applySave): the survivors go back to the reserve they were taken from, and their price
+  -- into the side's resources, bought or not, or each retired convoy empties the counter-attacks' reserve
+  local reserve = veafCampaign.reserveOf(record.side)
+  if reserve then
+    for _, unitType in ipairs(survivors) do
+      local category = veafCampaign.reserveCategory(unitType)
+      reserve[category] = (reserve[category] or 0) + 1
+    end
+  end
+  local refund = veafCampaign.unitsPrice(survivors)
   if refund > 0 and veafCampaignLogistics and veafCampaignLogistics.active then
     veafCampaignLogistics.credit(record.side, refund)
   end

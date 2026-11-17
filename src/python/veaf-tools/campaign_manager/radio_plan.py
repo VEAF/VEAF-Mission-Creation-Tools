@@ -32,7 +32,8 @@ COLLECTION = "campaign"
 
 #: Home Base's placeholder: frequencies no airfield of any theatre uses, so a pilot who forgets to set it
 #: calls nobody.
-HOME_BASE = {"title": "Home Base", "freqs": {"vhf": 118.025, "uhf": 230.025}}
+_HOME_BASE_VHF = 118.025
+HOME_BASE = {"title": "Home Base", "freqs": {"vhf": _HOME_BASE_VHF, "uhf": 230.025}}
 
 #: The common air-to-ground frequency, free on every theatre.
 AIR_TO_GROUND = {"title": "Air-Sol", "freqs": {"uhf": 305.0}}
@@ -60,6 +61,15 @@ def _airport_aliases(presets: dict[str, Any], names: list[str]) -> list[str]:
             if len(set(keys) & wanted) > len(set(best) & wanted):
                 best = keys
     return [best[_key(name)] for name in names if _key(name) in best]
+
+
+def _vhf(presets: dict[str, Any], alias: str) -> float | None:
+    """A channel's VHF frequency, from whichever collection of the plan holds it."""
+    for collection in (presets.get("channels_collection") or {}).values():
+        if isinstance(collection, dict) and alias in collection:
+            frequency = ((collection[alias] or {}).get("freqs") or {}).get("vhf")
+            return float(frequency) if frequency is not None else None
+    return None
 
 
 def _support_channels(campaign: CampaignDefinition, mission_folder: Path) -> dict[str, dict[str, Any]]:
@@ -113,8 +123,17 @@ def campaign_radio_plan(
     flights += [flight for flight in collection if flight not in flights]
     # David, 2026-11-17: the flights on the VHF too, after the airfields, so a flight on a tanker's UHF still talks
     # on the other radio; only those with a VHF frequency, the build dropping a channel with none on its band
-    vhf_flights = [flight for flight in flights if "vhf" in ((flight_channels.get(flight) or {}).get("freqs") or {})]
-    vhf = ["Home-Base", *_airport_aliases(presets, [str(name) for name in airfields]), *vhf_flights][:CHANNELS]
+    airfield_aliases = _airport_aliases(presets, [str(name) for name in airfields])
+    # a flight whose VHF is an airfield's of the list (Pinder 120.6 = Minakh on Syria) stays off that radio: the same
+    # frequency twice is a channel wasted and a pilot who calls the tower (review of PR #1293)
+    taken: set[float | None] = {_HOME_BASE_VHF, *(_vhf(presets, alias) for alias in airfield_aliases)}
+    vhf_flights = []
+    for flight in flights:
+        frequency = ((flight_channels.get(flight) or {}).get("freqs") or {}).get("vhf")
+        if frequency is not None and float(frequency) not in taken:
+            vhf_flights.append(flight)
+            taken.add(float(frequency))
+    vhf = ["Home-Base", *airfield_aliases, *vhf_flights][:CHANNELS]
     uhf = [*support, "Air-Sol", *flights][:CHANNELS]
     return {"primary_1": uhf, "primary_2": vhf}
 

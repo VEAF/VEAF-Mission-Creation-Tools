@@ -39,7 +39,7 @@ channels_collection:
         freqs: { uhf: 391 }
       Arctic:
         title: Arctic
-        freqs: { uhf: 391.5 }
+        freqs: { uhf: 391.5, vhf: 133.0 }
     airports-caucasus:
       Batumi:
         title: Batumi / 16X
@@ -65,6 +65,7 @@ class TestThePlan:
         lists = campaign_radio_plan(_campaign(), yaml.safe_load(_PLAN), support)
         # blue holds Kobuleti; Senaki is red's. David, 2026-11-17: then the flights that have a VHF frequency, so a
         # flight on a tanker's UHF still talks on the VHF
+        # Arctic's VHF is Kobuleti's: left off that radio, where it would double a channel (review of PR #1293)
         assert lists["primary_2"] == ["Home-Base", "Kobuleti", "Archer"]
         assert lists["primary_1"] == ["AWACS-Magic", "Air-Sol", "Archer", "Arctic", "Astro"]
 

@@ -906,6 +906,44 @@ function TestCampaignConvoyGoal:test_a_convoy_whose_target_is_its_side_s_frees_i
   luaunit.assertEquals(veafCampaign.convoysUnderway("red"), 0)
 end
 
+-- review of PR #1293: a retired convoy gave its points back but not its units, so each one emptied the reserve the
+-- counter-attacks draw from; as a restart does (applySave), its survivors go back to the reserve, bought or not
+function TestCampaignConvoyGoal:test_a_retired_convoy_gives_its_survivors_back_to_the_reserve()
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  veafCampaign.data.sides = veafCampaign.data.sides or {}
+  veafCampaign.data.sides.red = veafCampaign.data.sides.red or {}
+  veafCampaign.data.sides.red.reserve = {}
+  local savedUnits, savedLogistics = veafCampaign.convoyUnits, veafCampaignLogistics
+  local credited = {}
+  veafCampaignLogistics = {
+    active = true,
+    credit = function(side, points)
+      table.insert(credited, { side = side, points = points })
+    end,
+  }
+  veafCampaign.convoyUnits = function()
+    local function unit(typeName)
+      return {
+        getTypeName = function()
+          return typeName
+        end,
+      }
+    end
+    return { unit("T-72B"), unit("T-72B") }
+  end
+  for _, purchased in ipairs({ false, true }) do
+    local record = { name = "Poti assault", side = "red", from = "Poti", to = "Kobuleti", purchased = purchased or nil }
+    veafCampaign.retireConvoy(record, "test")
+  end
+  veafCampaign.convoyUnits, veafCampaignLogistics = savedUnits, savedLogistics
+  local reserve = veafCampaign.reserveOf("red")
+  local category = veafCampaign.reserveCategory("T-72B")
+  luaunit.assertEquals(reserve[category], 4, "two survivors back from each convoy")
+  luaunit.assertEquals(#credited, 2, "their price too, bought or not")
+  luaunit.assertEquals(credited[2].points, veafCampaign.unitsPrice({ "T-72B", "T-72B" }))
+end
+
 function TestCampaignConvoyGoal:test_a_convoy_on_the_road_too_long_frees_its_place()
   veafCampaign.data = persistentData({ convoy_timeout = 600 })
   veafCampaign.initialize()

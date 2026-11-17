@@ -405,3 +405,17 @@ class TestAnotherTheatresAirfields:
     def test_a_plan_the_author_wrote_is_left_alone(self) -> None:
         text = "channel_lists:\n  blue:\n    primary_2:\n      01: Batumi\n      02: Incirlik\n"
         assert M.plan_for_theatre(text, "Syria") == text
+
+
+def test_theatre_airfields_picks_the_collection_that_shares_the_most_names() -> None:
+    """Review of PR #1293: a big collection sharing one name beat a small one sharing three, measured by size."""
+    from presets_injector.airfield_channels_manager import load_reference, theatre_airfields
+
+    names = sorted(str(entry["name"]) for entry in load_reference("Syria").values())[:3]
+    presets = {
+        "channels_collection": {
+            "airports-big": {**{f"Elsewhere {n}": {} for n in range(40)}, names[0]: {}},
+            "airports-syria": {name: {} for name in names},
+        }
+    }
+    assert sorted(theatre_airfields(presets, "Syria")) == names

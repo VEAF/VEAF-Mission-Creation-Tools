@@ -712,7 +712,7 @@ def theatre_airfields(presets: dict[str, Any], theatre: str, count: int = THEATR
         if not str(name).startswith("airports-") or not isinstance(collection, dict):
             continue
         keys = {_normalise(re.sub(r" \(.*\)$", "", str(alias))): str(alias) for alias in collection}
-        if len(set(keys) & wanted) > len(best):
+        if len(set(keys) & wanted) > len(set(best) & wanted):
             best = keys
     chosen = [best[key] for key in (_normalise(str(entry["name"])) for entry in entries) if key in best]
     return chosen[:count]

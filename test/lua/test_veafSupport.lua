@@ -167,12 +167,41 @@ function TestVeafSupport:test_a_sam_that_comes_and_goes_every_few_minutes_does_n
   luaunit.assertEquals(#self.moves, 1, "one retreat, then it holds")
 end
 
+-- A respawn keeps the Mission Editor's group id (VeafGroupSpawn:respawn, measured in game: 44 both times): the
+-- signal is the birth of its units (review of PR #1293, 2026-11-17)
+local function birth(groupName)
+  return {
+    dcsInitiator = {
+      getGroup = function()
+        return {
+          getName = function()
+            return groupName
+          end,
+        }
+      end,
+    },
+  }
+end
+
 function TestVeafSupport:test_a_respawned_asset_is_weighed_again_from_its_orbit()
   self.sams = { sam(-50, 80000) }
   veafSupport.follow("AWACS Magic", 0)
-  self.groupId = 2 -- respawned: back on its Mission Editor orbit, under the SAM
+  luaunit.assertEquals(#self.moves, 1, "out of the SAM's reach")
+  -- respawned, same id: back on its Mission Editor orbit, under the SAM
+  veafSupport.onBirth(birth("AWACS Magic"))
   veafSupport.follow("AWACS Magic", 60)
-  luaunit.assertEquals(#self.moves, 2)
+  luaunit.assertEquals(#self.moves, 2, "weighed again from its orbit, and out again")
+  veafSupport.follow("AWACS Magic", 120)
+  luaunit.assertEquals(#self.moves, 2, "once")
+end
+
+function TestVeafSupport:test_another_group_s_birth_changes_nothing()
+  self.sams = { sam(-50, 80000) }
+  veafSupport.follow("AWACS Magic", 0)
+  veafSupport.onBirth(birth("Somebody else"))
+  veafSupport.onBirth({})
+  veafSupport.follow("AWACS Magic", 60)
+  luaunit.assertEquals(#self.moves, 1)
 end
 
 function TestVeafSupport:test_a_campaign_gives_its_threats_its_front_and_its_voice()

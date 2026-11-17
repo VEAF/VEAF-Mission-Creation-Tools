@@ -528,7 +528,8 @@ veafCampaignEconomy.effects = {
     if not (known and veafAssets and veafAssets.respawn) then
       return false, "campaign.shop.refused_no_tanker"
     end
-    -- back on its Mission Editor orbit with a new group id: the SUPPORT module places it out of reach again
+    -- back on its Mission Editor orbit, its group id unchanged: the SUPPORT module sees its units born again and
+    -- places it out of reach
     veafAssets.respawn(name)
     return true
   end,

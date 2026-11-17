@@ -1477,7 +1477,7 @@
   "campaign.dossier.heading.uhf": "UHF",
   "campaign.dossier.heading.vhf": "VHF",
   "campaign.dossier.network.factory": "{factory} feeds {zones}.",
-  "campaign.dossier.network.depot": "{depot} speeds the supply of {zones}.",
+  "campaign.dossier.network.depot": "{depot} speeds the supply of the zones around it: {zones}.",
   "campaign.dossier.network.critical": "Taking {zone} cuts {zones} off their factories.",
   "campaign.dossier.network.none": "No factory known.",
   "campaign.dossier.network.no_critical": "No node whose capture isolates a zone: the network has detours.",

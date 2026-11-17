@@ -69,10 +69,10 @@ Puis on construit la mission du dossier `missions\mission-01\mission` comme n'im
 
 **La météo et l'heure viennent du serveur.** Une campagne persistante tourne des semaines : `campaign next` ne fixe ni date, ni heure de départ, ni météo, et le nom de la mission ne porte pas `_NoMizedit` (`Campaign_<campagne>_Mission_01_<titre>`), si bien que le preset MizEdit du serveur (avec RealWeather) les règle à chaque chargement. Une [campagne multi-missions](CAMPAIGN.md#squadron-settings) garde ses conditions fixées et son `_NoMizedit`.
 
-Les briefings que `campaign next` et `campaign briefing` écrivent ([briefing de campagne](CAMPAIGN.md#briefing-deck), [briefing de mission](CAMPAIGN.md#mission-briefing), et le texte de situation stratégique qui devient le briefing DCS) parlent d'une campagne persistante : pas de nombre de missions, la victoire quand l'ennemi ne tient plus aucune zone, les tâches de `briefing.yaml` en ordres en cours, les usines à la place des réserves, une aviation ennemie active au départ de ses aérodromes, et une annexe sur le front vivant qui omet ce que `dynamic:` coupe (`attacks`, `supply`, `bombers.enabled`, `resources.enabled`).
+Les briefings sont ceux d'une campagne sans mission du jour : le [dossier de théâtre et la planchette](#theatre-dossier) remplacent le briefing de campagne et le briefing de mission.
 
 `campaign next` ajoute aussi au `ctld-config.yaml` de la mission ce que les joueurs transportent pour la campagne : la caisse **« Zone supplies »** (une par camp), le groupe de troupes **« Spy »** (un homme) et le groupe **« Sappers »** (deux hommes, l'[équipe de démolition](#demolition)).
-Il écrit les [waypoints](#waypoints) des joueurs, un par zone, et, quand il crée le dossier de la mission, son [plan radio](#radio-plan) et son briefing DCS tiré de `briefing.yaml` : la sortie prend le titre de la mission, la situation commence par l'opération et l'énoncé de mission, et la tâche bleue liste les tâches de la mission — un dossier de mission recréé les garde donc ; écrivez-les là, pas dans la seule mission.
+Il écrit les [waypoints](#waypoints) des joueurs, un par zone, et, quand il crée le dossier de la mission, son [plan radio](#radio-plan) et son [briefing DCS](#theatre-dossier) tiré de `briefing.yaml` — un dossier de mission recréé le garde donc ; écrivez-le là, pas dans la seule mission.
 Il impose enfin la vue F10 « fog of war » (`mission.forced_options.f10_view: fog_of_war`) : un pilote ne voit que les ennemis que son camp a détectés, et la force d'une garnison s'apprend par la [reconnaissance](#intel). Une vue déjà choisie dans `mission.yaml` est gardée.
 
 **Pas de commande d'interpréteur dans une campagne persistante.**
@@ -107,6 +107,49 @@ Quand il crée le dossier de la mission, `campaign next` écrit le plan radio de
 
 Un canal a besoin d'une fréquence pour que le build le garde sur la radio et la planchette : Home Base porte une fréquence d'attente qu'aucun aérodrome de DCS n'utilise (VHF 118,025, UHF 230,025), que le pilote remplace.
 L'AWACS et les ravitailleurs doivent donc être dans le template avant le premier `campaign next`.
+
+### Le dossier de théâtre et la planchette {#theatre-dossier}
+
+Une campagne persistante n'a pas de mission du jour : à la place du [briefing de campagne](CAMPAIGN.md#briefing-deck) et du [briefing de mission](CAMPAIGN.md#mission-briefing), `campaign next` et `campaign briefing` écrivent dans `missions\mission-01\` le **dossier de théâtre**, `dossier-de-theatre.pptx`, avec ses deux cartes (`carte-du-reseau.png`, `carte-des-defenses.png`).
+C'est un état de la situation, daté (« État au 17/11/2026 »), pas un ordre d'opération : ni objectifs, ni ATO, ni météo.
+
+| Page | Ce qu'elle dit |
+|---|---|
+| Couverture | l'opération, le théâtre, la date de l'état |
+| Situation stratégique | `briefing.yaml` : politique, économique, mode d'action ennemi |
+| Carte du réseau | chaque zone dans la couleur de son camp, un symbole par sorte (carré aérodrome, rond avant-poste, triangle usine, losange dépôt), son numéro de [waypoint](#waypoints), les liaisons, le territoire teinté et le front |
+| Le réseau ennemi | quelle usine alimente quelles zones, ce que chaque dépôt accélère, les zones déjà coupées, et les **nœuds critiques** : les zones ennemies dont la prise isole d'autres zones de leur usine |
+| Défenses aériennes connues | les [SAM longue portée](#long-range-sams) avec leur portée en cercle, et ce que le renseignement en sait (« probable » tant qu'aucune reconnaissance ne l'a confirmé) ; les nôtres aussi |
+| Axes d'effort | `axes:` de `briefing.yaml`, présentés comme indicatifs : la situation évolue, adaptez-vous |
+| Nos moyens | nos zones, nos aérodromes, l'AWACS et les ravitailleurs |
+| Plan radio | les canaux UHF et VHF du [plan radio](#radio-plan), lus dans `src/presets.yaml` |
+| Guide du joueur | le menu F10 Campagne, la règle de prise d'une zone, les prix de la [boutique](#shop) |
+| Règles d'engagement | `briefing.yaml` |
+
+Les **axes d'effort** s'écrivent dans `briefing.yaml`, sous une clé `axes:`, chacun avec un titre et un texte :
+
+```yaml
+axes:
+  - title: Prendre Menagh et Afrin
+    text: Déposer troupes ou caisses de ravitaillement dans les deux localités neutres et les tenir deux minutes.
+  - title: Couper le réseau rouge
+    text: Les nœuds critiques du dossier de théâtre isolent des zones de leur usine ; les prendre affaiblit tout ce qu'elles tiennent.
+```
+
+Un `briefing.yaml` écrit avant `axes:` reste valable : sans cette clé, les tâches de `missions: 1:` en tiennent lieu.
+
+**La planchette.** `campaign next` écrit aussi quatre sortes de pages dans `src/mission/KNEEBOARD/IMAGES` de la mission, que le build met dans le `.miz` et que chaque appareil affiche :
+
+1. la carte du réseau, au format de la planchette ;
+2. le tableau des zones : waypoint, nom et sorte, coordonnées (DDM et MGRS), altitude en pieds, fréquences VHF/UHF de l'aérodrome ;
+3. le plan radio ;
+4. un aide-mémoire : le menu F10 Campagne, la règle de prise, les prix de la boutique.
+
+Pas de page météo (c'est le serveur qui la fait) ni d'objectifs.
+Ces pages s'appellent `NN-briefing-campaign-….jpg` : `campaign next` les remplace à chaque passage et laisse les autres pages du dossier telles quelles.
+Elles montrent l'état au moment de `campaign next`, pas celui de la sauvegarde du serveur : relancez `campaign next` puis le build pour les rafraîchir.
+
+**Le briefing DCS** se réduit à la situation (l'opération, l'énoncé de mission, la situation stratégique), aux axes d'effort, et à un renvoi vers la planchette pour la carte, les coordonnées, les fréquences et l'aide-mémoire.
 
 ### Les SAM longue portée {#long-range-sams}
 

@@ -407,6 +407,10 @@ about most of them: a warning there is a defect to fix before the server, not a 
   time nor weather — the server's MizEdit preset (RealWeather) sets them at each load. Do not set them by hand.
 - **The AWACS and the tankers are held by the `SUPPORT` module** (`veafSupport`), which `campaign_next` turns on
   in `mission.yaml` from `dynamic.support`: do not move their orbits by hand.
+- **Axes of effort, not objectives**: a persistent campaign has no mission of the day. Write its priorities
+  in `briefing.yaml` under `axes:` (a title and a text each), indicative; `campaign_next` turns them, the
+  network and the air defences into a theatre dossier (`dossier-de-theatre.pptx`) and kneeboard pages (map,
+  zone table, radio plan, cheat sheet), in place of the campaign and mission decks.
 - **A campaign already running keeps what its save drew**: a garrison change (a long-range SAM taken off,
   a zone moved onto its airfield) shows on the server after a reset of the campaign, or on the zones the
   save does not hold yet. Say so to whoever deploys it.

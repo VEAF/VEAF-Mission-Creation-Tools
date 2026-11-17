@@ -300,6 +300,8 @@ The file's format is described in the [pipeline reference](../PIPELINE_REFERENCE
 
 ## The campaign briefing deck {#briefing-deck}
 
+A [persistent campaign](PERSISTENT_CAMPAIGN.en.md#theatre-dossier) gets its theatre dossier and its kneeboard pages instead of this deck and the mission briefing.
+
 `campaign next` also writes, in `missions/mission-NN/`, the **campaign's strategic briefing** as a PPTX (`briefing-campagne.pptx`) and its map (`carte-strategique.png`).
 It is a situation brief after the VEAF briefing template — 16:9, white, bold title top left — that imports as it is into Google Slides.
 `.\veaf-tools.exe campaign briefing <folder>` regenerates it at any time, for instance after touching up the text.

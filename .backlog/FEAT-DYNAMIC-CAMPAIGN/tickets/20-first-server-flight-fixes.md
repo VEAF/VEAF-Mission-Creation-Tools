@@ -46,6 +46,7 @@ The branch already holds the CAP sized on the fighters, the escort item (`c066c5
 - **Strike announcements**: the notes list "frappes" among the announcements to prefix, but no strike was announced; none is added.
 - **The waypoint numbers assume the client groups' route is the departure point then the injected waypoints**, which the build gives every player group; a module that holds fewer steerpoints keeps the first ones, the most strategic.
 - **Taftanaz and Menagh as airfield zones (Syria campaign)**: whether the AI copes with their short strips cannot be checked outside DCS; in the campaign, AI aircraft take off only from airfields of `nearestOwnZone(…, airfieldsOnly)`, so a red fixed-wing sortie may now leave from Taftanaz or Menagh. To watch in game.
+- **The theatre dossier and the kneeboard show the state at `campaign next`, not the server's save** (2026-11-17). Refreshing the network map and the zone table from `persistent.state` on the server, so the kneeboard follows the front between two builds, is left to a later lot: read the save, redraw, rebuild the `.miz` — not built here.
 
 ## Done when
 

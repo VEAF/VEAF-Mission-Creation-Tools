@@ -300,6 +300,8 @@ Le format du fichier est décrit dans la [référence du pipeline](../PIPELINE_R
 
 ## Le document de briefing de campagne {#briefing-deck}
 
+Une [campagne persistante](PERSISTENT_CAMPAIGN.md#theatre-dossier) reçoit à la place de ce document et du briefing de mission son dossier de théâtre et ses pages de planchette.
+
 `campaign next` écrit aussi, dans `missions/mission-NN/`, le **briefing stratégique de la campagne** en PPTX (`briefing-campagne.pptx`) et sa carte (`carte-strategique.png`).
 C'est un briefing de situation au format des briefings VEAF — 16:9, fond blanc, titre en gras en haut à gauche — qui s'importe tel quel dans Google Slides.
 `.\veaf-tools.exe campaign briefing <dossier>` le régénère à tout moment, par exemple après avoir retouché le texte.

@@ -69,10 +69,10 @@ Then the mission of the `missions\mission-01\mission` folder is built like any m
 
 **Weather and time come from the server.** A persistent campaign runs for weeks: `campaign next` fixes neither date, start time nor weather, and the mission's name carries no `_NoMizedit` (`Campaign_<campaign>_Mission_01_<title>`), so the server's MizEdit preset (with RealWeather) sets them at each load. A [multi-mission campaign](CAMPAIGN.en.md#squadron-settings) keeps its fixed conditions and its `_NoMizedit`.
 
-The briefings `campaign next` and `campaign briefing` write ([campaign briefing](CAMPAIGN.en.md#briefing-deck), [mission briefing](CAMPAIGN.en.md#mission-briefing), and the strategic situation text that becomes the DCS briefing) speak of a persistent campaign: no count of missions, victory when the enemy holds no zone left, the tasks of `briefing.yaml` as standing orders, factories instead of reserves, an enemy air force active from its airfields, and an annex on the living front that leaves out what `dynamic:` turns off (`attacks`, `supply`, `bombers.enabled`, `resources.enabled`).
+The briefings are those of a campaign with no mission of the day: the [theatre dossier and the kneeboard](#theatre-dossier) replace the campaign briefing and the mission briefing.
 
 `campaign next` also adds to the mission's `ctld-config.yaml` what the players carry for the campaign: the **"Zone supplies"** crate (one per side), the **"Spy"** troop group (one man) and the **"Sappers"** group (two men, the [demolition team](#demolition)).
-It writes the players' [waypoints](#waypoints), one per zone, and, when it creates the mission folder, its [radio plan](#radio-plan) and its DCS briefing from `briefing.yaml`: the sortie is the coming mission's title, the situation opens on the operation and the mission statement, and the blue task lists the mission's tasks — so a mission folder created afresh keeps them; write them there, not in the mission alone.
+It writes the players' [waypoints](#waypoints), one per zone, and, when it creates the mission folder, its [radio plan](#radio-plan) and its [DCS briefing](#theatre-dossier) from `briefing.yaml` — so a mission folder created afresh keeps it; write it there, not in the mission alone.
 It also enforces the "fog of war" F10 view (`mission.forced_options.f10_view: fog_of_war`): a pilot sees only the enemies their side has detected, and a garrison's strength is learned by [reconnaissance](#intel). A view already chosen in `mission.yaml` is kept.
 
 **No interpreter command in a persistent campaign.**
@@ -107,6 +107,49 @@ When it creates the mission folder, `campaign next` writes the players' radio pl
 
 A channel needs a frequency for the build to keep it on the radio and the kneeboard: Home Base carries a placeholder no airfield of DCS uses (VHF 118.025, UHF 230.025), which the pilot overwrites.
 The AWACS and the tankers must therefore be in the template before the first `campaign next`.
+
+### The theatre dossier and the kneeboard {#theatre-dossier}
+
+A persistent campaign has no mission of the day: instead of the [campaign briefing](CAMPAIGN.en.md#briefing-deck) and the [mission briefing](CAMPAIGN.en.md#mission-briefing), `campaign next` and `campaign briefing` write the **theatre dossier** into `missions\mission-01\`, `dossier-de-theatre.pptx`, with its two maps (`carte-du-reseau.png`, `carte-des-defenses.png`).
+It is a dated picture of the situation ("État au 17/11/2026"), not an operation order: no objectives, no ATO, no weather.
+
+| Page | What it says |
+|---|---|
+| Cover | the operation, the theatre, the date of the picture |
+| Strategic situation | `briefing.yaml`: political, economic, enemy course of action |
+| Network map | each zone in its side's colour, a symbol per kind (square airfield, circle outpost, triangle factory, diamond depot), its [waypoint](#waypoints) number, the connections, the tinted territory and the front |
+| The enemy network | which factory feeds which zones, what each depot speeds up, the zones already cut off, and the **critical nodes**: the enemy zones whose capture cuts other zones off from their factory |
+| Known air defences | the [long-range SAMs](#long-range-sams) with their reach drawn as a circle, and what intelligence knows of them ("probable" until a reconnaissance confirms it); ours too |
+| Axes of effort | `axes:` from `briefing.yaml`, given as indicative: the situation moves, adapt |
+| Our means | our zones, our airfields, the AWACS and the tankers |
+| Radio plan | the UHF and VHF channels of the [radio plan](#radio-plan), read from `src/presets.yaml` |
+| Player's guide | the F10 Campaign menu, the rule for taking a zone, the [shop](#shop) prices |
+| Rules of engagement | `briefing.yaml` |
+
+The **axes of effort** are written in `briefing.yaml`, under an `axes:` key, each with a title and a text:
+
+```yaml
+axes:
+  - title: Take Menagh and Afrin
+    text: Drop troops or supply crates in both neutral towns and hold them for two minutes.
+  - title: Cut the red network
+    text: The critical nodes of the theatre dossier cut zones off from their factory; taking them weakens everything those zones hold.
+```
+
+A `briefing.yaml` written before `axes:` still works: without that key, the tasks of `missions: 1:` stand in for it.
+
+**The kneeboard.** `campaign next` also writes four kinds of pages into the mission's `src/mission/KNEEBOARD/IMAGES`, which the build puts into the `.miz` and every aircraft shows:
+
+1. the network map, in the kneeboard's format;
+2. the zone table: waypoint, name and kind, coordinates (DDM and MGRS), elevation in feet, the airfield's VHF/UHF frequencies;
+3. the radio plan;
+4. a cheat sheet: the F10 Campaign menu, the capture rule, the shop prices.
+
+No weather page (the server makes the weather) and no objectives.
+These pages are named `NN-briefing-campaign-….jpg`: `campaign next` replaces them at every run and leaves the folder's other pages alone.
+They show the state at the time of `campaign next`, not the server's save: run `campaign next` and the build again to refresh them.
+
+**The DCS briefing** comes down to the situation (the operation, the mission statement, the strategic situation), the axes of effort, and a pointer to the kneeboard for the map, the coordinates, the frequencies and the cheat sheet.
 
 ### Long-range SAMs {#long-range-sams}
 

@@ -1477,7 +1477,7 @@
   "campaign.dossier.heading.uhf": "UHF",
   "campaign.dossier.heading.vhf": "VHF",
   "campaign.dossier.network.factory": "{factory} alimente {zones}.",
-  "campaign.dossier.network.depot": "{depot} accélère l'approvisionnement de {zones}.",
+  "campaign.dossier.network.depot": "{depot} accélère l'approvisionnement des zones voisines : {zones}.",
   "campaign.dossier.network.critical": "Prendre {zone} isole {zones} de leurs usines.",
   "campaign.dossier.network.none": "Aucune usine connue.",
   "campaign.dossier.network.no_critical": "Aucun nœud dont la prise isole une zone : le réseau a des détours.",

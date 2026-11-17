@@ -18,6 +18,11 @@ from veaf_libs.mission_validator import WARNING, ValidationIssue
 
 from campaign_manager.models import CampaignDefinition
 
+#: The tankers that refuel with a boom (the F-16, the F-15, the A-10) and with a basket, a hose and drogue (the
+#: F/A-18, the AV-8B, the F-14, the Rafale); the KC-10 does both. DCS types.
+BOOM_TANKERS = frozenset({"KC-135", "KC-10A"})
+BASKET_TANKERS = frozenset({"KC135MPRS", "KC130", "KC130J", "S-3B Tanker", "IL-78M", "KC-10A"})
+
 #: A zone at coordinates this close to an airfield is taken for that airfield's zone set beside it, in metres.
 NEAR_AIRFIELD_METRES = 4000
 
@@ -58,15 +63,15 @@ def zones_beside_airfields(campaign: CampaignDefinition) -> list[ValidationIssue
     return issues
 
 
-def _group_names(template: Path) -> set[str] | None:
-    """The names of the template mission's groups, or None when it cannot be read."""
+def _group_types(template: Path) -> dict[str, str] | None:
+    """The template mission's air groups, name -> aircraft type, or None when it cannot be read."""
     try:
         from mission_tools.miz_tools import read_mission_folder
 
         mission = read_mission_folder(template)
     except Exception:  # noqa: BLE001 — any reason the template cannot be read only skips the check
         return None
-    return {str(group.name) for group in mission.iter_groups() if group.name}
+    return {str(group.name): str(group.unit_type or "") for group in mission.iter_groups() if group.name}
 
 
 def persistent_support(campaign: CampaignDefinition, campaign_folder: Path) -> list[ValidationIssue]:
@@ -83,18 +88,27 @@ def persistent_support(campaign: CampaignDefinition, campaign_folder: Path) -> l
         return []
     dynamic = campaign.dynamic or {}
     assets = [str(name) for name in ((dynamic.get("support") or {}).get("assets") or [])]
-    tanker = (dynamic.get("economy") or {}).get("tanker")
+    tankers = campaign.shop_tankers()
     issues = []
     if not assets:
         issues.append(_warning("no_support_assets"))
-    if not tanker:
+    if not tankers:
         issues.append(_warning("no_shop_tanker"))
     template = campaign_folder / campaign.mission_template
-    names = _group_names(template) if (template / "src" / "mission").exists() else None
-    if names is not None:
-        for name in sorted({*assets, *([str(tanker)] if tanker else [])}):
-            if name not in names:
-                issues.append(_warning("support_asset_missing", name=name, template=campaign.mission_template))
+    types = _group_types(template) if (template / "src" / "mission").exists() else None
+    if types is not None:
+        missing = sorted(name for name in {*assets, *tankers} if name not in types)
+        for name in missing:
+            issues.append(_warning("support_asset_missing", name=name, template=campaign.mission_template))
+        # David, 2026-11-17: a boom and a basket, each held out of reach like the AWACS; said once the assets
+        # named are all there, which a missing one already says otherwise
+        held = {types[name] for name in assets if name in types}
+        if missing or not assets:
+            return issues
+        if not held & BOOM_TANKERS:
+            issues.append(_warning("no_boom_tanker"))
+        if not held & BASKET_TANKERS:
+            issues.append(_warning("no_basket_tanker"))
     return issues
 
 

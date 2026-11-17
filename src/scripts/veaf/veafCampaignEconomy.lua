@@ -377,6 +377,16 @@ function veafCampaignEconomy.price(itemId)
 end
 
 --- Whether a zone suits an item's `zones` rule.
+--- The tankers the shop sells: `economy.tanker`, one name or a list of names (a boom and a basket).
+--- @return table the names
+function veafCampaignEconomy.tankers()
+  local setting = veafCampaign.setting("economy", "tanker")
+  if type(setting) == "string" then
+    return { setting }
+  end
+  return type(setting) == "table" and setting or {}
+end
+
 local function zoneSuits(rule, zone)
   local own, owner = veafCampaign.playerSide(), zone.entry.owner
   return (rule == "any")
@@ -484,9 +494,13 @@ veafCampaignEconomy.effects = {
     local raid = veafCampaignOps.sendRaid(veafCampaign.playerSide(), zone, true)
     return raid ~= nil, "campaign.shop.refused_no_bomber"
   end,
-  tanker = function()
-    local name = veafCampaign.setting("economy", "tanker")
-    if not (name and veafAssets and veafAssets.respawn) then
+  tanker = function(_, name)
+    -- one item per tanker of `economy.tanker`: the boom and the basket are bought apart (David, 2026-11-17)
+    local known = false
+    for _, tanker in ipairs(veafCampaignEconomy.tankers()) do
+      known = known or tanker == name
+    end
+    if not (known and veafAssets and veafAssets.respawn) then
       return false, "campaign.shop.refused_no_tanker"
     end
     veafAssets.respawn(name)
@@ -635,7 +649,7 @@ function veafCampaignEconomy.buy(parameters)
     tell("campaign.shop.refused", veaf.t("campaign.shop.item." .. itemId), veaf.t("campaign.shop.refused_zone"))
     return false
   end
-  local ok, done, why = pcall(veafCampaignEconomy.effects[itemId], zone)
+  local ok, done, why = pcall(veafCampaignEconomy.effects[itemId], zone, zoneName)
   if not ok then
     logger():error("shop item [%s] failed: %s", itemId, tostring(done))
     done, why = false, "campaign.shop.refused_spawn"
@@ -885,7 +899,18 @@ function veafCampaignEconomy.buildRadioMenu()
     elseif item.id == "escort" then
       -- for the caller's own group: each player's menu carries it
       veafRadio.addCommandToSubmenu(title, veafCampaignEconomy.shopPath, veafCampaignEconomy.buyEscort, nil, veafRadio.USAGE_ForGroup)
-    elseif item.id ~= "tanker" or veafCampaign.setting("economy", "tanker") then
+    elseif item.id == "tanker" then
+      for _, name in ipairs(veafCampaignEconomy.tankers()) do
+        local tankerTitle = veaf.t("menu.campaign.shop_item", name, veafCampaignEconomy.price(item.id))
+        veafRadio.addCommandToSubmenu(
+          tankerTitle,
+          veafCampaignEconomy.shopPath,
+          veafCampaignEconomy.buy,
+          { item.id, name },
+          veafRadio.USAGE_ForAll
+        )
+      end
+    else
       veafRadio.addCommandToSubmenu(title, veafCampaignEconomy.shopPath, veafCampaignEconomy.buy, { item.id }, veafRadio.USAGE_ForAll)
     end
   end

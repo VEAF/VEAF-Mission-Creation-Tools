@@ -66,13 +66,13 @@ def _support_channels(campaign: CampaignDefinition, mission_folder: Path) -> dic
 
     dynamic = campaign.dynamic or {}
     names = [str(name) for name in ((dynamic.get("support") or {}).get("assets") or [])]
-    tanker = (dynamic.get("economy") or {}).get("tanker")
-    if tanker and str(tanker) not in names:
-        names.append(str(tanker))
+    names += [name for name in campaign.shop_tankers() if name not in names]
     try:
         groups = {group.name: group for group in read_mission_folder(mission_folder).iter_groups() if group.name}
     except Exception:  # noqa: BLE001 — a mission that cannot be read gives no support channel, not a crash
         return {}
+    # the AWACS first, then the tankers, each in the file's order
+    names.sort(key=lambda name: str((groups.get(name).group_dcs if groups.get(name) else {}).get("task")) != "AWACS")
     channels: dict[str, dict[str, Any]] = {}
     for name in names:
         group = groups.get(name)

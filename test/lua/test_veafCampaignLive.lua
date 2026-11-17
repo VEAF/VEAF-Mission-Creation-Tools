@@ -1103,6 +1103,30 @@ function TestCampaignTakeoff:test_a_barcap_is_bought_against_an_enemy_zone()
   luaunit.assertFalse(veafCampaignEconomy.buy({ "barcap", "Kobuleti" })) -- ours: a BARCAP is on an enemy zone
 end
 
+TestCampaignTankers = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+-- David, 2026-11-17: a boom and a basket, each its own shop item
+function TestCampaignTankers:test_each_tanker_is_bought_apart()
+  start({ economy = { start_credits = 1000, tanker = { "Tanker Texaco", "Tanker Arco" } } })
+  local respawned = {}
+  local savedAssets = veafAssets
+  veafAssets = {
+    respawn = function(name)
+      table.insert(respawned, name)
+    end,
+  }
+  luaunit.assertTrue(veafCampaignEconomy.buy({ "tanker", "Tanker Arco" }))
+  luaunit.assertFalse(veafCampaignEconomy.buy({ "tanker", "Tanker Shell" }), "a tanker the campaign does not name")
+  veafAssets = savedAssets
+  luaunit.assertEquals(respawned, { "Tanker Arco" })
+  luaunit.assertEquals(veafCampaignEconomy.tankers(), { "Tanker Texaco", "Tanker Arco" })
+end
+
+function TestCampaignTankers:test_one_name_still_works()
+  start({ economy = { tanker = "Tanker Texaco" } })
+  luaunit.assertEquals(veafCampaignEconomy.tankers(), { "Tanker Texaco" })
+end
+
 TestCampaignAdminMenus = { setUp = setUpSuite, tearDown = tearDownSuite }
 
 -- 2026-11-16, first server evening: a senior pilot opened the self-check marked "(admin)"

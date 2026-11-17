@@ -201,6 +201,17 @@ class CampaignDefinition:
     long_range_sam_spacing: int = DEFAULT_LONG_RANGE_SAM_SPACING
     """The least distance between two of them, in metres (`long_range_sams.min_spacing`)."""
 
+    def shop_tankers(self) -> list[str]:
+        """The tankers `dynamic.economy.tanker` names: one name or a list of them, the boom and the basket.
+
+        Returns:
+            The names, in the file's order; empty when none is named.
+        """
+        named = (self.dynamic.get("economy") or {}).get("tanker")
+        if isinstance(named, str):
+            return [named]
+        return [str(name) for name in named] if isinstance(named, list) else []
+
     def has_long_range_sam(self, zone: CampaignZone) -> bool:
         """Return whether a zone holds a long-range SAM: its own flag, else its size class's.
 

@@ -1449,6 +1449,8 @@
   "campaign.issue.unknown_size_parameter": "campaign.yaml : classe de taille `{size}` : paramètre `{field}` inconnu (connus : size, defense, armor, long_range_sam).",
   "campaign.dcs_briefing.operation": "OPÉRATION {operation}",
   "campaign.dcs_briefing.persistent": "La campagne ne s'arrête pas avec la soirée : ce que vous détruisez reste détruit, ce que vous perdez reste perdu. Situation, crédits, tâches et boutique : F10 → Autres → Campagne.",
+  "campaign.issue.no_boom_tanker": "campaign.yaml : aucun ravitailleur à perche (KC-135, KC-10A) parmi `dynamic.support.assets` : les F-16, F-15 et A-10 ne peuvent pas ravitailler.",
+  "campaign.issue.no_basket_tanker": "campaign.yaml : aucun ravitailleur à panier (KC-135MPRS, KC-130, S-3B, IL-78M, KC-10A) parmi `dynamic.support.assets` : les F/A-18, AV-8B et F-14 ne peuvent pas ravitailler.",
   "campaign.issue.bad_long_range_sam": "campaign.yaml : classe de taille `{size}` : `long_range_sam` doit valoir `true` ou `false`.",
   "campaign.issue.zone_beside_airfield": "campaign.yaml : la zone `{zone}` est à {m} m de l'aérodrome {airfield} : posez-la sur l'aérodrome (`at: {{ airfield: {airfield} }}`), sinon DCS et la campagne prennent chacun leur objet.",
   "campaign.issue.no_support_assets": "campaign.yaml : aucun AWACS ni ravitailleur tenu par la campagne (`dynamic.support.assets`) : posez-les dans la mission template et nommez-les ici, sinon les joueurs volent sans.",

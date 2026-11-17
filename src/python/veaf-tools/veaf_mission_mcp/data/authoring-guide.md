@@ -386,11 +386,13 @@ about most of them: a warning there is a defect to fix before the server, not a 
   range of another map, nothing of the Caucasus off the Caucasus. `campaign next` writes this plan when it
   creates the mission folder, from the zones and the support groups of the template: put the AWACS and the
   tankers in the template first. The Syria campaign flew with Batumi, Beslan and Kutaisi on its kneeboards.
-- **An AWACS and a tanker in the template**, each with an orbit (`add_air_group` with an air start, then
+- **An AWACS and two tankers in the template, a boom and a basket** (David, 2026-11-17: a KC-135 for the
+  F-16 and A-10, a KC-135MPRS or a KC-130 for the F/A-18 and AV-8B; `campaign validate` warns when one is
+  missing), each with an orbit (`add_air_group` with an air start, then
   `edit_route`: a second point, the `awacs` or `tanker` task, `set_unlimited_fuel`, a race-track `orbit`),
   their channels in `src/presets.yaml`, declared in `modules.ASSETS`, named in `dynamic.support.assets`
-  (the campaign then holds them out of the enemy's air defence and moves them as it changes) and the tanker
-  in `dynamic.economy.tanker` (the shop's Tanker item). Place their first orbit over your own rear.
+  (the campaign then holds each out of the enemy's air defence and moves it as it changes) and both tankers
+  in `dynamic.economy.tanker`, a list (the shop sells each apart). Place their first orbit over your own rear.
   The evening flew with neither, and the shop had no tanker.
 - **A zone on an airfield is declared on it** (`at: { airfield: … }`), never at coordinates beside it,
   short strips included: Menagh, 2.3 km from Minakh's airfield, stayed neutral while DCS gave the airfield

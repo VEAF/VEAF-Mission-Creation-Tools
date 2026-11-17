@@ -115,7 +115,7 @@ def test_the_persistent_example_starts_asleep_with_its_live_play(tmp_path: Path)
     # a blank template has no AWACS nor tanker yet: said, and nothing else (FEAT-DYNAMIC-CAMPAIGN ticket 20)
     assert [issue.message for issue in issues] == [
         t("campaign.issue.support_asset_missing", name=name, template="template")
-        for name in ("AWACS Magic", "Tanker Texaco")
+        for name in ("AWACS Magic", "Tanker Arco", "Tanker Texaco")
     ]
     assert report is not None
     data = yaml.safe_load((report.folder / DATA_FILE).read_text(encoding="utf-8"))

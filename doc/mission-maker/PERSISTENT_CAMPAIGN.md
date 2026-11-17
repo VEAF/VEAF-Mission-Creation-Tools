@@ -82,6 +82,7 @@ Ce que la campagne doit tenir se déclare dans `campaign.yaml`, en zone avec sa 
 
 - une zone posée par coordonnées à moins de 4 km d'un aérodrome, sans `kind:` : posez-la sur l'aérodrome (`at: { airfield: … }`), sinon DCS et la campagne prennent chacun leur objet ;
 - aucun AWACS ni ravitailleur dans `dynamic.support.assets`, pas de `dynamic.economy.tanker`, ou l'un d'eux qui n'est aucun groupe de la mission template : les joueurs volent sans, et la boutique n'a pas de ravitailleur ;
+- aucun ravitailleur à perche (KC-135, KC-10A) ou aucun à panier (KC-135MPRS, KC-130, S-3B, IL-78M) parmi `dynamic.support.assets` : les F-16 et A-10, ou les F/A-18 et AV-8B, ne peuvent pas ravitailler ;
 - un canal du `src/presets.yaml` du template nommé d'après un aérodrome d'un autre théâtre : écrivez le plan de fréquences de la campagne pour son théâtre ;
 - plus de [SAM longue portée](#long-range-sams) que permis, ou trop proches, est une erreur.
 
@@ -100,7 +101,7 @@ Quand il crée le dossier de la mission, `campaign next` écrit le plan radio de
 | Radio | Canaux |
 |---|---|
 | VHF, la radio des aérodromes | 1 **Home Base**, que chaque pilote règle sur le terrain d'où il a décollé ; puis les aérodromes du camp des joueurs, avec les fréquences que DCS leur donne sur ce théâtre |
-| UHF | les AWACS et ravitailleurs de `dynamic.support.assets` et `economy.tanker`, sur la fréquence de leur groupe ; **Air-Sol**, la fréquence air-sol commune (305,0) ; puis les vols VEAF, Archer en tête |
+| UHF | l'AWACS, puis les ravitailleurs de `dynamic.support.assets` et `economy.tanker` (la perche et le panier), sur la fréquence de leur groupe ; **Air-Sol**, la fréquence air-sol commune (305,0) ; puis les vols VEAF, Archer en tête |
 
 Un canal a besoin d'une fréquence pour que le build le garde sur la radio et la planchette : Home Base porte une fréquence d'attente qu'aucun aérodrome de DCS n'utilise (VHF 118,025, UHF 230,025), que le pilote remplace.
 L'AWACS et les ravitailleurs doivent donc être dans le template avant le premier `campaign next`.
@@ -230,7 +231,7 @@ Un achat refusé (plus de cible, rien à portée) ne coûte rien.
 | Hélico de ravitaillement | un hélicoptère qui va ravitailler une de nos zones abîmées | 200 |
 | Raid de bombardiers | un [raid combiné](#bombers) — BARCAP, SEAD, bombardier — sur une zone ennemie, ses bâtiments d'abord | 1300 |
 | Escorte de mon groupe | deux chasseurs pour le groupe de l'acheteur, qui partent en l'air au-dessus de notre aérodrome le plus proche : un avion reçoit la tâche d'escorte de DCS ; un hélicoptère, trop lent pour des chasseurs, une CAP de 15 km au-dessus de lui, déplacée quand il a avancé de 8 km. Dans le menu de chaque pilote | 300 |
-| Ravitailleur | fait réapparaître le ravitailleur que nomme `economy.tanker` (un asset de la mission), puis le [replace](#support) hors de portée ; absent sans lui | 300 |
+| Ravitailleur | un article par ravitailleur que nomme `economy.tanker` — un nom, ou une liste : la perche et le panier —, qu'il fait réapparaître (un asset de la mission) puis [replace](#support) hors de portée ; absent sans aucun | 300 |
 
 La BARCAP se tient sur l'axe entre la zone ennemie et notre aérodrome le plus proche, au premier point hors de portée de **toutes** les défenses ennemies (pas seulement celles de la zone visée) plus 15 km, et garde un cercle de 15 km ; quand aucun point de l'axe n'est hors de portée, elle tient au-dessus de son aérodrome.
 La portée se mesure sur les missiles que portent les unités de la zone quand elle est éveillée ; une zone endormie est supposée porter à 75 km si elle a un [SAM longue portée](#long-range-sams), 20 km sinon, et le message le dit.
@@ -426,12 +427,14 @@ Les AWACS et ravitailleurs nommés dans `support.assets` (des assets de la missi
 - déplacés seulement quand la station a bougé de `support.min_move` (20 km) ou plus, leur branche (`support.leg`, 30 nautiques) posée en travers de l'axe ;
 - chaque déplacement annoncé à leur camp : la nouvelle orbite en relèvement et distance du bullseye, fréquence inchangée.
 
+Une campagne persistante tient **deux ravitailleurs**, une perche (un KC-135) et un panier (un KC-135MPRS ou un KC-130 côté bleu), chacun placé hors de portée comme l'AWACS, et tous deux vendus à la boutique.
+
 ```yaml
 dynamic:
   support:
-    assets: [ "AWACS Magic", "Tanker Texaco" ]
+    assets: [ "AWACS Magic", "Tanker Texaco", "Tanker Arco" ]
   economy:
-    tanker: Tanker Texaco
+    tanker: [ "Tanker Texaco", "Tanker Arco" ]
 ```
 
 La portée est celle qu'utilise [la BARCAP](#shop) : mesurée sur les missiles quand une zone est éveillée, supposée pour une zone jamais vue éveillée.

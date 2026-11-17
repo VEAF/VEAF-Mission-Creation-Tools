@@ -1449,6 +1449,8 @@
   "campaign.issue.unknown_size_parameter": "campaign.yaml: size class `{size}`: unknown parameter `{field}` (known: size, defense, armor, long_range_sam).",
   "campaign.dcs_briefing.operation": "OPERATION {operation}",
   "campaign.dcs_briefing.persistent": "The campaign does not stop with the evening: what you destroy stays destroyed, what you lose stays lost. Situation, credits, tasks and shop: F10 → Other → Campaign.",
+  "campaign.issue.no_boom_tanker": "campaign.yaml: no boom tanker (KC-135, KC-10A) among `dynamic.support.assets`: the F-16, F-15 and A-10 cannot refuel.",
+  "campaign.issue.no_basket_tanker": "campaign.yaml: no basket tanker (KC-135MPRS, KC-130, S-3B, IL-78M, KC-10A) among `dynamic.support.assets`: the F/A-18, AV-8B and F-14 cannot refuel.",
   "campaign.issue.bad_long_range_sam": "campaign.yaml: size class `{size}`: `long_range_sam` must be `true` or `false`.",
   "campaign.issue.zone_beside_airfield": "campaign.yaml: zone `{zone}` stands {m} m from the airfield {airfield}: put it on the airfield (`at: {{ airfield: {airfield} }}`), or DCS and the campaign each capture their own object.",
   "campaign.issue.no_support_assets": "campaign.yaml: no AWACS nor tanker held by the campaign (`dynamic.support.assets`): put them in the template mission and name them there, or the players fly without.",

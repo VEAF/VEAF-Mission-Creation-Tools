@@ -82,6 +82,7 @@ What the campaign must hold is declared in `campaign.yaml`, as a zone with its g
 
 - a zone at coordinates within 4 km of an airfield, with no `kind:`: put it on the airfield (`at: { airfield: … }`), or DCS and the campaign each capture their own object;
 - no AWACS nor tanker in `dynamic.support.assets`, no `dynamic.economy.tanker`, or one of them that is no group of the template mission: the players fly without, and the shop has no tanker;
+- no boom tanker (KC-135, KC-10A) or no basket tanker (KC-135MPRS, KC-130, S-3B, IL-78M) among `dynamic.support.assets`: the F-16 and the A-10, or the F/A-18 and the AV-8B, cannot refuel;
 - a channel of the template's `src/presets.yaml` named after an airfield of another theatre: write the campaign's frequency plan for its theatre;
 - more [long-range SAMs](#long-range-sams) than allowed, or too close, is an error.
 
@@ -100,7 +101,7 @@ When it creates the mission folder, `campaign next` writes the players' radio pl
 | Radio | Channels |
 |---|---|
 | VHF, the airfields' radio | 1 **Home Base**, which each pilot sets to the field taken off from; then the players' side's airfields, with the frequencies DCS gives them on this theatre |
-| UHF | the AWACS and the tankers of `dynamic.support.assets` and `economy.tanker`, on their group's frequency; **Air-Sol**, the common air-to-ground frequency (305.0); then the VEAF flights, Archer first |
+| UHF | the AWACS, then the tankers of `dynamic.support.assets` and `economy.tanker` (the boom and the basket), on their group's frequency; **Air-Sol**, the common air-to-ground frequency (305.0); then the VEAF flights, Archer first |
 
 A channel needs a frequency for the build to keep it on the radio and the kneeboard: Home Base carries a placeholder no airfield of DCS uses (VHF 118.025, UHF 230.025), which the pilot overwrites.
 The AWACS and the tankers must therefore be in the template before the first `campaign next`.
@@ -230,7 +231,7 @@ A purchase refused (no target left, nothing in reach) costs nothing.
 | Resupply helicopter | a helicopter that goes and resupplies one of our damaged zones | 200 |
 | Bomber raid | a [combined raid](#bombers) — BARCAP, SEAD, bomber — on an enemy zone, its buildings first | 1300 |
 | Escort for my group | two fighters for the buyer's group, starting in the air over our nearest airfield: an airplane gets the DCS escort task; a helicopter, too slow for fighters, a 15 km CAP over it, moved when it has gone 8 km. In each pilot's menu | 300 |
-| Tanker | respawns the tanker `economy.tanker` names (an asset of the mission), then [placed](#support) out of reach again; absent without it | 300 |
+| Tanker | one item per tanker `economy.tanker` names — one name, or a list: the boom and the basket —, which it respawns (an asset of the mission), then [places](#support) out of reach again; absent without one | 300 |
 
 The BARCAP holds on the axis between the enemy zone and our nearest airfield, at the first point out of the reach of **every** enemy air defence (not only the target zone's) plus 15 km, and guards a 15 km circle; when no point of the axis is out of reach, it holds over its airfield.
 The reach is measured on the missiles the zone's units carry when it is awake; a sleeping zone is assumed to reach 75 km when it holds a [long-range SAM](#long-range-sams), 20 km otherwise, and the message says so.
@@ -426,12 +427,14 @@ The AWACS and tankers named in `support.assets` (assets of the mission, with an 
 - moved only when the station moved `support.min_move` (20 km) or more, with its leg (`support.leg`, 30 nm) laid across the axis;
 - each move told to its side: the new orbit in bearing and range from the bullseye, frequency unchanged.
 
+A persistent campaign holds **two tankers**, a boom (a KC-135) and a basket (a KC-135MPRS or a KC-130 for blue), each placed out of reach like the AWACS, and both sold in the shop.
+
 ```yaml
 dynamic:
   support:
-    assets: [ "AWACS Magic", "Tanker Texaco" ]
+    assets: [ "AWACS Magic", "Tanker Texaco", "Tanker Arco" ]
   economy:
-    tanker: Tanker Texaco
+    tanker: [ "Tanker Texaco", "Tanker Arco" ]
 ```
 
 The reach is the one [the BARCAP](#shop) uses: measured on the missiles while a zone is awake, assumed for a zone never seen awake.

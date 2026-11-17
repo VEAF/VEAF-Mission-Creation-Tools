@@ -83,6 +83,11 @@ def _names(value: Any) -> bool:
     return isinstance(value, list) and all(_text(name) for name in value)
 
 
+def _tankers(value: Any) -> bool:
+    """One tanker's name, or a list of them: the boom and the basket (David, 2026-11-17)."""
+    return _text(value) or (isinstance(value, list) and bool(value) and all(_text(name) for name in value))
+
+
 def _statics(value: Any) -> bool:
     return isinstance(value, list) and bool(value) and all(_text(kind) for kind in value)
 
@@ -118,7 +123,7 @@ _SCHEMA: dict[str, Check | dict[str, Check]] = {
         "capture": _natural,
         "delivery": _natural,
         "prices": _counts,
-        "tanker": _text,
+        "tanker": _tankers,
         "credits_per_point": _positive,
         "demolition": _natural,
         "warehouse_delivery": _natural,

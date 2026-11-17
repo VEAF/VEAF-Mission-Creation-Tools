@@ -75,7 +75,7 @@ dynamic:
   economy:
     start_credits: 500
     landing_share: 50
-    tanker: Tanker Texaco      # the shop's Tanker item respawns it
+    tanker: [ "Tanker Texaco", "Tanker Arco" ]   # the boom and the basket: one shop item each
   tasks:
     count: 3
   intel:
@@ -104,5 +104,5 @@ dynamic:
   # an orbit (add them with the MCP's add_air_group and edit_route, or in the Mission Editor), and their
   # channels in the template's src/presets.yaml; `campaign validate` warns when one is missing
   support:
-    assets: [ "AWACS Magic", "Tanker Texaco" ]
+    assets: [ "AWACS Magic", "Tanker Texaco", "Tanker Arco" ]   # Texaco a KC-135 (boom), Arco a KC-135MPRS (basket)
     margin: 30000

@@ -74,3 +74,26 @@ class TestTheTemplatesRadioPlan:
         assert messages == [
             t("campaign.issue.foreign_airfield_preset", channel="Incirlik", other="Syria", theatre="Caucasus")
         ]
+
+
+class TestTheTwoTankers:
+    """David, 2026-11-17: a boom and a basket, not Texaco alone."""
+
+    def _warnings(self, tmp_path: Path, monkeypatch: Any, types: dict[str, str]) -> list[str]:
+        from campaign_manager import campaign_checks
+
+        (tmp_path / "template" / "src" / "mission").mkdir(parents=True)
+        monkeypatch.setattr(campaign_checks, "_group_types", lambda _template: types)
+        campaign = _campaign(
+            {"mode": "persistent", "objectives": []},
+            dynamic={"support": {"assets": list(types)}, "economy": {"tanker": [n for n in types if "Tanker" in n]}},
+        )
+        return _messages(persistent_support(campaign, tmp_path))
+
+    def test_a_boom_alone_is_warned_about(self, tmp_path: Path, monkeypatch: Any) -> None:
+        types = {"AWACS Magic": "E-3A", "Tanker Texaco": "KC-135"}
+        assert self._warnings(tmp_path, monkeypatch, types) == [t("campaign.issue.no_basket_tanker")]
+
+    def test_a_boom_and_a_basket_are_not(self, tmp_path: Path, monkeypatch: Any) -> None:
+        types = {"AWACS Magic": "E-3A", "Tanker Texaco": "KC-135", "Tanker Arco": "KC135MPRS"}
+        assert self._warnings(tmp_path, monkeypatch, types) == []

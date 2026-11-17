@@ -1483,7 +1483,7 @@
   "campaign.dossier.network.no_critical": "Aucun nœud dont la prise isole une zone : le réseau a des détours.",
   "campaign.dossier.defence.long_range": "SAM longue portée",
   "campaign.dossier.defence.none": "Aucune connue.",
-  "campaign.dossier.defence.note": "Cercles à la portée supposée de {km} km tant qu'elle n'est pas mesurée ; le type n'est donné que lorsque le renseignement l'a confirmé.",
+  "campaign.dossier.defence.note": "Cercles : portée estimée à {km} km ; le type exact n'est donné qu'une fois confirmé par le renseignement.",
   "campaign.dossier.axes.none": "Aucun axe d'effort écrit dans briefing.yaml (`axes:`).",
   "campaign.dossier.axes.note": "Indicatif : la situation évolue, adaptez-vous.",
   "campaign.dossier.means.slots": "Les slots suivent les bases : une base prise ou perdue change de camp avec ses slots dynamiques.",

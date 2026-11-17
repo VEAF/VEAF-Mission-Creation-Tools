@@ -111,3 +111,40 @@ def test_a_very_long_paragraph_runs_on_to_a_new_page_instead_of_overflowing(tmp_
     pages = write_pdf(out, Cover("T", "S", "D", "Sommaire", []), [page])
     assert pages > 2
     assert "Ligne 119" in _pdf_text(out)
+
+
+def test_the_pdf_has_a_bookmark_per_section_and_opens_on_them(tmp_path: Path) -> None:
+    """David, 2026-11-17: a table of contents in the viewer's bookmarks; a page that runs on gets none of its own."""
+    from campaign_manager.briefing_deck import Block, Page
+    from veaf_libs.i18n import language, t
+
+    image = tmp_path / "map.png"
+    Image.new("RGB", (300, 200), (200, 220, 200)).save(image)
+    out = tmp_path / "toc.pdf"
+    with language("fr"):
+        write_pdf(
+            out,
+            Cover("OPÉRATION X", "Sous-titre", "17/11/2026", "Sommaire", ["1. Situation", "2. Carte"]),
+            [
+                Page("1. Situation", [Block(None, ("Texte.",))]),
+                Page(t("campaign.deck.continued", title="1. Situation"), [Block(None, ("Suite.",))]),
+                MapSheet("2. Carte", image, []),
+            ],
+        )
+    reader = PdfReader(str(out))
+    assert [item.title for item in reader.outline] == ["OPÉRATION X", "1. Situation", "2. Carte"]
+    assert reader.page_mode == "/UseOutlines"
+
+
+def test_a_page_s_foot_note_stays_on_its_page(tmp_path: Path) -> None:
+    """The dossier's air-defence note went alone on a page of its own (David, 2026-11-17)."""
+    from campaign_manager.briefing_deck import Block, Page
+
+    out = tmp_path / "note.pdf"
+    pages = write_pdf(
+        out,
+        Cover("T", "S", "D", "Sommaire", []),
+        [Page("1. Défenses", [Block("Ennemies", ("Hama : probable.",))], note="Cercles : portée estimée à 75 km.")],
+    )
+    assert pages == 2
+    assert "Cercles" in PdfReader(str(out)).pages[1].extract_text()

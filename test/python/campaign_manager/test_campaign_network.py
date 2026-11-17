@@ -76,6 +76,22 @@ class TestTheTerritory:
         # B and C share a side: no front between them, one straight front between A and B
         assert segments == [((200.0, 0.0), (200.0, 200.0))] or segments == [((200.0, 200.0), (200.0, 0.0))]
 
+    def test_the_front_s_hatches_as_the_f10_map_draws_them(self) -> None:
+        # veafCampaign.frontHatches: every `spacing`, `length` long, slanted 45° into the cell of the given site
+        from campaign_manager.network_map import front_hatches
+
+        strokes = front_hatches((200.0, 0.0), (200.0, 100.0), (100.0, 50.0), spacing=20.0, length=10.0)
+        assert [start for start, _ in strokes] == [
+            (200.0, 10.0),
+            (200.0, 30.0),
+            (200.0, 50.0),
+            (200.0, 70.0),
+            (200.0, 90.0),
+        ]
+        (x0, y0), (x1, y1) = strokes[0]
+        assert x1 < x0, "into the site's cell"
+        assert abs(abs(x1 - x0) - abs(y1 - y0)) < 1e-9 and abs(((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5 - 10.0) < 1e-9
+
     def test_no_front_inside_one_side(self) -> None:
         from campaign_manager.network_map import front_segments, territory_cells
 

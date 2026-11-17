@@ -19,9 +19,11 @@ from pathlib import Path
 
 from campaign_manager.briefing_deck import Block, Page
 from fpdf import FPDF
+from fpdf.enums import PageMode
 from fpdf.fonts import FontFace
 from PIL import Image
 from veaf_libs.bundled_data import bundled_dir
+from veaf_libs.i18n import t
 
 from mission_briefing.briefing_cards import COLUMNS, ROWS, CardPage
 from mission_briefing.briefing_tables import TablePage
@@ -93,6 +95,19 @@ class _Pdf(FPDF):
         self.set_margins(_MARGIN, _BODY_TOP, _MARGIN)
         self.set_auto_page_break(True, margin=_BODY_BOTTOM)
         self.set_title("VEAF briefing")
+        # David, 2026-11-17: a table of contents in the viewer's bookmarks, open when the file opens
+        self.page_mode = PageMode.USE_OUTLINES
+        self._sections: list[str] = []
+
+    def bookmark(self, title: str) -> None:
+        """A bookmark to this page, once per section: a page that runs on ("… (suite)") gets none of its own."""
+        title = title.strip()
+        if not title or title in self._sections:
+            return
+        if any(title == t("campaign.deck.continued", title=section) for section in self._sections):
+            return
+        self._sections.append(title)
+        self.start_section(title)
 
     def say(self, text: str, size: float, *, bold: bool = False, colour: tuple[int, int, int] | None = None) -> None:
         """One paragraph at the left margin, wrapped, in the given size, aligned left.
@@ -112,6 +127,7 @@ class _Pdf(FPDF):
             self.set_font(_FAMILY, "B", size)
         self.set_text_color(0, 0, 0)
         self.set_xy(_MARGIN, 10)
+        self.bookmark(title)
         self.cell(0, 14, title, new_x="LMARGIN", new_y="NEXT")
         self.set_xy(_MARGIN, _BODY_TOP)
 
@@ -122,8 +138,11 @@ def _text_page(pdf: _Pdf, page: Page) -> None:
     for block in page.blocks:
         _block(pdf, block)
     if page.note:
+        # at the foot of this page: the automatic break took a note so low for a page of its own (David, 2026-11-17)
+        pdf.set_auto_page_break(False)
         pdf.set_xy(_MARGIN, _PAGE_MM[0] - 16)
         pdf.say(page.note, _NOTE_SIZE, colour=_GREY)
+        pdf.set_auto_page_break(True, margin=_BODY_BOTTOM)
 
 
 def _block(pdf: _Pdf, block: Block) -> None:
@@ -241,6 +260,7 @@ def _card_page(pdf: _Pdf, page: CardPage) -> None:
 
 def _cover_page(pdf: _Pdf, cover: Cover) -> None:
     pdf.add_page()
+    pdf.bookmark(cover.title)
     pdf.set_xy(_MARGIN, 45)
     pdf.set_right_margin(_PAGE_MM[1] * 0.42)
     pdf.say(cover.title, 54 * _SCALE, bold=True, colour=_BLUE)

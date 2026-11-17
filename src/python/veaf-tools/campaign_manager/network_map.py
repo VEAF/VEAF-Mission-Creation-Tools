@@ -2,8 +2,8 @@
 
 Each zone in its owner's colour with one symbol per kind (an airfield a square, an outpost a circle, a factory a
 triangle, a depot a diamond), its waypoint number before its name, the connections, the territory tinted by owner
-— hatched in the colour of its nearest zone, as the F10 map draws it — and the front, a thin line between two
-colours. Optional reach circles show the long-range air defences.
+drawn as the F10 map draws it — a faint fill in its nearest zone's colour, the front a thin dark line with
+short hatches on each side in that side's colour. Optional reach circles show the long-range air defences.
 """
 
 from __future__ import annotations
@@ -23,11 +23,19 @@ from campaign_manager.strategic_map import OWNER_COLOURS, MapReport, _boxed_text
 #: Degrees of margin around the zones.
 _MARGIN_LAT, _MARGIN_LON = 0.2, 0.3
 
-#: The territory's hatching: the gap between two lines and their width, pixels, and the lines' opacity.
-_HATCH_GAP, _HATCH_WIDTH, _HATCH_ALPHA = 14, 2, 110
+# The territory as the F10 map draws it (`veafCampaign.drawTerritory`, David, 2026-11-17): a faint fill per owner, a
+# dark front, and along the front, on each side, short strokes slanted at 45° in that side's colour.
 
-#: The front line: its width, pixels, and colour.
-_FRONT_WIDTH, _FRONT_COLOUR = 3, (30, 30, 30, 230)
+#: The fill's opacity, out of 255 (the F10 map's 0.07, a little stronger over the paler base map).
+_FILL_ALPHA = 40
+
+#: The front: its width, pixels, and colour (`veafCampaign.FRONT_COLOR`).
+_FRONT_WIDTH, _FRONT_COLOUR = 3, (25, 25, 25, 204)
+
+#: The front's hatches: every so many metres, so long (`territory.hatch_spacing`, `territory.hatch_length`), and
+#: their width, pixels; neutral has none (`veafCampaign.HATCH_COLORS`).
+_HATCH_SPACING_M, _HATCH_LENGTH_M, _HATCH_WIDTH = 3000, 2500, 2
+_HATCH_ALPHA = 230
 
 Point = tuple[float, float]
 Cell = list[tuple[Point, str | None]]
@@ -142,14 +150,36 @@ def front_segments(cells: Mapping[str, Cell], owners: Mapping[str, str]) -> list
     return segments
 
 
-def _hatched(size: tuple[int, int], colour: tuple[int, int, int]) -> Image.Image:
-    """Diagonal lines over a whole picture, in a side's colour."""
-    hatch = Image.new("RGBA", size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(hatch)
-    width, height = size
-    for offset in range(-height, width, _HATCH_GAP):
-        draw.line((offset, height, offset + height, 0), fill=(*colour, _HATCH_ALPHA), width=_HATCH_WIDTH)
-    return hatch
+def front_hatches(start: Point, end: Point, site: Point, *, spacing: float, length: float) -> list[tuple[Point, Point]]:
+    """The hatches along one side of the front, as `veafCampaign.frontHatches` draws them on the F10 map.
+
+    Args:
+        start: One end of the side.
+        end: The other end.
+        site: The centre of the cell the hatches go into.
+        spacing: The gap between two hatches, pixels.
+        length: A hatch's length, pixels.
+
+    Returns:
+        The strokes, each slanted at 45° into the cell, the first half a gap from ``start``.
+    """
+    dx, dy = end[0] - start[0], end[1] - start[1]
+    side = (dx * dx + dy * dy) ** 0.5
+    if side == 0 or spacing <= 0:
+        return []
+    dx, dy = dx / side, dy / side
+    # the normal to the side, turned towards the cell's own centre
+    nx, ny = -dy, dx
+    if (site[0] - start[0]) * nx + (site[1] - start[1]) * ny < 0:
+        nx, ny = -nx, -ny
+    reach = length / 2**0.5
+    strokes = []
+    along = spacing / 2
+    while along <= side:
+        base = (start[0] + dx * along, start[1] + dy * along)
+        strokes.append((base, (base[0] + (nx + dx) * reach, base[1] + (ny + dy) * reach)))
+        along += spacing
+    return strokes
 
 
 def _box(points: Sequence[tuple[float, float]], aspect: float | None) -> tuple[float, float, float, float]:
@@ -204,19 +234,30 @@ def render_network_map(
     width, height = background.size
     centres = {name: base.pixel(*points[name]) for name in points}
 
-    # the territory hatched in its owner's colour, a thin line where two owners meet, as on the F10 map
+    # the territory as the F10 map draws it: a faint fill, the front, and its hatches on each side
     cells = territory_cells(centres, width, height)
-    for owner in sorted({owners.get(name, "neutral") for name in cells}):
-        mask = Image.new("L", background.size, 0)
-        mask_draw = ImageDraw.Draw(mask)
-        for name, cell in cells.items():
-            if owners.get(name, "neutral") == owner and len(cell) >= 3:
-                mask_draw.polygon([point for point, _ in cell], fill=255)
-        layer = Image.new("RGBA", background.size, (0, 0, 0, 0))
-        layer.paste(_hatched(background.size, OWNER_COLOURS[owner]), (0, 0), mask)
-        background = Image.alpha_composite(background, layer)
+    fill = Image.new("RGBA", background.size, (0, 0, 0, 0))
+    fill_draw = ImageDraw.Draw(fill)
+    for name, cell in cells.items():
+        if len(cell) >= 3:
+            colour = OWNER_COLOURS[owners.get(name, "neutral")]
+            fill_draw.polygon([point for point, _ in cell], fill=(*colour, _FILL_ALPHA))
+    background = Image.alpha_composite(background, fill)
+    metres = metres_per_pixel((north + south) / 2, base.zoom)
     front = Image.new("RGBA", background.size, (0, 0, 0, 0))
     front_draw = ImageDraw.Draw(front)
+    for name, cell in cells.items():
+        owner = owners.get(name, "neutral")
+        if owner == "neutral":
+            continue
+        for index, (start, other) in enumerate(cell):
+            if other is None or owners.get(other, "neutral") == owner:
+                continue
+            end = cell[(index + 1) % len(cell)][0]
+            for stroke in front_hatches(
+                start, end, centres[name], spacing=_HATCH_SPACING_M / metres, length=_HATCH_LENGTH_M / metres
+            ):
+                front_draw.line(stroke, fill=(*OWNER_COLOURS[owner], _HATCH_ALPHA), width=_HATCH_WIDTH)
     for start, end in front_segments(cells, owners):
         front_draw.line((start, end), fill=_FRONT_COLOUR, width=_FRONT_WIDTH)
     background = Image.alpha_composite(background, front)

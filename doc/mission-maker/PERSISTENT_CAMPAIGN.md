@@ -118,7 +118,7 @@ Le même dossier s'écrit aussi en PDF à côté, `<opération>_dossier-de-theat
 |---|---|
 | Couverture | l'opération, le théâtre, la date de l'état |
 | Situation stratégique | `briefing.yaml` : politique, économique, mode d'action ennemi |
-| Carte du réseau | chaque zone dans la couleur de son camp, un symbole par sorte (carré aérodrome, rond avant-poste, triangle usine, losange dépôt), son numéro de [waypoint](#waypoints), les liaisons, le territoire hachuré dans la couleur de son camp et le front en trait fin, comme sur la carte F10 |
+| Carte du réseau | chaque zone dans la couleur de son camp, un symbole par sorte (carré aérodrome, rond avant-poste, triangle usine, losange dépôt), son numéro de [waypoint](#waypoints), les liaisons, le territoire teinté par camp et le front, avec ses petites hachures de chaque côté, comme sur la carte F10 |
 | Le réseau ennemi | quelle usine alimente quelles zones, ce que chaque dépôt accélère, les zones déjà coupées, et les **nœuds critiques** : les zones ennemies dont la prise isole d'autres zones de leur usine |
 | Défenses aériennes connues | les [SAM longue portée](#long-range-sams) avec leur portée en cercle, et ce que le renseignement en sait (« probable » tant qu'aucune reconnaissance ne l'a confirmé) ; les nôtres aussi |
 | Axes d'effort | `axes:` de `briefing.yaml`, présentés comme indicatifs : la situation évolue, adaptez-vous |

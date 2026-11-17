@@ -118,7 +118,7 @@ The same dossier is also written as a PDF beside it, `<operation>_dossier-de-the
 |---|---|
 | Cover | the operation, the theatre, the date of the picture |
 | Strategic situation | `briefing.yaml`: political, economic, enemy course of action |
-| Network map | each zone in its side's colour, a symbol per kind (square airfield, circle outpost, triangle factory, diamond depot), its [waypoint](#waypoints) number, the connections, the territory hatched in its side's colour and the front as a thin line, as on the F10 map |
+| Network map | each zone in its side's colour, a symbol per kind (square airfield, circle outpost, triangle factory, diamond depot), its [waypoint](#waypoints) number, the connections, the territory tinted by side and the front with its short hatches on each side, as on the F10 map |
 | The enemy network | which factory feeds which zones, what each depot speeds up, the zones already cut off, and the **critical nodes**: the enemy zones whose capture cuts other zones off from their factory |
 | Known air defences | the [long-range SAMs](#long-range-sams) with their reach drawn as a circle, and what intelligence knows of them ("probable" until a reconnaissance confirms it); ours too |
 | Axes of effort | `axes:` from `briefing.yaml`, given as indicative: the situation moves, adapt |

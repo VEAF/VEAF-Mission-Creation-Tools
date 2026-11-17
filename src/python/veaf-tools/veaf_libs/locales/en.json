@@ -1483,7 +1483,7 @@
   "campaign.dossier.network.no_critical": "No node whose capture isolates a zone: the network has detours.",
   "campaign.dossier.defence.long_range": "long-range SAM",
   "campaign.dossier.defence.none": "None known.",
-  "campaign.dossier.defence.note": "Circles at the assumed reach of {km} km until measured; the type is given only once intelligence has confirmed it.",
+  "campaign.dossier.defence.note": "Circles: estimated reach of {km} km; the exact type is given only once intelligence has confirmed it.",
   "campaign.dossier.axes.none": "No axis of effort written in briefing.yaml (`axes:`).",
   "campaign.dossier.axes.note": "Indicative: the situation changes, adapt.",
   "campaign.dossier.means.slots": "Slots follow the bases: a base taken or lost changes side with its dynamic slots.",

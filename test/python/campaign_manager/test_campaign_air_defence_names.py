@@ -18,10 +18,10 @@ class TestTheNames:
     def test_a_generated_defence_says_its_level_and_what_it_holds(self) -> None:
         with language("fr"):
             text = describe_garrison_entry("generateAirDefenseGroup-BLUE-3")
-        assert text == "défense rapprochée de niveau 3 sur 5 : Gepard, Linebacker, Avenger"
+        assert text == "défense rapprochée de niveau 3 sur 5 (Gepard, Linebacker, Avenger)"
         with language("fr"):
             red = describe_garrison_entry("generateAirDefenseGroup-RED-5")
-        assert red.startswith("défense rapprochée de niveau 5 sur 5 : ")
+        assert red.startswith("défense rapprochée de niveau 5 sur 5 (")
         assert "SA-15" in red and "Ural" not in red and "Dog Ear" not in red
 
     def test_no_alias_and_no_dcs_type_left_in_what_it_says(self) -> None:

@@ -3,7 +3,7 @@
 The theatre dossier listed our defences by their template aliases — "hawk, generateAirDefenseGroup-BLUE-3,
 avenger_squad, stinger_squad" — words of the mission maker's tools, not of a briefing. Here a named system is its
 name and its reach ("Hawk (SAM moyenne portée)"), and a generated defence its level and what it holds, read from
-`veaf-units.yaml` ("défense rapprochée de niveau 3 sur 5 : Gepard, Linebacker, Avenger"). The runtime rolls a
+`veaf-units.yaml` ("défense rapprochée de niveau 3 sur 5 (Gepard, Linebacker, Avenger)"). The runtime rolls a
 generated defence one level up or down, so the level is the one asked for.
 """
 

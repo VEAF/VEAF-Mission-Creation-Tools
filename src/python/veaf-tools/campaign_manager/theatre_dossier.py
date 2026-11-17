@@ -213,7 +213,7 @@ def _air_defence_page(campaign: CampaignDefinition, state: CampaignState, number
         if campaign.has_long_range_sam(zone):
             declared.insert(0, t("campaign.dossier.defence.long_range"))
         if declared:
-            our_lines.append(f"{_title(zone, numbers)} : {', '.join(declared)}")
+            our_lines.append(f"{_title(zone, numbers)} : {' ; '.join(declared)}")
     return Page(
         t("campaign.dossier.title.defences"),
         [

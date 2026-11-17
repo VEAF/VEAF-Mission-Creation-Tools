@@ -1549,7 +1549,7 @@
   "campaign.air_defence.reach.medium": "medium-range SAM",
   "campaign.air_defence.reach.long": "long-range SAM",
   "campaign.air_defence.reach.manpads": "man-portable missiles",
-  "campaign.air_defence.generated": "point defence, level {level} of 5: {holds}",
+  "campaign.air_defence.generated": "point defence, level {level} of 5 ({holds})",
   "campaign.air_defence.generated_bare": "point defence, level {level} of 5",
   "campaign.issue.kneeboard_failed": "The campaign's kneeboard pages were not written: {error}",
   "campaign.issue.bad_long_range_sam": "campaign.yaml: size class `{size}`: `long_range_sam` must be `true` or `false`.",

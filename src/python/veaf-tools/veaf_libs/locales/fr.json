@@ -1549,7 +1549,7 @@
   "campaign.air_defence.reach.medium": "SAM moyenne portée",
   "campaign.air_defence.reach.long": "SAM longue portée",
   "campaign.air_defence.reach.manpads": "missiles portables",
-  "campaign.air_defence.generated": "défense rapprochée de niveau {level} sur 5 : {holds}",
+  "campaign.air_defence.generated": "défense rapprochée de niveau {level} sur 5 ({holds})",
   "campaign.air_defence.generated_bare": "défense rapprochée de niveau {level} sur 5",
   "campaign.issue.kneeboard_failed": "Pages de planchette de la campagne non écrites : {error}",
   "campaign.issue.bad_long_range_sam": "campaign.yaml : classe de taille `{size}` : `long_range_sam` doit valoir `true` ou `false`.",

@@ -2181,7 +2181,9 @@ function veafCampaign.launchOffensives(now)
       elseif now >= due then
         veafCampaign.nextAttack[side] = now + veafCampaign.setting("attack_seconds")
         if veafCampaign.convoysUnderway(side) >= veafCampaign.setting("max_convoys") then
-          veafCampaign.debug(
+          veafCampaign.debugOnce(
+            "attack " .. side,
+            "full",
             "DECISION",
             "%s does not counter-attack: %d convoys already on the road",
             side,
@@ -2190,9 +2192,10 @@ function veafCampaign.launchOffensives(now)
         else
           local target, from = veafCampaign.attackTarget(side)
           if not target then
-            veafCampaign.debug("DECISION", "%s does not counter-attack: no enemy zone it borders", side)
+            veafCampaign.debugOnce("attack " .. side, "none", "DECISION", "%s does not counter-attack: no enemy zone it borders", side)
           end
           if target then
+            veafCampaign.forgetTold("attack " .. side)
             veaf.loggers.get(veafCampaign.Id):info("%s counter-attacks [%s] from [%s]", side, target.name, from.name)
             if veafCampaign.sendConvoy(side, from, target) then
               veafCampaign.keepAwake(target, veafCampaign.setting("helicopter_timeout"))

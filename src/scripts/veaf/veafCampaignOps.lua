@@ -538,13 +538,27 @@ function veafCampaignOps.dispatchHelicopters(now)
       elseif now >= due then
         veafCampaignOps.nextSupply[side] = now + veafCampaign.setting("supply_seconds")
         if veafCampaignOps.helicoptersOut(side) >= veafCampaign.setting("max_helicopters") then
-          veafCampaign.debug("DECISION", "%s sends no supply helicopter: %d already out", side, veafCampaignOps.helicoptersOut(side))
+          veafCampaign.debugOnce(
+            "helicopter " .. side,
+            "full",
+            "DECISION",
+            "%s sends no supply helicopter: %d already out",
+            side,
+            veafCampaignOps.helicoptersOut(side)
+          )
         else
           local target, kind = veafCampaignOps.supplyTarget(side)
           if not target then
-            veafCampaign.debug("DECISION", "%s sends no supply helicopter: no neutral zone bordered, no damaged zone", side)
+            veafCampaign.debugOnce(
+              "helicopter " .. side,
+              "none",
+              "DECISION",
+              "%s sends no supply helicopter: no neutral zone bordered, no damaged zone",
+              side
+            )
           end
           if target then
+            veafCampaign.forgetTold("helicopter " .. side)
             local typeName = veafCampaign.setting("helicopter")[side] or veafCampaign.DYNAMIC_DEFAULTS.helicopter[side]
             veafCampaignOps.paidSortie(side, veafCampaign.unitPrice(typeName), "a supply helicopter", function()
               return veafCampaignOps.sendHelicopter(side, target, kind)

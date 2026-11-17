@@ -23,7 +23,7 @@ from veaf_libs.i18n import language, t
 from veaf_mission_mcp.airbase import set_airbase_coalition
 from veaf_mission_mcp.mission_settings import set_briefing
 
-from campaign_manager.briefing_prose import MissionPage
+from campaign_manager.briefing_prose import BriefingProse, MissionPage
 from campaign_manager.mission_conditions import MissionConditions, set_conditions
 from campaign_manager.models import COALITIONS, CampaignDefinition, CampaignState
 from campaign_manager.objective_waypoints import flight_plan_numbers, write_objective_waypoints, zone_waypoint_numbers
@@ -469,6 +469,43 @@ def interpreter_commands(mission_folder: Path) -> list[str]:
     return sorted(found)
 
 
+def dcs_briefing(
+    campaign: CampaignDefinition, state: CampaignState, page: MissionPage | None, prose: BriefingProse | None
+) -> dict[str, str]:
+    """The DCS briefing of a mission folder just created: what `briefing.yaml` says, then the facts.
+
+    The Syria campaign's sortie name, its opening lines and its blue tasks were typed into the mission table by
+    hand, and a mission folder created afresh lost them (2026-11-17). `briefing.yaml` already holds them: the
+    operation, the mission statement and the coming mission's tasks.
+
+    Args:
+        campaign: The validated campaign.
+        state: The state the mission starts from.
+        page: The coming mission's page of `briefing.yaml`, or ``None``.
+        prose: The whole `briefing.yaml`, or ``None``.
+
+    Returns:
+        The fields of `set_briefing`: ``situation`` always, ``sortie`` and ``blue_task`` when written.
+    """
+    head: list[str] = []
+    if prose and prose.operation:
+        head.append(t("campaign.dcs_briefing.operation", operation=prose.operation.upper()))
+    head.extend(prose.text("mission", "mission") if prose else ())
+    if campaign.mode == "persistent" and head:
+        head.append(t("campaign.dcs_briefing.persistent"))
+    situation = strategic_situation(campaign, state)
+    fields = {"situation": "\n".join(head) + "\n\n" + situation if head else situation}
+    title = page.title if page else (prose.operation if prose else None)
+    if title:
+        fields["sortie"] = title
+    if page and page.tasks:
+        fields["blue_task"] = "\n".join(
+            f"{index}. {task.title} : {' '.join(task.text)}".rstrip(" :")
+            for index, task in enumerate(page.tasks, start=1)
+        )
+    return fields
+
+
 def prepare_next_mission(
     campaign: CampaignDefinition,
     state: CampaignState,
@@ -476,6 +513,7 @@ def prepare_next_mission(
     mission_folder: Path,
     players: tuple[int, int] | None = None,
     page: MissionPage | None = None,
+    prose: BriefingProse | None = None,
 ) -> NextMissionReport:
     """Create, or refresh, the next mission's folder from the campaign state.
 
@@ -531,7 +569,7 @@ def prepare_next_mission(
     if created:
         # the mission flies with the facts even if nobody designs it further; a refresh leaves the
         # briefing alone, since what was written on top of them is design
-        set_briefing(mission_folder, situation=strategic_situation(campaign, state))
+        set_briefing(mission_folder, **dcs_briefing(campaign, state, page, prose))
     _enable_campaign_module(mission_folder / "mission.yaml", campaign.era)
     if campaign.mode == "persistent":
         add_campaign_cargo(mission_folder, campaign.dynamic)

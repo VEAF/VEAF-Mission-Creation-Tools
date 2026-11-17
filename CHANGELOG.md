@@ -104,6 +104,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   A refusal is logged once until its reason changes, and `[CAMPAIGN FLIGHT]` says no `nil` and counts no wreck crushing the scenery.
   So that the next campaign does not repeat it: `campaign validate` and `campaign next` warn about a zone set beside an airfield rather than on it, a persistent campaign with no AWACS or tanker held, no shop tanker or assets its template lacks, and a template radio plan of another theatre; the shipped persistent example names its AWACS and tanker, and the MCP authoring guide gives the next agent the persistent campaign's rules.
   `campaign next` writes a persistent campaign's radio plan when it creates the mission folder: VHF "Home Base" then the players' airfields of the theatre, UHF the AWACS and tankers, "Air-Sol", then the VEAF flights.
+  A mission folder created by `campaign next` takes its DCS sortie, opening lines and blue tasks from `briefing.yaml`, so a folder created afresh no longer loses what was typed into the mission by hand.
 - **The BULLSEYE waypoint every VEAF mission gets is on the ground** (FEAT-DYNAMIC-CAMPAIGN ticket 20): at 0 m `RADIO`, where a pod or a weapon slaved to the steerpoint looks, no longer at 20,000 ft.
 - **`prepare --theatre` puts that map's airfields on the radio plan** (FEAT-DYNAMIC-CAMPAIGN ticket 20): the shipped plan named the Caucasus airfields whatever the theatre, and the Syria campaign flew with Batumi on its kneeboards; the build now warns about a channel named after another map's airfield.
 

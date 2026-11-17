@@ -473,3 +473,27 @@ class TestTheWorker:
         result = CliRunner().invoke(app, ["campaign-briefing", str(folder)])
         assert result.exit_code == 0, result.output
         assert (folder / "missions" / "mission-01" / "briefing-campagne.pptx").is_file()
+
+
+class TestTheDcsBriefing:
+    """2026-11-17: the sortie, the opening lines and the blue tasks were typed by hand, and lost with the folder."""
+
+    def test_it_comes_from_briefing_yaml_then_the_facts(self) -> None:
+        from campaign_manager.briefing_prose import BriefingProse, MissionPage, Titled
+        from campaign_manager.next_mission import dcs_briefing
+
+        campaign = _campaign()
+        page = MissionPage(title="La porte de Poti", tasks=(Titled("Prendre Poti", ("Sécuriser le port.",)),))
+        prose = BriefingProse(operation="Kolkhida", texts={"mission": {"mission": ("Reprendre Senaki.",)}})
+        with language("fr"):
+            fields = dcs_briefing(campaign, initial_state(campaign), page, prose)
+        assert fields["sortie"] == "La porte de Poti"
+        assert fields["blue_task"] == "1. Prendre Poti : Sécuriser le port."
+        assert fields["situation"].startswith("OPÉRATION KOLKHIDA\nReprendre Senaki.\n\n")
+
+    def test_without_briefing_yaml_the_facts_alone(self) -> None:
+        from campaign_manager.next_mission import dcs_briefing, strategic_situation
+
+        campaign = _campaign()
+        state = initial_state(campaign)
+        assert dcs_briefing(campaign, state, None, None) == {"situation": strategic_situation(campaign, state)}

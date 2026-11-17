@@ -207,7 +207,9 @@ class CampaignWorker:
             prose.missions.get(state.mission + 1) if prose and not any(i.level == ERROR for i in prose_issues) else None
         )
         try:
-            report = prepare_next_mission(campaign, state, self.folder, folder, players=players, page=page)
+            report = prepare_next_mission(
+                campaign, state, self.folder, folder, players=players, page=page, prose=prose if page else None
+            )
         except FileNotFoundError as error:
             return [*issues, ValidationIssue(ERROR, str(error))], None
         # the deck comes with the folder; neither a defect in briefing.yaml nor a failure to draw it

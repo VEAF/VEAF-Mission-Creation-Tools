@@ -1447,6 +1447,8 @@
   "campaign.issue.empty_garrison": "campaign.yaml : zone `{zone}` : `garrison` doit être une liste non vide (l'omettre pour en tirer une).",
   "campaign.issue.bad_size_parameter": "campaign.yaml : classe de taille `{size}` : `{field}` doit être un nombre entier de {low} à {high}, pas `{value}`.",
   "campaign.issue.unknown_size_parameter": "campaign.yaml : classe de taille `{size}` : paramètre `{field}` inconnu (connus : size, defense, armor, long_range_sam).",
+  "campaign.dcs_briefing.operation": "OPÉRATION {operation}",
+  "campaign.dcs_briefing.persistent": "La campagne ne s'arrête pas avec la soirée : ce que vous détruisez reste détruit, ce que vous perdez reste perdu. Situation, crédits, tâches et boutique : F10 → Autres → Campagne.",
   "campaign.issue.bad_long_range_sam": "campaign.yaml : classe de taille `{size}` : `long_range_sam` doit valoir `true` ou `false`.",
   "campaign.issue.zone_beside_airfield": "campaign.yaml : la zone `{zone}` est à {m} m de l'aérodrome {airfield} : posez-la sur l'aérodrome (`at: {{ airfield: {airfield} }}`), sinon DCS et la campagne prennent chacun leur objet.",
   "campaign.issue.no_support_assets": "campaign.yaml : aucun AWACS ni ravitailleur tenu par la campagne (`dynamic.support.assets`) : posez-les dans la mission template et nommez-les ici, sinon les joueurs volent sans.",

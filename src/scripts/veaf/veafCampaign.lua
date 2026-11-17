@@ -1045,6 +1045,9 @@ function veafCampaign.holdsGround(object, isStatic)
   if object.isActive and not object:isActive() then
     return false -- a late-activated unit is "there" for isExist, not on the ground (dcs-runtime-traps)
   end
+  if not veaf.isCombatant(object) then
+    return false -- a CSAR pilot, immortal, would keep a zone contested for ever (2026-11-16, Menagh)
+  end
   local category = object:getDesc().category
   if category == Unit.Category.GROUND_UNIT then
     return true
@@ -1194,6 +1197,22 @@ function veafCampaign.setAirbaseCoalition(zone, side)
   end
   if airbase.setCoalition then
     pcall(airbase.setCoalition, airbase, side)
+  end
+end
+
+--- Turn DCS's own capture off on every airfield of the map: in a persistent campaign the campaign alone
+--- decides who owns one. On 2026-11-16 Minakh's airfield, which no zone stands on, went blue on its own as a
+--- blue convoy drove to Menagh 2.3 km away, while the zone, neutral, followed its own rule. The airfields of
+--- the zones are set to their owner besides (`setAirbaseCoalition`); FARPs and ships are left alone.
+function veafCampaign.freezeAirfields()
+  local ok, airbases = pcall(world.getAirbases)
+  for _, airbase in ipairs(ok and airbases or {}) do
+    local isAirfield = pcall(function()
+      assert(airbase:getDesc().category == Airbase.Category.AIRDROME)
+    end)
+    if isAirfield and airbase.autoCapture then
+      pcall(airbase.autoCapture, airbase, false)
+    end
   end
 end
 
@@ -2831,7 +2850,7 @@ function veafCampaign.wakerPoints()
     end
     for _, group in ipairs(coalition.getGroups(dcsSide, Group.Category.GROUND) or {}) do
       local unit = not built[group:getName()] and firstUnit(group)
-      if unit and not veafCampaign.unitIndex[unit:getName()] then
+      if unit and not veafCampaign.unitIndex[unit:getName()] and veaf.isCombatant(unit) then
         table.insert(ground, unit:getPoint())
       end
     end
@@ -3171,6 +3190,9 @@ function veafCampaign.initialize()
     zone.placed = zone:resolvePosition()
     veafCampaign.zones[zone.name] = zone
     table.insert(veafCampaign.zoneList, zone)
+  end
+  if veafCampaign.isPersistent() then
+    veafCampaign.freezeAirfields()
   end
   for _, zone in ipairs(veafCampaign.zoneList) do
     -- the campaign decides who owns its airbases, not DCS's own capture

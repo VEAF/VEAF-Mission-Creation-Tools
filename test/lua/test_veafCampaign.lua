@@ -1036,6 +1036,16 @@ function TestVeafCampaignCapture:test_one_side_alone_runs_the_clock()
   luaunit.assertEquals(self.poti.entry.owner, "neutral")
 end
 
+function TestVeafCampaignCapture:test_a_csar_pilot_neither_contests_nor_takes_a_zone()
+  -- Menagh, 2026-11-16: an immortal red "Wounded Pilot" kept the zone contested until an admin destroyed him
+  dcs_mocks.searchObjectsObjects = { groundUnit(BLUE), groundUnit(RED, { name = "Wounded Pilot #201080" }) }
+  beats(3)
+  luaunit.assertEquals(self.poti.entry.capture, { side = "blue", seconds = 30 })
+  dcs_mocks.searchObjectsObjects = { groundUnit(RED, { name = "Wounded Pilot #201080" }) }
+  beats(1)
+  luaunit.assertNil(self.poti.entry.capture, "a pilot alone holds nothing")
+end
+
 function TestVeafCampaignCapture:test_the_clock_reaching_capture_seconds_captures_the_zone()
   dcs_mocks.searchObjectsObjects = { groundUnit(BLUE) }
   beats(6)

@@ -179,6 +179,11 @@ function TestConvoyHelpers:test_living_ground_unit_of_a_side()
   luaunit.assertFalse(veafGroundAI.isLivingGroundUnitOf(released, RED), "an object DCS released mid-read is no unit")
 end
 
+function TestConvoyHelpers:test_a_csar_pilot_is_no_enemy_of_a_convoy()
+  -- Menagh, 2026-11-16: an immortal red "Wounded Pilot" stopped the blue convoy for ten minutes
+  luaunit.assertFalse(veafGroundAI.isLivingGroundUnitOf(makeUnit("Wounded Pilot #201080", { side = RED }), RED))
+end
+
 function TestConvoyHelpers:test_a_town_on_the_line_masks_the_point()
   veafGroundAI._townPoints = { { x = 1000, y = 0, z = 50 } }
   luaunit.assertTrue(veafGroundAI.townBetween({ x = 0, z = 0 }, { x = 2000, z = 0 }))

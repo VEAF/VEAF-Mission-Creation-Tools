@@ -263,6 +263,38 @@ function TestCampaignSettings:test_side_lists()
 end
 
 -- ---------------------------------------------------------------------------
+-- The campaign alone owns the airfields (ticket 20, point 15)
+-- ---------------------------------------------------------------------------
+TestCampaignAirfields = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+function TestCampaignAirfields:test_dcs_captures_no_airfield_of_a_persistent_campaign()
+  -- 2026-11-16: Minakh's airfield, 2.3 km from the neutral zone Menagh, went blue on its own as a blue
+  -- convoy drove past, while the zone followed its own rule
+  local calls = {}
+  local function airbase(name, category)
+    return {
+      getName = function()
+        return name
+      end,
+      getDesc = function()
+        return { category = category }
+      end,
+      autoCapture = function(_, enabled)
+        table.insert(calls, { name, enabled })
+      end,
+    }
+  end
+  local saved = world.getAirbases
+  world.getAirbases = function()
+    return { airbase("Minakh", Airbase.Category.AIRDROME), airbase("a FARP", Airbase.Category.HELIPAD) }
+  end
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  world.getAirbases = saved
+  luaunit.assertEquals(calls, { { "Minakh", false } })
+end
+
+-- ---------------------------------------------------------------------------
 -- The save reloaded
 -- ---------------------------------------------------------------------------
 TestCampaignSave = { setUp = setUpSuite, tearDown = tearDownSuite }

@@ -75,6 +75,7 @@ dynamic:
   economy:
     start_credits: 500
     landing_share: 50
+    tanker: Tanker Texaco      # the shop's Tanker item respawns it
   tasks:
     count: 3
   intel:
@@ -99,7 +100,9 @@ dynamic:
     min_distance: 80000
   territory:
     enabled: true
-  # the AWACS and tankers held out of the enemy's air defence: name the mission's assets here
+  # the AWACS and tankers held out of the enemy's air defence: groups of the template mission, each with
+  # an orbit (add them with the MCP's add_air_group and edit_route, or in the Mission Editor), and their
+  # channels in the template's src/presets.yaml; `campaign validate` warns when one is missing
   support:
-    assets: []
+    assets: [ "AWACS Magic", "Tanker Texaco" ]
     margin: 30000

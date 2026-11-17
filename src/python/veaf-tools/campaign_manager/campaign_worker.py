@@ -19,6 +19,7 @@ from veaf_libs.mission_validator import ERROR, WARNING, ValidationIssue
 
 from campaign_manager.briefing_deck import DeckReport, campaign_deck
 from campaign_manager.briefing_prose import BriefingProse, load_prose
+from campaign_manager.campaign_checks import campaign_warnings
 from campaign_manager.campaign_manager import initial_state, load_campaign, load_state, save_state, validate_state
 from campaign_manager.debriefing import debriefing_text
 from campaign_manager.mission_conditions import folder_date
@@ -198,6 +199,7 @@ class CampaignWorker:
         mismatch = validate_state(campaign, state)
         if mismatch:
             return issues + mismatch, None
+        issues = issues + campaign_warnings(campaign, self.folder)
         folder = self.mission_folder(state.mission + 1) / MISSION_SUBFOLDER
         # the tasks name the zones the waypoints go to; a defect in briefing.yaml is the deck's to report
         prose, prose_issues = load_prose(self.folder, campaign.missions, state.mission + 1)
@@ -292,6 +294,7 @@ class CampaignWorker:
         campaign, issues = load_campaign(self.campaign_file)
         if campaign is None:
             return issues
+        issues = issues + campaign_warnings(campaign, self.folder)
         coming = 1
         if self.state_file.exists():
             state, state_issues = load_state(self.state_file)

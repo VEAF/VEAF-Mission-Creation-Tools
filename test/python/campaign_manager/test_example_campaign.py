@@ -112,7 +112,11 @@ def test_the_persistent_example_starts_asleep_with_its_live_play(tmp_path: Path)
     worker = CampaignWorker(tmp_path)
     assert worker.init() == []
     issues, report = worker.next()
-    assert issues == []
+    # a blank template has no AWACS nor tanker yet: said, and nothing else (FEAT-DYNAMIC-CAMPAIGN ticket 20)
+    assert [issue.message for issue in issues] == [
+        t("campaign.issue.support_asset_missing", name=name, template="template")
+        for name in ("AWACS Magic", "Tanker Texaco")
+    ]
     assert report is not None
     data = yaml.safe_load((report.folder / DATA_FILE).read_text(encoding="utf-8"))
     lua = generate_config_lua({"lua_modules": {"CAMPAIGN": {"enable": True}}}, campaign_data=data)

@@ -735,6 +735,20 @@ the Mission Editor does when the CAP task is chosen. `create_cap_mission` writes
 *What it cost:* The on-demand CAPs `create_cap_mission` built before FIX-SCRATCH-MISSION-FINDINGS ticket 17 carried
 an `Orbit` alone: they patrolled and never fought.
 
+### An SA-5 reaches 240 km in DCS: one long-range battery covers a whole front {#sa5-reach-is-240-km}
+
+Measured **2026-11-16**.
+
+The `rangeMaxAltMax` DCS gives the SA-5's 5V28 missile, read by the persistent campaign on the batteries of
+Aleppo and Kuweires (Syria), is 240 km: from Aleppo it reaches Incirlik. On the campaign's first evening two
+of them 17 nm apart fired four missiles at an A-10C working near Menagh and shot it down; the players had
+been told "long-range air defence likely, type unconfirmed". A long-range battery drawn in every airfield
+zone put the whole front under that umbrella.
+
+**What to do:** Give long-range SAMs to a few key zones only (`long_range_sam: true`, two a side at most, 120 km apart:
+`long_range_sams`), keep them out of reach of the players' bases and tanker tracks, and say in the briefing
+where they are.
+
 ## Players, roles and the map {#players}
 
 ### An `arrowToAll` slides away from its points as the F10 map is panned, and its tip is the first point {#arrow-to-all-slides-on-the-f10-map}

@@ -905,7 +905,6 @@ end
 -- Factory buildings (FEAT-DYNAMIC-CAMPAIGN ticket 11)
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- Whether the zone is a factory: a few buildings that make its owner's resources.
 --- How the players read a zone's name: with the number of its waypoint in their flight plan when it has one,
 --- "Taftanaz (WP 7)" (David, 2026-11-16: "the waypoint numbers, everywhere, as in Foothold").
 --- @param name string the zone's name
@@ -919,6 +918,7 @@ function veafCampaign.zoneTitle(name)
   return name
 end
 
+--- Whether the zone is a factory: a few buildings that make its owner's resources.
 function VeafCampaignZone:isFactory()
   return self.entry.kind == "factory"
 end
@@ -1217,7 +1217,8 @@ function VeafCampaignZone:checkCapture(elapsed)
   capture.seconds = capture.seconds + elapsed
   local byHelicopter = not groundForces[veafCampaign.SIDES[side]]
   if capture.seconds >= veafCampaign.captureSeconds(byHelicopter) then
-    self:capturedBy(side, byHelicopter and "helicopter" or nil)
+    -- a token garrison, like the longer delay, belongs to the persistent campaign's helicopter captures
+    self:capturedBy(side, byHelicopter and veafCampaign.isPersistent() and "helicopter" or nil)
   end
 end
 

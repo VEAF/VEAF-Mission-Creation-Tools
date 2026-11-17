@@ -1628,6 +1628,9 @@ function TestCampaignSupport:setUp()
       getCoalition = function()
         return coalition.side.BLUE
       end,
+      getID = function()
+        return this.groupId or 1
+      end,
     }
   end
   coalition.getMainRefPoint = function()
@@ -1659,6 +1662,19 @@ function TestCampaignSupport:test_the_awacs_holds_out_of_reach_and_comes_closer_
   luaunit.assertEquals(#self.moves, 2)
   luaunit.assertTrue(self.moves[2].x <= 50000)
   luaunit.assertTrue(self.moves[2].x > -50000)
+end
+
+function TestCampaignSupport:test_an_asset_respawned_is_placed_again()
+  -- the review of #1293: a respawn from the assets menu brought the tanker back on its orbit, under the SAM, and
+  -- the station remembered said it was already placed
+  start({ support = { assets = { "AWACS Magic" } } })
+  veafCampaign.zones["Senaki"].entry.reach = 120000
+  veafCampaignOps.maintainSupport(0)
+  veafCampaignOps.maintainSupport(300)
+  luaunit.assertEquals(#self.moves, 1)
+  self.groupId = 2 -- respawned: a new group id
+  veafCampaignOps.maintainSupport(600)
+  luaunit.assertEquals(#self.moves, 2)
 end
 
 -- ---------------------------------------------------------------------------

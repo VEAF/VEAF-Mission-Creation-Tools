@@ -78,6 +78,13 @@ A unit named `#veafInterpreter["…"]` in the Mission Editor spawns its units af
 What the campaign must hold is declared in `campaign.yaml`, as a zone with its garrison (an explicit `garrison:` list when the composition matters): the zone is saved with its losses, and the [network](#network) rebuilds it at its side's expense.
 `campaign next` reports the interpreter commands it finds in the mission.
 
+**What `campaign validate` and `campaign next` warn about**, each a defect of the first evening flown:
+
+- a zone at coordinates within 4 km of an airfield, with no `kind:`: put it on the airfield (`at: { airfield: … }`), or DCS and the campaign each capture their own object;
+- no AWACS nor tanker in `dynamic.support.assets`, no `dynamic.economy.tanker`, or one of them that is no group of the template mission: the players fly without, and the shop has no tanker;
+- a channel of the template's `src/presets.yaml` named after an airfield of another theatre: write the campaign's frequency plan for its theatre;
+- more [long-range SAMs](#long-range-sams) than allowed, or too close, is an error.
+
 ### A waypoint per zone {#waypoints}
 
 `campaign next` writes in `src/waypoints.yaml` a waypoint per zone of the campaign, at its centre, on the ground, for the players' planes and helicopters, the most strategic first: the zones of the front (connected to a zone of another owner), then the airfields, the factories, the depots and the rest, nearest the players' zones first.

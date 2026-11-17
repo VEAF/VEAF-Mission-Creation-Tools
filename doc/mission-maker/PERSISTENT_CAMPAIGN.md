@@ -78,6 +78,13 @@ Une unité nommée `#veafInterpreter["…"]` dans l'éditeur refait apparaître 
 Ce que la campagne doit tenir se déclare dans `campaign.yaml`, en zone avec sa garnison (une liste explicite `garrison:` si la composition compte) : la zone est sauvegardée avec ses pertes, et le [réseau](#network) la reconstruit aux frais de son camp.
 `campaign next` signale les commandes d'interpréteur qu'il trouve dans la mission.
 
+**Ce dont `campaign validate` et `campaign next` avertissent**, chaque fois un défaut du premier soir joué :
+
+- une zone posée par coordonnées à moins de 4 km d'un aérodrome, sans `kind:` : posez-la sur l'aérodrome (`at: { airfield: … }`), sinon DCS et la campagne prennent chacun leur objet ;
+- aucun AWACS ni ravitailleur dans `dynamic.support.assets`, pas de `dynamic.economy.tanker`, ou l'un d'eux qui n'est aucun groupe de la mission template : les joueurs volent sans, et la boutique n'a pas de ravitailleur ;
+- un canal du `src/presets.yaml` du template nommé d'après un aérodrome d'un autre théâtre : écrivez le plan de fréquences de la campagne pour son théâtre ;
+- plus de [SAM longue portée](#long-range-sams) que permis, ou trop proches, est une erreur.
+
 ### Un waypoint par zone {#waypoints}
 
 `campaign next` écrit dans `src/waypoints.yaml` un waypoint par zone de la campagne, en son centre, au sol, pour les avions et les hélicoptères des joueurs, les plus stratégiques d'abord : les zones du front (reliées à une zone d'un autre camp), puis les aérodromes, les usines, les dépôts et le reste, les plus proches de nos zones d'abord.

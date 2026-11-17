@@ -728,8 +728,6 @@ local function strikeValue(zone, role)
   return value
 end
 
---- The enemy zone a side strikes: among the enemy zones connected to one of its own, the one with the
---- most to hit for the role; nil when none has anything.
 --- The reach from which a CAS strike keeps out of an air defence, in metres: a medium or long-range SAM (a Hawk,
 --- an SA-6), not the guns and short-range missiles a CAS strike is armoured against. On 2026-11-16 a red CAS sent at
 --- Hatay, under a Hawk of 40 km, dropped its bombs 20 km short and was shot down: 60 points for nothing.
@@ -1959,6 +1957,9 @@ end
 --- Where each support asset holds now, by asset name: `{ x, z }`.
 veafCampaignOps.supportStations = {}
 
+--- The DCS id of each support asset's group when its station was weighed, by asset name.
+veafCampaignOps.supportGroupIds = {}
+
 --- The orbit a support asset was given in the Mission Editor, `{ x, z }`, or nil when its route has none.
 function veafCampaignOps.supportAnchor(name)
   local data = veafMove and veafMove._getTankerRouteData and veafMove._getTankerRouteData(name)
@@ -2038,6 +2039,13 @@ function veafCampaignOps.maintainSupport(now)
     local group = Group.getByName(name)
     local alive = group and group.isExist and group:isExist()
     local anchor = alive and veafCampaignOps.supportAnchor(name)
+    -- a group respawned (the assets menu, the shop) comes back on its Mission Editor orbit, with a new id: its
+    -- remembered station no longer says where it is
+    local id = alive and group.getID and group:getID()
+    if id and veafCampaignOps.supportGroupIds[name] ~= id then
+      veafCampaignOps.supportGroupIds[name] = id
+      veafCampaignOps.supportStations[name] = nil
+    end
     if anchor then
       local side = group:getCoalition() == coalition.side.RED and "red" or "blue"
       local station, target = veafCampaignOps.supportStation(side, anchor)
@@ -2264,7 +2272,7 @@ function veafCampaignOps.initialize()
   veafCampaignOps.raids, veafCampaignOps.nextRaid = {}, {}
   veafCampaignOps.usedNames, veafCampaignOps.nextAirDefenceReport = {}, nil
   veafCampaignOps.capDraws, veafCampaignOps.lastCapRefusal = {}, {}
-  veafCampaignOps.supportStations, veafCampaignOps.nextSupport = {}, nil
+  veafCampaignOps.supportStations, veafCampaignOps.nextSupport, veafCampaignOps.supportGroupIds = {}, nil, {}
   veafCampaignOps.counters = {
     helicoptersSent = 0,
     helicoptersLanded = 0,

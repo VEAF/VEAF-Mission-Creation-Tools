@@ -376,6 +376,32 @@ or a red base with slots nobody asked for, is an inconsistency.
   search radar left, they come closer (David, 2026-10-22: *Kolkhida* mission 3 kept them 135 nm from a
   blind S-300). The briefing says where they are and why they moved.
 
+**A persistent campaign** (`mode: persistent`) also follows these, learnt on its first server evening
+(*Bouclier de l'Oronte*, Syria, 2026-11-16), each with what broke without it. `campaign validate` warns
+about most of them: a warning there is a defect to fix before the server, not a remark.
+- **The frequency plan is the theatre's.** `prepare --theatre X` puts X's airfields on the second radio;
+  then write the plan for the campaign's own bases (`describe_airfield_channels`, `set_airfield_channels`)
+  and its AWACS and tankers, and drop what the mission does not have (the scaffold's carriers and tankers).
+  The Syria campaign flew with Batumi, Beslan and Kutaisi on its kneeboards.
+- **An AWACS and a tanker in the template**, each with an orbit (`add_air_group` with an air start, then
+  `edit_route`: a second point, the `awacs` or `tanker` task, `set_unlimited_fuel`, a race-track `orbit`),
+  their channels in `src/presets.yaml`, declared in `modules.ASSETS`, named in `dynamic.support.assets`
+  (the campaign then holds them out of the enemy's air defence and moves them as it changes) and the tanker
+  in `dynamic.economy.tanker` (the shop's Tanker item). Place their first orbit over your own rear.
+  The evening flew with neither, and the shop had no tanker.
+- **A zone on an airfield is declared on it** (`at: { airfield: … }`), never at coordinates beside it,
+  short strips included: Menagh, 2.3 km from Minakh's airfield, stayed neutral while DCS gave the airfield
+  to blue. A depot or a factory of its own (`kind:`) may stand beside one.
+- **Long-range SAMs at a few key points only**: `long_range_sam: true` on the zones that deserve one — a
+  large rear base, a factory, a depot — two a side at most, 120 km apart (`long_range_sams`). The size
+  class no longer draws one. An SA-5's reach measured in game is 240 km: two of them 17 nm apart covered the
+  whole front and shot an A-10 down far from any warning.
+- **Real defaults, and say what the AI can afford**: the stock (`resources.start`, 1,000), a factory's
+  output (180 an hour) and the reserve keep the enemy flying an evening; lowering them grounds it.
+- **A campaign already running keeps what its save drew**: a garrison change (a long-range SAM taken off,
+  a zone moved onto its airfield) shows on the server after a reset of the campaign, or on the zones the
+  save does not hold yet. Say so to whoever deploys it.
+
 **Combat content.**
 - A **training range close to a blue base** (Kobuleti next to Batumi on Caucasus): three nested
   levels through `includes:` — inert statics, light AAA, realistic short-range defense.

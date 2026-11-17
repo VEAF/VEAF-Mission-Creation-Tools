@@ -1968,6 +1968,7 @@ limitations:
   kind: tool
   area: runtime
   title: "`-tankerlow` and `-tankerhigh` run for anyone, though `_move` is a trusted member's command"
+  fixed_in: "6.37.0"
   symptom: |
     `veafMove` registers `_move` with `veafCommands` at the `SENIOR_PILOT` level (moving a tanker affects
     everyone flying). The aliases `-tankerlow` and `-tankerhigh` do not bypass security, but

@@ -55,3 +55,5 @@ Measured with the red tests: the survey's "VEAF pilot" column was wrong. A plain
 `-ai_set` and the twelve `-arty1_*` … `-arty3_*` aliases were open as well; the Q1 rule puts them at `_gc`'s VEAF-pilot level.
 
 Done in one PR: `veafShortcuts.securityLevelFor` (declared level, else the level of the handler matched by keyphrase at the start of the alias's own command), enforced in `veafShortcuts.ExecuteAlias` through `veafCommands.isAllowed`, when the marker is dropped (a delayed alias runs after the dispatcher has removed its marker, so its author can no longer be read then); `VeafAlias:setSecurityLevel` on the four `veafMove` aliases; the OT commands sheet; `veafShortcuts` (section *An alias's level*), `ALIASES` and the pilot guide; Lua coverage floor 83 → 84.
+
+The known limitation `tanker-move-aliases-skip-their-security-level`, recorded the same day by FEAT-OPEN-TRAINING-KNEEBOARD, was left without its `fixed_in`; set to 6.37.0 on 2026-11-17 by a follow-up PR.

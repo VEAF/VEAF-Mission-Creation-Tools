@@ -58,7 +58,9 @@ def _symbol(draw: ImageDraw.ImageDraw, kind: str, cx: float, cy: float, colour: 
     elif kind == "factory":
         draw.polygon([(cx, cy - s - 3), (cx + s + 3, cy + s), (cx - s - 3, cy + s)], fill=fill, outline=outline)
     elif kind == "depot":
-        draw.polygon([(cx, cy - s - 3), (cx + s + 3, cy), (cx, cy + s + 3), (cx - s - 3, cy)], fill=fill, outline=outline)
+        draw.polygon(
+            [(cx, cy - s - 3), (cx + s + 3, cy), (cx, cy + s + 3), (cx - s - 3, cy)], fill=fill, outline=outline
+        )
     else:
         draw.ellipse((cx - s, cy - s, cx + s, cy + s), fill=fill, outline=outline, width=3)
 

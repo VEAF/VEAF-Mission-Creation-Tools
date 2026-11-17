@@ -1,0 +1,84 @@
+"""A persistent campaign's theatre dossier, in place of its two decks (FEAT-DYNAMIC-CAMPAIGN ticket 20)."""
+
+from __future__ import annotations
+
+import copy
+import re
+from datetime import date
+from pathlib import Path
+
+from campaign_fixture import PROSE, VALID
+from campaign_manager.briefing_prose import parse_prose
+from campaign_manager.campaign_manager import initial_state, parse_campaign
+from campaign_manager.models import CampaignDefinition
+from campaign_manager.theatre_dossier import SHOP_PRICES, theatre_dossier
+from pptx import Presentation
+from veaf_libs.i18n import language
+
+_REPO = Path(__file__).resolve().parents[3]
+
+
+def _campaign() -> CampaignDefinition:
+    raw = copy.deepcopy(VALID)
+    raw["campaign"].update({"mode": "persistent", "objectives": []})
+    raw["zones"][2]["kind"] = "factory"
+    campaign, issues = parse_campaign(raw)
+    assert campaign is not None, issues
+    return campaign
+
+
+def _slides(path: Path) -> list[str]:
+    deck = Presentation(str(path))
+    texts = []
+    for slide in deck.slides:
+        texts.append("\n".join(shape.text_frame.text for shape in slide.shapes if shape.has_text_frame))
+    return texts
+
+
+class TestTheDossier:
+    def test_its_pages_and_nothing_of_a_mission_of_the_day(self, tmp_path: Path) -> None:
+        campaign = _campaign()
+        raw = copy.deepcopy(PROSE)
+        raw["axes"] = [{"title": "Couper Senaki de son usine", "text": "Prendre le nœud."}]
+        prose, issues = parse_prose(raw, campaign.missions, 1)
+        assert prose is not None, issues
+        with language("fr"):
+            report = theatre_dossier(
+                campaign,
+                initial_state(campaign),
+                prose,
+                tmp_path,
+                {"Kobuleti": 1, "Senaki": 2},
+                day=date(2026, 11, 17),
+                cache_dir=tmp_path,
+                fetch=lambda _url: None,
+            )
+            slides = _slides(report.path)
+        whole = "\n".join(slides)
+        assert "État au 17/11/2026" in slides[0]
+        assert "campagne persistante" in slides[0]
+        for title in (
+            "2. Situation stratégique",
+            "3. Carte du réseau",
+            "4. Le réseau ennemi",
+            "5. Défenses aériennes connues",
+            "6. Axes d'effort",
+            "7. Nos moyens",
+            "8. Plan radio",
+            "9. Guide du joueur",
+        ):
+            assert title in whole, title
+        assert "1. Couper Senaki de son usine" in whole
+        assert "adaptez-vous" in whole
+        # the red factory feeds Senaki, named with its waypoint
+        assert "Gudauta depot alimente Senaki (WP 2)." in whole
+        assert "Senaki (WP 2)" in whole
+        for absent in ("Mission 1", "ATO", "Météo", "Plan de navigation"):
+            assert absent not in whole, absent
+
+    def test_the_shop_prices_are_the_runtime_s(self) -> None:
+        lua = (_REPO / "src/scripts/veaf/veafCampaignEconomy.lua").read_text(encoding="utf-8")
+        block = lua[
+            lua.index("veafCampaignEconomy.PRICES = {") : lua.index("}", lua.index("veafCampaignEconomy.PRICES = {"))
+        ]
+        assert dict((k, int(v)) for k, v in re.findall(r"(\w+) = (\d+)", block)) == SHOP_PRICES

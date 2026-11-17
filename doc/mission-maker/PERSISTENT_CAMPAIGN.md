@@ -420,11 +420,11 @@ dynamic:
 
 ## AWACS et ravitailleurs {#support}
 
-Les AWACS et ravitailleurs nommés dans `support.assets` (des assets de la mission, avec une orbite dans l'éditeur) sont tenus hors des défenses ennemies :
+Les AWACS et ravitailleurs nommés dans `support.assets` (des assets de la mission, avec une orbite dans l'éditeur) sont tenus hors des défenses ennemies par le [module `veafSupport`](scripts/veafSupport.md), que `campaign next` active dans `mission.yaml` avec ces réglages ; la campagne lui donne la portée de ses zones, endormies ou éveillées, et son front :
 
 - sur la ligne entre leur orbite de l'éditeur et la zone ennemie la plus proche, au premier point hors de portée de **toutes** les défenses antiaériennes ennemies plus `support.margin` (30 km), jamais en avant de la zone de leur camp la plus proche de cet ennemi ;
-- réévalués toutes les `support.seconds` (300 s) : quand un SAM meurt, l'orbite se rapproche ; quand une nouvelle portée est mesurée, elle recule ;
-- déplacés seulement quand la station a bougé de `support.min_move` (20 km) ou plus, leur branche (`support.leg`, 30 nautiques) posée en travers de l'axe ;
+- repliés aussitôt, avec `support.retreat_margin` (50 km), quand une portée atteint leur orbite ; rapprochés seulement après 30 minutes de calme et d'un pas de 30 km au moins (`support.advance_seconds`, `support.min_advance`), si bien qu'un SAM qui se réveille et se rendort ne les fait pas faire d'allers-retours ; leur branche (`support.leg`, 30 nautiques) posée en travers de l'axe ;
+- leurs marques F10 (branche et étiquette, pour leur camp) redessinées à chaque déplacement ;
 - chaque déplacement annoncé à leur camp : la nouvelle orbite en relèvement et distance du bullseye, fréquence inchangée.
 
 Une campagne persistante tient **deux ravitailleurs**, une perche (un KC-135) et un panier (un KC-135MPRS ou un KC-130 côté bleu), chacun placé hors de portée comme l'AWACS, et tous deux vendus à la boutique.
@@ -502,7 +502,7 @@ Une ligne `KO` suffit à dire où regarder.
 | `debug` | voir [le journal de mise au point](#debug-log) | `true` pendant les essais |
 | `debug_status_seconds` | 300 | intervalle entre deux lignes d'état du journal |
 | `territory` | voir [le territoire](#territory) | `enabled` (true), `margin` (70000), `hatch_spacing` (3000), `hatch_length` (2500) |
-| `support` | voir [AWACS et ravitailleurs](#support) | `assets` (aucun), `margin` (30000), `seconds` (300), `min_move` (20000), `leg` (30, nautiques) |
+| `support` | voir [AWACS et ravitailleurs](#support) et le [module `veafSupport`](scripts/veafSupport.md#settings) | `assets` (aucun), `margin` (30000), `retreat_margin` (50000), `seconds` (60), `advance_seconds` (1800), `min_advance` (30000), `leg` (30, nautiques) |
 
 Les plafonds sont prudents par défaut ; ils se règleront d'après ce que tiennent les serveurs.
 

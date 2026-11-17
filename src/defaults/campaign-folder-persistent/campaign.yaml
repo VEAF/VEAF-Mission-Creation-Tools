@@ -55,6 +55,8 @@ connections:
   - [Kutaisi, Tkibuli]
 
 # Every key is optional; these are the defaults, written out to show them.
+# Long-range SAMs are a zone's own (`long_range_sam: true`, Batumi and Kutaisi above), two a side at most,
+# 120 km apart at least: `long_range_sams: { per_side: 2, min_spacing: 120000 }` at the top level.
 dynamic:
   save_seconds: 60
   wake_radius: 60000
@@ -68,20 +70,23 @@ dynamic:
   attack_seconds: 900
   supply: [red]
   supply_seconds: 600
+  helicopter_capture_seconds: 600
+  convoy_timeout: 2700
   economy:
     start_credits: 500
+    landing_share: 50
   tasks:
     count: 3
   intel:
     hidden: true
   # the V1.5: resources, factories, the supply network, sappers, warehouses, bombers, territory
   resources:
-    start: 500
-    background_per_hour: 30
+    start: 1000
+    background_per_hour: 60
     reserve: 100
   factory:
     buildings: 3
-    per_hour: 120
+    per_hour: 180
   network:
     hop_seconds: 600
     isolated_seconds: 3600
@@ -94,3 +99,7 @@ dynamic:
     min_distance: 80000
   territory:
     enabled: true
+  # the AWACS and tankers held out of the enemy's air defence: name the mission's assets here
+  support:
+    assets: []
+    margin: 30000

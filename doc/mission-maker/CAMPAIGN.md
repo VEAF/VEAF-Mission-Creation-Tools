@@ -140,9 +140,19 @@ Une classe de taille est un jeu de paramètres des générateurs CAS : la garnis
 | classe livrée | `size` | `defense` | `armor` | SAM longue portée | unités (moyenne, min – max) |
 |---|---|---|---|---|---|
 | `outpost` | 1 | 1 | 1 | non | 23 (12 – 36) |
-| `airfield` | 1 | 3 | 2 | oui | 51 (35 – 74), dont ≈ 20 pour le SAM |
+| `airfield` | 1 | 3 | 2 | non | ≈ 31 (51 mesurées le 2026-10-06 avec une batterie d'environ 20, la batterie ôtée) |
 
-Mesuré sur 40 tirages, le 2026-10-06 ; la campagne d'exemple compte ainsi environ 470 unités au sol.
+Mesuré sur 40 tirages, le 2026-10-06.
+
+Un SAM longue portée appartient à une zone, pas à sa classe : `long_range_sam: true` sur la zone ajoute la batterie (une vingtaine d'unités) à sa garnison.
+Jusqu'au 17/11/2026, chaque zone d'aérodrome en tirait une, et le premier soir d'une campagne persistante, deux SA-5 à 17 nautiques l'un de l'autre couvraient tout le front.
+`campaign validate` refuse plus de `long_range_sams.per_side` (2) zones d'un camp qui en ont un, et deux d'un même camp à moins de `long_range_sams.min_spacing` (120 km) ; réservez-les aux points clés du réseau.
+
+```yaml
+long_range_sams: { per_side: 2, min_spacing: 120000 }
+zones:
+  - { name: Kutaisi, at: { airfield: Kutaisi }, size: airfield, side: red, long_range_sam: true }
+```
 
 `size` va de 1 à 5, `defense` et `armor` de 0 à 5, comme pour un marqueur `_cas`.
 Une classe nouvelle doit fixer `size`, `defense` et `armor`.

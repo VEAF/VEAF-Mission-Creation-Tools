@@ -79,6 +79,10 @@ def _counts(value: Any) -> bool:
     return isinstance(value, dict) and all(isinstance(key, str) and _natural(count) for key, count in value.items())
 
 
+def _names(value: Any) -> bool:
+    return isinstance(value, list) and all(_text(name) for name in value)
+
+
 def _statics(value: Any) -> bool:
     return isinstance(value, list) and bool(value) and all(_text(kind) for kind in value)
 
@@ -152,7 +156,7 @@ _SCHEMA: dict[str, Check | dict[str, Check]] = {
         "package_delay": _positive,
     },
     "territory": {"enabled": _flag, "margin": _positive, "hatch_spacing": _positive, "hatch_length": _positive},
-    "support": {"assets": _statics, "margin": _natural, "seconds": _positive, "min_move": _natural, "leg": _positive},
+    "support": {"assets": _names, "margin": _natural, "seconds": _positive, "min_move": _natural, "leg": _positive},
     "debug": _flag,
     "debug_status_seconds": _positive,
 }

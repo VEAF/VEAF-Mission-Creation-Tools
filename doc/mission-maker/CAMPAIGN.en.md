@@ -140,9 +140,19 @@ A size class is a set of parameters of the CAS generators: the garrison has as m
 | shipped class | `size` | `defense` | `armor` | long-range SAM | units (average, min – max) |
 |---|---|---|---|---|---|
 | `outpost` | 1 | 1 | 1 | no | 23 (12 – 36) |
-| `airfield` | 1 | 3 | 2 | yes | 51 (35 – 74), of which ≈ 20 for the SAM |
+| `airfield` | 1 | 3 | 2 | no | ≈ 31 (51 measured on 2026-10-06 with a battery of ≈ 20, the battery taken off) |
 
-Measured over 40 draws on 2026-10-06; the example campaign thus has about 470 ground units.
+Measured over 40 draws on 2026-10-06.
+
+A long-range SAM belongs to a zone, not to its class: `long_range_sam: true` on the zone adds the battery (about 20 units) to its garrison.
+Until 2026-11-17 every airfield zone drew one, and on the first evening of a persistent campaign two SA-5 17 nautical miles apart covered the whole front.
+`campaign validate` refuses more than `long_range_sams.per_side` (2) zones of a side with one, and two of a side closer than `long_range_sams.min_spacing` (120 km); keep them for the key points of the network.
+
+```yaml
+long_range_sams: { per_side: 2, min_spacing: 120000 }
+zones:
+  - { name: Kutaisi, at: { airfield: Kutaisi }, size: airfield, side: red, long_range_sam: true }
+```
 
 `size` runs from 1 to 5, `defense` and `armor` from 0 to 5, as for a `_cas` marker.
 A new class must set `size`, `defense` and `armor`.

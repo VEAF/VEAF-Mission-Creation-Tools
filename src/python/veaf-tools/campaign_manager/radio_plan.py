@@ -142,7 +142,9 @@ def _with_collection(lines: list[str], channels: dict[str, dict[str, Any]]) -> l
     if start is None:
         return lines
     # a previous campaign collection goes: written by this module, rewritten whole
-    head = next((i for i in range(start + 1, len(lines)) if lines[i].split("#")[0].rstrip() == f"    {COLLECTION}:"), None)
+    head = next(
+        (i for i in range(start + 1, len(lines)) if lines[i].split("#")[0].rstrip() == f"    {COLLECTION}:"), None
+    )
     if head is not None:
         end = head + 1
         while end < len(lines) and lines[end].strip() and _indent(lines[end]) > 4:

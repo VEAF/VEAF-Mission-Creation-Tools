@@ -71,6 +71,7 @@ def _support_channels(campaign: CampaignDefinition, mission_folder: Path) -> dic
         groups = {group.name: group for group in read_mission_folder(mission_folder).iter_groups() if group.name}
     except Exception:  # noqa: BLE001 — a mission that cannot be read gives no support channel, not a crash
         return {}
+
     # the AWACS first, then the tankers, each in the file's order
     def is_awacs(name: str) -> bool:
         group = groups.get(name)

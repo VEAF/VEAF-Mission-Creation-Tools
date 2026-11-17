@@ -1939,6 +1939,139 @@ function veafCampaignOps.onFlightEvent(event)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- AWACS and tankers held out of the enemy's air defence (FEAT-DYNAMIC-CAMPAIGN ticket 20)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Where each support asset holds now, by asset name: `{ x, z }`.
+veafCampaignOps.supportStations = {}
+
+--- The orbit a support asset was given in the Mission Editor, `{ x, z }`, or nil when its route has none.
+function veafCampaignOps.supportAnchor(name)
+  local data = veafMove and veafMove._getTankerRouteData and veafMove._getTankerRouteData(name)
+  local point = data and data.point2
+  if not point then
+    return nil
+  end
+  return { x = point.x, z = point.y }
+end
+
+--- The station a support asset of a side holds: on the line from the orbit the Mission Editor gave it to the enemy
+--- zone nearest that orbit, the point nearest the enemy that is out of the reach of every enemy air defence plus
+--- `support.margin` — never ahead of the side's own zone nearest that enemy, so that it stays over its territory.
+--- When a SAM dies the station comes closer; when a new reach is measured, it goes back (David, 2026-11-16).
+--- @param side string the asset's side
+--- @param anchor table `{ x, z }` the orbit of the Mission Editor
+--- @return table|nil `{ x, z }`, nil when the enemy holds no zone
+--- @return table|nil the enemy zone the axis points at
+function veafCampaignOps.supportStation(side, anchor)
+  local enemy = veafCampaign.enemyOf(side)
+  local target, targetDistance = nil, nil
+  for _, zone in ipairs(veafCampaign.zoneList) do
+    if zone.placed and zone.entry.owner == enemy then
+      local d = distance2d(anchor, zone:getCenter())
+      if not targetDistance or d < targetDistance then
+        target, targetDistance = zone, d
+      end
+    end
+  end
+  if not target then
+    return nil
+  end
+  local center = target:getCenter()
+  -- the side's front toward that zone: the station never goes beyond it
+  local front = nil
+  for _, zone in ipairs(veafCampaign.zoneList) do
+    if zone.placed and zone.entry.owner == side then
+      local d = distance2d(zone:getCenter(), center)
+      if not front or d < front then
+        front = d
+      end
+    end
+  end
+  local length = distance2d(center, anchor)
+  if length == 0 then
+    return { x = anchor.x, z = anchor.z }, target
+  end
+  local start = math.min(front or 0, length)
+  local from = {
+    x = center.x + (anchor.x - center.x) * start / length,
+    z = center.z + (anchor.z - center.z) * start / length,
+  }
+  local point = veafCampaignOps.edgeOfReach(side, from, anchor, veafCampaign.setting("support", "margin"))
+  return { x = point.x, z = point.z }, target
+end
+
+--- Bearing (degrees, true) and distance (nautical miles) of a point from a side's bullseye.
+local function fromBullseye(side, point)
+  local ok, bullseye = pcall(coalition.getMainRefPoint, veafCampaign.SIDES[side])
+  if not ok or type(bullseye) ~= "table" then
+    return nil
+  end
+  local dx, dz = point.x - bullseye.x, point.z - bullseye.z
+  local bearing = math.floor(math.deg(math.atan2(dz, dx)) + 360.5) % 360
+  return bearing, math.floor(math.sqrt(dx * dx + dz * dz) / 1852 + 0.5)
+end
+
+--- Weigh again where every support asset holds, and move the ones whose station moved more than
+--- `support.min_move`: the orbit is moved with its leg laid across the axis, and the side is told where it is.
+--- @param now number the mission time
+function veafCampaignOps.maintainSupport(now)
+  if now < (veafCampaignOps.nextSupport or 0) then
+    return
+  end
+  veafCampaignOps.nextSupport = now + veafCampaign.setting("support", "seconds")
+  for _, name in ipairs(veafCampaign.setting("support", "assets") or {}) do
+    local group = Group.getByName(name)
+    local alive = group and group.isExist and group:isExist()
+    local anchor = alive and veafCampaignOps.supportAnchor(name)
+    if anchor then
+      local side = group:getCoalition() == coalition.side.RED and "red" or "blue"
+      local station, target = veafCampaignOps.supportStation(side, anchor)
+      local current = veafCampaignOps.supportStations[name] or anchor
+      if station and distance2d(station, current) >= veafCampaign.setting("support", "min_move") then
+        local axis = math.deg(math.atan2(target:getCenter().z - station.z, target:getCenter().x - station.x))
+        local moved = veafMove.moveTanker(
+          { x = station.x, y = 0, z = station.z },
+          name,
+          nil,
+          nil,
+          (axis + 90) % 360,
+          veafCampaign.setting("support", "leg"),
+          false,
+          true
+        )
+        if moved then
+          veafCampaignOps.supportStations[name] = station
+          local bearing, range = fromBullseye(side, station)
+          logger():info(
+            "support [%s] moves its orbit %d km, facing [%s]",
+            name,
+            math.floor(distance2d(station, current) / 1000),
+            target.name
+          )
+          veafCampaign.debug(
+            "DECISION",
+            "%s support [%s] holds %s",
+            side,
+            name,
+            bearing and string.format("%03d/%d nm from the bullseye", bearing, range) or ""
+          )
+          if bearing then
+            veafCampaign.announce(side, side, veaf.t("campaign.support.moved", name, bearing, range), 20)
+          end
+        end
+      end
+    end
+  end
+end
+
+--- An asset respawned (the shop's tanker) comes back on the Mission Editor's orbit: its station is weighed again.
+function veafCampaignOps.forgetSupportStation(name)
+  veafCampaignOps.supportStations[name] = nil
+  veafCampaignOps.nextSupport = nil
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Hunter (ticket 05)
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -2085,6 +2218,7 @@ function veafCampaignOps.beat(now)
     return
   end
   veafCampaignOps.dispatchHelicopters(now)
+  veafCampaignOps.maintainSupport(now)
   local enemy = veafCampaign.enemyOf(veafCampaign.playerSide())
   veafCampaignOps.maintainCaps(enemy)
   veafCampaignOps.launchStrike(enemy, now)
@@ -2116,6 +2250,7 @@ function veafCampaignOps.initialize()
   veafCampaignOps.raids, veafCampaignOps.nextRaid = {}, {}
   veafCampaignOps.usedNames, veafCampaignOps.nextAirDefenceReport = {}, nil
   veafCampaignOps.capDraws, veafCampaignOps.lastCapRefusal = {}, {}
+  veafCampaignOps.supportStations, veafCampaignOps.nextSupport = {}, nil
   veafCampaignOps.counters = {
     helicoptersSent = 0,
     helicoptersLanded = 0,

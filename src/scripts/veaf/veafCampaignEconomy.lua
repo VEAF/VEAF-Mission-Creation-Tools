@@ -490,6 +490,9 @@ veafCampaignEconomy.effects = {
       return false, "campaign.shop.refused_no_tanker"
     end
     veafAssets.respawn(name)
+    if veafCampaignOps and veafCampaignOps.forgetSupportStation then
+      veafCampaignOps.forgetSupportStation(name) -- back on its Mission Editor orbit: held out of reach again
+    end
     return true
   end,
 }

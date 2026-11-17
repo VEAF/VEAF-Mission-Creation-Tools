@@ -152,6 +152,7 @@ _SCHEMA: dict[str, Check | dict[str, Check]] = {
         "package_delay": _positive,
     },
     "territory": {"enabled": _flag, "margin": _positive, "hatch_spacing": _positive, "hatch_length": _positive},
+    "support": {"assets": _statics, "margin": _natural, "seconds": _positive, "min_move": _natural, "leg": _positive},
     "debug": _flag,
     "debug_status_seconds": _positive,
 }

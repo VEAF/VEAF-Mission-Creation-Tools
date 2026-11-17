@@ -1599,6 +1599,69 @@ function TestCampaignCapReach:test_far_from_any_defence_it_keeps_its_full_reach(
 end
 
 -- ---------------------------------------------------------------------------
+-- AWACS and tankers held out of the enemy's air defence (ticket 20, point 14)
+-- ---------------------------------------------------------------------------
+TestCampaignSupport = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+function TestCampaignSupport:setUp()
+  setUpSuite(self)
+  self.moves = {}
+  local this = self
+  self.supportSaved = { move = veafMove, group = Group.getByName, ref = coalition.getMainRefPoint }
+  veafMove = {
+    _getTankerRouteData = function()
+      return { point2 = { x = -100000, y = 0 } } -- the Mission Editor's orbit, 100 km behind Kobuleti
+    end,
+    moveTanker = function(point, name, _, _, heading, leg)
+      table.insert(this.moves, { x = point.x, z = point.z, name = name, heading = heading, leg = leg })
+      return true
+    end,
+  }
+  Group.getByName = function(name)
+    if name ~= "AWACS Magic" then
+      return this.supportSaved.group(name)
+    end
+    return {
+      isExist = function()
+        return true
+      end,
+      getCoalition = function()
+        return coalition.side.BLUE
+      end,
+    }
+  end
+  coalition.getMainRefPoint = function()
+    return { x = 0, y = 0, z = 0 }
+  end
+end
+
+function TestCampaignSupport:tearDown()
+  veafMove, Group.getByName, coalition.getMainRefPoint = self.supportSaved.move, self.supportSaved.group, self.supportSaved.ref
+  tearDownSuite(self)
+end
+
+function TestCampaignSupport:test_the_awacs_holds_out_of_reach_and_comes_closer_when_a_sam_dies()
+  start({ support = { assets = { "AWACS Magic" } } })
+  -- Senaki's air defence measured at 120 km: the station is 150 km short of it, over Kobuleti's rear
+  veafCampaign.zones["Senaki"].entry.reach = 120000
+  veafCampaignOps.maintainSupport(0)
+  luaunit.assertEquals(#self.moves, 1)
+  luaunit.assertEquals({ self.moves[1].x, self.moves[1].z }, { -50000, 0 })
+  luaunit.assertEquals(self.moves[1].heading, 90) -- the leg across the axis
+  luaunit.assertEquals(#messagesContaining("AWACS Magic"), 1)
+  -- weighed again before the period: nothing
+  veafCampaignOps.maintainSupport(100)
+  luaunit.assertEquals(#self.moves, 1)
+  -- the SAM is gone: forward, but never beyond our own front zone (Poti, 50 km from Senaki)
+  veafCampaign.zones["Senaki"].entry.reach = nil
+  veafCampaign.zones["Senaki"].entry.garrison = nil
+  veafCampaignOps.maintainSupport(300)
+  luaunit.assertEquals(#self.moves, 2)
+  luaunit.assertTrue(self.moves[2].x <= 50000)
+  luaunit.assertTrue(self.moves[2].x > -50000)
+end
+
+-- ---------------------------------------------------------------------------
 -- Self-check
 -- ---------------------------------------------------------------------------
 TestCampaignV15SelfCheck = { setUp = setUpSuite, tearDown = tearDownSuite }

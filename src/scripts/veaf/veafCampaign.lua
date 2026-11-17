@@ -113,6 +113,9 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   warehouse = { enabled = true, load = 10 },
   bombers = { enabled = true, seconds = 3600, min_distance = 80000, escort = false, package_delay = 30 },
   territory = { enabled = true, margin = 70000, hatch_spacing = 3000, hatch_length = 2500 },
+  -- the AWACS and tankers the campaign holds out of the enemy's air defence (David, 2026-11-16): the asset names,
+  -- the margin beyond every reach, how often the station is weighed again, and how far it must move to be moved
+  support = { assets = {}, margin = 30000, seconds = 300, min_move = 20000, leg = 30 },
   -- the testing period: every decision of the AI and its reason in dcs.log, a status every
   -- `debug_status_seconds`, the fate of every campaign aircraft (David, 2026-11-16); off once trusted
   debug = true,

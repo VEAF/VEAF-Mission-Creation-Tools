@@ -500,6 +500,32 @@ def interpreter_commands(mission_folder: Path) -> list[str]:
     return sorted(found)
 
 
+def _persistent_dcs_briefing(campaign: CampaignDefinition, prose: BriefingProse | None) -> dict[str, str]:
+    """A persistent campaign's DCS briefing: the situation, the axes of effort, and the kneeboard for the rest.
+
+    No objectives of the day: the campaign has none (David, 2026-11-17).
+    """
+    lines: list[str] = []
+    if prose and prose.operation:
+        lines.append(t("campaign.dcs_briefing.operation", operation=prose.operation.upper()))
+    if prose:
+        lines.extend(prose.text("mission", "mission"))
+        for part in ("political", "economic", "enemy_course_of_action"):
+            lines.extend(prose.text("situation", part))
+    lines.append(t("campaign.dcs_briefing.persistent"))
+    axes = prose.effort() if prose else ()
+    axis_lines = [f"{index}. {axis.title}" for index, axis in enumerate(axes, start=1)]
+    if axis_lines:
+        lines.extend(["", t("campaign.dcs_briefing.axes"), *axis_lines, t("campaign.dossier.axes.note")])
+    lines.extend(["", t("campaign.dcs_briefing.kneeboard")])
+    fields = {"situation": "\n".join(lines)}
+    title = prose.operation if prose and prose.operation else campaign.name
+    fields["sortie"] = title
+    if axis_lines:
+        fields["blue_task"] = "\n".join(axis_lines)
+    return fields
+
+
 def dcs_briefing(
     campaign: CampaignDefinition, state: CampaignState, page: MissionPage | None, prose: BriefingProse | None
 ) -> dict[str, str]:
@@ -518,6 +544,8 @@ def dcs_briefing(
     Returns:
         The fields of `set_briefing`: ``situation`` always, ``sortie`` and ``blue_task`` when written.
     """
+    if campaign.mode == "persistent":
+        return _persistent_dcs_briefing(campaign, prose)
     head: list[str] = []
     if prose and prose.operation:
         head.append(t("campaign.dcs_briefing.operation", operation=prose.operation.upper()))

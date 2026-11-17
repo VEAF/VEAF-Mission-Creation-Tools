@@ -82,3 +82,36 @@ class TestTheDossier:
             lua.index("veafCampaignEconomy.PRICES = {") : lua.index("}", lua.index("veafCampaignEconomy.PRICES = {"))
         ]
         assert dict((k, int(v)) for k, v in re.findall(r"(\w+) = (\d+)", block)) == SHOP_PRICES
+
+
+class TestTheKneeboard:
+    def test_four_kinds_of_pages_written_and_rewritten_without_doubles(self, tmp_path: Path) -> None:
+        from campaign_manager.theatre_kneeboard import KNEEBOARD_DIR, kneeboard_pages, write_kneeboard, zone_rows
+
+        campaign = _campaign()
+        numbers = {"Kobuleti": 1, "Senaki": 2}
+        rows = zone_rows(campaign, numbers, elevation=lambda _x, _y: 30.48)
+        assert [row[0] for row in rows] == ["1", "2", "—"]
+        assert rows[0][3] == "100 ft"
+        assert "N" in rows[0][2] and rows[0][4] != "—", "an airfield carries its frequencies"
+        with language("fr"):
+            pages = kneeboard_pages(
+                campaign,
+                initial_state(campaign),
+                tmp_path,
+                numbers,
+                elevation=lambda _x, _y: None,
+                cache_dir=tmp_path,
+                fetch=lambda _url: None,
+            )
+        assert list(pages)[0] == "01-briefing-campaign-network.jpg"
+        assert any("campaign-zones" in name for name in pages)
+        assert any("campaign-cheat-sheet" in name for name in pages)
+        stale = tmp_path / KNEEBOARD_DIR / "09-briefing-campaign-old.jpg"
+        stale.parent.mkdir(parents=True)
+        stale.write_bytes(b"x")
+        mine = tmp_path / KNEEBOARD_DIR / "00-veaf-calibration.png"
+        mine.write_bytes(b"x")
+        write_kneeboard(tmp_path, pages)
+        assert not stale.exists()
+        assert mine.exists(), "a page of another tool is left alone"

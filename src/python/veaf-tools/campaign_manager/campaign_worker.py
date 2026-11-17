@@ -27,6 +27,9 @@ from campaign_manager.mission_deck import MissionDeckReport, mission_deck
 from campaign_manager.mission_picture import find_built_mission, read_mission_picture
 from campaign_manager.models import CampaignDefinition, CampaignState, Objective
 from campaign_manager.next_mission import BRIEFING_LANGUAGES, NextMissionReport, prepare_next_mission
+from campaign_manager.objective_waypoints import flight_plan_numbers
+from campaign_manager.theatre_dossier import theatre_dossier
+from campaign_manager.theatre_kneeboard import kneeboard_pages, write_kneeboard
 from campaign_manager.turn_manager import (
     evaluate_objectives,
     merge_state_file,
@@ -219,6 +222,23 @@ class CampaignWorker:
         except (OSError, KeyError, ValueError) as error:
             deck_issues, deck = [ValidationIssue(WARNING, t("campaign.issue.deck_failed", error=error))], None
         issues += [ValidationIssue(WARNING, issue.message) for issue in deck_issues]
+        if campaign.mode == "persistent":
+            # the kneeboard's map and zone table, written again at every run (refreshing them from the server's save
+            # is a later lot)
+            try:
+                write_kneeboard(
+                    folder,
+                    kneeboard_pages(
+                        campaign,
+                        state,
+                        folder,
+                        flight_plan_numbers(campaign, folder),
+                        cache_dir=self.tile_cache,
+                        fetch=self.tile_fetch,
+                    ),
+                )
+            except (OSError, KeyError, ValueError) as error:
+                issues.append(ValidationIssue(WARNING, t("campaign.issue.kneeboard_failed", error=error)))
         return issues, replace(
             report, deck=deck.path if deck else None, mission_deck=deck.mission_deck if deck else None
         )
@@ -244,17 +264,36 @@ class CampaignWorker:
             return issues + mismatch, None
         deck_issues, report = self._deck(campaign, state)
         folder = self.mission_folder(state.mission + 1) / MISSION_SUBFOLDER
-        if report is not None and find_built_mission(folder) is None:
+        # the theatre dossier needs no built mission: only the episodic mission deck reads one
+        if report is not None and campaign.mode != "persistent" and find_built_mission(folder) is None:
             deck_issues = [*deck_issues, ValidationIssue(WARNING, t("campaign.issue.no_built_mission", folder=folder))]
         return issues + deck_issues, report
 
     def _deck(
         self, campaign: CampaignDefinition, state: CampaignState
     ) -> tuple[list[ValidationIssue], DeckReport | None]:
-        """Generate the deck from `briefing.yaml`, unless that file has an error."""
+        """Generate the deck from `briefing.yaml`, unless that file has an error.
+
+        A persistent campaign gets its theatre dossier instead of the campaign and mission decks.
+        """
         prose, issues = load_prose(self.folder, campaign.missions, state.mission + 1)
         if any(issue.level == ERROR for issue in issues):
             return issues, None
+        if campaign.mode == "persistent":
+            mission_folder = self.mission_folder(state.mission + 1) / MISSION_SUBFOLDER
+            dossier = theatre_dossier(
+                campaign,
+                state,
+                prose,
+                self.mission_folder(state.mission + 1),
+                flight_plan_numbers(campaign, mission_folder),
+                mission_folder=mission_folder,
+                cache_dir=self.tile_cache,
+                fetch=self.tile_fetch,
+            )
+            return issues, DeckReport(
+                path=dossier.path, map=dossier.network_map, pages=dossier.pages, prose=prose is not None
+            )
         report = campaign_deck(
             campaign,
             state,

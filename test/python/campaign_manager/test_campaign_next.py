@@ -530,3 +530,24 @@ class TestAPersistentCampaignsConditions:
             "Campaign_Northern-Syria_Mission_01_Bouclier"
         )
         assert mission_name("Northern Syria", 1, "Bouclier").endswith("_NoMizedit")
+
+
+class TestAPersistentDcsBriefing:
+    """2026-11-17: the situation, the axes of effort, the kneeboard for the rest; no objectives of the day."""
+
+    def test_situation_axes_and_the_kneeboard(self) -> None:
+        from campaign_manager.briefing_prose import BriefingProse, Titled
+        from campaign_manager.next_mission import dcs_briefing
+
+        raw = copy.deepcopy(VALID)
+        raw["campaign"].update({"mode": "persistent", "objectives": []})
+        campaign, _ = parse_campaign(raw)
+        assert campaign is not None
+        prose = BriefingProse(operation="Bouclier", axes=(Titled("Couper le réseau", ("Prendre Saraqib.",)),))
+        with language("fr"):
+            fields = dcs_briefing(campaign, initial_state(campaign), None, prose)
+        assert fields["sortie"] == "Bouclier"
+        assert fields["blue_task"] == "1. Couper le réseau"
+        assert fields["situation"].startswith("OPÉRATION BOUCLIER")
+        assert "voir la planchette" in fields["situation"]
+        assert "Mission" not in fields["situation"]

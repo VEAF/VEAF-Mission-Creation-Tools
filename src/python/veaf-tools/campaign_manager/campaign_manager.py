@@ -23,6 +23,7 @@ from veaf_libs.bundled_data import read_bundled_text
 from veaf_libs.dcs_airdromes import airfields_for_theatre
 from veaf_libs.dcs_units_data import get_unit_category
 from veaf_libs.i18n import t
+from veaf_libs.magnetic import ground_distance_m
 from veaf_libs.mission_validator import ERROR, WARNING, ValidationIssue
 
 from campaign_manager.dynamic_settings import parse_dynamic
@@ -30,6 +31,8 @@ from campaign_manager.mission_conditions import start_seconds
 from campaign_manager.models import (
     COALITIONS,
     DEFAULT_CAPTURE_SECONDS,
+    DEFAULT_LONG_RANGE_SAM_CAP,
+    DEFAULT_LONG_RANGE_SAM_SPACING,
     DEFAULT_MISSION_TEMPLATE,
     DEFAULT_MISSIONS,
     DEFAULT_SIZE_CLASSES,
@@ -401,6 +404,10 @@ def _parse_zone(
             issues.append(_error("bad_zone_text", zone=name, field=key))
         texts[key] = value.strip() if isinstance(value, str) else None
 
+    long_range_sam = raw.get("long_range_sam")
+    if long_range_sam is not None and not isinstance(long_range_sam, bool):
+        issues.append(_error("bad_zone_long_range_sam", zone=name))
+
     if len(issues) > count or location is None:
         return None
     return CampaignZone(
@@ -413,7 +420,90 @@ def _parse_zone(
         radius=radius,
         display_name=texts["display_name"],
         intel=texts["intel"],
+        long_range_sam=long_range_sam,
     )
+
+
+def _parse_long_range_sams(raw: Any, issues: list[ValidationIssue]) -> tuple[int, int]:
+    """Read `long_range_sams`: how many zones of a side may hold a long-range SAM, and how far apart.
+
+    Args:
+        raw: The block as loaded, or ``None``.
+        issues: Where every problem found is appended.
+
+    Returns:
+        ``(per_side, min_spacing)``; an invalid value keeps its default.
+    """
+    cap, spacing = DEFAULT_LONG_RANGE_SAM_CAP, DEFAULT_LONG_RANGE_SAM_SPACING
+    if raw is None:
+        return cap, spacing
+    if not isinstance(raw, dict):
+        issues.append(_error("malformed_block", block="long_range_sams"))
+        return cap, spacing
+    for name, value in raw.items():
+        if name == "per_side" and _is_int(value) and value >= 0:
+            cap = value
+        elif name == "min_spacing" and _is_int(value) and value >= 0:
+            spacing = value
+        else:
+            issues.append(_error("bad_long_range_sams", setting=name))
+    return cap, spacing
+
+
+def _zone_lat_lon(theatre: str, zone: CampaignZone) -> tuple[float, float] | None:
+    """A zone's centre as ``(lat, lon)``, or ``None`` when its airfield has no known position."""
+    if zone.location.airfield is None:
+        if zone.location.lat is None or zone.location.lon is None:
+            return None
+        return zone.location.lat, zone.location.lon
+    for airfield in airfields_for_theatre(theatre):
+        if airfield["name"] == zone.location.airfield:
+            return float(airfield["lat"]), float(airfield["lon"])
+    return None
+
+
+def _check_long_range_sams(campaign: CampaignDefinition, issues: list[ValidationIssue]) -> None:
+    """Refuse more long-range SAMs per declared side than the cap, and two of a side closer than the spacing.
+
+    On the first server flight of a persistent campaign (2026-11-16), every airfield zone drew one: two SA-5
+    17 nautical miles apart put the whole front under 240 km of missile reach.
+
+    Args:
+        campaign: The campaign, parsed.
+        issues: Where every problem found is appended.
+    """
+    holders = [zone for zone in campaign.zones if campaign.has_long_range_sam(zone)]
+    for side in SIDES:
+        named = [zone.name for zone in holders if zone.side == side]
+        if len(named) > campaign.long_range_sam_cap:
+            issues.append(
+                _error(
+                    "too_many_long_range_sams",
+                    side=side,
+                    count=len(named),
+                    cap=campaign.long_range_sam_cap,
+                    zones=", ".join(named),
+                )
+            )
+    for index, zone in enumerate(holders):
+        here = _zone_lat_lon(campaign.theatre, zone)
+        for other in holders[index + 1 :]:
+            if other.side != zone.side:
+                continue  # two sides' batteries facing each other are a front, not an umbrella doubled
+            there = _zone_lat_lon(campaign.theatre, other)
+            if here is None or there is None:
+                continue
+            distance = ground_distance_m(here[0], here[1], there[0], there[1])
+            if distance < campaign.long_range_sam_spacing:
+                issues.append(
+                    _error(
+                        "long_range_sams_too_close",
+                        zone=zone.name,
+                        other=other.name,
+                        km=round(distance / 1000),
+                        spacing=round(campaign.long_range_sam_spacing / 1000),
+                    )
+                )
 
 
 def _parse_connections(raw: Any, names: set[str], issues: list[ValidationIssue]) -> list[tuple[str, str]]:
@@ -571,6 +661,7 @@ def parse_campaign(raw: Any) -> tuple[CampaignDefinition | None, list[Validation
     size_classes = _parse_size_classes(raw.get("size_classes"), issues)
     reserves = _parse_reserves(raw.get("sides"), issues)
     rules = _parse_rules(raw.get("rules"), issues)
+    long_range_sam_cap, long_range_sam_spacing = _parse_long_range_sams(raw.get("long_range_sams"), issues)
 
     raw_zones = raw.get("zones")
     if not isinstance(raw_zones, list):
@@ -606,31 +697,34 @@ def parse_campaign(raw: Any) -> tuple[CampaignDefinition | None, list[Validation
 
     if any(issue.level == ERROR for issue in issues):
         return None, issues
-    return (
-        CampaignDefinition(
-            name=str(name),
-            theatre=str(theatre),
-            era=era,
-            missions=missions,
-            player_side=player_side,
-            objectives=tuple(objectives),
-            size_classes=size_classes,
-            zones=tuple(zones[n] for n in declared),
-            connections=tuple(connections),
-            reserves=reserves,
-            rules=rules,
-            capture_seconds=capture_seconds,
-            state_write_seconds=state_write_seconds,
-            mission_template=str(head.get("mission_template", DEFAULT_MISSION_TEMPLATE)),
-            start_date=start_date,
-            start_time=start_time,
-            players=players,
-            mode=mode,
-            dynamic=dynamic,
-            declared_reserves=declared_reserves,
-        ),
-        issues,
+    campaign = CampaignDefinition(
+        name=str(name),
+        theatre=str(theatre),
+        era=era,
+        missions=missions,
+        player_side=player_side,
+        objectives=tuple(objectives),
+        size_classes=size_classes,
+        zones=tuple(zones[n] for n in declared),
+        connections=tuple(connections),
+        reserves=reserves,
+        rules=rules,
+        capture_seconds=capture_seconds,
+        state_write_seconds=state_write_seconds,
+        mission_template=str(head.get("mission_template", DEFAULT_MISSION_TEMPLATE)),
+        start_date=start_date,
+        start_time=start_time,
+        players=players,
+        mode=mode,
+        dynamic=dynamic,
+        declared_reserves=declared_reserves,
+        long_range_sam_cap=long_range_sam_cap,
+        long_range_sam_spacing=long_range_sam_spacing,
     )
+    _check_long_range_sams(campaign, issues)
+    if any(issue.level == ERROR for issue in issues):
+        return None, issues
+    return campaign, issues
 
 
 def load_campaign(path: Path) -> tuple[CampaignDefinition | None, list[ValidationIssue]]:

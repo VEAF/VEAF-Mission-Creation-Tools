@@ -257,3 +257,44 @@ class TestTheWorker:
         plane = _load(report.folder).get_flight_plan_for(coalition="blue", category="plane")
         assert plane is not None
         assert [wp.name for wp in plane.waypoints] == ["SENAKI", "GUDAUTA"]
+
+
+class TestAPersistentCampaignsWaypoints:
+    """FEAT-DYNAMIC-CAMPAIGN ticket 20: a waypoint per zone, the most strategic first, its number on the map."""
+
+    def test_every_zone_the_front_first(self) -> None:
+        from campaign_manager.objective_waypoints import strategic_zones
+
+        campaign = _campaign(mode="persistent", objectives=[])
+        state = initial_state(campaign)
+        # Kobuleti (blue) - Senaki (red) - Gudauta depot (red): the first two face each other
+        order = [zone.name for zone in strategic_zones(campaign, state)]
+        assert order == ["Kobuleti", "Senaki", "Gudauta depot"]
+        plan = objective_waypoints(campaign, None, state)
+        assert plan["settings"]["blue_planes"]["waypoints"] == ["KOBULETI", "SENAKI", "GUDAUTA"]
+
+    def test_the_numbers_reach_the_mission_data(self) -> None:
+        from campaign_manager.next_mission import mission_data
+
+        campaign = _campaign(mode="persistent", objectives=[])
+        zones = mission_data(campaign, initial_state(campaign))["zones"]
+        assert {zone["name"]: zone["waypoint"] for zone in zones} == {"Kobuleti": 1, "Senaki": 2, "Gudauta depot": 3}
+
+    def test_a_multi_mission_campaign_keeps_its_tasks_zones(self) -> None:
+        from campaign_manager.next_mission import mission_data
+
+        campaign = _campaign()
+        assert all("waypoint" not in zone for zone in mission_data(campaign, initial_state(campaign))["zones"])
+
+    def test_the_numbers_are_the_ones_of_the_plan_the_folder_holds(self, tmp_path: Path) -> None:
+        # 2026-11-17: an older plan kept by `campaign next` would have given the zones numbers no steerpoint carried
+        from campaign_manager.objective_waypoints import flight_plan_numbers
+
+        campaign = _campaign(mode="persistent", objectives=[])
+        plan = {
+            "waypoints": {"SENAKI": {"name": "SENAKI"}, "HOLD": {"name": "HOLD"}},
+            "settings": {"blue_planes": {"waypoints": ["HOLD", "SENAKI"]}},
+        }
+        (tmp_path / "src").mkdir()
+        (tmp_path / WAYPOINTS_FILE).write_text(yaml.safe_dump(plan), encoding="utf-8")
+        assert flight_plan_numbers(campaign, tmp_path) == {"Senaki": 2}

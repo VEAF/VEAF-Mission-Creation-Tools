@@ -86,6 +86,10 @@ veafSpawn.CAP_WATCHDOG_DELAY = 10
 --- watchdog; an entry exists exactly while a watchdog runs for that group (FEAT-AIRCRAFT-ROLES).
 veafSpawn.capWatchdogZones = {}
 
+--- An optional predicate per CAP group, by group name: `function(target)` true when the watchdog may engage
+--- that detected target. The persistent campaign spares helicopters and attack airplanes this way.
+veafSpawn.capTargetFilters = {}
+
 --- The CAP groups their watchdog has seen in the air at least once, by group name. Only those can have
 --- *landed*: a flight placed on a parking spot is on the ground at the first tick, one second after its
 --- spawn, and was destroyed before it had started its engines (FEAT-AIRCRAFT-ROLES).

@@ -8,7 +8,6 @@ from pathlib import Path
 
 from campaign_fixture import PROSE, VALID
 from campaign_manager.briefing_deck import (
-    DECK_FILE,
     MAP_FILE,
     Block,
     Page,
@@ -22,6 +21,7 @@ from campaign_manager.briefing_deck import (
 from campaign_manager.briefing_prose import BriefingProse, parse_prose
 from campaign_manager.campaign_manager import initial_state, parse_campaign
 from campaign_manager.models import CampaignDefinition
+from deck_pdf_check import assert_pdf_matches_deck
 from pptx import Presentation
 from veaf_libs.i18n import language, t
 
@@ -61,7 +61,9 @@ def _deck(tmp_path: Path, with_prose: bool = True) -> list[list[str]]:
             cache_dir=tmp_path / "tiles",
             fetch=_offline,
         )
-    assert report.path == tmp_path / "mission-01" / DECK_FILE
+    # David, 2026-11-17: named after the operation (else the campaign) and the mission, not "briefing-campagne"
+    name = "Kolkhida" if with_prose else "Caucasus-Front"
+    assert report.path == tmp_path / "mission-01" / f"{name}_mission-01_briefing-campagne.pptx"
     assert (tmp_path / "mission-01" / MAP_FILE).is_file()
     return _slides(report.path)
 
@@ -101,7 +103,7 @@ class TestTheDeck:
     def test_the_facts_come_from_the_campaign(self, tmp_path: Path) -> None:
         slides = {slide[0]: "\n".join(slide[1:]) for slide in _deck(tmp_path)[1:]}
         military = slides["2. Situation militaire"]
-        assert "– Kobuleti : base défendue" in military
+        assert "– Kobuleti : détachement" in military  # no long-range SAM of its own (ticket 20)
         assert (
             "Réserves : volume inconnu. Elles transiteraient par ses centres logistiques (Gudauta depot)." in military
         )
@@ -231,3 +233,18 @@ class TestAPersistentCampaign:
         annex = "\n".join(_persistent_deck(tmp_path, attacks=[], bombers={"enabled": False})[-1])
         assert "contre-attaque" not in annex
         assert "bombardiers" not in annex
+
+
+def test_a_pdf_of_the_same_pages_beside_the_deck(tmp_path: Path) -> None:
+    """David, 2026-11-17: every briefing written as a PowerPoint is written as a PDF too."""
+    campaign = _campaign()
+    with language("fr"):
+        report = campaign_deck(
+            campaign,
+            initial_state(campaign),
+            _prose(campaign),
+            tmp_path / "mission-01",
+            cache_dir=tmp_path / "tiles",
+            fetch=_offline,
+        )
+    assert_pdf_matches_deck(report.path, report.pdf)

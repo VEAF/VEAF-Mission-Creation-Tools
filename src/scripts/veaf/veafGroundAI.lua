@@ -1106,6 +1106,7 @@ function veafGroundAI.isLivingGroundUnitOf(object, side)
       and object:getCategoryEx() == Unit.Category.GROUND_UNIT
       and object:getLife() >= 1
       and (not object.isActive or object:isActive())
+      and veaf.isCombatant(object) -- a CSAR pilot is nobody's target (2026-11-16, Menagh)
   end)
   return ok and result == true
 end

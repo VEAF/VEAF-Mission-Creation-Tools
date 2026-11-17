@@ -23,7 +23,13 @@ VALID: dict[str, Any] = {
     "size_classes": {"outpost": {"size": 2}},
     "zones": [
         {"name": "Kobuleti", "at": {"airfield": "Kobuleti"}, "size": "airfield", "side": "blue"},
-        {"name": "Senaki", "at": {"airfield": "Senaki-Kolkhi"}, "size": "airfield", "side": "red"},
+        {
+            "name": "Senaki",
+            "at": {"airfield": "Senaki-Kolkhi"},
+            "size": "airfield",
+            "side": "red",
+            "long_range_sam": True,
+        },
         {
             "name": "Gudauta depot",
             "at": {"lat": 43.10, "lon": 40.58},
@@ -111,11 +117,11 @@ BULLSEYE_XY = (-291014.0, 617414.0)
 
 
 def _injected(route: tuple[tuple[str, float, float, float, str], ...]) -> list[dict[str, Any]]:
-    """The points the waypoints injector appends: the route, then the bullseye at 20 000 ft."""
+    """The points the waypoints injector appends: the route, then the bullseye on the ground."""
     points = [
         {"name": n, "x": x, "y": y, "alt": alt, "alt_type": ref, "type": "Turning Point"} for n, x, y, alt, ref in route
     ]
-    return [*points, {"name": "BULLSEYE", "x": BULLSEYE_XY[0], "y": BULLSEYE_XY[1], "alt": 6096.0, "alt_type": "BARO"}]
+    return [*points, {"name": "BULLSEYE", "x": BULLSEYE_XY[0], "y": BULLSEYE_XY[1], "alt": 0.0, "alt_type": "RADIO"}]
 
 
 def built_mission(folder: Path) -> Path:

@@ -263,6 +263,54 @@ function TestCampaignSettings:test_side_lists()
 end
 
 -- ---------------------------------------------------------------------------
+-- The campaign alone owns the airfields (ticket 20, point 15)
+-- ---------------------------------------------------------------------------
+TestCampaignAirfields = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+function TestCampaignAirfields:test_dcs_captures_no_airfield_of_a_persistent_campaign()
+  -- 2026-11-16: Minakh's airfield, 2.3 km from the neutral zone Menagh, went blue on its own as a blue
+  -- convoy drove past, while the zone followed its own rule
+  local calls = {}
+  local function airbase(name, category)
+    return {
+      getName = function()
+        return name
+      end,
+      getDesc = function()
+        return { category = category }
+      end,
+      autoCapture = function(_, enabled)
+        table.insert(calls, { name, enabled })
+      end,
+    }
+  end
+  local saved = world.getAirbases
+  world.getAirbases = function()
+    return { airbase("Minakh", Airbase.Category.AIRDROME), airbase("a FARP", Airbase.Category.HELIPAD) }
+  end
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  world.getAirbases = saved
+  luaunit.assertEquals(calls, { { "Minakh", false } })
+end
+
+-- ---------------------------------------------------------------------------
+-- A zone's waypoint number, everywhere it is named (ticket 20, point 11)
+-- ---------------------------------------------------------------------------
+TestCampaignZoneTitle = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+function TestCampaignZoneTitle:test_a_zone_with_a_waypoint_is_named_with_its_number()
+  local data = persistentData()
+  data.zones[2].waypoint = 7
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  luaunit.assertEquals(veafCampaign.zoneTitle("Senaki"), "Senaki (WP 7)")
+  luaunit.assertEquals(veafCampaign.zoneTitle("Kobuleti"), "Kobuleti")
+  luaunit.assertStrContains(veafCampaign.zones["Senaki"]:mapLabel(), "Senaki (WP 7)")
+  luaunit.assertStrContains(veafCampaign.situationText(), "Senaki (WP 7)")
+end
+
+-- ---------------------------------------------------------------------------
 -- The save reloaded
 -- ---------------------------------------------------------------------------
 TestCampaignSave = { setUp = setUpSuite, tearDown = tearDownSuite }
@@ -820,6 +868,91 @@ function TestCampaignOffensives:test_a_campaign_over_sends_nothing()
   veafCampaign.over = "victory"
   veafCampaign.launchOffensives(10)
   luaunit.assertEquals(#self.sent, 0)
+end
+
+function TestCampaignOffensives:test_only_the_attacking_sides_send_convoys_to_a_neutral_zone()
+  -- 2026-11-16: blue's AI sent a free convoy to Menagh three minutes after the players paid for the same assault
+  local data = persistentData()
+  data.zones[2].owner, data.zones[2].garrison = "neutral", nil -- Senaki, between blue Kobuleti and red Poti
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  luaunit.assertNotNil(veafCampaign.pendingAssaults["Senaki|red"])
+  luaunit.assertNil(veafCampaign.pendingAssaults["Senaki|blue"])
+end
+
+function TestCampaignOffensives:test_a_due_assault_is_not_sent_where_a_convoy_of_its_side_already_drives()
+  local data = persistentData()
+  data.zones[2].owner, data.zones[2].garrison = "neutral", nil
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  table.insert(veafCampaign.convoys, { side = "red", from = "Poti", to = "Senaki" }) -- sent meanwhile
+  veafCampaign.launchDueAssaults(1000000)
+  luaunit.assertEquals(#self.sent, 0)
+end
+
+TestCampaignConvoyGoal = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+function TestCampaignConvoyGoal:test_a_convoy_whose_target_is_its_side_s_frees_its_place()
+  -- 2026-11-16: two red convoys held both places of max_convoys for an hour, their targets taken by helicopter
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  local record = { name = "Senaki - Kobuleti assault", side = "red", from = "Senaki", to = "Kobuleti", sentAt = 0 }
+  table.insert(veafCampaign.convoys, record)
+  veafCampaign.checkConvoyGoal(record, 10)
+  luaunit.assertNil(record.ended)
+  veafCampaign.zones["Kobuleti"].entry.owner = "red"
+  veafCampaign.checkConvoyGoal(record, 20)
+  luaunit.assertTrue(record.ended)
+  luaunit.assertEquals(veafCampaign.convoysUnderway("red"), 0)
+end
+
+-- review of PR #1293: a retired convoy gave its points back but not its units, so each one emptied the reserve the
+-- counter-attacks draw from; as a restart does (applySave), its survivors go back to the reserve, bought or not
+function TestCampaignConvoyGoal:test_a_retired_convoy_gives_its_survivors_back_to_the_reserve()
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  veafCampaign.data.sides = veafCampaign.data.sides or {}
+  veafCampaign.data.sides.red = veafCampaign.data.sides.red or {}
+  veafCampaign.data.sides.red.reserve = {}
+  local savedUnits, savedLogistics = veafCampaign.convoyUnits, veafCampaignLogistics
+  local credited = {}
+  veafCampaignLogistics = {
+    active = true,
+    credit = function(side, points)
+      table.insert(credited, { side = side, points = points })
+    end,
+  }
+  veafCampaign.convoyUnits = function()
+    local function unit(typeName)
+      return {
+        getTypeName = function()
+          return typeName
+        end,
+      }
+    end
+    return { unit("T-72B"), unit("T-72B") }
+  end
+  for _, purchased in ipairs({ false, true }) do
+    local record = { name = "Poti assault", side = "red", from = "Poti", to = "Kobuleti", purchased = purchased or nil }
+    veafCampaign.retireConvoy(record, "test")
+  end
+  veafCampaign.convoyUnits, veafCampaignLogistics = savedUnits, savedLogistics
+  local reserve = veafCampaign.reserveOf("red")
+  local category = veafCampaign.reserveCategory("T-72B")
+  luaunit.assertEquals(reserve[category], 4, "two survivors back from each convoy")
+  luaunit.assertEquals(#credited, 2, "their price too, bought or not")
+  luaunit.assertEquals(credited[2].points, veafCampaign.unitsPrice({ "T-72B", "T-72B" }))
+end
+
+function TestCampaignConvoyGoal:test_a_convoy_on_the_road_too_long_frees_its_place()
+  veafCampaign.data = persistentData({ convoy_timeout = 600 })
+  veafCampaign.initialize()
+  local record = { name = "Senaki - Kobuleti assault", side = "red", from = "Senaki", to = "Kobuleti", sentAt = 100 }
+  table.insert(veafCampaign.convoys, record)
+  veafCampaign.checkConvoyGoal(record, 699)
+  luaunit.assertNil(record.ended)
+  veafCampaign.checkConvoyGoal(record, 700)
+  luaunit.assertTrue(record.ended)
 end
 
 -- ---------------------------------------------------------------------------

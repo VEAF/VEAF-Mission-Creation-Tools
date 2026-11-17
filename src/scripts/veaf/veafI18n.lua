@@ -1989,13 +1989,17 @@ veaf.i18nCatalog = {
   },
   -- veafCampaign
   ["campaign.zone_neutral"] = {
-    fr = "Campagne : %s a perdu toute sa garnison, la zone est neutre et peut être prise.",
-    en = "Campaign: %s has lost its whole garrison; the zone is neutral and can be captured.",
+    fr = "%s a perdu toute sa garnison, la zone est neutre et peut être prise.",
+    en = "%s has lost its whole garrison; the zone is neutral and can be captured.",
   },
   ["campaign.zone_captured"] = {
-    fr = "Campagne : %s a été prise par le camp %s.",
-    en = "Campaign: %s has been captured by %s.",
+    fr = "%s a été prise par le camp %s.",
+    en = "%s has been captured by %s.",
   },
+  ["campaign.speaker.blue"] = { fr = "Commandement bleu : ", en = "Blue command: " },
+  ["campaign.speaker.red"] = { fr = "Commandement rouge : ", en = "Red command: " },
+  ["campaign.speaker.intel"] = { fr = "Renseignement : ", en = "Intelligence: " },
+  ["campaign.zone_with_waypoint"] = { fr = "%s (WP %d)", en = "%s (WP %d)" },
   ["campaign.side.blue"] = { fr = "bleu", en = "blue" },
   ["campaign.side.red"] = { fr = "rouge", en = "red" },
   ["campaign.side.neutral"] = { fr = "neutre", en = "neutral" },
@@ -2035,8 +2039,8 @@ veaf.i18nCatalog = {
     en = "An assault convoy leaves %s to take %s.",
   },
   ["campaign.convoy_sent_enemy"] = {
-    fr = "Renseignement : une colonne ennemie quitte %s en direction de %s.",
-    en = "Intelligence: an enemy column is leaving %s towards %s.",
+    fr = "Une colonne ennemie quitte %s en direction de %s.",
+    en = "An enemy column is leaving %s towards %s.",
   },
   ["campaign.assault_refused"] = {
     fr = "Assaut de %s vers %s impossible : la zone de départ n'est plus à nous, la cible l'est déjà, ou un convoi y va déjà.",
@@ -2049,8 +2053,8 @@ veaf.i18nCatalog = {
 
   -- veafCampaign, persistent mode (FEAT-DYNAMIC-CAMPAIGN)
   ["campaign.zone_reinforced"] = {
-    fr = "Campagne : %s a été ravitaillée, un groupe de sa garnison est de nouveau au complet.",
-    en = "Campaign: %s has been resupplied; one group of its garrison is back to full strength.",
+    fr = "%s a été ravitaillée, un groupe de sa garnison est de nouveau au complet.",
+    en = "%s has been resupplied; one group of its garrison is back to full strength.",
   },
   ["campaign.outcome.victory"] = {
     fr = "Campagne : l'ennemi ne tient plus aucune zone. Victoire ! La campagne recommencera au prochain chargement de la mission.",
@@ -2099,6 +2103,14 @@ veaf.i18nCatalog = {
     fr = "Un hélicoptère de ravitaillement quitte %s pour %s.",
     en = "A supply helicopter leaves %s for %s.",
   },
+  ["campaign.helicopter_sent_enemy.capture"] = {
+    fr = "Un hélicoptère ennemi quitte %s pour prendre %s en s'y posant. Interceptez-le !",
+    en = "An enemy helicopter leaves %s to take %s by landing there. Intercept it!",
+  },
+  ["campaign.helicopter_sent_enemy.resupply"] = {
+    fr = "Un hélicoptère ennemi quitte %s pour ravitailler %s.",
+    en = "An enemy helicopter leaves %s to resupply %s.",
+  },
   ["campaign.hunter"] = {
     fr = "Attention %s : deux chasseurs ennemis viennent de décoller de %s pour vous intercepter.",
     en = "Watch your six, %s: two enemy fighters just took off from %s to intercept you.",
@@ -2116,6 +2128,15 @@ veaf.i18nCatalog = {
   ["campaign.situation.zone_hidden"] = { fr = "- %s : %s, garnison inconnue", en = "- %s: %s, garrison unknown" },
   ["campaign.credits.earned"] = { fr = "Crédits : +%d (%s), solde %d", en = "Credits: +%d (%s), balance %d" },
   ["campaign.credits.kill"] = { fr = "victoire de %s", en = "kill by %s" },
+  ["campaign.credits.kill_held"] = {
+    fr = "victoire de %s ; %d de plus à son atterrissage sur une base amie",
+    en = "kill by %s; %d more when the pilot lands at a friendly base",
+  },
+  ["campaign.credits.landed"] = { fr = "%s s'est posé, son bonus est acquis", en = "%s has landed, the bonus is banked" },
+  ["campaign.credits.held_lost"] = {
+    fr = "%s ne rentre pas : les %d crédits de bonus sont perdus.",
+    en = "%s is not coming back: the %d bonus credits are lost.",
+  },
   ["campaign.credits.capture"] = { fr = "prise de %s", en = "%s captured" },
   ["campaign.credits.delivery"] = { fr = "ravitaillement de %s", en = "%s resupplied" },
   ["campaign.credits.task"] = { fr = "tâche accomplie : %s", en = "task done: %s" },
@@ -2155,6 +2176,11 @@ veaf.i18nCatalog = {
   ["campaign.shop.item.capture"] = { fr = "Hélico de capture", en = "Capture helicopter" },
   ["campaign.shop.item.resupply"] = { fr = "Hélico de ravitaillement", en = "Resupply helicopter" },
   ["campaign.shop.item.tanker"] = { fr = "Ravitailleur", en = "Tanker" },
+  ["campaign.shop.item.escort"] = { fr = "Escorte de mon groupe", en = "Escort for my group" },
+  ["campaign.shop.escort"] = {
+    fr = "Escorte achetée pour %s : deux chasseurs partent de %s. %d crédits, solde %d",
+    en = "Escort bought for %s: two fighters leave from %s. %d credits, balance %d",
+  },
   ["campaign.shop.bought"] = { fr = "Acheté : %s (%s) pour %d crédits, solde %d", en = "Bought: %s (%s) for %d credits, balance %d" },
   ["campaign.shop.too_expensive"] = {
     fr = "%s coûte %d crédits, la coalition n'en a que %d.",
@@ -2179,6 +2205,9 @@ veaf.i18nCatalog = {
   ["menu.campaign.intel"] = { fr = "Renseignement", en = "Intel" },
   ["menu.campaign.shop"] = { fr = "Boutique", en = "Shop" },
   ["menu.campaign.shop_item"] = { fr = "%s (%d cr.)", en = "%s (%d cr.)" },
+  ["tanker.kind.boom"] = { fr = "boom", en = "boom" },
+  ["tanker.kind.basket"] = { fr = "panier", en = "basket" },
+  ["tanker.kind.both"] = { fr = "boom et panier", en = "boom and basket" },
   ["campaign.check.credits"] = { fr = "crédits : %d ; achats : %d", en = "credits: %d; purchases: %d" },
   ["campaign.check.tasks"] = {
     fr = "tâches : %d affichée(s), %d postée(s), %d accomplie(s)",
@@ -2211,8 +2240,8 @@ veaf.i18nCatalog = {
     en = "Intercept the bombers heading for %s (%d cr.)",
   },
   ["campaign.raid.inbound"] = {
-    fr = "Alerte : des bombardiers ennemis escortés font route vers %s, partis de %s. Interceptez-les !",
-    en = "Alert: escorted enemy bombers are heading for %s, from %s. Intercept them!",
+    fr = "des bombardiers ennemis font route vers %s, partis de %s. Interceptez-les !",
+    en = "enemy bombers are heading for %s, from %s. Intercept them!",
   },
   ["campaign.raid.sent"] = { fr = "Raid de bombardiers : départ de %s vers %s.", en = "Bomber raid: leaving %s for %s." },
   ["campaign.network.header"] = {
@@ -2222,7 +2251,19 @@ veaf.i18nCatalog = {
   ["campaign.network.zone"] = { fr = "- %s : %d min depuis %s", en = "- %s: %d min from %s" },
   ["campaign.network.cut"] = { fr = "- %s : coupée du réseau", en = "- %s: cut off" },
   ["campaign.network.underway"] = { fr = " (livraison en route)", en = " (a delivery on its way)" },
-  ["campaign.network.arrived"] = { fr = "Réseau d'approvisionnement : %s est renforcée.", en = "Supply network: %s reinforced." },
+  -- veafSupport
+  ["support.retreat"] = {
+    fr = "%s se replie sur une nouvelle orbite, au %03d à %d nautiques du bullseye, hors de portée d'une défense ennemie. Fréquence inchangée.",
+    en = "%s falls back to a new orbit, %03d for %d nm from the bullseye, out of an enemy air defence's reach. Same frequency.",
+  },
+  ["support.advance"] = {
+    fr = "%s se rapproche, nouvelle orbite au %03d à %d nautiques du bullseye : la voie est libre depuis un moment. Fréquence inchangée.",
+    en = "%s moves closer, new orbit %03d for %d nm from the bullseye: the way has been clear for a while. Same frequency.",
+  },
+  ["campaign.network.arrived"] = {
+    fr = "%s est renforcée par le réseau d'approvisionnement.",
+    en = "%s is reinforced by the supply network.",
+  },
   ["campaign.spawn.refused_credits"] = {
     fr = "%s refusé : la coalition (%s) a %d crédits ; plus de spawn tant que le solde n'est pas positif. Rien n'est débité.",
     en = "%s refused: the coalition (%s) has %d credits; no spawn until the balance is above zero. Nothing was charged.",

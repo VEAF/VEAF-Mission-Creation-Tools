@@ -763,10 +763,10 @@ Avoid putting the same picture on both sides: a player whose side the briefing d
 
 ### Make a mission's briefing {#mission-briefing}
 
-*Folder (built) · ⭐* — The AI writes the scenario's words (title, context, objectives, known threats, flow); the tool reads everything else in the built mission — date, weather, bullseye, flights, support, flight plan, the presets in the cockpits, each target's coordinates — and writes `docs/briefing.pptx` on the VEAF template, an overview map and one zoom per objective in `docs/maps/`, and puts those maps in the DCS briefing (blue and neutral).
+*Folder (built) · ⭐* — The AI writes the scenario's words (title, context, objectives, known threats, flow); the tool reads everything else in the built mission — date, weather, bullseye, flights, support, flight plan, the presets in the cockpits, each target's coordinates — and writes `docs/<mission>_briefing.pptx` on the VEAF template, an overview map and one zoom per objective in `docs/maps/`, and puts those maps in the DCS briefing (blue and neutral).
 No script: an AI with no command line on your PC (Claude Desktop in chat mode) does it too.
 Build the mission first, and run it again after every change: it replaces its own pictures.
-The PPTX imports into Google Slides. `docs/briefing.pdf` is written beside it — the same pages, maps and words with a layout of its own, no PowerPoint or other program needed on your PC. The tool also warns the AI when a waypoint number of its text does not match the route, and when its French text lacks its accents.
+The PPTX imports into Google Slides. `docs/<mission>_briefing.pdf` is written beside it — the same pages, maps and words with a layout of its own, no PowerPoint or other program needed on your PC. The tool also warns the AI when a waypoint number of its text does not match the route, and when its French text lacks its accents.
 OpenStreetMap background, or OpenTopoMap (relief) for a desert or a low-level mission; without the network, the maps are drawn on a plain background.
 The pictures go into every built `.miz`, each weather variant included, and the **kneeboard** of every aircraft gets the maps drawn for its page, a flight card (points, heading and distance of each leg, highest ground; not the frequencies, already in the cockpits' presets) and the targets.
 The overview takes the page's whole width, framed on the route, the objectives and the threats, turned when that holds it tighter (an arrow shows north), its key drawn inside; each zoom carries an inset placing it on the overview.

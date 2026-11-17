@@ -735,6 +735,20 @@ the Mission Editor does when the CAP task is chosen. `create_cap_mission` writes
 *What it cost:* The on-demand CAPs `create_cap_mission` built before FIX-SCRATCH-MISSION-FINDINGS ticket 17 carried
 an `Orbit` alone: they patrolled and never fought.
 
+### An SA-5 reaches 240 km in DCS: one long-range battery covers a whole front {#sa5-reach-is-240-km}
+
+Measured **2026-11-16**.
+
+The `rangeMaxAltMax` DCS gives the SA-5's 5V28 missile, read by the persistent campaign on the batteries of
+Aleppo and Kuweires (Syria), is 240 km: from Aleppo it reaches Incirlik. On the campaign's first evening two
+of them 17 nm apart fired four missiles at an A-10C working near Menagh and shot it down; the players had
+been told "long-range air defence likely, type unconfirmed". A long-range battery drawn in every airfield
+zone put the whole front under that umbrella.
+
+**What to do:** Give long-range SAMs to a few key zones only (`long_range_sam: true`, two a side at most, 120 km apart:
+`long_range_sams`), keep them out of reach of the players' bases and tanker tracks, and say in the briefing
+where they are.
+
 ## Players, roles and the map {#players}
 
 ### An `arrowToAll` slides away from its points as the F10 map is panned, and its tip is the first point {#arrow-to-all-slides-on-the-f10-map}
@@ -867,6 +881,33 @@ sides; a red slot goes under the generic country CJTF Red, which accepts any air
 
 *What it cost:* A test mission on 2026-08-18 put the player in a Su-25T slot they had disabled: "I can pick it but I
 do not slot, I stay on the map view."
+
+### The CSAR survivor of a shot-down aircraft is an immortal ground unit of its side, which every enemy search finds {#csar-survivor-is-an-immortal-ground-unit}
+
+Measured **2026-11-16**.
+
+With the CSAR module's defaults (`csar.immortalcrew`, `csar.invisiblecrew`, `enableForAI`, `enableForRED`, all
+true), every pilot shot down, AI included, leaves a "Wounded Pilot #<id>" soldier of his side on the ground:
+immortal, unseen by the AI, and rescuable only by his own side. `world.searchObjects` and `coalition.getGroups`
+return him like any ground unit. On the persistent campaign's first evening (Syria, Menagh) a red survivor
+kept a neutral zone contested and a blue convoy halted for more than ten minutes; only an admin's `_destroy`
+removed him, after which CSAR raised `CSAR.lua:1150: attempt to index local '_woundedLeader' (a nil value)`.
+
+**What to do:** Ask `veaf.isCombatant(unit)` before counting a unit as an enemy: it is false for a group of
+`csar.woundedGroups`, or a "Downed Pilot #" / "Wounded Pilot #" name. The campaign's capture and wake-up and
+the convoy watch do since FEAT-DYNAMIC-CAMPAIGN ticket 20, and CSAR forgets a survivor destroyed without a pickup.
+
+### DCS hands an airfield to the side whose ground units come near it, whatever the scripts decide {#airbase-captured-by-nearby-ground-units}
+
+Measured **2026-11-16**.
+
+Minakh's airfield (Syria), neutral, went blue as a blue convoy drove to the campaign zone of Menagh 2.3 km
+away, while the zone itself stayed neutral under its own capture rule: two capture systems on two neighbouring
+objects. The airfield's automatic capture is on unless a script turns it off.
+
+**What to do:** `Airbase.autoCapture(airbase, false)` on every airfield a script owns; a persistent campaign does it on every
+airfield of the map since FEAT-DYNAMIC-CAMPAIGN ticket 20. Whether a capture by `Airbase.setCoalition` moves
+the dynamic slots and the warehouse is still to be measured.
 
 ## Radio and frequencies {#radio}
 

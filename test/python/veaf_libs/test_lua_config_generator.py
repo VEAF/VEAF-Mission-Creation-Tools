@@ -142,6 +142,26 @@ def test_assets_plain_information_uses_quoted_string():
 
 
 # ---------------------------------------------------------------------------
+# SUPPORT — the AWACS and tankers held out of reach (FEAT-DYNAMIC-CAMPAIGN ticket 20)
+# ---------------------------------------------------------------------------
+
+
+def test_support_is_configured_then_started_after_move():
+    yaml_data: dict = {
+        "lua_modules": {"SUPPORT": {"enabled": True, "assets": ["AWACS Magic", "Tanker Arco"], "margin": 40000}}
+    }
+    lua = generate_config_lua(yaml_data)
+    configure = lua.index('veafSupport.configure({assets = {"AWACS Magic", "Tanker Arco"}, margin = 40000})')
+    assert lua.index("veafSupport.initialize()") > configure
+    assert lua.index("veafMove.initialize()") < configure, "MOVE comes with it and starts first"
+
+
+def test_support_refuses_an_unknown_setting():
+    with pytest.raises(ValueError, match="unknown setting `orbit`"):
+        generate_config_lua({"lua_modules": {"SUPPORT": {"enabled": True, "assets": ["AWACS"], "orbit": 1}}})
+
+
+# ---------------------------------------------------------------------------
 # External modules — CTLD
 # ---------------------------------------------------------------------------
 

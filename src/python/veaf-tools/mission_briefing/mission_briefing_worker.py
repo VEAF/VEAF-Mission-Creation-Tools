@@ -74,6 +74,7 @@ from veaf_libs.magnetic import grid_heading_to_magnetic, ground_distance, magnet
 from veaf_libs.map_tiles import OSM, Fetch, TileSource
 from veaf_libs.mgrs import target_coordinates
 from veaf_libs.mission_table import indexed
+from veaf_libs.tankers import with_refuelling
 from veaf_libs.terrain_elevation import grid_for_theatre, metres_to_feet
 from veaf_mission_mcp.add_sound import _folder_l10n
 from veaf_mission_mcp.mission_folder import load_folder_mission, save_folder_mission
@@ -133,6 +134,26 @@ DECK_FILE = Path("docs") / "briefing.pptx"
 
 #: The PDF of the same pages, in the mission folder.
 PDF_FILE = Path("docs") / "briefing.pdf"
+
+
+def briefing_files(folder: Path) -> tuple[Path, Path]:
+    """The deck and its PDF, named after the mission: ``docs/<mission>_briefing.pptx`` (David, 2026-11-17).
+
+    Args:
+        folder: The mission folder, whose ``mission.yaml`` gives the name.
+
+    Returns:
+        The deck's path and the PDF's; ``docs/briefing.pptx`` and ``.pdf`` when the mission has no name.
+    """
+    from campaign_manager.next_mission import _name_part
+
+    path = folder / "mission.yaml"
+    mission = (load_yaml(path).get("mission") if path.is_file() else None) or {}
+    name = _name_part(str(mission.get("name") or ""))
+    if not name:
+        return folder / DECK_FILE, folder / PDF_FILE
+    return folder / "docs" / f"{name}_briefing.pptx", folder / "docs" / f"{name}_briefing.pdf"
+
 
 #: The maps, in the mission folder.
 MAPS_FOLDER = Path("docs") / "maps"
@@ -375,7 +396,7 @@ def _ato_page(content: BriefingContent, picture: MissionPicture, warnings: list[
     support = [
         (
             aircraft.callsign,
-            t(f"campaign.mission_deck.role.{aircraft.role}"),
+            with_refuelling(t(f"campaign.mission_deck.role.{aircraft.role}"), aircraft.aircraft),
             aircraft.aircraft,
             f"{mhz(aircraft.frequency)} MHz",
             aircraft.tacan or "—",
@@ -553,7 +574,7 @@ def _flow_page(
     if defences:
         blocks.append(Block(t("campaign.mission_deck.heading.air_defence"), tuple(defences)))
     others = list(content.other)
-    tankers = [s.callsign for s in picture.support if s.role != "awacs"]
+    tankers = [with_refuelling(s.callsign, s.aircraft) for s in picture.support if s.role != "awacs"]
     if tankers:
         others.append(t("campaign.mission_deck.refuelling", tankers=_join(tankers)))
     # the departure is no diversion: the deck said "Diversion fields: Senaki" for a flight leaving
@@ -1325,10 +1346,9 @@ def _write_deck_and_pdf(
             sheets.append(PhotoSheet(recon_title, pair))
     for item in closing:
         _write_item(deck, item, sheets)
-    out = folder / DECK_FILE
+    out, pdf = briefing_files(folder)
     out.parent.mkdir(parents=True, exist_ok=True)
     deck.save(str(out))
-    pdf = folder / PDF_FILE
     cover = Cover(
         content.title,
         t("campaign.mission_deck.subtitle"),
@@ -1504,8 +1524,7 @@ def _build(
             combat,
             recon,
         )
-    out = folder / DECK_FILE
-    pdf = folder / PDF_FILE
+    out, pdf = briefing_files(folder)
 
     maps = [overview.path, *([combat.path] if combat else []), *(zoom.path for zoom in zooms)]
     pages = (

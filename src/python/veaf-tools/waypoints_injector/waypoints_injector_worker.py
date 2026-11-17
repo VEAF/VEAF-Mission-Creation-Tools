@@ -185,9 +185,11 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
     def _bullseye_waypoint(self, coalition: str | None) -> WaypointDefinition | None:
         """Build the bullseye waypoint for a flight of this coalition, or None.
 
-        The altitude and speed are the ones a navigation reference wants: high enough to be a sensible
-        steerpoint and not a fly-over. They are deliberately not read from the flight plan — a bullseye is
-        a position, and inheriting a leg's speed would make it look like a leg.
+        The point is on the ground (0 m above it, ``RADIO``), as the campaign's objective points are: a
+        targeting pod or a weapon slaved to the steerpoint looks there. It was at 20 000 ft ``BARO`` until
+        2026-11-17, from the shipped template's example (David, after the first server flight of the
+        persistent campaign). The speed is deliberately not read from the flight plan — a bullseye is a
+        position, and inheriting a leg's speed would make it look like a leg.
 
         Args:
             coalition: The group's coalition.
@@ -202,7 +204,7 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
             type="Turning Point",
             action="Turning Point",
             alt=float(self.BULLSEYE_ALTITUDE_METRES),
-            alt_type="BARO",
+            alt_type="RADIO",
             speed=float(self.BULLSEYE_SPEED_MPS),
             speed_type="TAS",
             x=float(bullseye["x"]),
@@ -210,8 +212,8 @@ class WaypointsInjectorWorker(GroupInjectorWorker):
             name=self.BULLSEYE_NAME,
         )
 
-    #: 20 000 ft, the altitude the shipped template's own example used for a navigation reference.
-    BULLSEYE_ALTITUDE_METRES = 6096
+    #: On the ground: 0 m above it (``RADIO``), where a pod or a weapon slaved to the steerpoint looks.
+    BULLSEYE_ALTITUDE_METRES = 0
     #: Metres per second. Matches the template's example rather than inventing a third convention.
     BULLSEYE_SPEED_MPS = 250
 

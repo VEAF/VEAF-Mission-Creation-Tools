@@ -79,6 +79,15 @@ def _counts(value: Any) -> bool:
     return isinstance(value, dict) and all(isinstance(key, str) and _natural(count) for key, count in value.items())
 
 
+def _names(value: Any) -> bool:
+    return isinstance(value, list) and all(_text(name) for name in value)
+
+
+def _tankers(value: Any) -> bool:
+    """One tanker's name, or a list of them: the boom and the basket (David, 2026-11-17)."""
+    return _text(value) or (isinstance(value, list) and bool(value) and all(_text(name) for name in value))
+
+
 def _statics(value: Any) -> bool:
     return isinstance(value, list) and bool(value) and all(_text(kind) for kind in value)
 
@@ -102,6 +111,8 @@ _SCHEMA: dict[str, Check | dict[str, Check]] = {
     "supply_seconds": _positive,
     "max_helicopters": _natural,
     "helicopter_timeout": _positive,
+    "helicopter_capture_seconds": _positive,
+    "convoy_timeout": _positive,
     "helicopter": _helicopters,
     "supply_crate": _text,
     "hunter": {"enabled": _flag, "ground_kills": _positive, "air_kills": _positive, "chance": _percent},
@@ -112,10 +123,11 @@ _SCHEMA: dict[str, Check | dict[str, Check]] = {
         "capture": _natural,
         "delivery": _natural,
         "prices": _counts,
-        "tanker": _text,
+        "tanker": _tankers,
         "credits_per_point": _positive,
         "demolition": _natural,
         "warehouse_delivery": _natural,
+        "landing_share": _percent,
     },
     "tasks": {"count": _natural, "refresh_seconds": _positive, "air_kills": _positive, "rewards": _counts},
     "intel": {
@@ -149,12 +161,28 @@ _SCHEMA: dict[str, Check | dict[str, Check]] = {
         "package_delay": _positive,
     },
     "territory": {"enabled": _flag, "margin": _positive, "hatch_spacing": _positive, "hatch_length": _positive},
+    # the SUPPORT module's settings, written into mission.yaml by `campaign next`
+    "support": {
+        "assets": _names,
+        "margin": _positive,
+        "retreat_margin": _positive,
+        "seconds": _positive,
+        "advance_seconds": _positive,
+        "min_advance": _positive,
+        "leg": _positive,
+        "sam_reach_floor": _positive,
+    },
     "debug": _flag,
     "debug_status_seconds": _positive,
 }
 
 #: The keys of `dynamic.air` that are not a side.
-_AIR_SETTINGS: dict[str, Check] = {"strike_seconds": _positive, "max_flights": _natural, "cap_per_players": _positive}
+_AIR_SETTINGS: dict[str, Check] = {
+    "strike_seconds": _positive,
+    "max_flights": _natural,
+    "cap_per_players": _positive,
+    "cap_helicopter_chance": _percent,
+}
 
 
 def _issue(setting: str) -> ValidationIssue:

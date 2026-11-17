@@ -26,7 +26,7 @@ campaign:
 
 zones:
   # blue
-  - { name: Batumi, at: { airfield: Batumi }, size: airfield, side: blue, radius: 3000 }
+  - { name: Batumi, at: { airfield: Batumi }, size: airfield, side: blue, long_range_sam: true, radius: 3000 }
   - { name: Kobuleti, at: { airfield: Kobuleti }, size: airfield, side: blue, radius: 3000 }
   - { name: Ozurgeti, at: { lat: 41.925, lon: 42.005 }, size: outpost, side: blue, kind: factory }
   - { name: Supsa, at: { lat: 42.030, lon: 41.800 }, size: outpost, side: blue, kind: depot }
@@ -36,7 +36,7 @@ zones:
   - { name: Khobi, at: { lat: 42.315, lon: 41.905 }, size: outpost, side: red }
   - { name: Senaki, at: { airfield: Senaki-Kolkhi }, size: airfield, side: red, radius: 3000 }
   - { name: Samtredia, at: { lat: 42.165, lon: 42.335 }, size: outpost, side: red, kind: depot }
-  - { name: Kutaisi, at: { airfield: Kutaisi }, size: airfield, side: red, radius: 3000 }
+  - { name: Kutaisi, at: { airfield: Kutaisi }, size: airfield, side: red, long_range_sam: true, radius: 3000 }
   - { name: Tkibuli, at: { lat: 42.350, lon: 42.998 }, size: outpost, side: red, kind: factory }
   - { name: Zugdidi, at: { lat: 42.505, lon: 41.870 }, size: outpost, side: red }
 
@@ -55,6 +55,8 @@ connections:
   - [Kutaisi, Tkibuli]
 
 # Every key is optional; these are the defaults, written out to show them.
+# Long-range SAMs are a zone's own (`long_range_sam: true`, Batumi and Kutaisi above), two a side at most,
+# 120 km apart at least: `long_range_sams: { per_side: 2, min_spacing: 120000 }` at the top level.
 dynamic:
   save_seconds: 60
   wake_radius: 60000
@@ -68,20 +70,24 @@ dynamic:
   attack_seconds: 900
   supply: [red]
   supply_seconds: 600
+  helicopter_capture_seconds: 600
+  convoy_timeout: 2700
   economy:
     start_credits: 500
+    landing_share: 50
+    tanker: [ "Tanker Texaco", "Tanker Arco" ]   # the boom and the basket: one shop item each
   tasks:
     count: 3
   intel:
     hidden: true
   # the V1.5: resources, factories, the supply network, sappers, warehouses, bombers, territory
   resources:
-    start: 500
-    background_per_hour: 30
+    start: 1000
+    background_per_hour: 60
     reserve: 100
   factory:
     buildings: 3
-    per_hour: 120
+    per_hour: 180
   network:
     hop_seconds: 600
     isolated_seconds: 3600
@@ -94,3 +100,9 @@ dynamic:
     min_distance: 80000
   territory:
     enabled: true
+  # the AWACS and tankers held out of the enemy's air defence: groups of the template mission, each with
+  # an orbit (add them with the MCP's add_air_group and edit_route, or in the Mission Editor), and their
+  # channels in the template's src/presets.yaml; `campaign validate` warns when one is missing
+  support:
+    assets: [ "AWACS Magic", "Tanker Texaco", "Tanker Arco" ]   # Texaco a KC-135 (boom), Arco a KC-135MPRS (basket)
+    margin: 30000            # `campaign next` writes this block into mission.yaml's SUPPORT module (veafSupport)

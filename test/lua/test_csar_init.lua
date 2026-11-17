@@ -187,6 +187,20 @@ function TestCsarInitialisation:test_a_dynamic_slot_helicopter_gets_its_csar_men
   luaunit.assertEquals(menus, { { groupId = 4242, name = "CSAR" } })
 end
 
+--- A survivor destroyed without a pickup (an admin's `_destroy`) raises no error: on 2026-11-16 the
+--- status check indexed his leader, nil, at CSAR.lua:1150, every time it ran.
+function TestCsarInitialisation:test_a_survivor_destroyed_raises_no_error()
+  csar.woundedGroups = { ["Downed Pilot #201080"] = { side = 1, desc = "pilot" } }
+  local errors = {}
+  local original = env.error
+  env.error = function(text)
+    table.insert(errors, text)
+  end
+  csar.checkWoundedGroupStatus({ "a helicopter nobody flies", "Downed Pilot #201080" })
+  env.error = original
+  luaunit.assertEquals(errors, {})
+end
+
 -- ---------------------------------------------------------------------------
 -- Run
 -- ---------------------------------------------------------------------------

@@ -102,10 +102,21 @@ class SizeClass:
 #: (12 to 36), an airfield 51 (35 to 74), of which its long-range battery is about 20. The first
 #: values, CAS-mission sizes 2 and 4 drawn through `generateCasGroup`, gave 49 and 119 — about a
 #: thousand ground units for the 12-zone example campaign.
+#:
+#: The airfield class drew a long-range battery in every airfield zone until 2026-11-17: on the first server
+#: flight of a persistent campaign, two SA-5 17 nautical miles apart put the whole front under 240 km of
+#: missile reach. A long-range SAM is now a zone's own `long_range_sam`, capped and spaced by
+#: `long_range_sams` (FEAT-DYNAMIC-CAMPAIGN ticket 20).
 DEFAULT_SIZE_CLASSES: dict[str, SizeClass] = {
     "outpost": SizeClass("outpost", size=1, defense=1, armor=1),
-    "airfield": SizeClass("airfield", size=1, defense=3, armor=2, long_range_sam=True),
+    "airfield": SizeClass("airfield", size=1, defense=3, armor=2),
 }
+
+#: How many zones of a declared side may hold a long-range SAM, by default.
+DEFAULT_LONG_RANGE_SAM_CAP = 2
+
+#: The least distance between two zones holding a long-range SAM, in metres, by default.
+DEFAULT_LONG_RANGE_SAM_SPACING = 120000
 
 
 @dataclass(frozen=True)
@@ -134,6 +145,8 @@ class CampaignZone:
     """How the briefing names the zone to the players ("Dépôt de Khobi"); the name stays the key."""
     intel: str | None = None
     """What the intelligence says of the zone when the enemy holds it, in place of the generated text."""
+    long_range_sam: bool | None = None
+    """Whether the zone holds a long-range SAM; ``None`` follows its size class."""
 
     @property
     def label(self) -> str:
@@ -183,6 +196,35 @@ class CampaignDefinition:
     """The live play's settings (`dynamic:`), checked, with the aircraft resolved to payloads."""
     declared_reserves: tuple[str, ...] = ()
     """The coalitions `sides:` gives a reserve to. A persistent campaign's other side draws for free."""
+    long_range_sam_cap: int = DEFAULT_LONG_RANGE_SAM_CAP
+    """How many zones of a declared side may hold a long-range SAM (`long_range_sams.per_side`)."""
+    long_range_sam_spacing: int = DEFAULT_LONG_RANGE_SAM_SPACING
+    """The least distance between two of them, in metres (`long_range_sams.min_spacing`)."""
+
+    def shop_tankers(self) -> list[str]:
+        """The tankers `dynamic.economy.tanker` names: one name or a list of them, the boom and the basket.
+
+        Returns:
+            The names, in the file's order; empty when none is named.
+        """
+        named = (self.dynamic.get("economy") or {}).get("tanker")
+        if isinstance(named, str):
+            return [named]
+        return [str(name) for name in named] if isinstance(named, list) else []
+
+    def has_long_range_sam(self, zone: CampaignZone) -> bool:
+        """Return whether a zone holds a long-range SAM: its own flag, else its size class's.
+
+        Args:
+            zone: One of the campaign's zones.
+
+        Returns:
+            ``True`` when its garrison draws a long-range battery.
+        """
+        if zone.long_range_sam is not None:
+            return zone.long_range_sam
+        size = self.size_classes.get(zone.size)
+        return size is not None and size.long_range_sam
 
     def zone(self, name: str) -> CampaignZone:
         """Return the zone of that name.

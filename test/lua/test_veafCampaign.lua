@@ -508,7 +508,7 @@ function TestVeafCampaignLosses:test_a_zone_that_loses_its_whole_garrison_turns_
   local entry = veafCampaign.data.zones[1]
   luaunit.assertEquals(entry.owner, "neutral")
   luaunit.assertNil(entry.garrison)
-  luaunit.assertEquals(#dcs_mocks.messages, 1)
+  luaunit.assertEquals(#dcs_mocks.messages, 2, "one per side")
   luaunit.assertStrContains(dcs_mocks.messages[1].text, "Senaki")
 end
 
@@ -1036,6 +1036,16 @@ function TestVeafCampaignCapture:test_one_side_alone_runs_the_clock()
   luaunit.assertEquals(self.poti.entry.owner, "neutral")
 end
 
+function TestVeafCampaignCapture:test_a_csar_pilot_neither_contests_nor_takes_a_zone()
+  -- Menagh, 2026-11-16: an immortal red "Wounded Pilot" kept the zone contested until an admin destroyed him
+  dcs_mocks.searchObjectsObjects = { groundUnit(BLUE), groundUnit(RED, { name = "Wounded Pilot #201080" }) }
+  beats(3)
+  luaunit.assertEquals(self.poti.entry.capture, { side = "blue", seconds = 30 })
+  dcs_mocks.searchObjectsObjects = { groundUnit(RED, { name = "Wounded Pilot #201080" }) }
+  beats(1)
+  luaunit.assertNil(self.poti.entry.capture, "a pilot alone holds nothing")
+end
+
 function TestVeafCampaignCapture:test_the_clock_reaching_capture_seconds_captures_the_zone()
   dcs_mocks.searchObjectsObjects = { groundUnit(BLUE) }
   beats(6)
@@ -1046,7 +1056,9 @@ function TestVeafCampaignCapture:test_the_clock_reaching_capture_seconds_capture
   luaunit.assertEquals(self.casCalls[1].side, BLUE)
   luaunit.assertNotNil(entry.garrison)
   luaunit.assertNotNil(submitted()["Poti garrison"])
-  luaunit.assertEquals(#dcs_mocks.messagesContaining("Poti"), 1)
+  -- each side hears it from its own command (2026-11-16: "the announcements say nothing of the side")
+  luaunit.assertEquals(#dcs_mocks.messagesContaining(veaf.t("campaign.speaker.blue") .. "Poti"), 1)
+  luaunit.assertEquals(#dcs_mocks.messagesContaining(veaf.t("campaign.speaker.red") .. "Poti"), 1)
 end
 
 function TestVeafCampaignCapture:test_only_a_neutral_zone_can_be_captured()
@@ -1469,6 +1481,20 @@ function TestVeafCampaignAssault:test_the_axis_is_a_line_in_the_side_colour_for_
   luaunit.assertEquals({ self.lines[1].startPoint.x, self.lines[1].endPoint.x }, { 20000, 10000 })
   luaunit.assertEquals(self.lines[1].color, veafCampaign.AXIS_COLORS.red)
   luaunit.assertEquals(self.lines[1].id, veafCampaign.convoys[1].axisId)
+end
+
+-- 2026-11-16: in a persistent campaign the other side hears of a convoy when it leaves; told 20 minutes later, it
+-- read as the cause of a capture a helicopter made in the same second
+function TestVeafCampaignAssault:test_a_persistent_campaign_tells_the_other_side_at_once()
+  veafCampaign.initialize()
+  veafCampaign.data.persistent = true
+  veafCampaign.pendingAssaults["Poti|blue"] = nil
+  timer.setTime(600)
+  veafCampaign.launchDueAssaults(600)
+  local told = dcs_mocks.messagesContaining(veaf.t("campaign.speaker.intel"))
+  luaunit.assertEquals(#told, 1)
+  luaunit.assertEquals(told[1].target, coalition.side.BLUE)
+  veafCampaign.data.persistent = nil
 end
 
 -- FEAT-CAMPAIGN-INTEL-DELAY: the other side learns of a convoy `intel_seconds` after it left (1200 by

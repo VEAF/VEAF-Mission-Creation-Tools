@@ -97,7 +97,9 @@ def campaign_next(
         key = "cmd.campaign_next.created" if report.created else "cmd.campaign_next.refreshed"
         console.print(t(key, mission=report.mission, path=report.folder))
         console.print(t("cmd.campaign_next.airbases", count=len(report.airbases)))
-        console.print(t("cmd.campaign_next.name", name=report.name))
+        # a persistent campaign's name carries no _NoMizedit: the server's MizEdit sets its weather at each load
+        name_key = "cmd.campaign_next.name" if report.name.endswith("_NoMizedit") else "cmd.campaign_next.name_live"
+        console.print(t(name_key, name=report.name))
         if report.security_restored:
             console.print(t("cmd.campaign_next.security_restored"))
         if report.interpreter_commands:
@@ -115,9 +117,15 @@ def campaign_next(
                 )
             )
         if report.deck:
-            console.print(t("cmd.campaign_briefing.done", path=report.deck))
+            console.print(t("cmd.campaign_briefing.done", path=report.deck, pdf=report.deck.with_suffix(".pdf")))
         if report.mission_deck:
-            console.print(t("cmd.campaign_briefing.mission_done", path=report.mission_deck))
+            console.print(
+                t(
+                    "cmd.campaign_briefing.mission_done",
+                    path=report.mission_deck,
+                    pdf=report.mission_deck.with_suffix(".pdf"),
+                )
+            )
     if pause:
         input(t("help.pause_msg"))
     if failed:
@@ -138,9 +146,15 @@ def campaign_briefing(
     issues, report = CampaignWorker(Path(campaign_folder).resolve()).briefing()
     failed = _report(issues)
     if report is not None:
-        console.print(t("cmd.campaign_briefing.done", path=report.path))
+        console.print(t("cmd.campaign_briefing.done", path=report.path, pdf=report.path.with_suffix(".pdf")))
         if report.mission_deck:
-            console.print(t("cmd.campaign_briefing.mission_done", path=report.mission_deck))
+            console.print(
+                t(
+                    "cmd.campaign_briefing.mission_done",
+                    path=report.mission_deck,
+                    pdf=report.mission_deck.with_suffix(".pdf"),
+                )
+            )
         if not report.prose:
             console.print(t("cmd.campaign_briefing.no_prose"))
         if report.map.offline:

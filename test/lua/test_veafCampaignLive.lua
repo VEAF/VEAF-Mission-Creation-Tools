@@ -229,6 +229,10 @@ function TestCampaignHelicopters:test_it_flies_the_transport_job_from_the_neares
   luaunit.assertEquals(call.job, { task = "transport", destination = "CAMPAIGN SUPPLY Poti" })
   luaunit.assertEquals(call.group.units[1].type, "Mi-8MT")
   luaunit.assertNotNil(veafNamedPoints.getPoint("CAMPAIGN SUPPLY Poti"))
+  -- the other side hears of it at once, to intercept it (2026-11-16)
+  local told = dcs_mocks.messagesContaining(veaf.t("campaign.speaker.intel"))
+  luaunit.assertEquals(#told, 1)
+  luaunit.assertEquals(told[1].target, coalition.side.BLUE)
 end
 
 function TestCampaignHelicopters:test_no_more_helicopters_than_the_cap()
@@ -247,6 +251,19 @@ local function flying(name, point, inAir)
       return { unitAt(point, { inAir = inAir }) }
     end,
   })
+end
+
+function TestCampaignHelicopters:test_landed_back_away_from_its_zone_it_has_failed_at_once()
+  -- 2026-11-16: two Mi-8 for Afrin landed back at Aleppo 3 minutes after leaving, and kept their place 20 minutes
+  start()
+  local record = veafCampaignOps.sendHelicopter("red", veafCampaign.zones["Poti"], "capture")
+  flying(record.name, { x = 90000, z = 0 }, true)
+  veafCampaignOps.followHelicopter(record, 60)
+  luaunit.assertNil(record.done)
+  flying(record.name, { x = 99000, z = 0 }, false) -- down at Senaki, where it left
+  veafCampaignOps.followHelicopter(record, 180)
+  luaunit.assertTrue(record.done)
+  luaunit.assertEquals(record.outcome, "failed")
 end
 
 function TestCampaignHelicopters:test_landed_in_a_neutral_zone_it_waits_for_the_capture_and_is_consumed()
@@ -322,6 +339,93 @@ function TestCampaignAir:test_the_cap_count_follows_the_opposition_level()
   luaunit.assertEquals(veafCampaignOps.wantedCaps(), 0)
 end
 
+-- 2026-11-16, after Foothold: the CAP follows the players' fighters, spares helicopters and attack airplanes,
+-- and does not stay grounded because its nearest zone is under the enemy's SAMs.
+local function spared(attributes, id)
+  return {
+    hasAttribute = function(_, name)
+      return attributes[name] == true
+    end,
+    getID = function()
+      return id or 1
+    end,
+  }
+end
+
+function TestCampaignAir:test_no_cap_when_following_and_no_fighter_is_up()
+  start()
+  opposition(0)
+  veafOpposition.follow, veafOpposition.FOLLOW_OFF = "air_to_air", "off"
+  luaunit.assertEquals(veafCampaignOps.wantedCaps(), 0)
+  opposition(4)
+  veafOpposition.follow, veafOpposition.FOLLOW_OFF = "air_to_air", "off"
+  luaunit.assertEquals(veafCampaignOps.wantedCaps(), 2)
+end
+
+function TestCampaignAir:test_a_persistent_campaign_follows_the_fighters_unless_the_mission_follows_already()
+  start()
+  local followed
+  opposition(0)
+  veafOpposition.follow, veafOpposition.FOLLOW_OFF, veafOpposition.FOLLOW_AIR_TO_AIR = "off", "off", "air_to_air"
+  veafOpposition.setFollow = function(mode)
+    followed = mode
+  end
+  veafCampaignOps.followFighters()
+  luaunit.assertEquals(followed, "air_to_air")
+  followed = nil
+  veafOpposition.follow = "players"
+  veafCampaignOps.followFighters()
+  luaunit.assertNil(followed)
+end
+
+function TestCampaignAir:test_the_cap_spares_helicopters_and_attack_airplanes_but_on_a_draw()
+  start({ air = { cap_helicopter_chance = 0 } })
+  luaunit.assertTrue(veafCampaignOps.capEngages("cap", spared({ Fighters = true }, 1)))
+  luaunit.assertFalse(veafCampaignOps.capEngages("cap", spared({ Helicopters = true }, 2)))
+  luaunit.assertFalse(veafCampaignOps.capEngages("cap", spared({ Battleplanes = true }, 3)))
+  veafCampaign.data.dynamic.air.cap_helicopter_chance = 100
+  luaunit.assertFalse(veafCampaignOps.capEngages("cap", spared({ Helicopters = true }, 2))) -- drawn once
+  luaunit.assertTrue(veafCampaignOps.capEngages("cap", spared({ Helicopters = true }, 4)))
+end
+
+function TestCampaignAir:test_the_cap_takes_the_next_front_zone_when_the_nearest_is_under_the_sams()
+  start()
+  local first, second = veafCampaign.zones["Senaki"], veafCampaign.zones["Zugdidi"]
+  second.entry.airbase = nil
+  local capZones, capRadius = veafCampaignOps.capZones, veafCampaignOps.capRadius
+  veafCampaignOps.capZones = function()
+    return { first, second }
+  end
+  veafCampaignOps.capRadius = function(_, zone)
+    if zone == first then
+      return veafCampaignOps.CAP_MIN_RADIUS, "Kobuleti", true
+    end
+    return 30000, nil, false
+  end
+  veafCampaignOps.maintainCaps("red")
+  veafCampaignOps.capZones, veafCampaignOps.capRadius = capZones, capRadius
+  luaunit.assertEquals(#self.flights, 1)
+  luaunit.assertEquals(self.flights[1].params.zone.x, second:getCenter().x)
+end
+
+function TestCampaignAir:test_a_cap_refused_everywhere_is_logged_once()
+  start()
+  local lines = 0
+  local debug = veafCampaign.debug
+  veafCampaign.debug = function()
+    lines = lines + 1
+  end
+  local capRadius = veafCampaignOps.capRadius
+  veafCampaignOps.capRadius = function()
+    return veafCampaignOps.CAP_MIN_RADIUS, "Kobuleti", true
+  end
+  veafCampaignOps.maintainCaps("red")
+  veafCampaignOps.maintainCaps("red")
+  veafCampaignOps.capRadius, veafCampaign.debug = capRadius, debug
+  luaunit.assertEquals(#self.flights, 0)
+  luaunit.assertEquals(lines, 1)
+end
+
 function TestCampaignAir:test_a_cap_covers_the_front_with_the_zone_defense_role()
   start()
   veafCampaignOps.maintainCaps("red")
@@ -350,6 +454,21 @@ function TestCampaignAir:test_cas_strikes_the_enemy_zone_with_most_units_sead_th
   veafCampaign.data.connections = { { "Kobuleti", "Senaki" }, { "Poti", "Senaki" } }
   luaunit.assertEquals(veafCampaignOps.strikeTarget("red", "sead").name, "Kobuleti")
   veafCampaign.reserveCategory = savedCategory
+end
+
+function TestCampaignAir:test_cas_keeps_out_of_a_measured_medium_range_air_defence()
+  -- 2026-11-16: a red CAS sent at Hatay, under a Hawk of 40 km, dropped its bombs 20 km short and was shot down
+  start()
+  veafCampaign.zones["Poti"].entry.owner = "blue"
+  veafCampaign.zones["Poti"].entry.garrison = garrison("Poti", nil, { "T-72B", "T-72B", "T-72B" })
+  veafCampaign.zones["Kobuleti"].entry.reach = 60000 -- Kobuleti's Hawk, measured, reaches Poti 50 km away
+  local target, avoided = veafCampaignOps.strikeTarget("red", "cas")
+  luaunit.assertNil(target)
+  luaunit.assertEquals(avoided, "[Poti] under the air defence of [Kobuleti]")
+  -- guns and short-range missiles do not keep it off
+  veafCampaign.zones["Kobuleti"].entry.reach = 8000
+  veafCampaign.zones["Poti"].entry.reach = 8000
+  luaunit.assertEquals(veafCampaignOps.strikeTarget("red", "cas").name, "Poti")
 end
 
 function TestCampaignAir:test_a_strike_engages_orbits_and_lands_home()
@@ -480,18 +599,60 @@ function TestCampaignShop:setUp()
 end
 
 function TestCampaignShop:test_kills_captures_and_deliveries_earn_credits()
+  -- a kill earns half at once, the other half when the pilot lands at a friendly base (economy.landing_share)
   veafCampaignEconomy.onKill(kill("Zip"))
-  luaunit.assertEquals(veafCampaignEconomy.credits, 110)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 105)
   veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
-  luaunit.assertEquals(veafCampaignEconomy.credits, 140)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 120)
   veafCampaign.notify("captured", veafCampaign.zones["Poti"], "blue")
-  luaunit.assertEquals(veafCampaignEconomy.credits, 340)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 320)
   veafCampaign.notify("delivered", veafCampaign.zones["Kobuleti"], "blue", "crate")
-  luaunit.assertEquals(veafCampaignEconomy.credits, 440)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 420)
   -- the enemy's captures and an AI's kills earn nothing
   veafCampaign.notify("captured", veafCampaign.zones["Poti"], "red")
   veafCampaignEconomy.onKill(kill(nil))
-  luaunit.assertEquals(veafCampaignEconomy.credits, 440)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 420)
+end
+
+--- An airbase of a side, as `Airbase.getByName` hands it.
+local function airbaseOf(side)
+  return {
+    getCoalition = function()
+      return side
+    end,
+  }
+end
+
+function TestCampaignShop:test_the_held_credits_are_earned_at_a_friendly_landing()
+  -- David, 2026-11-16: "a share at the action, a bonus at landing"
+  veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 115)
+  local saved = Airbase.getByName
+  Airbase.getByName = function(name)
+    return airbaseOf(name == "Kobuleti" and BLUE or RED)
+  end
+  local function land(place)
+    veafCampaignEconomy.onPilotEvent({
+      type = { id = world.event.S_EVENT_LAND },
+      initiator = { unitName = "Zip's Hog" },
+      place = place and { unitName = place } or nil,
+    })
+  end
+  land(nil) -- in the open
+  land("Senaki-Kolkhi") -- an enemy field
+  luaunit.assertEquals(veafCampaignEconomy.credits, 115)
+  land("Kobuleti")
+  Airbase.getByName = saved
+  luaunit.assertEquals(veafCampaignEconomy.credits, 130)
+  luaunit.assertNil(veafCampaignEconomy.held["Zip's Hog"])
+end
+
+function TestCampaignShop:test_the_held_credits_are_lost_with_the_pilot()
+  veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
+  veafCampaignEconomy.onPilotEvent({ type = { id = world.event.S_EVENT_EJECTION }, initiator = { unitName = "Zip's Hog" } })
+  luaunit.assertNil(veafCampaignEconomy.held["Zip's Hog"])
+  luaunit.assertEquals(veafCampaignEconomy.credits, 115)
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("15"), 2) -- the kill, then the loss
 end
 
 function TestCampaignShop:test_credits_never_go_below_zero()
@@ -584,7 +745,7 @@ function TestCampaignTasks:test_air_superiority_counts_aircraft_shot_down()
   veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
   veafCampaignEconomy.checkTasks()
   luaunit.assertEquals(#veafCampaignEconomy.tasks, 1)
-  luaunit.assertEquals(veafCampaignEconomy.credits, 60 + 200)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 30 + 200) -- half of each kill, the rest held until landing
 end
 
 -- ---------------------------------------------------------------------------
@@ -940,6 +1101,104 @@ function TestCampaignTakeoff:test_a_barcap_is_bought_against_an_enemy_zone()
   luaunit.assertEquals(self.flights[1].params.zone.x, 100000 - 50000)
   luaunit.assertEquals(veafCampaignEconomy.credits, 600)
   luaunit.assertFalse(veafCampaignEconomy.buy({ "barcap", "Kobuleti" })) -- ours: a BARCAP is on an enemy zone
+end
+
+TestCampaignTankers = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+-- David, 2026-11-17: a boom and a basket, each its own shop item
+function TestCampaignTankers:test_each_tanker_is_bought_apart()
+  start({ economy = { start_credits = 1000, tanker = { "Tanker Texaco", "Tanker Arco" } } })
+  local respawned = {}
+  local savedAssets = veafAssets
+  veafAssets = {
+    respawn = function(name)
+      table.insert(respawned, name)
+    end,
+  }
+  luaunit.assertTrue(veafCampaignEconomy.buy({ "tanker", "Tanker Arco" }))
+  luaunit.assertFalse(veafCampaignEconomy.buy({ "tanker", "Tanker Shell" }), "a tanker the campaign does not name")
+  veafAssets = savedAssets
+  luaunit.assertEquals(respawned, { "Tanker Arco" })
+  luaunit.assertEquals(veafCampaignEconomy.tankers(), { "Tanker Texaco", "Tanker Arco" })
+end
+
+-- David, 2026-11-17: the shop says whether each tanker is a boom or a basket
+function TestCampaignTankers:test_each_tanker_says_how_it_refuels()
+  local function tanker(name, typeName)
+    dcs_mocks.addGroup(name, {
+      getUnit = function()
+        return {
+          getTypeName = function()
+            return typeName
+          end,
+        }
+      end,
+    })
+  end
+  tanker("Tanker Texaco", "KC-135")
+  tanker("Tanker Arco", "KC135MPRS")
+  luaunit.assertEquals(veafCampaignEconomy.tankerTitle("Tanker Texaco"), "Tanker Texaco (" .. veaf.t("tanker.kind.boom") .. ")")
+  luaunit.assertEquals(veafCampaignEconomy.tankerTitle("Tanker Arco"), "Tanker Arco (" .. veaf.t("tanker.kind.basket") .. ")")
+  luaunit.assertEquals(veafCampaignEconomy.tankerTitle("Tanker Shell"), "Tanker Shell", "a group not in the mission")
+  dcs_mocks.removeGroup("Tanker Texaco")
+  dcs_mocks.removeGroup("Tanker Arco")
+end
+
+function TestCampaignTankers:test_one_name_still_works()
+  start({ economy = { tanker = "Tanker Texaco" } })
+  luaunit.assertEquals(veafCampaignEconomy.tankers(), { "Tanker Texaco" })
+end
+
+TestCampaignAdminMenus = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+-- 2026-11-16, first server evening: a senior pilot opened the self-check marked "(admin)"
+function TestCampaignAdminMenus:test_the_admin_commands_ask_the_admin_level()
+  start()
+  local added = {}
+  local add = veafRadio.addSecuredCommandToSubmenu
+  veafRadio.addSecuredCommandToSubmenu = function(title, ...)
+    local command = { title = title }
+    added[title] = command
+    return command
+  end
+  veafCampaign.buildAdminMenu()
+  veafRadio.addSecuredCommandToSubmenu = add
+  for _, key in ipairs({ "menu.campaign.counters", "menu.campaign.self_check", "menu.campaign.reset" }) do
+    local command = added[veaf.t(key)]
+    luaunit.assertNotNil(command, key)
+    luaunit.assertEquals(command.securityLevel, 90, key)
+  end
+end
+
+-- 2026-11-16: the admin commands came before the shop and the rest, which fell to the menu's second page
+function TestCampaignAdminMenus:test_the_admin_commands_come_last()
+  local titles = {}
+  local saved = {}
+  for _, name in ipairs({ "addCommandToSubmenu", "addSecuredCommandToSubmenu", "addSubMenu" }) do
+    saved[name] = veafRadio[name]
+    veafRadio[name] = function(title, menu, ...)
+      if menu ~= nil and menu == veafCampaign.rootPath then
+        table.insert(titles, title)
+      end
+      return saved[name](title, menu, ...)
+    end
+  end
+  start()
+  for name, original in pairs(saved) do
+    veafRadio[name] = original
+  end
+  local admin =
+    { [veaf.t("menu.campaign.counters")] = true, [veaf.t("menu.campaign.self_check")] = true, [veaf.t("menu.campaign.reset")] = true }
+  local seenAdmin = false
+  for _, title in ipairs(titles) do
+    if admin[title] then
+      seenAdmin = true
+    else
+      luaunit.assertFalse(seenAdmin, "a command after the admin ones: " .. tostring(title))
+    end
+  end
+  luaunit.assertTrue(seenAdmin)
+  luaunit.assertEquals(titles[#titles], veaf.t("menu.campaign.reset"))
 end
 
 os.exit(luaunit.LuaUnit.run())

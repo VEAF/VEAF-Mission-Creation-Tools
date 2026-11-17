@@ -6,16 +6,20 @@
 
 ## What the players see {#players}
 
-- **The F10 map** shows each zone as a circle in its owner's colour, with its name and its garrison's state, and the connections between zones.
+- **The F10 map** shows each zone as a circle in its owner's colour, with its name, the number of its [waypoint](#waypoints) and its garrison's state, and the connections between zones.
   An enemy zone reads "strength unknown" until it has been [reconnoitred](#intel).
 - **A zone never changes hands directly**: when its garrison is destroyed it turns **neutral** (grey).
   A neutral zone is taken by holding the ground: ground units of a single side staying there for `capture_seconds` (120 s by default) — CTLD 2 troops or crate, a convoy, a `_spawn` group, a Combined Arms vehicle, a **landed** helicopter.
+  Landed helicopters alone take `helicopter_capture_seconds` (600 s), and leave a token garrison: what a helicopter carries.
   The new garrison appears at once.
+- **A pilot on the ground after an ejection is nobody's enemy**: the survivor the CSAR module puts down neither holds nor contests a zone, wakes no zone and stops no convoy, in every VEAF script.
 - **Slots follow the bases**: an airfield taken goes to the side that took it, with its dynamic slots.
+  The campaign alone decides who owns an airfield: DCS's own capture of an airbase by the units around it is turned off on every airfield of the map.
 - **The front moves on its own**: the enemy [counter-attacks](#front), reinforces its zones by helicopter, and sends CAP, strikes and [bombers](#bombers).
 - **The enemy pays for what it sends** with the [resources](#resources) its factories make: destroying its [factories](#zone-kinds) or cutting its [supply network](#network) grounds its CAP in the end.
 - **The map is tinted** by side, each zone holding the [territory](#territory) nearest to it, and the front reads between the two colours.
-- **The F10 → Other → Campaign menu** gives the situation, the credits, the tasks, the intelligence and the shop.
+- **Every announcement says who speaks**: "Blue command:" (or red) for what a side does or suffers, "Intelligence:" for what is learnt of the enemy — a convoy or a helicopter leaving, a raid inbound.
+- **The F10 → Other → VEAF → Campaign menu** gives the situation, the credits, the tasks, the intelligence and the shop; the "(admin)" commands come last.
 - **The game ends** when one side holds no zone left: a victory if it is the enemy, a defeat if it is us.
   Everyone is told, and the campaign starts afresh at the next load of the mission.
 
@@ -63,15 +67,102 @@ Then the mission of the `missions\mission-01\mission` folder is built like any m
 `campaign next` run again on the same folder updates it without touching the rest of the work done in it.
 `campaign apply` has no use here: there is no "between two missions".
 
-The briefings `campaign next` and `campaign briefing` write ([campaign briefing](CAMPAIGN.en.md#briefing-deck), [mission briefing](CAMPAIGN.en.md#mission-briefing), and the strategic situation text that becomes the DCS briefing) speak of a persistent campaign: no count of missions, victory when the enemy holds no zone left, the tasks of `briefing.yaml` as standing orders, factories instead of reserves, an enemy air force active from its airfields, and an annex on the living front that leaves out what `dynamic:` turns off (`attacks`, `supply`, `bombers.enabled`, `resources.enabled`).
+**Weather and time come from the server.** A persistent campaign runs for weeks: `campaign next` fixes neither date, start time nor weather, and the mission's name carries no `_NoMizedit` (`Campaign_<campaign>_Mission_01_<title>`), so the server's MizEdit preset (with RealWeather) sets them at each load. A [multi-mission campaign](CAMPAIGN.en.md#squadron-settings) keeps its fixed conditions and its `_NoMizedit`.
+
+The briefings are those of a campaign with no mission of the day: the [theatre dossier and the kneeboard](#theatre-dossier) replace the campaign briefing and the mission briefing.
 
 `campaign next` also adds to the mission's `ctld-config.yaml` what the players carry for the campaign: the **"Zone supplies"** crate (one per side), the **"Spy"** troop group (one man) and the **"Sappers"** group (two men, the [demolition team](#demolition)).
+It writes the players' [waypoints](#waypoints), one per zone, and, when it creates the mission folder, its [radio plan](#radio-plan) and its [DCS briefing](#theatre-dossier) from `briefing.yaml` — so a mission folder created afresh keeps it; write it there, not in the mission alone.
 It also enforces the "fog of war" F10 view (`mission.forced_options.f10_view: fog_of_war`): a pilot sees only the enemies their side has detected, and a garrison's strength is learned by [reconnaissance](#intel). A view already chosen in `mission.yaml` is kept.
 
 **No interpreter command in a persistent campaign.**
 A unit named `#veafInterpreter["…"]` in the Mission Editor spawns its units afresh at every start of the mission: in a persistent campaign, they come back whole after each server restart, their losses forgotten, paid by nobody.
 What the campaign must hold is declared in `campaign.yaml`, as a zone with its garrison (an explicit `garrison:` list when the composition matters): the zone is saved with its losses, and the [network](#network) rebuilds it at its side's expense.
 `campaign next` reports the interpreter commands it finds in the mission.
+
+**What `campaign validate` and `campaign next` warn about**, each a defect of the first evening flown:
+
+- a zone at coordinates within 4 km of an airfield, with no `kind:`: put it on the airfield (`at: { airfield: … }`), or DCS and the campaign each capture their own object;
+- no AWACS nor tanker in `dynamic.support.assets`, no `dynamic.economy.tanker`, or one of them that is no group of the template mission: the players fly without, and the shop has no tanker;
+- no boom tanker (KC-135, KC-10A) or no basket tanker (KC-135MPRS, KC-130, S-3B, IL-78M) among `dynamic.support.assets`: the F-16 and the A-10, or the F/A-18 and the AV-8B, cannot refuel;
+- a channel of the template's `src/presets.yaml` named after an airfield of another theatre: write the campaign's frequency plan for its theatre;
+- more [long-range SAMs](#long-range-sams) than allowed, or too close, is an error.
+
+### A waypoint per zone {#waypoints}
+
+`campaign next` writes in `src/waypoints.yaml` a waypoint per zone of the campaign, at its centre, on the ground, for the players' planes and helicopters, the most strategic first: the zones of the front (connected to a zone of another owner), then the airfields, the factories, the depots and the rest, nearest the players' zones first.
+A module that holds fewer steerpoints than there are zones keeps the first ones.
+Each zone keeps its number, the one after the departure point: the F10 label, the situation, the shop, the intelligence and every announcement name it "Taftanaz (WP 7)".
+The order is the one of the campaign's state when `campaign next` runs; the build adds BULLSEYE after them.
+A `waypoints.yaml` edited by hand is left alone, as for a [multi-mission campaign](CAMPAIGN.en.md), and the numbers the players read are the ones it holds: a zone it leaves out shows none.
+
+### The radio plan {#radio-plan}
+
+When it creates the mission folder, `campaign next` writes the players' radio plan in `src/presets.yaml`; edited afterwards, it is the mission maker's.
+
+| Radio | Channels |
+|---|---|
+| VHF, the airfields' radio | 1 **Home Base**, which each pilot sets to the field taken off from; then the players' side's airfields, with the frequencies DCS gives them on this theatre; then the VEAF flights, on their VHF frequency: a flight tuned to a tanker's UHF still talks on the VHF |
+| UHF | the AWACS, then the tankers of `dynamic.support.assets` and `economy.tanker`, on their group's frequency, each named with how it refuels ("Tanker Texaco (boom)", "Tanker Arco (basket)"); **Air-Sol**, the common air-to-ground frequency (305.0); then the VEAF flights, Archer first |
+
+A channel needs a frequency for the build to keep it on the radio and the kneeboard: Home Base carries a placeholder no airfield of DCS uses (VHF 118.025, UHF 230.025), which the pilot overwrites.
+The AWACS and the tankers must therefore be in the template before the first `campaign next`.
+
+### The theatre dossier and the kneeboard {#theatre-dossier}
+
+A persistent campaign has no mission of the day: instead of the [campaign briefing](CAMPAIGN.en.md#briefing-deck) and the [mission briefing](CAMPAIGN.en.md#mission-briefing), `campaign next` and `campaign briefing` write the **theatre dossier** into `missions\mission-01\`, `<operation>_dossier-de-theatre.pptx`, with its two maps (`carte-du-reseau.png`, `carte-des-defenses.png`).
+It is a dated picture of the situation ("État au 17/11/2026"), not an operation order: no objectives, no ATO, no weather.
+The same dossier is also written as a PDF beside it, `<operation>_dossier-de-theatre.pdf`, readable without PowerPoint ([as every briefing is](CAMPAIGN.en.md#briefing-deck)).
+
+| Page | What it says |
+|---|---|
+| Cover | the operation, the theatre, the date of the picture |
+| Strategic situation | `briefing.yaml`: political, economic, enemy course of action |
+| Network map | each zone in its side's colour, a symbol per kind (square airfield, circle outpost, triangle factory, diamond depot), its [waypoint](#waypoints) number, the connections, the territory tinted by side and the front with its short hatches on each side, as on the F10 map |
+| The enemy network | which factory feeds which zones, what each depot speeds up, the zones already cut off, and the **critical nodes**: the enemy zones whose capture cuts other zones off from their factory |
+| Known air defences | the [long-range SAMs](#long-range-sams) with their reach drawn as a circle, and what intelligence knows of them ("probable" until a reconnaissance confirms it); ours too |
+| Axes of effort | `axes:` from `briefing.yaml`, given as indicative: the situation moves, adapt |
+| Our means | our zones, our airfields, the AWACS and the tankers |
+| Radio plan | the UHF and VHF channels of the [radio plan](#radio-plan), read from `src/presets.yaml` |
+| Player's guide | the F10 Campaign menu, the rule for taking a zone, the [shop](#shop) prices |
+| Rules of engagement | `briefing.yaml` |
+
+The **axes of effort** are written in `briefing.yaml`, under an `axes:` key, each with a title and a text:
+
+```yaml
+axes:
+  - title: Take Menagh and Afrin
+    text: Drop troops or supply crates in both neutral towns and hold them for two minutes.
+  - title: Cut the red network
+    text: The critical nodes of the theatre dossier cut zones off from their factory; taking them weakens everything those zones hold.
+```
+
+A `briefing.yaml` written before `axes:` still works: without that key, the tasks of `missions: 1:` stand in for it.
+
+**The kneeboard.** `campaign next` also writes four kinds of pages into the mission's `src/mission/KNEEBOARD/IMAGES`, which the build puts into the `.miz` and every aircraft shows:
+
+1. the network map, in the kneeboard's format;
+2. the zone table: waypoint, name and kind, coordinates (DDM and MGRS), elevation in feet, the airfield's VHF/UHF frequencies;
+3. the radio plan;
+4. a cheat sheet: the F10 Campaign menu, the capture rule, the shop prices.
+
+No weather page (the server makes the weather) and no objectives.
+These pages are named `NN-briefing-campaign-….jpg`: `campaign next` replaces them at every run and leaves the folder's other pages alone.
+They show the state at the time of `campaign next`, not the server's save: run `campaign next` and the build again to refresh them.
+
+**The DCS briefing** comes down to the situation (the operation, the mission statement, the strategic situation), the axes of effort, and a pointer to the kneeboard for the map, the coordinates, the frequencies and the cheat sheet.
+
+### Long-range SAMs {#long-range-sams}
+
+A long-range SAM is a zone's own: `long_range_sam: true` on the zone.
+Two SA-5 17 nautical miles apart put a whole front under 240 km of missile reach on the first evening flown; `campaign validate` therefore refuses more than `long_range_sams.per_side` (2) per side, and two of a side closer than `long_range_sams.min_spacing` (120 km).
+Keep them for the key points of the network: a large base, a factory, a depot.
+
+```yaml
+long_range_sams: { per_side: 2, min_spacing: 120000 }
+zones:
+  - { name: Aleppo, at: { airfield: Aleppo }, size: airfield, side: red, long_range_sam: true }
+```
 
 ## The save {#save}
 
@@ -91,7 +182,7 @@ The file is a Lua table read with no access to anything: it cannot run code.
 The server's `MissionScripting.lua` must leave `io` and `lfs` open, as the VEAF servers do.
 Without them the campaign runs anyway, but does not save, and says so once.
 
-**Reset**: F10 → Other → Campaign → **Reset the campaign (admin)**.
+**Reset**: F10 → Other → VEAF → Campaign → **Reset the campaign (admin)**.
 The campaign starts again from its declared state at the next load of the mission; a victory or a defeat does the same.
 
 ## Sleeping zones {#dormancy}
@@ -115,21 +206,29 @@ Only one zone wakes per 10-second beat, so the whole front does not appear in on
 ## A front that moves on its own {#front}
 
 - **Counter-attacks**: every `attack_seconds` (900 s), a side listed in `attacks` (red by default) sends an assault convoy against the weakest enemy zone it borders, `max_convoys` (2) on the road at most.
+  Only those sides send convoys on their own toward a neutral zone too; the players' side buys theirs (F10 → Other → VEAF → Campaign → Assaults), and no automatic convoy leaves for a zone a convoy of the same side already drives to.
+- **A convoy that will not arrive frees its place**: once its target is its side's (a helicopter took it first), or after `convoy_timeout` (2,700 s) on the road, it is taken off the map and the price of its survivors goes back to its side.
+- **The other side is told at once** of a convoy leaving, and sees its axis on the map.
 - **Resupply**: a delivery to a damaged friendly zone brings its first damaged group back to full strength.
   Deliveries are: a "Zone supplies" crate set down in the zone, CTLD 2 troops deployed in the zone (the spy team and the JTAC teams excepted), a supply helicopter landed in it.
 - **AI helicopters**: every `supply_seconds` (600 s), a side listed in `supply` (red by default) sends a helicopter (`helicopter`, a Mi-8MT for red, a UH-1H for blue) to a neutral zone it borders, which it takes by landing there, or else to its most damaged zone, which it resupplies; `max_helicopters` (2) in the air at most, and one that has not landed after `helicopter_timeout` (1,200 s) is removed.
+  The other side is told when it leaves, to intercept it.
+  One that lands again away from its zone has failed at once, and `dcs.log` says where it landed.
 
 ## Enemy air {#air}
 
-- **CAP**: the enemy keeps one CAP up per `air.cap_per_players` (3) players of the [opposition level](scripts/veafQraManager.en.md#opposition-level), at least one, over its front zone nearest the players.
-  Its patrol circle (40 km at most) stops 15 km short of our zones' air defence reach; when even a 5 km circle would be in their reach, it does not fly: it does not throw itself at our SAMs.
+- **CAP**: the enemy keeps one CAP up per `air.cap_per_players` (3) players of the [opposition level](scripts/veafQraManager.en.md#opposition-level), over its front zone nearest our fighters.
+  That level follows the **fighters** in the air: the players carrying a radar-guided air-to-air missile (the `air_to_air` follow, set by default when the mission follows nothing else). Helicopters and attack airplanes (A-10, Su-25, AV-8B…) do not count: when no fighter flies, no CAP takes off.
+  Its patrol circle (40 km at most) stops 15 km short of our zones' air defence reach; when even a 5 km circle would be in their reach, it takes the next front zone, and does not fly when none suits: it does not throw itself at our SAMs.
+  It engages our combat airplanes; a helicopter or an attack airplane it detects is engaged only on a draw of `air.cap_helicopter_chance` (25 %), made once per aircraft, as Foothold's `InvisibleA10` option.
 - **Strikes**: every `air.strike_seconds` (900 s), a CAS strike (on the zone with the most units) or a SEAD strike (on the one with the most air defence), in turn, on a zone bordering the enemy's territory.
+  A CAS strike leaves out a zone under a measured air defence of 15 km or more (a Hawk, an SA-6), the zone's own or a neighbour's: that is the SEAD's job.
 - They **take off** from the nearest enemy airfield, hot on free stands (shelters first, open stands after; a large aircraft, bomber or transport, never in a shelter), or from the runway when there are not enough; no airfield, no sortie. So do the CAP, the BARCAP and the Hunter.
   Nothing takes off from an airfield within `takeoff_threat_range` (40 km) of an enemy air defence whose reach was measured (a Patriot would shoot the aircraft down while they climb); the reach DCS gives is the missile's against a high target, much longer than the range at which the SAM sees an aircraft taking off, hence this cap, an estimation to tune.
   A **SEAD** flight takes off all the same: putting that defence out is its job, and what it destroys frees the field for the strikes.
   Otherwise the sortie leaves from another airfield, or does not leave, and `dcs.log` says so (`[CAMPAIGN DECISION] nothing of red takes off from [Senaki]: it is under the air defence of [Kobuleti]`).
   `air.max_flights` (4) flights in the air at most per side.
-- **Hunter**: a player on a kill streak (between 8 and 16 on the ground, or between 4 and 8 in the air, drawn once per life) then has a 10 % chance at every kill to have two enemy fighters scrambled at that player, whose side is told.
+- **Hunter**: a player flying a fighter on a kill streak (between 8 and 16 on the ground, or between 4 and 8 in the air, drawn once per life) then has a 10 % chance at every kill to have two enemy fighters scrambled at that player, whose side is told.
 
 Aircraft are declared by type and loadout **by the name** the Mission Editor gives it; the tools check both and turn them into pylons, so the mission needs no aircraft template.
 
@@ -159,7 +258,11 @@ The players' coalition has an account, saved with the campaign: `economy.start_c
 | a delivery to a friendly zone | `economy.delivery` | 100 |
 | a [task](#tasks) done | `tasks.rewards` | 200 to 300 |
 
-F10 → Other → Campaign → **Shop**: each item lists the zones it applies to.
+A player's kill pays in two parts: `economy.landing_share` (50 %) of it is held until the pilot lands at a friendly airfield, FARP or carrier, and lost on an ejection, a death or a crash; the rest is earned at once.
+Both parts go to the coalition's account.
+The other gains, which no single pilot carries, are paid whole.
+
+F10 → Other → VEAF → Campaign → **Shop**: each item lists the zones it applies to.
 A purchase refused (no target left, nothing in reach) costs nothing.
 
 | Item | Effect | Price |
@@ -173,17 +276,18 @@ A purchase refused (no target left, nothing in reach) costs nothing.
 | Capture helicopter | a helicopter that goes and takes a neutral zone | 250 |
 | Resupply helicopter | a helicopter that goes and resupplies one of our damaged zones | 200 |
 | Bomber raid | a [combined raid](#bombers) — BARCAP, SEAD, bomber — on an enemy zone, its buildings first | 1300 |
-| Tanker | respawns the tanker `economy.tanker` names (an asset of the mission); absent without it | 300 |
+| Escort for my group | two fighters for the buyer's group, starting in the air over our nearest airfield: an airplane gets the DCS escort task; a helicopter, too slow for fighters, a 15 km CAP over it, moved when it has gone 8 km. In each pilot's menu | 300 |
+| Tanker | one item per tanker `economy.tanker` names — one name, or a list: the boom and the basket —, which it respawns (an asset of the mission), then [places](#support) out of reach again; absent without one | 300 |
 
 The BARCAP holds on the axis between the enemy zone and our nearest airfield, at the first point out of the reach of **every** enemy air defence (not only the target zone's) plus 15 km, and guards a 15 km circle; when no point of the axis is out of reach, it holds over its airfield.
-The reach is measured on the missiles the zone's units carry when it is awake; a sleeping zone is assumed to reach 75 km when its class has a long-range SAM, 20 km otherwise, and the message says so.
+The reach is measured on the missiles the zone's units carry when it is awake; a sleeping zone is assumed to reach 75 km when it holds a [long-range SAM](#long-range-sams), 20 km otherwise, and the message says so.
 
-Prices change in `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `tanker`, and `assault` for the assault order of F10 → Campaign → Assault, 300).
+Prices change in `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `escort`, `tanker`, and `assault` for the assault order of F10 → Other → VEAF → Campaign → Assault, 300).
 What the players buy is paid in credits, never from the [resources](#resources).
 
 ## The task board {#tasks}
 
-F10 → Other → Campaign → **Tasks**: `tasks.count` (3) tasks at once, drawn from the situation and filled up every `tasks.refresh_seconds` (300 s), each marked on our side's map.
+F10 → Other → VEAF → Campaign → **Tasks**: `tasks.count` (3) tasks at once, drawn from the situation and filled up every `tasks.refresh_seconds` (300 s), each marked on our side's map.
 
 | Task | Done when | Reward |
 |---|---|---|
@@ -203,7 +307,7 @@ An enemy zone's garrison is **unknown** to the players ("strength unknown" on th
 - by a **JTAC drone** or **intel** bought in the shop;
 - by a **spy team**: the "Spy" CTLD 2 troop group deployed within `intel.spy_range` (5 km) of an enemy zone walks into it on its own, and reveals it on arrival.
 
-A reconnoitred zone shows its strength on the map, and F10 → Other → Campaign → **Intel** gives its composition, air defence first.
+A reconnoitred zone shows its strength on the map, and F10 → Other → VEAF → Campaign → **Intel** gives its composition, air defence first.
 `intel.hidden: false` shows every garrison to everyone.
 
 ## Factories and depots {#zone-kinds}
@@ -231,12 +335,13 @@ A delivery (crate, troops, helicopter) to a factory whose garrison is whole rebu
 
 ## The AI's resources {#resources}
 
-Each side has **one stock of resource points** (`resources.start`, 500), saved with the campaign, and **everything the AI puts into play is paid from it** at the price of its units: the garrison of a captured zone, a reinforcement by the [network](#network), an assault convoy, a supply helicopter, a CAP, a strike, the Hunter, a [bomber raid](#bombers).
+Each side has **one stock of resource points** (`resources.start`, 1,000), saved with the campaign, and **everything the AI puts into play is paid from it** at the price of its units: the garrison of a captured zone, a reinforcement by the [network](#network), an assault convoy, a supply helicopter, a CAP, a strike, the Hunter, a [bomber raid](#bombers).
 An empty stock sends nothing: a sortie leaves only if the stock stays above `resources.reserve` (100) once it is paid, so that the AI keeps what it needs to rebuild its zones.
-A captured zone its side cannot pay gets a token garrison.
+A captured zone its side cannot pay gets a token garrison, and so does a zone taken by helicopters alone.
 A [paid spawn](#paid-spawns) can take the stock below zero: the AI then pays for nothing, sortie nor reinforcement, until production brings it back up.
 
-**Production** is added at every beat: a background production, `resources.background_per_hour` (30 points an hour), even with no factory, enough to just about hold a base; and each factory, `factory.per_hour` (120) times the share of its buildings standing.
+**Production** is added at every beat: a background production, `resources.background_per_hour` (60 points an hour), even with no factory, enough to just about hold a base; and each factory, `factory.per_hour` (180) times the share of its buildings standing.
+These three values were raised after the first evening flown: with 500, 30 and 120, red had nothing left after 1 h 20, no CAP, strike nor raid.
 
 **A unit's price** is read from the DCS unit database, by what the unit is:
 
@@ -271,7 +376,7 @@ A side's factories feed its zones hop by hop, along the connections, and only th
   Players who fly logistics go faster: a crate, troops or a helicopter reinforce at once, without waiting for the network or paying for it.
 - **A zone cut off** from every factory and depot is still served, from the background production, after `network.isolated_seconds` (3,600 s).
 
-F10 → Campaign → **Supply network** gives the players their stock, their production, and for each of their zones its delay or "cut off".
+F10 → Other → VEAF → Campaign → **Supply network** gives the players their stock, their production, and for each of their zones its delay or "cut off".
 
 ## Paid spawns {#paid-spawns}
 
@@ -321,7 +426,7 @@ The campaign makes no warehouse limited or unlimited: that is the Mission Editor
 
 The players move stock from one field to another, in a helicopter or a transport aircraft:
 
-1. on the ground at an airfield of the coalition, F10 → Campaign → Warehouse → **Load weapons** takes `warehouse.load` (10) of each weapon the warehouse holds (fewer when it has fewer);
+1. on the ground at an airfield of the coalition, F10 → Other → VEAF → Campaign → Warehouse → **Load weapons** takes `warehouse.load` (10) of each weapon the warehouse holds (fewer when it has fewer);
 2. on the ground at **another** airfield of the coalition, **Unload weapons** puts in exactly what is aboard, and earns `economy.warehouse_delivery` (50) credits, once per airfield in each flight;
 3. **Cargo** tells what is aboard.
 
@@ -359,6 +464,27 @@ dynamic:
       bomber: { type: B-1B, loadout: "Mk-84*24", count: 1 }
 ```
 
+## AWACS and tankers {#support}
+
+The AWACS and tankers named in `support.assets` (assets of the mission, with an orbit in the Mission Editor) are held out of the enemy's air defence by the [`veafSupport` module](scripts/veafSupport.en.md), which `campaign next` turns on in `mission.yaml` with these settings; the campaign hands it the reach of its zones, asleep or awake, and its front:
+
+- on the line from their Mission Editor orbit to the enemy zone nearest it, at the first point out of the reach of **every** enemy air defence plus `support.margin` (30 km), never ahead of their side's own zone nearest that enemy;
+- out at once, with `support.retreat_margin` (50 km), when a reach comes over its orbit; closer only after 30 minutes of calm and for a step of 30 km at least (`support.advance_seconds`, `support.min_advance`), so a SAM that wakes and sleeps does not make it shuttle; its leg (`support.leg`, 30 nm) laid across the axis;
+- its F10 marks (leg and label, for its side) redrawn at each move;
+- each move told to its side: the new orbit in bearing and range from the bullseye, frequency unchanged.
+
+A persistent campaign holds **two tankers**, a boom (a KC-135) and a basket (a KC-135MPRS or a KC-130 for blue), each placed out of reach like the AWACS, and both sold in the shop.
+
+```yaml
+dynamic:
+  support:
+    assets: [ "AWACS Magic", "Tanker Texaco", "Tanker Arco" ]
+  economy:
+    tanker: [ "Tanker Texaco", "Tanker Arco" ]
+```
+
+The reach is the one [the BARCAP](#shop) uses: measured on the missiles while a zone is awake, assumed for a zone never seen awake.
+
 ## Territory {#territory}
 
 Each zone holds the part of the map nearer to it than to any other zone (its Voronoi cell), tinted on the F10 map in its side's colour, grey for a neutral zone; a dark line runs between two cells of different sides: the front, edged on each side with short slanted hatches in the side's colour, plain to see where the tint is faint.
@@ -371,8 +497,8 @@ While the campaign is being tuned, `dynamic.debug` (on by default) writes in `dc
 
 | Tag | What it says |
 |---|---|
-| `[CAMPAIGN DECISION]` | every decision of the AI and its reason: a sortie sent, or not (no target, no airfield, no room left, nothing to pay with — with the price and the stock); a raid's package |
-| `[CAMPAIGN FLIGHT]` | the fate of every campaign aircraft: a weapon released (with its distance to the aim, the nearest zone and what it has left), a kill or a loss and by whom, a landing, a raid leaving its hold |
+| `[CAMPAIGN DECISION]` | every decision of the AI and its reason: a sortie sent, or not (no target, no airfield, no room left, nothing to pay with — with the price and the stock); a raid's package; a refusal examined again at every beat is told once, until its reason changes |
+| `[CAMPAIGN FLIGHT]` | the fate of every campaign aircraft: a weapon released (with its distance to the aim, the nearest zone and what it has left), a kill or a loss and by whom, a landing (on an airfield, or in the open near a zone), a raid leaving its hold; a wreck crushing the scenery is not a kill |
 | `[CAMPAIGN AIRDEF]` | every `debug_status_seconds` (300 s): for each zone, its air defence units and the missiles they have left, empty launchers included |
 | `[CAMPAIGN SUPPLY]` | the network's deliveries ordered, arrived, lost |
 | `[CAMPAIGN ZONE]` | zones captured and turned neutral |
@@ -382,7 +508,7 @@ While the campaign is being tuned, `dynamic.debug` (on by default) writes in `dc
 
 ## Checking a mission in game {#self-check}
 
-F10 → Other → Campaign → **Self-check (admin)** prints one `OK` or `KO` line per mechanism: zones placed, save read and written, outcome, dormancy, captures, factories, territory, both sides' resources, network (deliveries and zones cut off), paid spawns, sappers, warehouses, helicopters, air, bombers, credits, tasks, intelligence.
+F10 → Other → VEAF → Campaign → **Self-check (admin)** prints one `OK` or `KO` line per mechanism: zones placed, save read and written, outcome, dormancy, captures, factories, territory, both sides' resources, network (deliveries and zones cut off), paid spawns, sappers, warehouses, helicopters, air, bombers, credits, tasks, intelligence.
 A `KO` line is enough to know where to look.
 
 ## Every setting {#settings}
@@ -404,15 +530,17 @@ A `KO` line is enough to know where to look.
 | `supply_seconds` | 600 | interval between two helicopters of a side |
 | `max_helicopters` | 2 | a side's supply helicopters in the air |
 | `helicopter_timeout` | 1200 | a helicopter not landed after this long is removed |
+| `helicopter_capture_seconds` | 600 | a neutral zone held by landed helicopters alone is taken after this long |
+| `convoy_timeout` | 2700 | an assault convoy not arrived after this long is taken off the map, its place freed |
 | `helicopter` | `{red: Mi-8MT, blue: UH-1H}` | each side's helicopter type |
 | `supply_crate` | `Zone supplies` | the name of the CTLD 2 crate that resupplies |
 | `hunter` | `{enabled: true, ground_kills: 8, air_kills: 4, chance: 10}` | the Hunter |
-| `air` | see [enemy air](#air) | `strike_seconds` (900), `max_flights` (4), `cap_per_players` (3), and each side's aircraft |
-| `economy` | see [the shop](#shop) | `start_credits`, `kill_ground`, `kill_air`, `capture`, `delivery`, `prices`, `tanker`, `credits_per_point` (6), `demolition` (50), `warehouse_delivery` (50) |
+| `air` | see [enemy air](#air) | `strike_seconds` (900), `max_flights` (4), `cap_per_players` (3), `cap_helicopter_chance` (25), and each side's aircraft |
+| `economy` | see [the shop](#shop) | `start_credits`, `kill_ground`, `kill_air`, `capture`, `delivery`, `prices`, `tanker`, `credits_per_point` (6), `demolition` (50), `warehouse_delivery` (50), `landing_share` (50) |
 | `tasks` | see [the tasks](#tasks) | `count`, `refresh_seconds`, `air_kills`, `rewards` (`attack`, `capture`, `resupply`, `air`, `intercept`) |
 | `intel` | see [intelligence](#intel) | `hidden`, `seconds`, `overflight_altitude`, `spy_troops`, `spy_range` |
-| `resources` | see [the resources](#resources) | `enabled` (true), `start` (500), `background_per_hour` (30), `reserve` (100), `prices` |
-| `factory` | see [the factories](#zone-kinds) | `buildings` (3), `per_hour` (120), `types` |
+| `resources` | see [the resources](#resources) | `enabled` (true), `start` (1000), `background_per_hour` (60), `reserve` (100), `prices` |
+| `factory` | see [the factories](#zone-kinds) | `buildings` (3), `per_hour` (180), `types` |
 | `network` | see [the network](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3) |
 | `demolition` | see [demolition](#demolition) | `troops` (`Sappers`), `range` (5000), `fuse` (120) |
 | `warehouse` | see [the stocks](#warehouses) | `enabled` (true), `load` (10) |
@@ -420,6 +548,7 @@ A `KO` line is enough to know where to look.
 | `debug` | see [the debugging log](#debug-log) | `true` while testing |
 | `debug_status_seconds` | 300 | seconds between two status lines of the log |
 | `territory` | see [territory](#territory) | `enabled` (true), `margin` (70000), `hatch_spacing` (3000), `hatch_length` (2500) |
+| `support` | see [AWACS and tankers](#support) and the [`veafSupport` module](scripts/veafSupport.en.md#settings) | `assets` (none), `margin` (30000), `retreat_margin` (50000), `seconds` (60), `advance_seconds` (1800), `min_advance` (30000), `leg` (30, nm) |
 
 The caps are conservative by default; they will be tuned from what the servers hold.
 
@@ -435,6 +564,9 @@ These are written and tested outside DCS, not yet measured in game:
 - the bomber's `CarpetBombing` task, its "no reaction to threats" and "no jettison" options, and the combined raid's common hold point (flags `campaign raid <n> sead` / `bomber`);
 - the sappers' charges, strong enough for a building, and the team out of their blast;
 - an unlimited warehouse's stocks, which `getInventory` may report without counting them;
-- the territory tint, made of triangles, on the F10 map.
+- the territory tint, made of triangles, on the F10 map;
+- an AWACS or a tanker moved out of reach, and its leg across the axis;
+- a supply helicopter told not to abort its task under a threat (twice on 2026-11-16 a Mi-8 sent from Aleppo to Afrin landed back at Aleppo three minutes after leaving: a probable cause, not a measured one);
+- the waypoint numbers, as each module shows them.
 
 See also the [`veafCampaign` module reference](scripts/veafCampaign.en.md).

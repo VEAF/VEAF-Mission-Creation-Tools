@@ -42,7 +42,7 @@ def test_its_briefing_deck_generates_from_a_fresh_copy(tmp_path: Path) -> None:
         t("campaign.issue.no_built_mission", folder=worker.mission_folder(1) / "mission")
     ]
     assert report is not None and report.prose
-    assert report.path == folder / "missions" / "mission-01" / "briefing-campagne.pptx"
+    assert report.path == folder / "missions" / "mission-01" / "Cote-d-Ebene_mission-01_briefing-campagne.pptx"
 
 
 def test_the_example_is_valid_without_a_single_warning() -> None:
@@ -112,7 +112,11 @@ def test_the_persistent_example_starts_asleep_with_its_live_play(tmp_path: Path)
     worker = CampaignWorker(tmp_path)
     assert worker.init() == []
     issues, report = worker.next()
-    assert issues == []
+    # a blank template has no AWACS nor tanker yet: said, and nothing else (FEAT-DYNAMIC-CAMPAIGN ticket 20)
+    assert [issue.message for issue in issues] == [
+        t("campaign.issue.support_asset_missing", name=name, template="template")
+        for name in ("AWACS Magic", "Tanker Arco", "Tanker Texaco")
+    ]
     assert report is not None
     data = yaml.safe_load((report.folder / DATA_FILE).read_text(encoding="utf-8"))
     lua = generate_config_lua({"lua_modules": {"CAMPAIGN": {"enable": True}}}, campaign_data=data)
@@ -140,4 +144,4 @@ print(#veafCampaign.zoneList, drawn, #dcs_mocks.groupsAdded, veafCampaignEconomy
     assert result.returncode == 0, result.stderr
     # ten garrisons drawn, none spawned (every zone asleep), the logistics, the sorties and the economy
     # started; the two factories' buildings are in the world, statics that cost no AI
-    assert result.stdout.split() == ["11", "10", "0", "500", "3", "6", "500"]
+    assert result.stdout.split() == ["11", "10", "0", "500", "3", "6", "1000"]

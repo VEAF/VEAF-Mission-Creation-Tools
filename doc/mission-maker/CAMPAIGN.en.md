@@ -39,8 +39,8 @@ Caucasus/
     ├── mission-01/
     │   ├── mission/         the mission folder of mission 1
     │   ├── mission-01.state the state file the mission wrote
-    │   ├── briefing-campagne.pptx / carte-strategique.png
-    │   ├── briefing-mission.pptx / carte-tactique.png / zoom-<zone>.png
+    │   ├── <operation>_mission-NN_briefing-campagne.pptx / .pdf / carte-strategique.png
+    │   ├── <operation>_mission-NN_briefing-mission.pptx / .pdf / carte-tactique.png / zoom-<zone>.png
     │   ├── debriefing.fr.txt / debriefing.en.txt
     │   ├── campaign-state.before.yaml
     │   └── campaign-state.after.yaml
@@ -140,9 +140,19 @@ A size class is a set of parameters of the CAS generators: the garrison has as m
 | shipped class | `size` | `defense` | `armor` | long-range SAM | units (average, min – max) |
 |---|---|---|---|---|---|
 | `outpost` | 1 | 1 | 1 | no | 23 (12 – 36) |
-| `airfield` | 1 | 3 | 2 | yes | 51 (35 – 74), of which ≈ 20 for the SAM |
+| `airfield` | 1 | 3 | 2 | no | ≈ 31 (51 measured on 2026-10-06 with a battery of ≈ 20, the battery taken off) |
 
-Measured over 40 draws on 2026-10-06; the example campaign thus has about 470 ground units.
+Measured over 40 draws on 2026-10-06.
+
+A long-range SAM belongs to a zone, not to its class: `long_range_sam: true` on the zone adds the battery (about 20 units) to its garrison.
+Until 2026-11-17 every airfield zone drew one, and on the first evening of a persistent campaign two SA-5 17 nautical miles apart covered the whole front.
+`campaign validate` refuses more than `long_range_sams.per_side` (2) zones of a side with one, and two of a side closer than `long_range_sams.min_spacing` (120 km); keep them for the key points of the network.
+
+```yaml
+long_range_sams: { per_side: 2, min_spacing: 120000 }
+zones:
+  - { name: Kutaisi, at: { airfield: Kutaisi }, size: airfield, side: red, long_range_sam: true }
+```
 
 `size` runs from 1 to 5, `defense` and `armor` from 0 to 5, as for a `_cas` marker.
 A new class must set `size`, `defense` and `armor`.
@@ -264,7 +274,7 @@ The DCS briefing shows the mission's date, time and weather; the mission briefin
 
 A DCSServerBot server with RealWeather or MizEdit active **replaces the date, time and weather** of every mission it serves, a campaign's included: on *Kolkhida*, mission 1 flew on 8 October, under Kutaisi's sky capped at 3,000 m, instead of the CAVOK 1 June the briefing announced.
 An `ICAO_xxxx` suffix in a mission's name only picks the weather station: without it, the bot takes the one of its own configuration.
-That is why `campaign next` names the mission `Campaign_<campaign>_Mission_<NN>_<title>_NoMizedit` (see [what `campaign next` sets](#squadron-settings)).
+That is why `campaign next` names the mission `Campaign_<campaign>_Mission_<NN>_<title>_NoMizedit` (see [what `campaign next` sets](#squadron-settings)); a [persistent campaign](PERSISTENT_CAMPAIGN.en.md#build), whose weather the server sets, does not.
 What to ask of the server's administrators, on the instance serving the campaign: that **MizEdit skip every mission whose name contains `_NoMizedit`** (`filter: '^(?!.*_NoMizedit)'`), and that **RealWeather be switched off at the instance level**, where it has no filter — the MizEdit preset keeps applying it to the other missions.
 The build appends its date after the name (`…_NoMizedit_20261015.miz`): the filter looks for the marker anywhere.
 
@@ -290,9 +300,15 @@ The file's format is described in the [pipeline reference](../PIPELINE_REFERENCE
 
 ## The campaign briefing deck {#briefing-deck}
 
-`campaign next` also writes, in `missions/mission-NN/`, the **campaign's strategic briefing** as a PPTX (`briefing-campagne.pptx`) and its map (`carte-strategique.png`).
+A [persistent campaign](PERSISTENT_CAMPAIGN.en.md#theatre-dossier) gets its theatre dossier and its kneeboard pages instead of this deck and the mission briefing.
+
+`campaign next` also writes, in `missions/mission-NN/`, the **campaign's strategic briefing** as a PPTX (`<operation>_mission-NN_briefing-campagne.pptx`) and its map (`carte-strategique.png`).
 It is a situation brief after the VEAF briefing template — 16:9, white, bold title top left — that imports as it is into Google Slides.
 `.\veaf-tools.exe campaign briefing <folder>` regenerates it at any time, for instance after touching up the text.
+
+Each briefing file is named after the operation (`operation:` in `briefing.yaml`, else the campaign's name) and the mission's number: `Kolkhida_mission-02_briefing-campagne.pptx`.
+
+Every PowerPoint briefing is also written as a **PDF** beside it, under the same name (`<operation>_mission-NN_briefing-campagne.pdf`, `<operation>_mission-NN_briefing-mission.pdf`, `<operation>_dossier-de-theatre.pdf`): the same pages in the same order, readable without PowerPoint. The tool draws it itself with its own font and asks nothing of the machine: it is not a pixel copy of the slides, and a long page may run on to the next.
 
 | Page | Where it comes from |
 |---|---|
@@ -357,7 +373,7 @@ Without the network, the map is drawn on a plain background and the deck says so
 
 ## The mission briefing {#mission-briefing}
 
-Next to the campaign briefing, each mission has its **mission briefing**: `missions/mission-NN/briefing-mission.pptx`, after the VEAF mission briefing, with its tactical map (`carte-tactique.png`) and one zoom per objective (`zoom-<zone>.png`).
+Next to the campaign briefing, each mission has its **mission briefing**: `missions/mission-NN/<operation>_mission-NN_briefing-mission.pptx`, after the VEAF mission briefing, with its tactical map (`carte-tactique.png`) and one zoom per objective (`zoom-<zone>.png`).
 It is read from the **built** mission: `campaign briefing` writes it as soon as a `.miz` exists in `missions/mission-NN/mission` (at its root or in `build/`), and says how to get one otherwise.
 Run `campaign briefing` again after every change to the mission.
 

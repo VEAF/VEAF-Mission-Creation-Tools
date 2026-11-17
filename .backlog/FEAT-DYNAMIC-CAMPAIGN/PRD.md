@@ -190,6 +190,7 @@ Tickets 11 to 19 are the V1.5 rows of the feature selection (2026-11-16), one br
 | 17 | [Strategic bombers: an escorted red raid, a blue raid bought](tickets/17-strategic-bombers.md) | 🧑 |
 | 18 | [Territory cells (Voronoi) tinted by owner](tickets/18-voronoi-territory.md) | 🧑 |
 | 19 | [V1.5: documentation, example, test mission, self-check](tickets/19-v15-doc-test-mission.md) | 🧑 |
+| 20 | [What the first server flight taught (2026-11-16)](tickets/20-first-server-flight-fixes.md) | 🔄 |
 
 ## Former index entry
 

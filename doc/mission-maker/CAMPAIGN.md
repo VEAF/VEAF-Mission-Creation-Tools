@@ -39,8 +39,8 @@ Caucase/
     ├── mission-01/
     │   ├── mission/         le dossier de mission de la mission 1
     │   ├── mission-01.state le fichier d'état écrit par la mission
-    │   ├── briefing-campagne.pptx / carte-strategique.png
-    │   ├── briefing-mission.pptx / carte-tactique.png / zoom-<zone>.png
+    │   ├── <opération>_mission-NN_briefing-campagne.pptx / .pdf / carte-strategique.png
+    │   ├── <opération>_mission-NN_briefing-mission.pptx / .pdf / carte-tactique.png / zoom-<zone>.png
     │   ├── debriefing.fr.txt / debriefing.en.txt
     │   ├── campaign-state.before.yaml
     │   └── campaign-state.after.yaml
@@ -140,9 +140,19 @@ Une classe de taille est un jeu de paramètres des générateurs CAS : la garnis
 | classe livrée | `size` | `defense` | `armor` | SAM longue portée | unités (moyenne, min – max) |
 |---|---|---|---|---|---|
 | `outpost` | 1 | 1 | 1 | non | 23 (12 – 36) |
-| `airfield` | 1 | 3 | 2 | oui | 51 (35 – 74), dont ≈ 20 pour le SAM |
+| `airfield` | 1 | 3 | 2 | non | ≈ 31 (51 mesurées le 2026-10-06 avec une batterie d'environ 20, la batterie ôtée) |
 
-Mesuré sur 40 tirages, le 2026-10-06 ; la campagne d'exemple compte ainsi environ 470 unités au sol.
+Mesuré sur 40 tirages, le 2026-10-06.
+
+Un SAM longue portée appartient à une zone, pas à sa classe : `long_range_sam: true` sur la zone ajoute la batterie (une vingtaine d'unités) à sa garnison.
+Jusqu'au 17/11/2026, chaque zone d'aérodrome en tirait une, et le premier soir d'une campagne persistante, deux SA-5 à 17 nautiques l'un de l'autre couvraient tout le front.
+`campaign validate` refuse plus de `long_range_sams.per_side` (2) zones d'un camp qui en ont un, et deux d'un même camp à moins de `long_range_sams.min_spacing` (120 km) ; réservez-les aux points clés du réseau.
+
+```yaml
+long_range_sams: { per_side: 2, min_spacing: 120000 }
+zones:
+  - { name: Kutaisi, at: { airfield: Kutaisi }, size: airfield, side: red, long_range_sam: true }
+```
 
 `size` va de 1 à 5, `defense` et `armor` de 0 à 5, comme pour un marqueur `_cas`.
 Une classe nouvelle doit fixer `size`, `defense` et `armor`.
@@ -264,7 +274,7 @@ Le briefing DCS affiche la date, l'heure et la météo de la mission ; le briefi
 
 Un serveur DCSServerBot dont RealWeather ou MizEdit est actif **remplace la date, l'heure et la météo** de toute mission qu'il sert, celles de la campagne comprises : sur *Kolkhida*, la mission 1 a volé le 8 octobre, sous le ciel de Kutaisi plafonné à 3 000 m, au lieu du 1er juin CAVOK que le briefing annonçait.
 Le suffixe `ICAO_xxxx` d'un nom de mission ne fait que choisir la station météo : sans lui, le bot prend celle de sa propre configuration.
-C'est pourquoi `campaign next` nomme la mission `Campaign_<campagne>_Mission_<NN>_<titre>_NoMizedit` (voir [ce que `campaign next` règle](#squadron-settings)).
+C'est pourquoi `campaign next` nomme la mission `Campaign_<campagne>_Mission_<NN>_<titre>_NoMizedit` (voir [ce que `campaign next` règle](#squadron-settings)) ; une [campagne persistante](PERSISTENT_CAMPAIGN.md#build), dont le serveur règle la météo, ne le fait pas.
 Ce qu'il faut demander aux administrateurs du serveur, sur l'instance qui sert la campagne : que **MizEdit ignore les missions dont le nom contient `_NoMizedit`** (`filter: '^(?!.*_NoMizedit)'`), et **couper RealWeather au niveau de l'instance**, qui n'a pas de filtre — le preset MizEdit continue de l'appliquer aux autres missions.
 Le build ajoute sa date après le nom (`…_NoMizedit_20261015.miz`) : le filtre cherche le marqueur n'importe où.
 
@@ -290,9 +300,15 @@ Le format du fichier est décrit dans la [référence du pipeline](../PIPELINE_R
 
 ## Le document de briefing de campagne {#briefing-deck}
 
-`campaign next` écrit aussi, dans `missions/mission-NN/`, le **briefing stratégique de la campagne** en PPTX (`briefing-campagne.pptx`) et sa carte (`carte-strategique.png`).
+Une [campagne persistante](PERSISTENT_CAMPAIGN.md#theatre-dossier) reçoit à la place de ce document et du briefing de mission son dossier de théâtre et ses pages de planchette.
+
+`campaign next` écrit aussi, dans `missions/mission-NN/`, le **briefing stratégique de la campagne** en PPTX (`<opération>_mission-NN_briefing-campagne.pptx`) et sa carte (`carte-strategique.png`).
 C'est un briefing de situation au format des briefings VEAF — 16:9, fond blanc, titre en gras en haut à gauche — qui s'importe tel quel dans Google Slides.
 `.\veaf-tools.exe campaign briefing <dossier>` le régénère à tout moment, par exemple après avoir retouché le texte.
+
+Chaque fichier de briefing porte le nom de l'opération (`operation:` de `briefing.yaml`, sinon le nom de la campagne) et le numéro de la mission : `Kolkhida_mission-02_briefing-campagne.pptx`.
+
+Chaque briefing PowerPoint s'écrit aussi en **PDF**, à côté, sous le même nom (`<opération>_mission-NN_briefing-campagne.pdf`, `<opération>_mission-NN_briefing-mission.pdf`, `<opération>_dossier-de-theatre.pdf`) : les mêmes pages, dans le même ordre, lisibles sans PowerPoint. L'outil le dessine lui-même avec sa propre police, sans rien demander à la machine : ce n'est pas une copie au pixel des diapositives, et une page longue peut déborder sur la suivante.
 
 | Page | D'où elle vient |
 |---|---|
@@ -357,7 +373,7 @@ Sans réseau, la carte est tracée sur un fond uni et le document le signale : r
 
 ## Le briefing de mission {#mission-briefing}
 
-À côté du briefing de campagne, chaque mission a son **briefing de mission** : `missions/mission-NN/briefing-mission.pptx`, au format du briefing de mission VEAF, avec sa carte tactique (`carte-tactique.png`) et un zoom par objectif (`zoom-<zone>.png`).
+À côté du briefing de campagne, chaque mission a son **briefing de mission** : `missions/mission-NN/<opération>_mission-NN_briefing-mission.pptx`, au format du briefing de mission VEAF, avec sa carte tactique (`carte-tactique.png`) et un zoom par objectif (`zoom-<zone>.png`).
 Il se lit dans la mission **construite** : `campaign briefing` l'écrit dès qu'un `.miz` existe dans `missions/mission-NN/mission` (à la racine ou dans `build/`), et dit sinon comment en obtenir un.
 Relancez `campaign briefing` après chaque modification de la mission.
 

@@ -33,6 +33,7 @@ from campaign_manager.turn_manager import enemy_of
 
 #: The deck, in the mission's sub-folder (`missions/mission-NN/`).
 DECK_FILE = "briefing-campagne.pptx"
+"""The suffix of the campaign deck's file, after the operation and the mission (`deck_file`)."""
 
 #: The map the deck shows, next to it.
 MAP_FILE = "carte-strategique.png"
@@ -84,6 +85,8 @@ class DeckReport:
     """Whether the written half was there; without it the deck is the generated half only."""
     mission_deck: Path | None = None
     """The mission's own briefing (`mission_deck.py`), written when the mission has been built."""
+    pdf: Path | None = None
+    """The same pages as a PDF, beside the deck (David, 2026-11-17: he reads briefings without PowerPoint)."""
 
 
 # ---------------------------------------------------------------------------
@@ -543,6 +546,46 @@ def _write_map(deck: PresentationType, title: str, report: MapReport) -> None:
         _run(legend.add_paragraph(), t("campaign.deck.map_offline"), 12, italic=True, colour=_GREY)
 
 
+def deck_file(campaign: CampaignDefinition, prose: BriefingProse | None, kind: str, mission: int | None) -> str:
+    """A briefing's file name: the operation (else the campaign), the mission, then what it is.
+
+    David, 2026-11-17: "dossier-de-theatre.pptx" said what the file is, never whose; a squadron keeps several.
+
+    Args:
+        campaign: The campaign.
+        prose: `briefing.yaml`, for the operation's name.
+        kind: What the file is, its last part: ``briefing-campagne.pptx``, ``dossier-de-theatre.pptx``…
+        mission: The mission's number, or ``None`` for a file of the whole campaign.
+
+    Returns:
+        ``Kolkhida_mission-02_briefing-campagne.pptx``, ``Bouclier-de-l-Oronte_dossier-de-theatre.pptx``.
+    """
+    from campaign_manager.next_mission import _name_part
+
+    parts = [_name_part(prose.operation if prose and prose.operation else campaign.name)]
+    if mission is not None:
+        parts.append(f"mission-{mission:02d}")
+    return "_".join([*parts, kind])
+
+
+def map_notes(report: MapReport, extra: list[str] | None = None) -> list[tuple[str, bool]]:
+    """A map page's legend as the PDF's notes: ``(text, is_heading)``, as the slide writes it.
+
+    Args:
+        report: The map drawn.
+        extra: Lines after the owners' colours (the axes, the symbols…).
+
+    Returns:
+        The notes.
+    """
+    notes = [(t("campaign.deck.legend"), True)]
+    notes += [(f"● {t(f'campaign.deck.legend_{owner}')}", False) for owner in ("blue", "red", "neutral")]
+    notes += [(line, False) for line in extra or ()]
+    if report.offline:
+        notes.append((t("campaign.deck.map_offline"), False))
+    return notes
+
+
 def campaign_deck(
     campaign: CampaignDefinition,
     state: CampaignState,
@@ -585,15 +628,34 @@ def campaign_deck(
     annex = _annex_page(campaign, state)
     contents = [page.title for page in sections] + [annex.title]
 
+    # the PDF writer reads this module's pages: imported here, not at the top, to keep the import order
+    from mission_briefing.briefing_pdf import Cover, MapSheet, write_pdf
+
     deck = Presentation()
     deck.slide_width, deck.slide_height = _WIDTH, _HEIGHT
     _write_cover(deck, campaign, prose, mission, contents)
+    sheets: list[Page | MapSheet] = []
     for page in [*sections, annex]:
         if page.is_map:
             _write_map(deck, page.title, map_report)
+            sheets.append(
+                MapSheet(page.title, map_report.path, map_notes(map_report, [t("campaign.deck.legend_axes")]))
+            )
             continue
         for part in paginate(page):
             _write_page(deck, part)
-    out = folder / DECK_FILE
+            sheets.append(part)
+    out = folder / deck_file(campaign, prose, DECK_FILE, mission)
     deck.save(str(out))
-    return DeckReport(path=out, map=map_report, pages=len(deck.slides), prose=prose is not None)
+    cover = Cover(
+        f"{t('campaign.deck.operation')} {(prose.operation if prose and prose.operation else campaign.name).upper()}",
+        prose.subtitle if prose and prose.subtitle else t("campaign.deck.subtitle"),
+        t("campaign.deck.cover_line_persistent", theatre=campaign.theatre)
+        if campaign.mode == "persistent"
+        else t("campaign.deck.cover_line", theatre=campaign.theatre, missions=campaign.missions, mission=mission),
+        t("campaign.deck.contents"),
+        contents,
+    )
+    pdf = out.with_suffix(".pdf")
+    write_pdf(pdf, cover, sheets)
+    return DeckReport(path=out, map=map_report, pages=len(deck.slides), prose=prose is not None, pdf=pdf)

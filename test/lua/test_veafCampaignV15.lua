@@ -371,13 +371,13 @@ end
 
 function TestCampaignResources:test_the_production_is_the_background_plus_the_factories_by_their_buildings_standing()
   start()
-  luaunit.assertEquals(veafCampaignLogistics.productionPerHour("blue"), 30)
-  luaunit.assertEquals(veafCampaignLogistics.productionPerHour("red"), 150)
+  luaunit.assertEquals(veafCampaignLogistics.productionPerHour("blue"), 60)
+  luaunit.assertEquals(veafCampaignLogistics.productionPerHour("red"), 240)
   veafCampaign.zones["Tkvarcheli"].entry.structures[1].alive = false
-  luaunit.assertEquals(veafCampaignLogistics.productionPerHour("red"), 110)
+  luaunit.assertEquals(veafCampaignLogistics.productionPerHour("red"), 180)
   local before = veafCampaignLogistics.stock("red")
   veafCampaignLogistics.produce(1800)
-  luaunit.assertAlmostEquals(veafCampaignLogistics.stock("red") - before, 55, 0.001)
+  luaunit.assertAlmostEquals(veafCampaignLogistics.stock("red") - before, 90, 0.001)
 end
 
 function TestCampaignResources:test_a_sortie_keeps_the_reserve_an_essential_spending_goes_to_zero()
@@ -419,6 +419,38 @@ function TestCampaignResources:test_a_captured_zone_the_side_cannot_pay_gets_a_t
   poti:capturedBy("red")
   luaunit.assertNotNil(poti.entry.garrison)
   luaunit.assertEquals(veafCampaignLogistics.stock("red"), 0)
+end
+
+function TestCampaignResources:test_a_zone_taken_by_a_helicopter_gets_a_token_garrison()
+  -- 2026-11-16: the garrisons of Menagh and Afrin, taken by helicopter, cost red 128 of its 225 points
+  start()
+  local poti = veafCampaign.zones["Poti"]
+  poti:becomeNeutral()
+  local drawnFrom = "not drawn"
+  local draw = poti.drawGarrison
+  poti.drawGarrison = function(zone, reserve)
+    drawnFrom = reserve
+    return draw(zone, reserve)
+  end
+  poti:capturedBy("red", "helicopter")
+  poti.drawGarrison = nil
+  luaunit.assertEquals(type(drawnFrom), "table")
+  for category, count in pairs(drawnFrom) do
+    luaunit.assertEquals(count, 0, "an empty reserve draws the token garrison: " .. category)
+  end
+end
+
+function TestCampaignResources:test_landed_helicopters_alone_take_a_zone_slower()
+  start()
+  luaunit.assertEquals(veafCampaign.captureSeconds(true), 600)
+  luaunit.assertEquals(veafCampaign.captureSeconds(false), veafCampaign.data.capture_seconds or veafCampaign.CAPTURE_SECONDS)
+end
+
+function TestCampaignResources:test_the_ai_starts_with_enough_to_last_an_evening()
+  -- 2026-11-16: red ran dry after 1 h 20 with 500 points, 30 an hour and 120 a factory
+  luaunit.assertEquals(veafCampaign.DYNAMIC_DEFAULTS.resources.start, 1000)
+  luaunit.assertEquals(veafCampaign.DYNAMIC_DEFAULTS.resources.background_per_hour, 60)
+  luaunit.assertEquals(veafCampaign.DYNAMIC_DEFAULTS.factory.per_hour, 180)
 end
 
 function TestCampaignResources:test_a_captured_zone_s_garrison_is_paid()
@@ -586,7 +618,7 @@ end
 function TestCampaignNetwork:test_the_players_read_their_network()
   network()
   local text = veafCampaignLogistics.networkText("blue")
-  luaunit.assertStrContains(text, "Resources: 500 points, making 30 an hour")
+  luaunit.assertStrContains(text, "Resources: 1000 points, making 60 an hour")
   luaunit.assertStrContains(text, "- Kobuleti: cut off")
 end
 
@@ -943,7 +975,7 @@ function TestCampaignBombers:test_the_red_raid_is_a_paid_package_announced_and_p
   luaunit.assertEquals(self.flights[2].group.units[1].type, "Tu-22M3")
   luaunit.assertEquals(veafCampaignLogistics.stock("red"), 1000 - 100 - 60)
   -- Kobuleti and Poti hold as many units; Kobuleti, declared first, is the target, Senaki 100 km off the origin
-  luaunit.assertEquals(#messagesContaining("escorted enemy bombers are heading for Kobuleti, from Senaki"), 1)
+  luaunit.assertEquals(#messagesContaining("Intelligence: enemy bombers are heading for Kobuleti, from Senaki"), 1)
   veafCampaignEconomy.refreshTasks()
   luaunit.assertEquals(veafCampaignEconomy.tasks[1].kind, "intercept")
   -- one out at a time
@@ -1454,6 +1486,49 @@ function TestCampaignDebugLog:test_on_by_default_a_decision_and_its_reason_are_t
   luaunit.assertEquals(#logged("[CAMPAIGN DECISION] red does not send a CAP: costs 60, stock 10"), 1)
 end
 
+function TestCampaignDebugLog:test_an_unpaid_sortie_is_told_once_until_it_is_paid()
+  -- 2026-11-16: the unpaid CAP, three lines every 10 s, 50 times in 9 minutes
+  start()
+  veafCampaignLogistics.stocks.red = 10
+  for _ = 1, 5 do
+    veafCampaignOps.maintainCaps("red")
+    veafCampaignLogistics.stocks.red = veafCampaignLogistics.stocks.red + 1
+  end
+  luaunit.assertEquals(#logged("red does not send a CAP"), 1)
+  luaunit.assertEquals(#logged("red cannot pay a CAP"), 1)
+  luaunit.assertEquals(#logged("red CAP over"), 1)
+  veafCampaignLogistics.stocks.red = 1000
+  veafCampaignOps.maintainCaps("red")
+  luaunit.assertEquals(#logged("red sends a CAP"), 1)
+end
+
+function TestCampaignDebugLog:test_a_wreck_crushing_the_scenery_is_no_kill()
+  start({ bombers = { min_distance = 50000 } })
+  local raid = veafCampaignOps.sendRaid("red", veafCampaign.zones["Poti"])
+  veafCampaignOps.onFlightEvent({
+    type = { id = world.event.S_EVENT_KILL },
+    initiator = { unitName = raid.name .. " #1" },
+    target = { unitName = "509796368" },
+  })
+  luaunit.assertEquals(#logged("kills 509796368"), 0)
+end
+
+function TestCampaignDebugLog:test_a_lost_aircraft_and_a_landing_in_the_open_say_no_nil()
+  -- 2026-11-16: "red cas Aleppo #1 (nil) is lost", "lands at nil"
+  start({ bombers = { min_distance = 50000 } })
+  local raid = veafCampaignOps.sendRaid("red", veafCampaign.zones["Poti"])
+  veafCampaignOps.onFlightEvent({ type = { id = world.event.S_EVENT_CRASH }, initiator = { unitName = raid.name .. " #1" } })
+  luaunit.assertEquals(#logged(raid.name .. " #1 (Tu-22M3) is lost"), 1)
+  veafCampaignOps.onFlightEvent({
+    type = { id = world.event.S_EVENT_LAND },
+    initiator = { unitName = raid.name .. " #1" },
+    dcsInitiator = unitAt({ x = 51000, z = 0 }, { type = "Tu-22M3" }),
+  })
+  luaunit.assertEquals(#logged("(nil)"), 0)
+  luaunit.assertEquals(#logged("lands at nil"), 0)
+  luaunit.assertEquals(#logged("lands in the open, 1 km from [Poti]"), 1)
+end
+
 function TestCampaignDebugLog:test_off_nothing_is_told()
   start({ debug = false })
   veafCampaignLogistics.stocks.red = 10
@@ -1468,7 +1543,7 @@ function TestCampaignDebugLog:test_a_status_every_period()
   veafCampaignLogistics.beat(310)
   local status = logged("[CAMPAIGN STATUS]")
   luaunit.assertEquals(#status, 2)
-  luaunit.assertStrContains(status[1], "red: 3 zones, stock 500 (+150/h)")
+  luaunit.assertStrContains(status[1], "red: 3 zones, stock 1000 (+240/h)")
   luaunit.assertStrContains(status[1], "players' credits 500")
 end
 
@@ -1524,6 +1599,38 @@ function TestCampaignCapReach:test_far_from_any_defence_it_keeps_its_full_reach(
 end
 
 -- ---------------------------------------------------------------------------
+-- AWACS and tankers: the campaign feeds the SUPPORT module (ticket 20, point 14)
+-- ---------------------------------------------------------------------------
+TestCampaignSupport = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+function TestCampaignSupport:test_the_threats_are_the_enemy_zones_at_their_reach_asleep_or_awake()
+  start()
+  veafCampaign.zones["Senaki"].entry.reach = 120000
+  local threats = {}
+  for _, threat in ipairs(veafCampaignOps.supportThreats(coalition.side.BLUE)) do
+    threats[threat.name] = threat.reach
+  end
+  luaunit.assertEquals(threats["Senaki"], 120000)
+  luaunit.assertNil(threats["Poti"], "a zone of ours is no threat")
+end
+
+function TestCampaignSupport:test_the_front_is_our_zone_nearest_the_threat()
+  start()
+  -- Poti (ours) stands 50 km from Senaki
+  luaunit.assertEquals(veafCampaignOps.supportFront(coalition.side.BLUE, nil, { center = { x = 100000, z = 0 } }), 50000)
+end
+
+function TestCampaignSupport:test_the_campaign_hands_its_hooks_to_the_module()
+  veafSupport = {}
+  start()
+  luaunit.assertEquals(veafSupport.threatSource, veafCampaignOps.supportThreats)
+  luaunit.assertEquals(veafSupport.frontLimit, veafCampaignOps.supportFront)
+  veafSupport.tell(coalition.side.BLUE, "Magic moves")
+  luaunit.assertEquals(#messagesContaining(veaf.t("campaign.speaker.blue") .. "Magic moves"), 1)
+  veafSupport = nil
+end
+
+-- ---------------------------------------------------------------------------
 -- Self-check
 -- ---------------------------------------------------------------------------
 TestCampaignV15SelfCheck = { setUp = setUpSuite, tearDown = tearDownSuite }
@@ -1533,7 +1640,7 @@ function TestCampaignV15SelfCheck:test_every_mechanism_has_its_line()
   local text = veafCampaign.selfCheckText()
   luaunit.assertStrContains(text, "OK  factories: 1, buildings standing 3 of 3, 0 destroyed")
   luaunit.assertStrContains(text, "OK  territory: drawn 1 time(s)")
-  luaunit.assertStrContains(text, "OK  resources: blue 500 (+30/h), red 500 (+150/h)")
+  luaunit.assertStrContains(text, "OK  resources: blue 1000 (+60/h), red 1000 (+240/h)")
   luaunit.assertStrContains(text, "OK  network: 0 delivery(ies) on the way")
   luaunit.assertStrContains(text, "OK  paid spawns: 0 charged, 0 refused")
   luaunit.assertStrContains(text, "OK  sappers: 0 team(s)")
@@ -1635,7 +1742,12 @@ function TestCampaignSecondRaid:test_no_cap_where_even_its_smallest_circle_is_un
   veafCampaignOps.maintainCaps("red")
   luaunit.assertEquals(#self.flights, 0)
   luaunit.assertEquals(veafCampaignLogistics.stock("red"), 1000)
-  luaunit.assertEquals(#logged("red sends no CAP over [Senaki]: even 5 km is under the air defence of [Poti]"), 1)
+  luaunit.assertEquals(
+    #logged(
+      "red sends no CAP: even 5 km over every front zone is under the enemy's air defence, or has no airfield (first: [Senaki], under [Poti])"
+    ),
+    1
+  )
 end
 
 os.exit(luaunit.LuaUnit.run())

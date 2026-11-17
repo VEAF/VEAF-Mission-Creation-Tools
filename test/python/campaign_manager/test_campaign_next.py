@@ -434,7 +434,7 @@ class TestTheWorker:
         worker.init()
         _, report = worker.next()
         assert report is not None
-        assert report.deck == folder / "missions" / "mission-01" / "briefing-campagne.pptx"
+        assert report.deck == folder / "missions" / "mission-01" / "Caucasus-Front_mission-01_briefing-campagne.pptx"
         assert report.deck.is_file()
 
     def test_an_error_in_briefing_yaml_does_not_stop_the_next_mission(self, tmp_path: Path) -> None:
@@ -472,4 +472,117 @@ class TestTheWorker:
         CampaignWorker(folder).init()
         result = CliRunner().invoke(app, ["campaign-briefing", str(folder)])
         assert result.exit_code == 0, result.output
-        assert (folder / "missions" / "mission-01" / "briefing-campagne.pptx").is_file()
+        assert (folder / "missions" / "mission-01" / "Caucasus-Front_mission-01_briefing-campagne.pptx").is_file()
+
+
+class TestTheDcsBriefing:
+    """2026-11-17: the sortie, the opening lines and the blue tasks were typed by hand, and lost with the folder."""
+
+    def test_it_comes_from_briefing_yaml_then_the_facts(self) -> None:
+        from campaign_manager.briefing_prose import BriefingProse, MissionPage, Titled
+        from campaign_manager.next_mission import dcs_briefing
+
+        campaign = _campaign()
+        page = MissionPage(title="La porte de Poti", tasks=(Titled("Prendre Poti", ("Sécuriser le port.",)),))
+        prose = BriefingProse(operation="Kolkhida", texts={"mission": {"mission": ("Reprendre Senaki.",)}})
+        with language("fr"):
+            fields = dcs_briefing(campaign, initial_state(campaign), page, prose)
+        assert fields["sortie"] == "La porte de Poti"
+        assert fields["blue_task"] == "1. Prendre Poti : Sécuriser le port."
+        assert fields["situation"].startswith("OPÉRATION KOLKHIDA\nReprendre Senaki.\n\n")
+
+    def test_without_briefing_yaml_the_facts_alone(self) -> None:
+        from campaign_manager.next_mission import dcs_briefing, strategic_situation
+
+        campaign = _campaign()
+        state = initial_state(campaign)
+        assert dcs_briefing(campaign, state, None, None) == {"situation": strategic_situation(campaign, state)}
+
+
+class TestTheSupportModule:
+    """2026-11-17: the AWACS and tankers are held by the SUPPORT module, configured from `dynamic.support`."""
+
+    def test_the_campaign_turns_it_on_with_its_settings(self, tmp_path: Path) -> None:
+        from campaign_manager.next_mission import enable_support_module
+
+        mission_yaml = tmp_path / "mission.yaml"
+        mission_yaml.write_text("modules:\n  MOVE: true\n", encoding="utf-8")
+        assert enable_support_module(mission_yaml, {"support": {"assets": ["AWACS Magic"], "margin": 40000}})
+        modules = yaml.safe_load(mission_yaml.read_text(encoding="utf-8"))["modules"]
+        assert modules["SUPPORT"] == {"enabled": True, "assets": ["AWACS Magic"], "margin": 40000}
+        assert modules["MOVE"] is True
+
+    def test_no_asset_no_module(self, tmp_path: Path) -> None:
+        from campaign_manager.next_mission import enable_support_module
+
+        mission_yaml = tmp_path / "mission.yaml"
+        mission_yaml.write_text("modules: {}\n", encoding="utf-8")
+        assert not enable_support_module(mission_yaml, {})
+
+
+class TestAPersistentCampaignsConditions:
+    """David, 2026-11-17: the server's MizEdit gives a persistent campaign its real weather at each load."""
+
+    def test_its_name_carries_no_nomizedit(self) -> None:
+        from campaign_manager.next_mission import mission_name
+
+        assert mission_name("Northern Syria", 1, "Bouclier", fixed_conditions=False) == (
+            "Campaign_Northern-Syria_Mission_01_Bouclier"
+        )
+        assert mission_name("Northern Syria", 1, "Bouclier").endswith("_NoMizedit")
+
+    def test_with_axes_and_no_mission_page_its_title_is_the_operation(self) -> None:
+        from campaign_manager.briefing_prose import BriefingProse, MissionPage, Titled
+        from campaign_manager.next_mission import mission_title
+
+        prose = BriefingProse(operation="Bouclier de l'Oronte", axes=(Titled("Couper", ()),))
+        assert mission_title("persistent", None, prose) == "Bouclier de l'Oronte"
+        assert mission_title("persistent", MissionPage(title="Jour 1", tasks=()), prose) == "Jour 1"
+        assert mission_title("episodic", None, prose) is None
+        assert mission_title("persistent", None, None) is None
+
+
+class TestAPersistentDcsBriefing:
+    """2026-11-17: the situation, the axes of effort, the kneeboard for the rest; no objectives of the day."""
+
+    def test_campaign_next_hands_an_axes_only_briefing_yaml_on(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # found on the Syria campaign: with `axes:` and no mission page, campaign next dropped briefing.yaml,
+        # so the mission lost its title and its DCS briefing its axes
+        from campaign_manager import next_mission
+
+        raw = copy.deepcopy(VALID)
+        raw["campaign"].update({"mode": "persistent", "objectives": []})
+        (tmp_path / CAMPAIGN_FILE).write_text(yaml.safe_dump(raw), encoding="utf-8")
+        (tmp_path / "briefing.yaml").write_text(
+            yaml.safe_dump({"operation": "Bouclier", "axes": [{"title": "Couper le réseau", "text": "Saraqib."}]}),
+            encoding="utf-8",
+        )
+        _template(tmp_path)
+        written: dict[str, Any] = {}
+        monkeypatch.setattr(next_mission, "set_briefing", lambda _folder, **texts: written.update(texts))
+        worker = CampaignWorker(tmp_path, tile_cache=tmp_path, tile_fetch=lambda _url: None)
+        worker.init()
+        _, report = worker.next()
+        assert report is not None
+        mission_yaml = (report.folder / "mission.yaml").read_text(encoding="utf-8")
+        assert "Campaign_Caucasus-Front_Mission_01_Bouclier" in mission_yaml
+        assert written["blue_task"] == "1. Couper le réseau"
+
+    def test_situation_axes_and_the_kneeboard(self) -> None:
+        from campaign_manager.briefing_prose import BriefingProse, Titled
+        from campaign_manager.next_mission import dcs_briefing
+
+        raw = copy.deepcopy(VALID)
+        raw["campaign"].update({"mode": "persistent", "objectives": []})
+        campaign, _ = parse_campaign(raw)
+        assert campaign is not None
+        prose = BriefingProse(operation="Bouclier", axes=(Titled("Couper le réseau", ("Prendre Saraqib.",)),))
+        with language("fr"):
+            fields = dcs_briefing(campaign, initial_state(campaign), None, prose)
+        assert fields["sortie"] == "Bouclier"
+        assert fields["blue_task"] == "1. Couper le réseau"
+        assert fields["situation"].startswith("OPÉRATION BOUCLIER")
+        assert "voir la planchette" in fields["situation"]
+        assert "Mission" not in fields["situation"]

@@ -599,18 +599,60 @@ function TestCampaignShop:setUp()
 end
 
 function TestCampaignShop:test_kills_captures_and_deliveries_earn_credits()
+  -- a kill earns half at once, the other half when the pilot lands at a friendly base (economy.landing_share)
   veafCampaignEconomy.onKill(kill("Zip"))
-  luaunit.assertEquals(veafCampaignEconomy.credits, 110)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 105)
   veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
-  luaunit.assertEquals(veafCampaignEconomy.credits, 140)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 120)
   veafCampaign.notify("captured", veafCampaign.zones["Poti"], "blue")
-  luaunit.assertEquals(veafCampaignEconomy.credits, 340)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 320)
   veafCampaign.notify("delivered", veafCampaign.zones["Kobuleti"], "blue", "crate")
-  luaunit.assertEquals(veafCampaignEconomy.credits, 440)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 420)
   -- the enemy's captures and an AI's kills earn nothing
   veafCampaign.notify("captured", veafCampaign.zones["Poti"], "red")
   veafCampaignEconomy.onKill(kill(nil))
-  luaunit.assertEquals(veafCampaignEconomy.credits, 440)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 420)
+end
+
+--- An airbase of a side, as `Airbase.getByName` hands it.
+local function airbaseOf(side)
+  return {
+    getCoalition = function()
+      return side
+    end,
+  }
+end
+
+function TestCampaignShop:test_the_held_credits_are_earned_at_a_friendly_landing()
+  -- David, 2026-11-16: "a share at the action, a bonus at landing"
+  veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 115)
+  local saved = Airbase.getByName
+  Airbase.getByName = function(name)
+    return airbaseOf(name == "Kobuleti" and BLUE or RED)
+  end
+  local function land(place)
+    veafCampaignEconomy.onPilotEvent({
+      type = { id = world.event.S_EVENT_LAND },
+      initiator = { unitName = "Zip's Hog" },
+      place = place and { unitName = place } or nil,
+    })
+  end
+  land(nil) -- in the open
+  land("Senaki-Kolkhi") -- an enemy field
+  luaunit.assertEquals(veafCampaignEconomy.credits, 115)
+  land("Kobuleti")
+  Airbase.getByName = saved
+  luaunit.assertEquals(veafCampaignEconomy.credits, 130)
+  luaunit.assertNil(veafCampaignEconomy.held["Zip's Hog"])
+end
+
+function TestCampaignShop:test_the_held_credits_are_lost_with_the_pilot()
+  veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
+  veafCampaignEconomy.onPilotEvent({ type = { id = world.event.S_EVENT_EJECTION }, initiator = { unitName = "Zip's Hog" } })
+  luaunit.assertNil(veafCampaignEconomy.held["Zip's Hog"])
+  luaunit.assertEquals(veafCampaignEconomy.credits, 115)
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("15"), 2) -- the kill, then the loss
 end
 
 function TestCampaignShop:test_credits_never_go_below_zero()
@@ -703,7 +745,7 @@ function TestCampaignTasks:test_air_superiority_counts_aircraft_shot_down()
   veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
   veafCampaignEconomy.checkTasks()
   luaunit.assertEquals(#veafCampaignEconomy.tasks, 1)
-  luaunit.assertEquals(veafCampaignEconomy.credits, 60 + 200)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 30 + 200) -- half of each kill, the rest held until landing
 end
 
 -- ---------------------------------------------------------------------------

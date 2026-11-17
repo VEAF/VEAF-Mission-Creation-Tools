@@ -2128,6 +2128,15 @@ veaf.i18nCatalog = {
   ["campaign.situation.zone_hidden"] = { fr = "- %s : %s, garnison inconnue", en = "- %s: %s, garrison unknown" },
   ["campaign.credits.earned"] = { fr = "Crédits : +%d (%s), solde %d", en = "Credits: +%d (%s), balance %d" },
   ["campaign.credits.kill"] = { fr = "victoire de %s", en = "kill by %s" },
+  ["campaign.credits.kill_held"] = {
+    fr = "victoire de %s ; %d de plus à son atterrissage sur une base amie",
+    en = "kill by %s; %d more when the pilot lands at a friendly base",
+  },
+  ["campaign.credits.landed"] = { fr = "%s s'est posé, son bonus est acquis", en = "%s has landed, the bonus is banked" },
+  ["campaign.credits.held_lost"] = {
+    fr = "%s ne rentre pas : les %d crédits de bonus sont perdus.",
+    en = "%s is not coming back: the %d bonus credits are lost.",
+  },
   ["campaign.credits.capture"] = { fr = "prise de %s", en = "%s captured" },
   ["campaign.credits.delivery"] = { fr = "ravitaillement de %s", en = "%s resupplied" },
   ["campaign.credits.task"] = { fr = "tâche accomplie : %s", en = "task done: %s" },

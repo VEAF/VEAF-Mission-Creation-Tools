@@ -272,7 +272,7 @@ class TestTheDeck:
         planes, helicopters = page[1].split("\nHélicoptères\n")
         assert planes.startswith("Avions\n")
         assert f"1. POTI : {poti} — 10\u00a0000 ft BARO" in planes
-        assert "3. BULLSEYE : " in planes and "20\u00a0000 ft BARO" in planes
+        assert "3. BULLSEYE : " in planes and planes.endswith("sol")  # on the ground (ticket 20)
         assert f"1. POTI : {poti} — 500 ft AGL" in helicopters
         assert "2. KHOBI : " in helicopters
 

@@ -111,13 +111,39 @@ function veafCampaignEconomy.earn(amount, reasonKey, ...)
   end
 end
 
---- A kill: a player of the players' side destroyed an enemy unit.
+--- What each pilot's aircraft holds until it lands, by unit name: `{ player, amount }`. Not saved: like the aircraft,
+--- it does not outlive a restart.
+veafCampaignEconomy.held = {}
+
+--- The name of an event's initiator, from the data table veafEventHandler makes or the DCS object.
+local function initiatorName(event)
+  local name = event and event.initiator and event.initiator.unitName
+  if name == nil and event and event.dcsInitiator and event.dcsInitiator.getName then
+    local ok, value = pcall(event.dcsInitiator.getName, event.dcsInitiator)
+    name = ok and value or nil
+  end
+  return name
+end
+
+--- A kill: a player of the players' side destroyed an enemy unit. `economy.landing_share` of its credits is held until
+--- the pilot lands at a friendly airfield, FARP or carrier (`onPilotEvent`); the rest is earned at once.
 function veafCampaignEconomy.onKill(event)
   local kill = veafCampaign.readPlayerKill(event)
   if veafCampaign.over or not kill then
     return
   end
-  veafCampaignEconomy.earn(veafCampaign.setting("economy", kill.air and "kill_air" or "kill_ground"), "campaign.credits.kill", kill.player)
+  local amount = veafCampaign.setting("economy", kill.air and "kill_air" or "kill_ground")
+  local share = math.max(0, math.min(100, veafCampaign.setting("economy", "landing_share") or 0))
+  local unitName = initiatorName(event)
+  local held = unitName and math.floor(amount * share / 100 + 0.5) or 0
+  if held > 0 then
+    local books = veafCampaignEconomy.held[unitName] or { player = kill.player, amount = 0 }
+    books.amount = books.amount + held
+    veafCampaignEconomy.held[unitName] = books
+    veafCampaignEconomy.earn(amount - held, "campaign.credits.kill_held", kill.player, books.amount)
+  else
+    veafCampaignEconomy.earn(amount, "campaign.credits.kill", kill.player)
+  end
   if kill.air then
     for _, task in ipairs(veafCampaignEconomy.tasks) do
       if task.kind == "air" then
@@ -125,6 +151,49 @@ function veafCampaignEconomy.onKill(event)
       end
     end
   end
+end
+
+--- Whether an aircraft landed at a place of the players' side: an airfield, a FARP or a ship. veafEventHandler's data
+--- table says an airbase is neutral (it reads `Unit.getByName`), so the airbase is asked first.
+local function friendlyPlace(event)
+  local name = event and event.place and event.place.unitName
+  if not name then
+    return false -- a landing in the open banks nothing
+  end
+  local side = nil
+  for _, lookup in ipairs({ Airbase.getByName, Unit.getByName }) do
+    local ok, object = pcall(lookup, name)
+    if ok and object and object.getCoalition then
+      side = object:getCoalition()
+      break
+    end
+  end
+  return side ~= nil and side == playerCoalition()
+end
+
+--- What happens to the credits a pilot's aircraft holds: earned when it lands at a friendly airfield, FARP or carrier,
+--- lost when the pilot ejects, dies, crashes or leaves the aircraft.
+function veafCampaignEconomy.onPilotEvent(event)
+  local unitName = initiatorName(event)
+  local books = unitName and veafCampaignEconomy.held[unitName]
+  if not books then
+    return
+  end
+  local id = event.type and event.type.id or event.id
+  if id == world.event.S_EVENT_LAND then
+    if friendlyPlace(event) then
+      veafCampaignEconomy.held[unitName] = nil
+      veafCampaignEconomy.earn(books.amount, "campaign.credits.landed", books.player)
+    end
+    return
+  end
+  veafCampaignEconomy.held[unitName] = nil
+  logger():info("%s loses the %d credits held in [%s]", tostring(books.player), books.amount, unitName)
+  veafCampaign.announce(
+    veafCampaign.playerSide(),
+    veafCampaign.playerSide(),
+    veaf.t("campaign.credits.held_lost", books.player, books.amount)
+  )
 end
 
 --- Take a price from the credits for a purchase made outside the shop — the assault order: refused, and
@@ -901,6 +970,12 @@ function veafCampaignEconomy.initialize()
     end
   end)
   veafEventHandler.addCallback("veafCampaignEconomy.onKill", { "S_EVENT_KILL" }, veafCampaignEconomy.onKill)
+  veafCampaignEconomy.held = {}
+  veafEventHandler.addCallback(
+    "veafCampaignEconomy.onPilotEvent",
+    { "S_EVENT_LAND", "S_EVENT_EJECTION", "S_EVENT_PILOT_DEAD", "S_EVENT_CRASH", "S_EVENT_DEAD", "S_EVENT_PLAYER_LEAVE_UNIT" },
+    veafCampaignEconomy.onPilotEvent
+  )
   veafCampaignEconomy.buildRadioMenu()
   return true
 end

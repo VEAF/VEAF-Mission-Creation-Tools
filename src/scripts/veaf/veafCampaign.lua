@@ -96,6 +96,9 @@ veafCampaign.DYNAMIC_DEFAULTS = {
     credits_per_point = 6, -- what a resource point costs in credits: the players' spawns pay their units so (ticket 14)
     demolition = 50, -- credits per building the sappers destroy (ticket 15)
     warehouse_delivery = 50, -- credits per weapons cargo unloaded at another airfield (ticket 16)
+    -- the share of a pilot's kill held until the pilot lands at a friendly airfield, FARP or carrier, lost on an
+    -- ejection, a death or a crash (David, 2026-11-16: "a share at the action, a bonus at landing")
+    landing_share = 50,
   },
   tasks = { count = 3, refresh_seconds = 300, air_kills = 2, rewards = {} },
   intel = { hidden = true, seconds = 3600, overflight_altitude = 1500, spy_troops = "Spy", spy_range = 5000 },

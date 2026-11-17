@@ -22,6 +22,7 @@ from campaign_manager.briefing_deck import (
 from campaign_manager.briefing_prose import BriefingProse, parse_prose
 from campaign_manager.campaign_manager import initial_state, parse_campaign
 from campaign_manager.models import CampaignDefinition
+from deck_pdf_check import assert_pdf_matches_deck
 from pptx import Presentation
 from veaf_libs.i18n import language, t
 
@@ -231,3 +232,18 @@ class TestAPersistentCampaign:
         annex = "\n".join(_persistent_deck(tmp_path, attacks=[], bombers={"enabled": False})[-1])
         assert "contre-attaque" not in annex
         assert "bombardiers" not in annex
+
+
+def test_a_pdf_of_the_same_pages_beside_the_deck(tmp_path: Path) -> None:
+    """David, 2026-11-17: every briefing written as a PowerPoint is written as a PDF too."""
+    campaign = _campaign()
+    with language("fr"):
+        report = campaign_deck(
+            campaign,
+            initial_state(campaign),
+            _prose(campaign),
+            tmp_path / "mission-01",
+            cache_dir=tmp_path / "tiles",
+            fetch=_offline,
+        )
+    assert_pdf_matches_deck(report.path, report.pdf)

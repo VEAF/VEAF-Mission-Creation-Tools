@@ -117,9 +117,15 @@ def campaign_next(
                 )
             )
         if report.deck:
-            console.print(t("cmd.campaign_briefing.done", path=report.deck))
+            console.print(t("cmd.campaign_briefing.done", path=report.deck, pdf=report.deck.with_suffix(".pdf")))
         if report.mission_deck:
-            console.print(t("cmd.campaign_briefing.mission_done", path=report.mission_deck))
+            console.print(
+                t(
+                    "cmd.campaign_briefing.mission_done",
+                    path=report.mission_deck,
+                    pdf=report.mission_deck.with_suffix(".pdf"),
+                )
+            )
     if pause:
         input(t("help.pause_msg"))
     if failed:
@@ -140,9 +146,15 @@ def campaign_briefing(
     issues, report = CampaignWorker(Path(campaign_folder).resolve()).briefing()
     failed = _report(issues)
     if report is not None:
-        console.print(t("cmd.campaign_briefing.done", path=report.path))
+        console.print(t("cmd.campaign_briefing.done", path=report.path, pdf=report.path.with_suffix(".pdf")))
         if report.mission_deck:
-            console.print(t("cmd.campaign_briefing.mission_done", path=report.mission_deck))
+            console.print(
+                t(
+                    "cmd.campaign_briefing.mission_done",
+                    path=report.mission_deck,
+                    pdf=report.mission_deck.with_suffix(".pdf"),
+                )
+            )
         if not report.prose:
             console.print(t("cmd.campaign_briefing.no_prose"))
         if report.map.offline:

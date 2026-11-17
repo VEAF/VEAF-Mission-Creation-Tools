@@ -112,6 +112,7 @@ L'AWACS et les ravitailleurs doivent donc être dans le template avant le premie
 
 Une campagne persistante n'a pas de mission du jour : à la place du [briefing de campagne](CAMPAIGN.md#briefing-deck) et du [briefing de mission](CAMPAIGN.md#mission-briefing), `campaign next` et `campaign briefing` écrivent dans `missions\mission-01\` le **dossier de théâtre**, `dossier-de-theatre.pptx`, avec ses deux cartes (`carte-du-reseau.png`, `carte-des-defenses.png`).
 C'est un état de la situation, daté (« État au 17/11/2026 »), pas un ordre d'opération : ni objectifs, ni ATO, ni météo.
+Le même dossier s'écrit aussi en PDF à côté, `dossier-de-theatre.pdf`, lisible sans PowerPoint ([comme chaque briefing](CAMPAIGN.md#briefing-deck)).
 
 | Page | Ce qu'elle dit |
 |---|---|

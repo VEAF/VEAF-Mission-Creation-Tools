@@ -19,6 +19,7 @@ from campaign_manager.mission_pages import altitude as _altitude
 from campaign_manager.mission_picture import MissionPicture, Waypoint, read_mission_picture
 from campaign_manager.models import CampaignDefinition
 from campaign_manager.tactical_map import render_objective_map, render_tactical_map
+from deck_pdf_check import assert_pdf_matches_deck
 from geographiclib.geodesic import Geodesic  # type: ignore[import-untyped]
 from PIL import Image
 from pptx import Presentation
@@ -360,3 +361,19 @@ class TestAPersistentCampaign:
         flow = "\n".join("\n".join(slide) for slide in deck if "Déroulement" in slide[0])
         assert "Aviation ennemie active" in flow
         assert "bombardiers" not in flow
+
+
+def test_a_pdf_of_the_same_pages_beside_the_mission_deck(tmp_path: Path) -> None:
+    """David, 2026-11-17: every briefing written as a PowerPoint is written as a PDF too."""
+    campaign = _campaign()
+    with language("fr"):
+        report = mission_deck(
+            campaign,
+            initial_state(campaign),
+            _prose(campaign),
+            _picture(tmp_path),
+            tmp_path / "mission-01",
+            cache_dir=tmp_path,
+            fetch=_offline,
+        )
+    assert_pdf_matches_deck(report.path, report.pdf)

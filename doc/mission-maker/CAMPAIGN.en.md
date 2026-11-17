@@ -39,8 +39,8 @@ Caucasus/
     ├── mission-01/
     │   ├── mission/         the mission folder of mission 1
     │   ├── mission-01.state the state file the mission wrote
-    │   ├── briefing-campagne.pptx / carte-strategique.png
-    │   ├── briefing-mission.pptx / carte-tactique.png / zoom-<zone>.png
+    │   ├── briefing-campagne.pptx / .pdf / carte-strategique.png
+    │   ├── briefing-mission.pptx / .pdf / carte-tactique.png / zoom-<zone>.png
     │   ├── debriefing.fr.txt / debriefing.en.txt
     │   ├── campaign-state.before.yaml
     │   └── campaign-state.after.yaml
@@ -305,6 +305,8 @@ A [persistent campaign](PERSISTENT_CAMPAIGN.en.md#theatre-dossier) gets its thea
 `campaign next` also writes, in `missions/mission-NN/`, the **campaign's strategic briefing** as a PPTX (`briefing-campagne.pptx`) and its map (`carte-strategique.png`).
 It is a situation brief after the VEAF briefing template — 16:9, white, bold title top left — that imports as it is into Google Slides.
 `.\veaf-tools.exe campaign briefing <folder>` regenerates it at any time, for instance after touching up the text.
+
+Every PowerPoint briefing is also written as a **PDF** beside it, under the same name (`briefing-campagne.pdf`, `briefing-mission.pdf`, `dossier-de-theatre.pdf`): the same pages in the same order, readable without PowerPoint. The tool draws it itself with its own font and asks nothing of the machine: it is not a pixel copy of the slides, and a long page may run on to the next.
 
 | Page | Where it comes from |
 |---|---|

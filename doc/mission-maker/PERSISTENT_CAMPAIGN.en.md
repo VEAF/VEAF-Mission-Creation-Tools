@@ -112,6 +112,7 @@ The AWACS and the tankers must therefore be in the template before the first `ca
 
 A persistent campaign has no mission of the day: instead of the [campaign briefing](CAMPAIGN.en.md#briefing-deck) and the [mission briefing](CAMPAIGN.en.md#mission-briefing), `campaign next` and `campaign briefing` write the **theatre dossier** into `missions\mission-01\`, `dossier-de-theatre.pptx`, with its two maps (`carte-du-reseau.png`, `carte-des-defenses.png`).
 It is a dated picture of the situation ("État au 17/11/2026"), not an operation order: no objectives, no ATO, no weather.
+The same dossier is also written as a PDF beside it, `dossier-de-theatre.pdf`, readable without PowerPoint ([as every briefing is](CAMPAIGN.en.md#briefing-deck)).
 
 | Page | What it says |
 |---|---|

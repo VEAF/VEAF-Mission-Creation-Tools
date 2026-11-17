@@ -17,6 +17,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+from mission_briefing.briefing_pdf import Cover, MapSheet, write_pdf
 from pptx import Presentation
 from pptx.presentation import Presentation as PresentationType
 from pptx.util import Emu
@@ -73,6 +74,8 @@ class MissionDeckReport:
     maps: list[Path]
     offline: bool
     """Whether a map had to do without its background."""
+    pdf: Path | None = None
+    """The same pages as a PDF, beside the deck."""
 
 
 def _names(title: str, zone: CampaignZone) -> bool:
@@ -383,8 +386,10 @@ def mission_deck(
     deck = Presentation()
     deck.slide_width, deck.slide_height = _WIDTH, _HEIGHT
     _write_cover(deck, campaign, prose, page, picture, mission, numbered)
+    sheets: list[Page | MapSheet] = []
     for part in [*paginate(situation), *paginate(ato)]:
         _write_page(deck, part)
+        sheets.append(part)
     legend = [
         (t("campaign.deck.legend"), True),
         (t("campaign.mission_deck.legend.zones"), False),
@@ -396,6 +401,7 @@ def mission_deck(
         (t("campaign.mission_deck.positions_in_flight"), False),
     ]
     picture_page(deck, numbered[2], tactical.path, legend)
+    sheets.append(MapSheet(numbered[2], tactical.path, legend))
     for title, zone, zoom in zip(numbered[3 : 3 + len(zones)], zones, zooms, strict=True):
         notes = [
             (zone.label, True),
@@ -407,11 +413,26 @@ def mission_deck(
             notes += [(t("campaign.mission_deck.heading.task"), True), (task.title, False)]
             notes += [(text, False) for text in task.text]
         picture_page(deck, title, zoom.path, notes)
+        sheets.append(MapSheet(title, zoom.path, notes))
     for part in [part for closing_page in closing for part in paginate(closing_page)]:
         _write_page(deck, part)
+        sheets.append(part)
     out = folder / MISSION_DECK_FILE
     deck.save(str(out))
+    operation = (prose.operation if prose and prose.operation else campaign.name).upper()
+    count = "" if campaign.mode == "persistent" else f" {mission}/{campaign.missions}"
+    date_line = t("campaign.mission_deck.date", day=picture.date.day, month=picture.date.month, year=picture.date.year)
+    cover = Cover(
+        f"{operation}{count} — {page.title if page else t('campaign.mission_deck.untitled', mission=mission)}",
+        t("campaign.mission_deck.subtitle"),
+        f"{date_line} — {t('campaign.mission_deck.local', time=clock(picture.start_time))}",
+        t("campaign.deck.contents"),
+        numbered,
+    )
+    pdf = out.with_suffix(".pdf")
+    write_pdf(pdf, cover, sheets)
     return MissionDeckReport(
+        pdf=pdf,
         path=out,
         pages=len(deck.slides),
         maps=[tactical.path, *(zoom.path for zoom in zooms)],

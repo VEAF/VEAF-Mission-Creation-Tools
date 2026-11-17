@@ -12,6 +12,7 @@ from campaign_manager.briefing_prose import parse_prose
 from campaign_manager.campaign_manager import initial_state, parse_campaign
 from campaign_manager.models import CampaignDefinition
 from campaign_manager.theatre_dossier import SHOP_PRICES, theatre_dossier
+from deck_pdf_check import assert_pdf_matches_deck
 from pptx import Presentation
 from veaf_libs.i18n import language
 
@@ -115,3 +116,20 @@ class TestTheKneeboard:
         write_kneeboard(tmp_path, pages)
         assert not stale.exists()
         assert mine.exists(), "a page of another tool is left alone"
+
+
+def test_a_pdf_of_the_same_pages_beside_the_dossier(tmp_path: Path) -> None:
+    """David, 2026-11-17: every briefing written as a PowerPoint is written as a PDF too."""
+    campaign = _campaign()
+    with language("fr"):
+        report = theatre_dossier(
+            campaign,
+            initial_state(campaign),
+            None,
+            tmp_path,
+            {"Kobuleti": 1},
+            day=date(2026, 11, 17),
+            cache_dir=tmp_path,
+            fetch=lambda _url: None,
+        )
+    assert_pdf_matches_deck(report.path, report.pdf)

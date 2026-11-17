@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from mission_briefing.briefing_pdf import Cover, MapSheet, write_pdf
 from PIL import Image
 from pptx import Presentation
 from pptx.dml.color import RGBColor
@@ -38,6 +39,7 @@ from campaign_manager.briefing_deck import (
     _run,
     _titled_slide,
     _write_page,
+    map_notes,
     paginate,
 )
 from campaign_manager.briefing_prose import BriefingProse
@@ -95,6 +97,8 @@ class DossierReport:
     path: Path
     network_map: MapReport
     pages: int
+    pdf: Path | None = None
+    """The same pages as a PDF, beside the deck."""
 
 
 def owners_of(state: CampaignState) -> dict[str, str]:
@@ -445,19 +449,33 @@ def theatre_dossier(
     for number, page in enumerate(pages, 2):
         page.title = f"{number}. {page.title}"
     kinds = [t(f"campaign.dossier.legend.{kind}") for kind in ("airfield", "outpost", "factory", "depot")]
+    network_legend = [*kinds, t("campaign.dossier.legend.numbers")]
+    circles_legend = [t("campaign.dossier.legend.circles", km=ASSUMED_LONG_RANGE // 1000)]
+    day = day or date.today()
     deck = Presentation()
     deck.slide_width, deck.slide_height = _WIDTH, _HEIGHT
-    _write_cover(deck, campaign, prose, day or date.today(), [page.title for page in pages])
+    _write_cover(deck, campaign, prose, day, [page.title for page in pages])
+    sheets: list[Page | MapSheet] = []
     for page in pages:
         if page.is_map:
-            _write_map(deck, page.title, network_map, [*kinds, t("campaign.dossier.legend.numbers")])
+            _write_map(deck, page.title, network_map, network_legend)
+            sheets.append(MapSheet(page.title, network_map.path, map_notes(network_map, network_legend)))
             continue
         for part in paginate(page):
             _write_page(deck, part)
+            sheets.append(part)
         if page.title.endswith(t("campaign.dossier.title.defences")):
-            _write_map(
-                deck, page.title, defence_map, [t("campaign.dossier.legend.circles", km=ASSUMED_LONG_RANGE // 1000)]
-            )
+            _write_map(deck, page.title, defence_map, circles_legend)
+            sheets.append(MapSheet(page.title, defence_map.path, map_notes(defence_map, circles_legend)))
     out = folder / DOSSIER_FILE
     deck.save(str(out))
-    return DossierReport(path=out, network_map=network_map, pages=len(deck.slides))
+    cover = Cover(
+        f"{t('campaign.deck.operation')} {(prose.operation if prose and prose.operation else campaign.name).upper()}",
+        t("campaign.dossier.cover", theatre=campaign.theatre),
+        t("campaign.dossier.state_of", day=day.strftime("%d/%m/%Y")),
+        t("campaign.deck.contents"),
+        [page.title for page in pages],
+    )
+    pdf = out.with_suffix(".pdf")
+    write_pdf(pdf, cover, sheets)
+    return DossierReport(path=out, network_map=network_map, pages=len(deck.slides), pdf=pdf)

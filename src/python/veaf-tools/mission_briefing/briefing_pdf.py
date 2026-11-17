@@ -13,6 +13,7 @@ Calibri) and the page breaks follow the PDF's text, not the deck's.
 from __future__ import annotations
 
 import io
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -255,7 +256,7 @@ def _cover_page(pdf: _Pdf, cover: Cover) -> None:
     pdf.set_left_margin(_MARGIN)
 
 
-def write_pdf(out: Path, cover: Cover, sheets: list[Page | MapSheet | CardPage | PhotoSheet | TablePage]) -> int:
+def write_pdf(out: Path, cover: Cover, sheets: Sequence[Page | MapSheet | CardPage | PhotoSheet | TablePage]) -> int:
     """Write the briefing's PDF: the cover, then each sheet in the deck's order.
 
     Args:

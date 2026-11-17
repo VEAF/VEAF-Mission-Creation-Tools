@@ -518,3 +518,15 @@ class TestTheSupportModule:
         mission_yaml = tmp_path / "mission.yaml"
         mission_yaml.write_text("modules: {}\n", encoding="utf-8")
         assert not enable_support_module(mission_yaml, {})
+
+
+class TestAPersistentCampaignsConditions:
+    """David, 2026-11-17: the server's MizEdit gives a persistent campaign its real weather at each load."""
+
+    def test_its_name_carries_no_nomizedit(self) -> None:
+        from campaign_manager.next_mission import mission_name
+
+        assert mission_name("Northern Syria", 1, "Bouclier", fixed_conditions=False) == (
+            "Campaign_Northern-Syria_Mission_01_Bouclier"
+        )
+        assert mission_name("Northern Syria", 1, "Bouclier").endswith("_NoMizedit")

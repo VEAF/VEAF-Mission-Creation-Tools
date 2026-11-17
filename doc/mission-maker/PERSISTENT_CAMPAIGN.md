@@ -67,6 +67,8 @@ Puis on construit la mission du dossier `missions\mission-01\mission` comme n'im
 `campaign next` relancé sur le même dossier la met à jour sans toucher au reste du travail fait dedans.
 `campaign apply` n'a pas d'usage ici : il n'y a pas de « entre deux missions ».
 
+**La météo et l'heure viennent du serveur.** Une campagne persistante tourne des semaines : `campaign next` ne fixe ni date, ni heure de départ, ni météo, et le nom de la mission ne porte pas `_NoMizedit` (`Campaign_<campagne>_Mission_01_<titre>`), si bien que le preset MizEdit du serveur (avec RealWeather) les règle à chaque chargement. Une [campagne multi-missions](CAMPAIGN.md#squadron-settings) garde ses conditions fixées et son `_NoMizedit`.
+
 Les briefings que `campaign next` et `campaign briefing` écrivent ([briefing de campagne](CAMPAIGN.md#briefing-deck), [briefing de mission](CAMPAIGN.md#mission-briefing), et le texte de situation stratégique qui devient le briefing DCS) parlent d'une campagne persistante : pas de nombre de missions, la victoire quand l'ennemi ne tient plus aucune zone, les tâches de `briefing.yaml` en ordres en cours, les usines à la place des réserves, une aviation ennemie active au départ de ses aérodromes, et une annexe sur le front vivant qui omet ce que `dynamic:` coupe (`attacks`, `supply`, `bombers.enabled`, `resources.enabled`).
 
 `campaign next` ajoute aussi au `ctld-config.yaml` de la mission ce que les joueurs transportent pour la campagne : la caisse **« Zone supplies »** (une par camp), le groupe de troupes **« Spy »** (un homme) et le groupe **« Sappers »** (deux hommes, l'[équipe de démolition](#demolition)).

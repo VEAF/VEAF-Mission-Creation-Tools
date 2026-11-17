@@ -274,7 +274,7 @@ The DCS briefing shows the mission's date, time and weather; the mission briefin
 
 A DCSServerBot server with RealWeather or MizEdit active **replaces the date, time and weather** of every mission it serves, a campaign's included: on *Kolkhida*, mission 1 flew on 8 October, under Kutaisi's sky capped at 3,000 m, instead of the CAVOK 1 June the briefing announced.
 An `ICAO_xxxx` suffix in a mission's name only picks the weather station: without it, the bot takes the one of its own configuration.
-That is why `campaign next` names the mission `Campaign_<campaign>_Mission_<NN>_<title>_NoMizedit` (see [what `campaign next` sets](#squadron-settings)).
+That is why `campaign next` names the mission `Campaign_<campaign>_Mission_<NN>_<title>_NoMizedit` (see [what `campaign next` sets](#squadron-settings)); a [persistent campaign](PERSISTENT_CAMPAIGN.en.md#build), whose weather the server sets, does not.
 What to ask of the server's administrators, on the instance serving the campaign: that **MizEdit skip every mission whose name contains `_NoMizedit`** (`filter: '^(?!.*_NoMizedit)'`), and that **RealWeather be switched off at the instance level**, where it has no filter — the MizEdit preset keeps applying it to the other missions.
 The build appends its date after the name (`…_NoMizedit_20261015.miz`): the filter looks for the marker anywhere.
 

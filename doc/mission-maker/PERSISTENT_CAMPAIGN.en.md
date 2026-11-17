@@ -67,6 +67,8 @@ Then the mission of the `missions\mission-01\mission` folder is built like any m
 `campaign next` run again on the same folder updates it without touching the rest of the work done in it.
 `campaign apply` has no use here: there is no "between two missions".
 
+**Weather and time come from the server.** A persistent campaign runs for weeks: `campaign next` fixes neither date, start time nor weather, and the mission's name carries no `_NoMizedit` (`Campaign_<campaign>_Mission_01_<title>`), so the server's MizEdit preset (with RealWeather) sets them at each load. A [multi-mission campaign](CAMPAIGN.en.md#squadron-settings) keeps its fixed conditions and its `_NoMizedit`.
+
 The briefings `campaign next` and `campaign briefing` write ([campaign briefing](CAMPAIGN.en.md#briefing-deck), [mission briefing](CAMPAIGN.en.md#mission-briefing), and the strategic situation text that becomes the DCS briefing) speak of a persistent campaign: no count of missions, victory when the enemy holds no zone left, the tasks of `briefing.yaml` as standing orders, factories instead of reserves, an enemy air force active from its airfields, and an annex on the living front that leaves out what `dynamic:` turns off (`attacks`, `supply`, `bombers.enabled`, `resources.enabled`).
 
 `campaign next` also adds to the mission's `ctld-config.yaml` what the players carry for the campaign: the **"Zone supplies"** crate (one per side), the **"Spy"** troop group (one man) and the **"Sappers"** group (two men, the [demolition team](#demolition)).

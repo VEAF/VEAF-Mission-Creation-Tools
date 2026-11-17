@@ -403,6 +403,10 @@ about most of them: a warning there is a defect to fix before the server, not a 
   whole front and shot an A-10 down far from any warning.
 - **Real defaults, and say what the AI can afford**: the stock (`resources.start`, 1,000), a factory's
   output (180 an hour) and the reserve keep the enemy flying an evening; lowering them grounds it.
+- **No fixed weather**: a persistent campaign's mission carries no `_NoMizedit` and `campaign_next` fixes no date,
+  time nor weather — the server's MizEdit preset (RealWeather) sets them at each load. Do not set them by hand.
+- **The AWACS and the tankers are held by the `SUPPORT` module** (`veafSupport`), which `campaign_next` turns on
+  in `mission.yaml` from `dynamic.support`: do not move their orbits by hand.
 - **A campaign already running keeps what its save drew**: a garrison change (a long-range SAM taken off,
   a zone moved onto its airfield) shows on the server after a reset of the campaign, or on the zones the
   save does not hold yet. Say so to whoever deploys it.

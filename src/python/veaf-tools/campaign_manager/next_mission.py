@@ -330,13 +330,18 @@ def _name_part(text: str) -> str:
     return f"{part}-" if part.lower().endswith("icao") else part
 
 
-def mission_name(campaign: str, number: int, title: str | None) -> str:
+def mission_name(campaign: str, number: int, title: str | None, *, fixed_conditions: bool = True) -> str:
     """Return the name of a campaign mission: `Campaign_<campaign>_Mission_<NN>_<title>_NoMizedit`.
+
+    A persistent campaign's mission has no `_NoMizedit`: it runs for weeks, and the server's MizEdit preset gives it
+    its real weather and time at each load (David, 2026-11-17).
 
     Args:
         campaign: The campaign's name.
         number: The mission's number in the campaign.
         title: The mission's title in `briefing.yaml`, or ``None`` before it is designed.
+        fixed_conditions: Whether the campaign fixes the mission's date, time and weather, which the marker
+            keeps the server from changing.
 
     Returns:
         The name, ASCII letters, digits, dashes and underscores only.
@@ -344,7 +349,8 @@ def mission_name(campaign: str, number: int, title: str | None) -> str:
     parts = ["Campaign", _name_part(campaign), "Mission", f"{number:02d}"]
     if title and _name_part(title):
         parts.append(_name_part(title))
-    parts.append(NO_MIZEDIT_MARKER)
+    if fixed_conditions:
+        parts.append(NO_MIZEDIT_MARKER)
     return "_".join(parts)
 
 
@@ -602,13 +608,15 @@ def prepare_next_mission(
         hide_enemies_on_the_map(mission_folder / "mission.yaml")
     # rewritten on every run: the title arrives with the design, and a test copy is the one that turns
     # security off, never the campaign
-    name = mission_name(campaign.name, state.mission + 1, page.title if page else None)
+    persistent = campaign.mode == "persistent"
+    name = mission_name(campaign.name, state.mission + 1, page.title if page else None, fixed_conditions=not persistent)
     security_restored = _set_squadron_settings(mission_folder / "mission.yaml", name)
     expected = players or campaign.players
     if expected:
         _set_opposition(mission_folder / "mission.yaml", opposition_for(expected, campaign.player_side))
     # date, time and weather are fixed once, when the folder is created: a refresh keeps what was set since
-    conditions = set_conditions(campaign, state, mission_folder) if created else None
+    # a persistent campaign leaves them to the server's MizEdit preset, which sets them at each load
+    conditions = set_conditions(campaign, state, mission_folder) if created and not persistent else None
     # the radio plan too: written with the folder, the mission maker's afterwards (radio_plan)
     if created:
         write_campaign_radio_plan(campaign, mission_folder)

@@ -854,6 +854,53 @@ function TestCampaignOffensives:test_a_campaign_over_sends_nothing()
   luaunit.assertEquals(#self.sent, 0)
 end
 
+function TestCampaignOffensives:test_only_the_attacking_sides_send_convoys_to_a_neutral_zone()
+  -- 2026-11-16: blue's AI sent a free convoy to Menagh three minutes after the players paid for the same assault
+  local data = persistentData()
+  data.zones[2].owner, data.zones[2].garrison = "neutral", nil -- Senaki, between blue Kobuleti and red Poti
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  luaunit.assertNotNil(veafCampaign.pendingAssaults["Senaki|red"])
+  luaunit.assertNil(veafCampaign.pendingAssaults["Senaki|blue"])
+end
+
+function TestCampaignOffensives:test_a_due_assault_is_not_sent_where_a_convoy_of_its_side_already_drives()
+  local data = persistentData()
+  data.zones[2].owner, data.zones[2].garrison = "neutral", nil
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  table.insert(veafCampaign.convoys, { side = "red", from = "Poti", to = "Senaki" }) -- sent meanwhile
+  veafCampaign.launchDueAssaults(1000000)
+  luaunit.assertEquals(#self.sent, 0)
+end
+
+TestCampaignConvoyGoal = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+function TestCampaignConvoyGoal:test_a_convoy_whose_target_is_its_side_s_frees_its_place()
+  -- 2026-11-16: two red convoys held both places of max_convoys for an hour, their targets taken by helicopter
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  local record = { name = "Senaki - Kobuleti assault", side = "red", from = "Senaki", to = "Kobuleti", sentAt = 0 }
+  table.insert(veafCampaign.convoys, record)
+  veafCampaign.checkConvoyGoal(record, 10)
+  luaunit.assertNil(record.ended)
+  veafCampaign.zones["Kobuleti"].entry.owner = "red"
+  veafCampaign.checkConvoyGoal(record, 20)
+  luaunit.assertTrue(record.ended)
+  luaunit.assertEquals(veafCampaign.convoysUnderway("red"), 0)
+end
+
+function TestCampaignConvoyGoal:test_a_convoy_on_the_road_too_long_frees_its_place()
+  veafCampaign.data = persistentData({ convoy_timeout = 600 })
+  veafCampaign.initialize()
+  local record = { name = "Senaki - Kobuleti assault", side = "red", from = "Senaki", to = "Kobuleti", sentAt = 100 }
+  table.insert(veafCampaign.convoys, record)
+  veafCampaign.checkConvoyGoal(record, 699)
+  luaunit.assertNil(record.ended)
+  veafCampaign.checkConvoyGoal(record, 700)
+  luaunit.assertTrue(record.ended)
+end
+
 -- ---------------------------------------------------------------------------
 -- Deliveries by players: CTLD 2 crates and troops
 -- ---------------------------------------------------------------------------

@@ -407,7 +407,7 @@ function veafCampaignLogistics.arriveDeliveries(now)
         veafCampaignLogistics.counters.arrived = veafCampaignLogistics.counters.arrived + 1
         veafCampaign.debug("SUPPLY", "the %s supply reaches [%s]", delivery.side, delivery.zone)
         if delivery.side == veafCampaign.playerSide() then
-          tell("campaign.network.arrived", zone.name)
+          veafCampaign.announce(delivery.side, delivery.side, veaf.t("campaign.network.arrived", veafCampaign.zoneTitle(zone.name)))
         end
       else
         veafCampaignLogistics.counters.lost = veafCampaignLogistics.counters.lost + 1

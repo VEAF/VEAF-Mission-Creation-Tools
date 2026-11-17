@@ -679,7 +679,15 @@ function veafCampaignEconomy.post(task)
   end
   table.insert(veafCampaignEconomy.tasks, task)
   veafCampaignEconomy.counters.posted = veafCampaignEconomy.counters.posted + 1
-  tell("campaign.task.posted", veaf.t("campaign.task." .. task.kind, task.zone or "-", task.reward))
+  local side = veafCampaign.playerSide()
+  veafCampaign.announce(
+    side,
+    side,
+    veaf.t(
+      "campaign.task.posted",
+      veaf.t("campaign.task." .. task.kind, task.zone and veafCampaign.zoneTitle(task.zone) or "-", task.reward)
+    )
+  )
 end
 
 --- Fill the board's empty places.
@@ -727,7 +735,7 @@ function veafCampaignEconomy.checkTasks()
         veafCampaignEconomy.counters.completed = veafCampaignEconomy.counters.completed + 1
         veafCampaignEconomy.earn(task.reward, "campaign.credits.task", title)
       else
-        tell("campaign.task.withdrawn", title)
+        veafCampaign.announce(veafCampaign.playerSide(), veafCampaign.playerSide(), veaf.t("campaign.task.withdrawn", title))
       end
     else
       table.insert(open, task)

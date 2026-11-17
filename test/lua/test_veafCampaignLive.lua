@@ -229,6 +229,10 @@ function TestCampaignHelicopters:test_it_flies_the_transport_job_from_the_neares
   luaunit.assertEquals(call.job, { task = "transport", destination = "CAMPAIGN SUPPLY Poti" })
   luaunit.assertEquals(call.group.units[1].type, "Mi-8MT")
   luaunit.assertNotNil(veafNamedPoints.getPoint("CAMPAIGN SUPPLY Poti"))
+  -- the other side hears of it at once, to intercept it (2026-11-16)
+  local told = dcs_mocks.messagesContaining(veaf.t("campaign.speaker.intel"))
+  luaunit.assertEquals(#told, 1)
+  luaunit.assertEquals(told[1].target, coalition.side.BLUE)
 end
 
 function TestCampaignHelicopters:test_no_more_helicopters_than_the_cap()
@@ -247,6 +251,19 @@ local function flying(name, point, inAir)
       return { unitAt(point, { inAir = inAir }) }
     end,
   })
+end
+
+function TestCampaignHelicopters:test_landed_back_away_from_its_zone_it_has_failed_at_once()
+  -- 2026-11-16: two Mi-8 for Afrin landed back at Aleppo 3 minutes after leaving, and kept their place 20 minutes
+  start()
+  local record = veafCampaignOps.sendHelicopter("red", veafCampaign.zones["Poti"], "capture")
+  flying(record.name, { x = 90000, z = 0 }, true)
+  veafCampaignOps.followHelicopter(record, 60)
+  luaunit.assertNil(record.done)
+  flying(record.name, { x = 99000, z = 0 }, false) -- down at Senaki, where it left
+  veafCampaignOps.followHelicopter(record, 180)
+  luaunit.assertTrue(record.done)
+  luaunit.assertEquals(record.outcome, "failed")
 end
 
 function TestCampaignHelicopters:test_landed_in_a_neutral_zone_it_waits_for_the_capture_and_is_consumed()

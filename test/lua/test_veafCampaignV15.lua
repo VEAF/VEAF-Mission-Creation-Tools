@@ -975,7 +975,7 @@ function TestCampaignBombers:test_the_red_raid_is_a_paid_package_announced_and_p
   luaunit.assertEquals(self.flights[2].group.units[1].type, "Tu-22M3")
   luaunit.assertEquals(veafCampaignLogistics.stock("red"), 1000 - 100 - 60)
   -- Kobuleti and Poti hold as many units; Kobuleti, declared first, is the target, Senaki 100 km off the origin
-  luaunit.assertEquals(#messagesContaining("escorted enemy bombers are heading for Kobuleti, from Senaki"), 1)
+  luaunit.assertEquals(#messagesContaining("Intelligence: enemy bombers are heading for Kobuleti, from Senaki"), 1)
   veafCampaignEconomy.refreshTasks()
   luaunit.assertEquals(veafCampaignEconomy.tasks[1].kind, "intercept")
   -- one out at a time

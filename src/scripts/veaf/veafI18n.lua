@@ -1989,13 +1989,17 @@ veaf.i18nCatalog = {
   },
   -- veafCampaign
   ["campaign.zone_neutral"] = {
-    fr = "Campagne : %s a perdu toute sa garnison, la zone est neutre et peut être prise.",
-    en = "Campaign: %s has lost its whole garrison; the zone is neutral and can be captured.",
+    fr = "%s a perdu toute sa garnison, la zone est neutre et peut être prise.",
+    en = "%s has lost its whole garrison; the zone is neutral and can be captured.",
   },
   ["campaign.zone_captured"] = {
-    fr = "Campagne : %s a été prise par le camp %s.",
-    en = "Campaign: %s has been captured by %s.",
+    fr = "%s a été prise par le camp %s.",
+    en = "%s has been captured by %s.",
   },
+  ["campaign.speaker.blue"] = { fr = "Commandement bleu : ", en = "Blue command: " },
+  ["campaign.speaker.red"] = { fr = "Commandement rouge : ", en = "Red command: " },
+  ["campaign.speaker.intel"] = { fr = "Renseignement : ", en = "Intelligence: " },
+  ["campaign.zone_with_waypoint"] = { fr = "%s (WP %d)", en = "%s (WP %d)" },
   ["campaign.side.blue"] = { fr = "bleu", en = "blue" },
   ["campaign.side.red"] = { fr = "rouge", en = "red" },
   ["campaign.side.neutral"] = { fr = "neutre", en = "neutral" },
@@ -2035,8 +2039,8 @@ veaf.i18nCatalog = {
     en = "An assault convoy leaves %s to take %s.",
   },
   ["campaign.convoy_sent_enemy"] = {
-    fr = "Renseignement : une colonne ennemie quitte %s en direction de %s.",
-    en = "Intelligence: an enemy column is leaving %s towards %s.",
+    fr = "Une colonne ennemie quitte %s en direction de %s.",
+    en = "An enemy column is leaving %s towards %s.",
   },
   ["campaign.assault_refused"] = {
     fr = "Assaut de %s vers %s impossible : la zone de départ n'est plus à nous, la cible l'est déjà, ou un convoi y va déjà.",
@@ -2049,8 +2053,8 @@ veaf.i18nCatalog = {
 
   -- veafCampaign, persistent mode (FEAT-DYNAMIC-CAMPAIGN)
   ["campaign.zone_reinforced"] = {
-    fr = "Campagne : %s a été ravitaillée, un groupe de sa garnison est de nouveau au complet.",
-    en = "Campaign: %s has been resupplied; one group of its garrison is back to full strength.",
+    fr = "%s a été ravitaillée, un groupe de sa garnison est de nouveau au complet.",
+    en = "%s has been resupplied; one group of its garrison is back to full strength.",
   },
   ["campaign.outcome.victory"] = {
     fr = "Campagne : l'ennemi ne tient plus aucune zone. Victoire ! La campagne recommencera au prochain chargement de la mission.",
@@ -2098,6 +2102,14 @@ veaf.i18nCatalog = {
   ["campaign.helicopter_sent"] = {
     fr = "Un hélicoptère de ravitaillement quitte %s pour %s.",
     en = "A supply helicopter leaves %s for %s.",
+  },
+  ["campaign.helicopter_sent_enemy.capture"] = {
+    fr = "Un hélicoptère ennemi quitte %s pour prendre %s en s'y posant. Interceptez-le !",
+    en = "An enemy helicopter leaves %s to take %s by landing there. Intercept it!",
+  },
+  ["campaign.helicopter_sent_enemy.resupply"] = {
+    fr = "Un hélicoptère ennemi quitte %s pour ravitailler %s.",
+    en = "An enemy helicopter leaves %s to resupply %s.",
   },
   ["campaign.hunter"] = {
     fr = "Attention %s : deux chasseurs ennemis viennent de décoller de %s pour vous intercepter.",
@@ -2216,8 +2228,8 @@ veaf.i18nCatalog = {
     en = "Intercept the bombers heading for %s (%d cr.)",
   },
   ["campaign.raid.inbound"] = {
-    fr = "Alerte : des bombardiers ennemis escortés font route vers %s, partis de %s. Interceptez-les !",
-    en = "Alert: escorted enemy bombers are heading for %s, from %s. Intercept them!",
+    fr = "des bombardiers ennemis font route vers %s, partis de %s. Interceptez-les !",
+    en = "enemy bombers are heading for %s, from %s. Intercept them!",
   },
   ["campaign.raid.sent"] = { fr = "Raid de bombardiers : départ de %s vers %s.", en = "Bomber raid: leaving %s for %s." },
   ["campaign.network.header"] = {
@@ -2227,7 +2239,10 @@ veaf.i18nCatalog = {
   ["campaign.network.zone"] = { fr = "- %s : %d min depuis %s", en = "- %s: %d min from %s" },
   ["campaign.network.cut"] = { fr = "- %s : coupée du réseau", en = "- %s: cut off" },
   ["campaign.network.underway"] = { fr = " (livraison en route)", en = " (a delivery on its way)" },
-  ["campaign.network.arrived"] = { fr = "Réseau d'approvisionnement : %s est renforcée.", en = "Supply network: %s reinforced." },
+  ["campaign.network.arrived"] = {
+    fr = "%s est renforcée par le réseau d'approvisionnement.",
+    en = "%s is reinforced by the supply network.",
+  },
   ["campaign.spawn.refused_credits"] = {
     fr = "%s refusé : la coalition (%s) a %d crédits ; plus de spawn tant que le solde n'est pas positif. Rien n'est débité.",
     en = "%s refused: the coalition (%s) has %d credits; no spawn until the balance is above zero. Nothing was charged.",

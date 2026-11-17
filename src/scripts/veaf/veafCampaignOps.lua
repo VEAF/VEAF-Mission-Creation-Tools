@@ -418,12 +418,33 @@ function veafCampaignOps.sendHelicopter(side, target, kind)
     logger():error("the %s supply helicopter for [%s] could not be spawned", side, target.name)
     return nil
   end
+  -- no turning home at the first threat: twice on 2026-11-16 a Mi-8 sent from Aleppo to Afrin landed back at Aleppo
+  -- three minutes after leaving, and DCS lets an AI aircraft abort its task under a threat unless told otherwise. A
+  -- probable cause, not a measured one: the in-game check says (dcs-runtime-traps)
+  local group = Group.getByName(spawned)
+  if group then
+    pcall(function()
+      group:getController():setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.EVADE_FIRE)
+    end)
+  end
   local record = { name = spawned, side = side, from = source.name, to = target.name, kind = kind, startedAt = timer.getTime() }
   table.insert(veafCampaignOps.helicopters, record)
   veafCampaignOps.counters.helicoptersSent = veafCampaignOps.counters.helicoptersSent + 1
   veafCampaign.keepAwake(target, veafCampaign.setting("helicopter_timeout"))
   logger():info("%s supply helicopter [%s] leaves [%s] to %s [%s]", side, spawned, source.name, kind, target.name)
-  trigger.action.outTextForCoalition(veafCampaign.SIDES[side], veaf.t("campaign.helicopter_sent", source.name, target.name), 15)
+  veafCampaign.announce(
+    side,
+    side,
+    veaf.t("campaign.helicopter_sent", veafCampaign.zoneTitle(source.name), veafCampaign.zoneTitle(target.name)),
+    15
+  )
+  -- the other side hears of it at once, to intercept it: a helicopter takes a zone by landing (2026-11-16)
+  veafCampaign.announce(
+    veafCampaign.enemyOf(side),
+    "intel",
+    veaf.t("campaign.helicopter_sent_enemy." .. kind, veafCampaign.zoneTitle(source.name), veafCampaign.zoneTitle(target.name)),
+    20
+  )
   return record
 end
 
@@ -459,7 +480,25 @@ function veafCampaignOps.followHelicopter(record, now)
     logger():info("supply helicopter [%s] to [%s] destroyed", record.name, record.to)
     return
   end
-  local landedHere = not unit:inAir() and distance2d(unit:getPoint(), target:getCenter()) <= (target.entry.radius or 2000)
+  local inAir = unit:inAir()
+  local landedHere = not inAir and distance2d(unit:getPoint(), target:getCenter()) <= (target.entry.radius or 2000)
+  if inAir then
+    record.airborne = true
+  elseif record.airborne and not landedHere and not record.landedAt then
+    -- down again away from its zone: it turned back, or landed short. Said where, and its place freed at once rather
+    -- than after `helicopter_timeout` (2026-11-16: two Mi-8 for Afrin landed back at Aleppo 3 minutes after leaving)
+    local source = veafCampaign.zones[record.from]
+    logger():info(
+      "supply helicopter [%s] for [%s] landed %d km from it, %s km from [%s] it left",
+      record.name,
+      record.to,
+      math.floor(distance2d(unit:getPoint(), target:getCenter()) / 1000),
+      source and tostring(math.floor(distance2d(unit:getPoint(), source:getCenter()) / 1000)) or "?",
+      record.from
+    )
+    finish(record, "failed")
+    return
+  end
   if landedHere and not record.landedAt then
     record.landedAt = now
     veafCampaignOps.counters.helicoptersLanded = veafCampaignOps.counters.helicoptersLanded + 1
@@ -1562,11 +1601,18 @@ function veafCampaignOps.sendRaid(side, target, purchased)
     record.hold and string.format("%d km out of the target", math.floor(distance2d(record.hold, target:getCenter()) / 1000)) or "none",
     tostring(veafCampaign.setting("bombers", "escort"))
   )
-  local defender = veafCampaign.SIDES[target.entry.owner]
-  if defender then
-    trigger.action.outTextForCoalition(defender, veaf.t("campaign.raid.inbound", target.name, origin.name), 30)
-  end
-  trigger.action.outTextForCoalition(veafCampaign.SIDES[side], veaf.t("campaign.raid.sent", origin.name, target.name), 20)
+  veafCampaign.announce(
+    target.entry.owner,
+    "intel",
+    veaf.t("campaign.raid.inbound", veafCampaign.zoneTitle(target.name), veafCampaign.zoneTitle(origin.name)),
+    30
+  )
+  veafCampaign.announce(
+    side,
+    side,
+    veaf.t("campaign.raid.sent", veafCampaign.zoneTitle(origin.name), veafCampaign.zoneTitle(target.name)),
+    20
+  )
   veafCampaign.notify("raid", record)
   return record
 end
@@ -1964,7 +2010,7 @@ function veafCampaignOps.launchHunter(unit, player)
   end)
   if spawned then
     veafCampaignOps.counters.hunters = veafCampaignOps.counters.hunters + 1
-    trigger.action.outTextForCoalition(veafCampaign.SIDES[veafCampaign.playerSide()], veaf.t("campaign.hunter", player, origin.name), 20)
+    veafCampaign.announce(veafCampaign.playerSide(), "intel", veaf.t("campaign.hunter", player, veafCampaign.zoneTitle(origin.name)), 20)
   end
   return spawned
 end

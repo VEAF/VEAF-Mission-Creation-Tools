@@ -72,7 +72,11 @@ def _support_channels(campaign: CampaignDefinition, mission_folder: Path) -> dic
     except Exception:  # noqa: BLE001 — a mission that cannot be read gives no support channel, not a crash
         return {}
     # the AWACS first, then the tankers, each in the file's order
-    names.sort(key=lambda name: str((groups.get(name).group_dcs if groups.get(name) else {}).get("task")) != "AWACS")
+    def is_awacs(name: str) -> bool:
+        group = groups.get(name)
+        return group is not None and group.group_dcs.get("task") == "AWACS"
+
+    names.sort(key=lambda name: not is_awacs(name))
     channels: dict[str, dict[str, Any]] = {}
     for name in names:
         group = groups.get(name)

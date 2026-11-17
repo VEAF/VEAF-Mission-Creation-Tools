@@ -84,7 +84,7 @@ What the campaign must hold is declared in `campaign.yaml`, as a zone with its g
 A module that holds fewer steerpoints than there are zones keeps the first ones.
 Each zone keeps its number, the one after the departure point: the F10 label, the situation, the shop, the intelligence and every announcement name it "Taftanaz (WP 7)".
 The order is the one of the campaign's state when `campaign next` runs; the build adds BULLSEYE after them.
-A `waypoints.yaml` edited by hand is left alone, as for a [multi-mission campaign](CAMPAIGN.en.md).
+A `waypoints.yaml` edited by hand is left alone, as for a [multi-mission campaign](CAMPAIGN.en.md), and the numbers the players read are the ones it holds: a zone it leaves out shows none.
 
 ### Long-range SAMs {#long-range-sams}
 

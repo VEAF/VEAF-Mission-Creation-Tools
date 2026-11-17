@@ -26,7 +26,7 @@ from veaf_mission_mcp.mission_settings import set_briefing
 from campaign_manager.briefing_prose import MissionPage
 from campaign_manager.mission_conditions import MissionConditions, set_conditions
 from campaign_manager.models import COALITIONS, CampaignDefinition, CampaignState
-from campaign_manager.objective_waypoints import write_objective_waypoints, zone_waypoint_numbers
+from campaign_manager.objective_waypoints import flight_plan_numbers, write_objective_waypoints, zone_waypoint_numbers
 from campaign_manager.turn_manager import describe_change, enemy_of, evaluate_objectives, garrison_strength, outcome
 
 #: The data table, in the mission folder, the build turns into `veafCampaign.data`.
@@ -77,7 +77,9 @@ class NextMissionReport:
     restart, outside the save."""
 
 
-def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str, Any]:
+def mission_data(
+    campaign: CampaignDefinition, state: CampaignState, numbers: dict[str, int] | None = None
+) -> dict[str, Any]:
     """Return the campaign data table of the next mission: `veafCampaign.data` at run time.
 
     Zones carry their position as the runtime can resolve it — an airbase name, or coordinates the
@@ -86,12 +88,15 @@ def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str
     Args:
         campaign: The validated campaign.
         state: The campaign state the mission starts from.
+        numbers: Each zone's waypoint number in the flight plan, when the mission folder's is known; else the
+            numbers `campaign next` writes for a persistent campaign.
 
     Returns:
         Plain data, with the structure the state file has on its way back.
     """
     zones = []
-    numbers = zone_waypoint_numbers(campaign, state)
+    if numbers is None:
+        numbers = zone_waypoint_numbers(campaign, state)
     for zone in campaign.zones:
         zone_state = state.zones[zone.name]
         size = campaign.size_classes[zone.size]
@@ -510,10 +515,13 @@ def prepare_next_mission(
             )
             airbases.append(zone.location.airfield)
 
+    # the flight plan first: the zones' numbers are read from what it holds, kept or written
+    waypoints = write_objective_waypoints(campaign, page, mission_folder, created=created, state=state)
+    numbers = flight_plan_numbers(campaign, mission_folder)
     data_path = mission_folder / DATA_FILE
     data_path.parent.mkdir(parents=True, exist_ok=True)
     data_path.write_text(
-        yaml.safe_dump(mission_data(campaign, state), allow_unicode=True, sort_keys=False), encoding="utf-8"
+        yaml.safe_dump(mission_data(campaign, state, numbers), allow_unicode=True, sort_keys=False), encoding="utf-8"
     )
     for lang in BRIEFING_LANGUAGES:
         with language(lang):
@@ -536,7 +544,6 @@ def prepare_next_mission(
         _set_opposition(mission_folder / "mission.yaml", opposition_for(expected, campaign.player_side))
     # date, time and weather are fixed once, when the folder is created: a refresh keeps what was set since
     conditions = set_conditions(campaign, state, mission_folder) if created else None
-    waypoints = write_objective_waypoints(campaign, page, mission_folder, created=created, state=state)
     return NextMissionReport(
         mission=state.mission + 1,
         folder=mission_folder,

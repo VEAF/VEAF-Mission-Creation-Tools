@@ -84,7 +84,7 @@ Ce que la campagne doit tenir se déclare dans `campaign.yaml`, en zone avec sa 
 Un module qui tient moins de points qu'il n'y a de zones garde les premiers.
 Chaque zone garde son numéro, celui qui suit le point de départ : l'étiquette F10, la situation, la boutique, le renseignement et chaque annonce la nomment « Taftanaz (WP 7) ».
 L'ordre est celui de l'état de la campagne au moment de `campaign next` ; le build ajoute BULLSEYE après eux.
-Un `waypoints.yaml` modifié à la main est laissé tel quel, comme pour une [campagne multi-missions](CAMPAIGN.md).
+Un `waypoints.yaml` modifié à la main est laissé tel quel, comme pour une [campagne multi-missions](CAMPAIGN.md), et les numéros que lisent les joueurs sont ceux qu'il porte : une zone qu'il ne contient pas n'en affiche aucun.
 
 ### Les SAM longue portée {#long-range-sams}
 

@@ -285,3 +285,16 @@ class TestAPersistentCampaignsWaypoints:
 
         campaign = _campaign()
         assert all("waypoint" not in zone for zone in mission_data(campaign, initial_state(campaign))["zones"])
+
+    def test_the_numbers_are_the_ones_of_the_plan_the_folder_holds(self, tmp_path: Path) -> None:
+        # 2026-11-17: an older plan kept by `campaign next` would have given the zones numbers no steerpoint carried
+        from campaign_manager.objective_waypoints import flight_plan_numbers
+
+        campaign = _campaign(mode="persistent", objectives=[])
+        plan = {
+            "waypoints": {"SENAKI": {"name": "SENAKI"}, "HOLD": {"name": "HOLD"}},
+            "settings": {"blue_planes": {"waypoints": ["HOLD", "SENAKI"]}},
+        }
+        (tmp_path / "src").mkdir()
+        (tmp_path / WAYPOINTS_FILE).write_text(yaml.safe_dump(plan), encoding="utf-8")
+        assert flight_plan_numbers(campaign, tmp_path) == {"Senaki": 2}

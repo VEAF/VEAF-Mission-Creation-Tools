@@ -139,6 +139,39 @@ def zone_waypoint_numbers(campaign: CampaignDefinition, state: CampaignState) ->
     return {zone.name: index for index, zone in enumerate(strategic_zones(campaign, state), start=1)}
 
 
+def flight_plan_numbers(campaign: CampaignDefinition, mission_folder: Path) -> dict[str, int]:
+    """The waypoint number of each zone in the flight plan the mission folder actually holds.
+
+    Read from `src/waypoints.yaml` rather than computed: a file edited by hand is kept by `campaign next`, and the
+    numbers the players read on the map must be the ones their steerpoints carry. A zone is found in the players'
+    plane plan by its waypoint key (`waypoint_keys`) or by the waypoint's name; 1 is the first after the departure.
+
+    Args:
+        campaign: The validated campaign.
+        mission_folder: The mission folder.
+
+    Returns:
+        Zone name -> number, for the zones the plan holds; empty for a multi-mission campaign or no file.
+    """
+    path = mission_folder / WAYPOINTS_FILE
+    if campaign.mode != "persistent" or not path.is_file():
+        return {}
+    try:
+        content = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError:
+        return {}
+    plan = ((content.get("settings") or {}).get(f"{campaign.player_side}_planes") or {}).get("waypoints") or []
+    points = content.get("waypoints") or {}
+    zone_by_key = {key: name for name, key in waypoint_keys(list(campaign.zones)).items()}
+    numbers: dict[str, int] = {}
+    for index, key in enumerate(plan, start=1):
+        shown = str((points.get(key) or {}).get("name") or key)
+        zone = zone_by_key.get(str(key)) or zone_by_key.get(shown)
+        if zone and zone not in numbers:
+            numbers[zone] = index
+    return numbers
+
+
 def _waypoint(name: str, xy: tuple[float, float], alt: int, alt_type: str, speed: int) -> dict[str, Any]:
     return {
         "type": "Turning Point",

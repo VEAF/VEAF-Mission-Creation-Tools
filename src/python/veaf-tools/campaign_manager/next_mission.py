@@ -265,6 +265,31 @@ def _enable_campaign_module(mission_yaml: Path, era: str) -> None:
     save_yaml(mission_yaml, data)
 
 
+def enable_support_module(mission_yaml: Path, dynamic: dict[str, Any]) -> bool:
+    """Turn the `SUPPORT` module on in `mission.yaml` with the campaign's `dynamic.support`.
+
+    The AWACS and tankers are held by a module of their own (`veafSupport`), which a mission without a campaign
+    may use too; a persistent campaign configures it from `campaign.yaml` and hands it its threats at run time.
+
+    Args:
+        mission_yaml: The mission's `mission.yaml`.
+        dynamic: The campaign's `dynamic:` block.
+
+    Returns:
+        Whether the module was set; ``False`` when the campaign names no asset.
+    """
+    support = dict(dynamic.get("support") or {})
+    if not support.get("assets"):
+        return False
+    data = load_yaml(mission_yaml)
+    modules = data.setdefault("modules", {})
+    if modules is None:
+        modules = data["modules"] = {}
+    modules["SUPPORT"] = {"enabled": True, **support}
+    save_yaml(mission_yaml, data)
+    return True
+
+
 #: The F10 map view a persistent campaign's mission enforces when it sets none: the players see the enemy
 #: their own side has detected, not every garrison, so its strength is learned by reconnaissance
 #: (FEAT-DYNAMIC-CAMPAIGN ticket 08; David, 2026-11-15).
@@ -573,6 +598,7 @@ def prepare_next_mission(
     _enable_campaign_module(mission_folder / "mission.yaml", campaign.era)
     if campaign.mode == "persistent":
         add_campaign_cargo(mission_folder, campaign.dynamic)
+        enable_support_module(mission_folder / "mission.yaml", campaign.dynamic)
         hide_enemies_on_the_map(mission_folder / "mission.yaml")
     # rewritten on every run: the title arrives with the design, and a test copy is the one that turns
     # security off, never the campaign

@@ -64,6 +64,12 @@ _ASSETS_BLOCK = """\
   #         description: Arco-1 (KC-135)
   #         information: "Tacan 64Y\\nU290.50 (20)\""""
 
+_SUPPORT_BLOCK = """\
+  #   SUPPORT:                  # AWACS and tankers held out of the enemy's air defence
+  #     enabled: true
+  #     assets: [ "AWACS Magic", "Tanker Texaco", "Tanker Arco" ]   # groups with an Orbit in their route
+  #     margin: 30000           # metres beyond every enemy reach"""
+
 _SANCTUARY_BLOCK = """\
   #   SANCTUARY:
   #     enabled: true
@@ -223,6 +229,7 @@ _CATALOG: tuple[Module, ...] = (
     Module("QRA", CONFIG, "Combat", config_block=_QRA_BLOCK, tiers=frozenset({"standard", "full"})),
     Module("AIRWAVES", CONFIG, "Combat", config_block=_AIRWAVES_BLOCK, tiers=frozenset({"full"})),
     Module("ASSETS", CONFIG, "Combat", config_block=_ASSETS_BLOCK, tiers=frozenset({"full"})),
+    Module("SUPPORT", CONFIG, "Combat", config_block=_SUPPORT_BLOCK, tiers=frozenset({"full"})),
     Module("SANCTUARY", CONFIG, "Combat", config_block=_SANCTUARY_BLOCK, tiers=frozenset({"full"})),
     # ── Community scripts ──
     # No tier: MiST is not injected unless a mission asks for it, or unless the build finds one

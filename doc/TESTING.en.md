@@ -195,6 +195,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafAircraftSpawn.lua` | Aircraft spawned with a role: the `-cap` contract, reading a route, zone defense (`zone_defense`) |
 | `test_veafAwacsEscort.lua` | `-awacs` (race-track, Skynet, datalink) and `-escort` (the `Escort` task, the airplane nearest the marker, the F10 "Escort me" entry) |
 | `test_veafSanctuary.lua` | Sanctuary zone detection |
+| `test_veafSupport.lua` | AWACS and tankers held out of reach, without shuttling |
 | `test_veafMissileGuardian.lua` | Missile intercept logic |
 | `test_veafCampaign.lua` | Multi-mission campaign: garrisons drawn, recorded, and their losses |
 | `test_veafCampaignPersistent.lua` | Persistent campaign: save read back, victory, defeat, reset, sleeping zones, reinforcement, counter-attacks, CTLD 2 deliveries, self-check |

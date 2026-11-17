@@ -195,6 +195,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafAircraftSpawn.lua` | Avion lancé avec un rôle : contrat `-cap`, lecture de route, défense de zone (`zone_defense`) |
 | `test_veafAwacsEscort.lua` | `-awacs` (hippodrome, Skynet, liaison de données) et `-escort` (tâche `Escort`, avion le plus proche du marqueur, entrée F10 « Escorte-moi ») |
 | `test_veafSanctuary.lua` | Détection de zone sanctuaire |
+| `test_veafSupport.lua` | AWACS et ravitailleurs tenus hors de portée, sans aller-retour |
 | `test_veafMissileGuardian.lua` | Logique d'interception de missiles |
 | `test_veafCampaign.lua` | Campagne multi-missions : tirage, enregistrement et pertes des garnisons |
 | `test_veafCampaignPersistent.lua` | Campagne persistante : sauvegarde relue, victoire, défaite, remise à zéro, zones en sommeil, renfort, contre-attaques, livraisons CTLD 2, auto-contrôle |

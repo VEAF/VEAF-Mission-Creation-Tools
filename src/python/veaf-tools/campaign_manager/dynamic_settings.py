@@ -161,7 +161,17 @@ _SCHEMA: dict[str, Check | dict[str, Check]] = {
         "package_delay": _positive,
     },
     "territory": {"enabled": _flag, "margin": _positive, "hatch_spacing": _positive, "hatch_length": _positive},
-    "support": {"assets": _names, "margin": _natural, "seconds": _positive, "min_move": _natural, "leg": _positive},
+    # the SUPPORT module's settings, written into mission.yaml by `campaign next`
+    "support": {
+        "assets": _names,
+        "margin": _positive,
+        "retreat_margin": _positive,
+        "seconds": _positive,
+        "advance_seconds": _positive,
+        "min_advance": _positive,
+        "leg": _positive,
+        "sam_reach_floor": _positive,
+    },
     "debug": _flag,
     "debug_status_seconds": _positive,
 }

@@ -46,31 +46,31 @@ a VEAF module — the generator starts it from its own block, before the module 
 <!-- MODULE-INIT-TABLE-START -->
 | Module ID | Lua table | Registry order | Generator position | Self-init | `initialize()` |
 | --- | --- | --- | --- | --- | --- |
-| `AIRBASES` | `veafAirbases` | 200 | 18 | -- | `initialize(bReset)` |
+| `AIRBASES` | `veafAirbases` | 200 | 19 | -- | `initialize(bReset)` |
 | `AIRSPAWN` | `veafAircraftSpawn` | -- | -- | -- | -- |
 | `AIRWAVES` | `veafAirWaves` | -- | 13 (data only) | -- | -- |
 | `ASSETS` | `veafAssets` | 160 | 12 | -- | `initialize()` |
-| `ASSIST` | `veafAssist` | 145 | 21 | -- | `initialize()` |
-| `CACHE` | `veafCacheManager` | 3 | 24 | -- | `initialize()` |
+| `ASSIST` | `veafAssist` | 145 | 22 | -- | `initialize()` |
+| `CACHE` | `veafCacheManager` | 3 | 25 | -- | `initialize()` |
+| `CAMPAIGN` | `veafCampaign` | 240 | 28 | -- | `initialize()` |
 | `CAMPAIGNECO` | `veafCampaignEconomy` | -- | -- | -- | `initialize()` |
 | `CAMPAIGNLOG` | `veafCampaignLogistics` | -- | -- | -- | `initialize()` |
 | `CAMPAIGNOPS` | `veafCampaignOps` | -- | -- | -- | `initialize()` |
-| `CAMPAIGN` | `veafCampaign` | 240 | 27 | -- | `initialize()` |
 | `CARRIER` | `veafCarrierOperations` | 80 | 5 | -- | `initialize(includeRadioMenu, runOperationsScheduler)` |
 | `CASMISSION` | `veafCasMission` | 90 | 6 | -- | `initialize()` |
-| `COMBATLOG` | `veafCombatLog` | 235 | 30 | -- | `initialize()` |
+| `COMBATLOG` | `veafCombatLog` | 235 | 31 | -- | `initialize()` |
 | `COMBATMISSION` | `veafCombatMission` | 100 | 8 | -- | `initialize()` |
 | `COMBATZONE` | `veafCombatZone` | 110 | 9 | -- | `initialize()` |
 | `COMMANDS` | `veafCommands` | 15 | -- | -- | `initialize()` |
-| `EVENTS` | `veafEventHandler` | 10 | 25 | yes | `initialize()` |
+| `EVENTS` | `veafEventHandler` | 10 | 26 | yes | `initialize()` |
 | `GEO` | `veafGeo` | -- | -- | -- | `initialize()` |
 | `GRASS` | `veafGrass` | 150 | 11 | -- | `initialize()` |
-| `GROUNDAI` | `veafGroundAI` | 190 | 26 | -- | `initialize()` |
+| `GROUNDAI` | `veafGroundAI` | 190 | 27 | -- | `initialize()` |
 | `I18N` | `veafI18n` | -- | -- | -- | -- |
-| `INTERPRETER` | `veafInterpreter` | 170 | 31 | -- | `initialize()` |
-| `MARKERS` | `veafMarkers` | 4 | 19 | -- | `initialize()` |
+| `INTERPRETER` | `veafInterpreter` | 170 | 32 | -- | `initialize()` |
+| `MARKERS` | `veafMarkers` | 4 | 20 | -- | `initialize()` |
 | `MATH` | `veafMath` | -- | -- | -- | `initialize()` |
-| `MISSILEGUARDIAN` | `veafMissileGuardian` | 180 | 20 | -- | `initialize()` |
+| `MISSILEGUARDIAN` | `veafMissileGuardian` | 180 | 21 | -- | `initialize()` |
 | `MISSIONDB` | `veafMissionDb` | 5 | -- | yes | `initialize()` |
 | `MOVE` | `veafMove` | 60 | 14 | -- | `initialize()` |
 | `NAMEDPOINTS` | `veafNamedPoints` | 50 | 3 | -- | `initialize(customPoints)` |
@@ -78,19 +78,20 @@ a VEAF module — the generator starts it from its own block, before the module 
 | `QRA` | `veafQraManager` | 130 | 10 | -- | `initialize()` |
 | `RADIO` | `veafRadio` | 30 | 1 | -- | `initialize(skipHelpMenus, dontCreateMenus)` |
 | `REACTIVEZONE` | `veafReactiveZone` | -- | -- | -- | -- |
-| `REMOTE` | `veafRemote` | 230 | 17 | -- | `initialize()` |
-| `SANCTUARY` | `veafSanctuary` | 140 | 15 | -- | `initialize()` |
+| `REMOTE` | `veafRemote` | 230 | 18 | -- | `initialize()` |
+| `SANCTUARY` | `veafSanctuary` | 140 | 16 | -- | `initialize()` |
 | `SCHEDULER` | `veafScheduler` | -- | -- | -- | `initialize()` |
 | `SECURITY` | `veafSecurity` | 20 | 0 | -- | `initialize()` |
 | `SHORTCUTS` | `veafShortcuts` | 40 | 2 | -- | `initialize()` |
-| `SKYNET` | `veafSkynet` | 220 | 28 | -- | `initialize(includeRedInRadio, debugRed, includeBlueInRadio, debugBlue)` |
-| `SKYNET_MONITOR` | `veafSkynetMonitor` | 225 | 29 | -- | `initialize()` |
+| `SKYNET` | `veafSkynet` | 220 | 29 | -- | `initialize(includeRedInRadio, debugRed, includeBlueInRadio, debugBlue)` |
+| `SKYNET_MONITOR` | `veafSkynetMonitor` | 225 | 30 | -- | `initialize()` |
 | `SPAWN` | `veafSpawn` | 70 | 4 | -- | `initialize()` |
 | `SPAWNER` | `veafDcsSpawner` | -- | -- | -- | `initialize()` |
-| `TIME` | `veafTime` | 2 | 22 | -- | `initialize()` |
+| `SUPPORT` | `veafSupport` | 165 | 15 | -- | `initialize()` |
+| `TIME` | `veafTime` | 2 | 23 | -- | `initialize()` |
 | `TRANSPORTMISSION` | `veafTransportMission` | 120 | 7 | -- | `initialize()` |
-| `UNITS` | `veafUnits` | 1 | 23 | -- | `initialize()` |
-| `WEATHER` | `veafWeather` | 210 | 16 | -- | `initialize(bWelcomeBrief)` |
+| `UNITS` | `veafUnits` | 1 | 24 | -- | `initialize()` |
+| `WEATHER` | `veafWeather` | 210 | 17 | -- | `initialize(bWelcomeBrief)` |
 <!-- MODULE-INIT-TABLE-END -->
 
 Four registrations wrap their init in a closure that reads the config first — `NAMEDPOINTS`,

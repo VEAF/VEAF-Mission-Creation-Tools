@@ -497,3 +497,24 @@ class TestTheDcsBriefing:
         campaign = _campaign()
         state = initial_state(campaign)
         assert dcs_briefing(campaign, state, None, None) == {"situation": strategic_situation(campaign, state)}
+
+
+class TestTheSupportModule:
+    """2026-11-17: the AWACS and tankers are held by the SUPPORT module, configured from `dynamic.support`."""
+
+    def test_the_campaign_turns_it_on_with_its_settings(self, tmp_path: Path) -> None:
+        from campaign_manager.next_mission import enable_support_module
+
+        mission_yaml = tmp_path / "mission.yaml"
+        mission_yaml.write_text("modules:\n  MOVE: true\n", encoding="utf-8")
+        assert enable_support_module(mission_yaml, {"support": {"assets": ["AWACS Magic"], "margin": 40000}})
+        modules = yaml.safe_load(mission_yaml.read_text(encoding="utf-8"))["modules"]
+        assert modules["SUPPORT"] == {"enabled": True, "assets": ["AWACS Magic"], "margin": 40000}
+        assert modules["MOVE"] is True
+
+    def test_no_asset_no_module(self, tmp_path: Path) -> None:
+        from campaign_manager.next_mission import enable_support_module
+
+        mission_yaml = tmp_path / "mission.yaml"
+        mission_yaml.write_text("modules: {}\n", encoding="utf-8")
+        assert not enable_support_module(mission_yaml, {})

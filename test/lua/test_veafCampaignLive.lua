@@ -439,6 +439,21 @@ function TestCampaignAir:test_cas_strikes_the_enemy_zone_with_most_units_sead_th
   veafCampaign.reserveCategory = savedCategory
 end
 
+function TestCampaignAir:test_cas_keeps_out_of_a_measured_medium_range_air_defence()
+  -- 2026-11-16: a red CAS sent at Hatay, under a Hawk of 40 km, dropped its bombs 20 km short and was shot down
+  start()
+  veafCampaign.zones["Poti"].entry.owner = "blue"
+  veafCampaign.zones["Poti"].entry.garrison = garrison("Poti", nil, { "T-72B", "T-72B", "T-72B" })
+  veafCampaign.zones["Kobuleti"].entry.reach = 60000 -- Kobuleti's Hawk, measured, reaches Poti 50 km away
+  local target, avoided = veafCampaignOps.strikeTarget("red", "cas")
+  luaunit.assertNil(target)
+  luaunit.assertEquals(avoided, "[Poti] under the air defence of [Kobuleti]")
+  -- guns and short-range missiles do not keep it off
+  veafCampaign.zones["Kobuleti"].entry.reach = 8000
+  veafCampaign.zones["Poti"].entry.reach = 8000
+  luaunit.assertEquals(veafCampaignOps.strikeTarget("red", "cas").name, "Poti")
+end
+
 function TestCampaignAir:test_a_strike_engages_orbits_and_lands_home()
   local route, state = veafAircraftSpawn.roles.campaign_strike.buildRoute({
     spot = { x = 0, y = 2500, z = 0 },

@@ -76,6 +76,13 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   supply_seconds = 600,
   max_helicopters = 2,
   helicopter_timeout = 1200,
+  -- a neutral zone held by landed helicopters only, no ground unit, is taken after this long rather than
+  -- `capture_seconds`: on 2026-11-16 red's Mi-8 took both neutral zones in two minutes each, before the blue
+  -- convoys sent 25 to 40 minutes earlier arrived
+  helicopter_capture_seconds = 600,
+  -- an assault convoy not arrived after this long frees its place: on 2026-11-16 two red convoys held both of
+  -- `max_convoys` for more than an hour, one 37 km short of its target after 22 minutes on the road
+  convoy_timeout = 2700,
   helicopter = { red = "Mi-8MT", blue = "UH-1H" },
   supply_crate = "Zone supplies", -- the CTLD 2 crate description that resupplies a friendly zone
   hunter = { enabled = true, ground_kills = 8, air_kills = 4, chance = 10 },
@@ -94,8 +101,10 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   intel = { hidden = true, seconds = 3600, overflight_altitude = 1500, spy_troops = "Spy", spy_range = 5000 },
   air = { strike_seconds = 900, max_flights = 4, cap_per_players = 3, cap_helicopter_chance = 25 },
   -- the V1.5 (tickets 11 to 18)
-  resources = { enabled = true, start = 500, background_per_hour = 30, reserve = 100, prices = {} },
-  factory = { buildings = 3, per_hour = 120, types = { "Workshop A", "Tech combine", "Tech hangar A" } },
+  -- start, background and factory output raised on 2026-11-17: on the first server evening red ran dry after
+  -- 1 h 20 (no raid, SEAD or CAP), its two garrisons taken by helicopter having cost it 128 points of 225
+  resources = { enabled = true, start = 1000, background_per_hour = 60, reserve = 100, prices = {} },
+  factory = { buildings = 3, per_hour = 180, types = { "Workshop A", "Tech combine", "Tech hangar A" } },
   network = { hop_seconds = 600, isolated_seconds = 3600, depot_store = 4, max_deliveries = 3 },
   demolition = { troops = "Sappers", range = 5000, fuse = 120 },
   warehouse = { enabled = true, load = 10 },
@@ -210,6 +219,27 @@ function veafCampaign.pay(side, cost, mode, what)
     return true
   end
   return logistics.pay(side, cost, mode, what)
+end
+
+--- The reason last told under each key of `debugOnce`.
+veafCampaign.toldOnce = {}
+
+--- Tell a decision once, until its reason changes: a refusal re-examined at every beat wrote the same line every
+--- 10 s, 50 times in 9 minutes (2026-11-16, an unpaid CAP). The reason is what the comparison reads, the text may
+--- carry figures that move at every beat (a stock).
+--- @param key string what the decision is about: "cap red", "takeoff red Senaki"
+--- @param reason string what makes it what it is, without the moving figures
+function veafCampaign.debugOnce(key, reason, tag, fmt, ...)
+  if veafCampaign.toldOnce[key] == reason then
+    return
+  end
+  veafCampaign.toldOnce[key] = reason
+  veafCampaign.debug(tag, fmt, ...)
+end
+
+--- Forget what was told under a key: the decision went the other way, the next refusal is news again.
+function veafCampaign.forgetTold(key)
+  veafCampaign.toldOnce[key] = nil
 end
 
 --- Whether the campaign tells its every decision in dcs.log: a persistent campaign with `dynamic.debug`.
@@ -1073,7 +1103,8 @@ function VeafCampaignZone:groundHolders()
   local function visit(isStatic)
     return function(object)
       if object and veafCampaign.holdsGround(object, isStatic) then
-        table.insert(holders, { object = object, side = object:getCoalition(), name = tostring(object:getName()) })
+        local helicopter = not isStatic and object:getDesc().category == Unit.Category.HELICOPTER
+        table.insert(holders, { object = object, side = object:getCoalition(), name = tostring(object:getName()), helicopter = helicopter })
       end
       return true
     end
@@ -1085,12 +1116,27 @@ end
 
 --- Which coalitions hold ground in the zone right now.
 --- @return table `{ [coalition.side.BLUE] = "name of the first object found", ... }`
+--- @return table `{ [coalition.side.BLUE] = true, ... }` for the sides holding it with more than landed helicopters
 function VeafCampaignZone:sidesPresent()
-  local present = {}
+  local present, groundForces = {}, {}
   for _, holder in ipairs(self:groundHolders()) do
     present[holder.side] = present[holder.side] or holder.name
+    if not holder.helicopter then
+      groundForces[holder.side] = true
+    end
   end
-  return present
+  return present, groundForces
+end
+
+--- How long a side must hold a neutral zone alone to take it: `capture_seconds`, or, in a persistent campaign,
+--- `helicopter_capture_seconds` when it holds it with landed helicopters only.
+--- @param byHelicopter boolean
+--- @return number seconds
+function veafCampaign.captureSeconds(byHelicopter)
+  if byHelicopter and veafCampaign.isPersistent() then
+    return veafCampaign.setting("helicopter_capture_seconds")
+  end
+  return veafCampaign.data.capture_seconds or veafCampaign.CAPTURE_SECONDS
 end
 
 --- Advance the capture of a neutral zone by one beat. One side alone runs the clock; both sides stop
@@ -1101,7 +1147,7 @@ function VeafCampaignZone:checkCapture(elapsed)
     self.presence = nil
     return
   end
-  local present = self:sidesPresent()
+  local present, groundForces = self:sidesPresent()
   local blue, red = present[coalition.side.BLUE], present[coalition.side.RED]
   local presence = (blue and red and string.format("contested: blue (%s), red (%s)", blue, red))
     or (blue and string.format("blue (%s)", blue))
@@ -1126,14 +1172,18 @@ function VeafCampaignZone:checkCapture(elapsed)
     self.entry.capture = capture
   end
   capture.seconds = capture.seconds + elapsed
-  if capture.seconds >= (veafCampaign.data.capture_seconds or veafCampaign.CAPTURE_SECONDS) then
-    self:capturedBy(side)
+  local byHelicopter = not groundForces[veafCampaign.SIDES[side]]
+  if capture.seconds >= veafCampaign.captureSeconds(byHelicopter) then
+    self:capturedBy(side, byHelicopter and "helicopter" or nil)
   end
 end
 
 --- The zone is captured: it changes owner, its airbase follows, the new owner's garrison is drawn
 --- and spawned, and everybody is told.
-function VeafCampaignZone:capturedBy(side)
+--- @param side string
+--- @param how string|nil "helicopter" when landed helicopters alone took it: the garrison is a token one, what a
+---   helicopter carries (2026-11-16: the two zones red took by helicopter cost it 128 points of its 225)
+function VeafCampaignZone:capturedBy(side, how)
   self.entry.owner = side
   self.entry.capture = nil
   self.entry.reach = nil -- the former owner's air defence is not the captor's
@@ -1143,7 +1193,7 @@ function VeafCampaignZone:capturedBy(side)
     veaf.loggers
       .get(veafCampaign.Id)
       :info("zone [%s]: no assault convoy of %s in it, its garrison is drawn from the reserve", self.name, side)
-    self:drawGarrison(veafCampaign.reserveOf(side))
+    self:drawGarrison(how == "helicopter" and {} or veafCampaign.reserveOf(side))
     veafCampaign.payGarrison(self, side)
     self:spawnGarrison()
   end
@@ -3200,6 +3250,7 @@ function veafCampaign.initialize()
     veafCampaign.zones[zone.name] = zone
     table.insert(veafCampaign.zoneList, zone)
   end
+  veafCampaign.toldOnce = {}
   if veafCampaign.isPersistent() then
     veafCampaign.freezeAirfields()
   end

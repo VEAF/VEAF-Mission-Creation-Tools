@@ -531,9 +531,44 @@ class TestAPersistentCampaignsConditions:
         )
         assert mission_name("Northern Syria", 1, "Bouclier").endswith("_NoMizedit")
 
+    def test_with_axes_and_no_mission_page_its_title_is_the_operation(self) -> None:
+        from campaign_manager.briefing_prose import BriefingProse, MissionPage, Titled
+        from campaign_manager.next_mission import mission_title
+
+        prose = BriefingProse(operation="Bouclier de l'Oronte", axes=(Titled("Couper", ()),))
+        assert mission_title("persistent", None, prose) == "Bouclier de l'Oronte"
+        assert mission_title("persistent", MissionPage(title="Jour 1", tasks=()), prose) == "Jour 1"
+        assert mission_title("episodic", None, prose) is None
+        assert mission_title("persistent", None, None) is None
+
 
 class TestAPersistentDcsBriefing:
     """2026-11-17: the situation, the axes of effort, the kneeboard for the rest; no objectives of the day."""
+
+    def test_campaign_next_hands_an_axes_only_briefing_yaml_on(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # found on the Syria campaign: with `axes:` and no mission page, campaign next dropped briefing.yaml,
+        # so the mission lost its title and its DCS briefing its axes
+        from campaign_manager import next_mission
+
+        raw = copy.deepcopy(VALID)
+        raw["campaign"].update({"mode": "persistent", "objectives": []})
+        (tmp_path / CAMPAIGN_FILE).write_text(yaml.safe_dump(raw), encoding="utf-8")
+        (tmp_path / "briefing.yaml").write_text(
+            yaml.safe_dump({"operation": "Bouclier", "axes": [{"title": "Couper le réseau", "text": "Saraqib."}]}),
+            encoding="utf-8",
+        )
+        _template(tmp_path)
+        written: dict[str, Any] = {}
+        monkeypatch.setattr(next_mission, "set_briefing", lambda _folder, **texts: written.update(texts))
+        worker = CampaignWorker(tmp_path, tile_cache=tmp_path, tile_fetch=lambda _url: None)
+        worker.init()
+        _, report = worker.next()
+        assert report is not None
+        mission_yaml = (report.folder / "mission.yaml").read_text(encoding="utf-8")
+        assert "Campaign_Caucasus-Front_Mission_01_Bouclier" in mission_yaml
+        assert written["blue_task"] == "1. Couper le réseau"
 
     def test_situation_axes_and_the_kneeboard(self) -> None:
         from campaign_manager.briefing_prose import BriefingProse, Titled

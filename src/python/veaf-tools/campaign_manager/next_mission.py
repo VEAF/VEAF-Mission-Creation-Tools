@@ -354,6 +354,26 @@ def mission_name(campaign: str, number: int, title: str | None, *, fixed_conditi
     return "_".join(parts)
 
 
+def mission_title(mode: str, page: MissionPage | None, prose: BriefingProse | None) -> str | None:
+    """The title the mission's name carries: its page's, else a persistent campaign's operation.
+
+    A persistent campaign written with `axes:` has no mission page; its single mission is the operation.
+
+    Args:
+        mode: The campaign's mode, ``episodic`` or ``persistent``.
+        page: The coming mission's page of `briefing.yaml`, if any.
+        prose: The whole `briefing.yaml`, if any.
+
+    Returns:
+        The title, or ``None`` when there is none to give.
+    """
+    if page:
+        return page.title
+    if mode == "persistent" and prose and prose.operation:
+        return prose.operation
+    return None
+
+
 def _set_squadron_settings(mission_yaml: Path, name: str) -> bool:
     """Name the mission, silence the ATC unless told otherwise, and give it the server's security.
 
@@ -637,7 +657,9 @@ def prepare_next_mission(
     # rewritten on every run: the title arrives with the design, and a test copy is the one that turns
     # security off, never the campaign
     persistent = campaign.mode == "persistent"
-    name = mission_name(campaign.name, state.mission + 1, page.title if page else None, fixed_conditions=not persistent)
+    name = mission_name(
+        campaign.name, state.mission + 1, mission_title(campaign.mode, page, prose), fixed_conditions=not persistent
+    )
     security_restored = _set_squadron_settings(mission_folder / "mission.yaml", name)
     expected = players or campaign.players
     if expected:

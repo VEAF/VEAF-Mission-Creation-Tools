@@ -206,12 +206,18 @@ class CampaignWorker:
         folder = self.mission_folder(state.mission + 1) / MISSION_SUBFOLDER
         # the tasks name the zones the waypoints go to; a defect in briefing.yaml is the deck's to report
         prose, prose_issues = load_prose(self.folder, campaign.missions, state.mission + 1)
-        page = (
-            prose.missions.get(state.mission + 1) if prose and not any(i.level == ERROR for i in prose_issues) else None
-        )
+        usable = prose is not None and not any(i.level == ERROR for i in prose_issues)
+        page = prose.missions.get(state.mission + 1) if prose and usable else None
         try:
             report = prepare_next_mission(
-                campaign, state, self.folder, folder, players=players, page=page, prose=prose if page else None
+                campaign,
+                state,
+                self.folder,
+                folder,
+                players=players,
+                page=page,
+                # a persistent campaign written with `axes:` has no page, and still its operation and axes
+                prose=prose if page or (campaign.mode == "persistent" and usable) else None,
             )
         except FileNotFoundError as error:
             return [*issues, ValidationIssue(ERROR, str(error))], None

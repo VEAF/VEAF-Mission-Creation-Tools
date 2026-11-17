@@ -370,3 +370,38 @@ def test_mission_channels_is_empty_when_there_is_nothing_to_match(
     tmp_path: Path, presets: str | None, theatre: str | None
 ) -> None:
     assert M.mission_channels(_mission_folder(tmp_path, presets, theatre)) == {}
+
+
+class TestAnotherTheatresAirfields:
+    """FEAT-DYNAMIC-CAMPAIGN ticket 20: the Caucasus plan on a Syria mission, and nothing said so."""
+
+    def _presets(self, primary_2: dict[int, str], tactical: dict[str, Any] | None = None) -> dict[str, Any]:
+        return {
+            "channel_lists": {"blue": {"primary_2": primary_2}},
+            "channels_collection": {"tactical": tactical or {}, "airports-caucasus": {"Batumi": {}}},
+        }
+
+    def test_a_caucasus_airfield_on_a_syria_mission_is_reported(self) -> None:
+        found = M.foreign_airfield_aliases(self._presets({1: "Batumi", 2: "Incirlik"}), "Syria")
+        assert found == [("Batumi", "Caucasus")]
+
+    def test_the_theatre_s_own_airfields_and_the_author_s_channels_are_not(self) -> None:
+        assert M.foreign_airfield_aliases(self._presets({1: "Batumi"}), "Caucasus") == []
+        presets = self._presets({1: "Batumi"}, tactical={"Batumi": {"title": "Batumi"}})
+        assert M.foreign_airfield_aliases(presets, "Syria") == []
+
+    def test_a_plan_of_another_theatre_gets_this_one_s_airfields(self) -> None:
+        text = (
+            "channel_lists:\n  blue:\n    primary_2:\n      01: Batumi\n      02: Kutaisi\n\n    fm_supplement:\n"
+            "      01: 30\n\nchannels_collection:\n  airports-syria:\n    Incirlik: {}\n    Aleppo: {}\n"
+            "    Hatzerim (Syria): {}\n"
+        )
+        updated = M.plan_for_theatre(text, "Syria")
+        radio = yaml.safe_load(updated)["channel_lists"]["blue"]["primary_2"]
+        # the TACAN fields first, under the collection's own aliases
+        assert radio == {1: "Hatzerim (Syria)", 2: "Incirlik", 3: "Aleppo"}
+        assert yaml.safe_load(updated)["channel_lists"]["blue"]["fm_supplement"] == {1: 30}
+
+    def test_a_plan_the_author_wrote_is_left_alone(self) -> None:
+        text = "channel_lists:\n  blue:\n    primary_2:\n      01: Batumi\n      02: Incirlik\n"
+        assert M.plan_for_theatre(text, "Syria") == text

@@ -41,6 +41,33 @@ class TestPrepareTheatre(unittest.TestCase):
             self.assertTrue((folder / "mission.yaml").is_file())
             self.assertTrue((folder / "src" / "mission" / "mission").is_file())
 
+    def test_syria_gets_syria_airfields_on_the_second_radio(self) -> None:
+        # 2026-11-16: the Syria campaign flew with Batumi and Kutaisi on its kneeboards
+        import yaml
+
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            result = _runner.invoke(app, ["prepare", "--theatre", "syria", str(folder), "--force"])
+            self.assertEqual(result.exit_code, 0, result.output)
+            presets = yaml.safe_load((folder / "src" / "presets.yaml").read_text(encoding="utf-8"))
+            radio = presets["channel_lists"]["blue"]["primary_2"]
+            self.assertEqual(len(radio), 8)
+            self.assertNotIn("Batumi", radio.values())
+            self.assertIn("Incirlik", radio.values())
+            syria = presets["channels_collection"]["airports-syria"]
+            for alias in radio.values():
+                self.assertIn(alias, syria)
+
+    def test_caucasus_keeps_the_shipped_plan(self) -> None:
+        import yaml
+
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            result = _runner.invoke(app, ["prepare", "--theatre", "caucasus", str(folder), "--force"])
+            self.assertEqual(result.exit_code, 0, result.output)
+            presets = yaml.safe_load((folder / "src" / "presets.yaml").read_text(encoding="utf-8"))
+            self.assertEqual(presets["channel_lists"]["blue"]["primary_2"][1], "Batumi")
+
     def test_unknown_theatre_exits_nonzero(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             result = _runner.invoke(app, ["prepare", "--theatre", "nevada", tmp])

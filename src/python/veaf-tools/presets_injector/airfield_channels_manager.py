@@ -641,6 +641,119 @@ def referenced_aliases(presets: dict[str, Any]) -> set[str]:
     return names
 
 
+#: How many airfields `prepare --theatre` puts on the second radio of the shipped plan.
+THEATRE_PLAN_SIZE = 8
+
+
+def _all_references() -> dict[str, dict[int, dict[str, Any]]]:
+    """Every theatre's reference, by runtime theatre name."""
+    data = yaml.safe_load(read_bundled_text("veaf_libs", "data", "airfield-frequencies.yaml")) or {}
+    return {
+        str(theatre): {int(k): v for k, v in (airfields or {}).items()}
+        for theatre, airfields in (data.get("theatres") or {}).items()
+    }
+
+
+def foreign_airfield_aliases(presets: dict[str, Any], theatre: str) -> list[tuple[str, str]]:
+    """List the airfield channels a channel list names that belong to another theatre's airfields.
+
+    `prepare --theatre Syria` used to ship the Caucasus plan, and the build said nothing: on 2026-11-16 the
+    Syria campaign flew with Batumi, Beslan and Kutaisi on its kneeboards. A channel counts as an airfield
+    of another theatre when it is named after one (``Base-`` stripped), is not an airfield of the mission's
+    theatre, and no collection but a generated ``airports-*`` one defines it — a tactical channel named
+    like a far airfield is the author's.
+
+    Args:
+        presets: The parsed ``presets.yaml``.
+        theatre: The mission's runtime theatre name.
+
+    Returns:
+        ``(alias, theatre it belongs to)``, sorted by alias.
+    """
+    references = _all_references()
+    here = {_normalise(str(entry["name"])) for entry in references.get(theatre, {}).values()}
+    elsewhere: dict[str, str] = {}
+    for other, reference in references.items():
+        if other != theatre:
+            for entry in reference.values():
+                elsewhere.setdefault(_normalise(str(entry["name"])), other)
+    authored: set[str] = set()
+    for name, collection in (presets.get("channels_collection") or {}).items():
+        if not str(name).startswith("airports-") and str(name) != BASES_COLLECTION:
+            authored.update(str(alias) for alias in (collection or {}))
+    found = []
+    for alias in sorted(referenced_aliases(presets)):
+        key = _normalise(re.sub(r" \(.*\)$", "", alias.removeprefix("Base-")))
+        if alias not in authored and key not in here and key in elsewhere:
+            found.append((alias, elsewhere[key]))
+    return found
+
+
+def theatre_airfields(presets: dict[str, Any], theatre: str, count: int = THEATRE_PLAN_SIZE) -> list[str]:
+    """The airfields a first plan of a theatre puts on a radio: the ones with a TACAN first, the main military
+    fields, then the others, alphabetically within each.
+
+    The aliases are the keys of the plan's ``airports-*`` collection of that theatre, which suffixes a name
+    another theatre also has (``Hatzerim (Syria)``); an airfield the collection lacks is left out.
+
+    Args:
+        presets: The parsed ``presets.yaml``.
+        theatre: The runtime theatre name.
+        count: How many.
+
+    Returns:
+        Aliases of the plan's collection for the theatre; empty when it has none.
+    """
+    entries = list(load_reference(theatre).values())
+    entries.sort(key=lambda entry: (entry.get("tacan") is None, str(entry["name"])))
+    wanted = {_normalise(str(entry["name"])) for entry in entries}
+    best: dict[str, str] = {}
+    for name, collection in (presets.get("channels_collection") or {}).items():
+        if not str(name).startswith("airports-") or not isinstance(collection, dict):
+            continue
+        keys = {_normalise(re.sub(r" \(.*\)$", "", str(alias))): str(alias) for alias in collection}
+        if len(set(keys) & wanted) > len(best):
+            best = keys
+    chosen = [best[key] for key in (_normalise(str(entry["name"])) for entry in entries) if key in best]
+    return chosen[:count]
+
+
+def plan_for_theatre(text: str, theatre: str) -> str:
+    """Put a theatre's airfields on the second radio of a plan that names another theatre's.
+
+    Only the entries of ``channel_lists.blue.primary_2`` change, and only when every one of them is an
+    airfield of another theatre: a plan a mission maker wrote stays theirs.
+
+    Args:
+        text: The ``presets.yaml`` text.
+        theatre: The runtime theatre name.
+
+    Returns:
+        The text, rewritten or as it was.
+    """
+    presets = yaml.safe_load(text) or {}
+    radio = ((presets.get("channel_lists") or {}).get("blue") or {}).get("primary_2") or {}
+    current = [str(value) for value in radio.values() if isinstance(value, str)]
+    foreign = {alias for alias, _ in foreign_airfield_aliases(presets, theatre)}
+    chosen = theatre_airfields(presets, theatre)
+    if not current or not chosen or any(alias not in foreign for alias in current):
+        return text
+    newline = "\r\n" if "\r\n" in text else "\n"
+    lines = text.split(newline)
+    start = next((i for i, line in enumerate(lines) if line.startswith("channel_lists:")), None)
+    if start is None:
+        return text
+    head = next((i for i in range(start + 1, len(lines)) if lines[i].strip().startswith("primary_2:")), None)
+    if head is None:
+        return text
+    end = head + 1
+    while end < len(lines) and lines[end].strip() and _indent(lines[end]) > _indent(lines[head]):
+        end += 1
+    pad = " " * (_indent(lines[head]) + 2)
+    entries = [f"{pad}{index:02d}: {yaml_scalar(name)}" for index, name in enumerate(chosen, start=1)]
+    return newline.join([*lines[: head + 1], *entries, *lines[end:]])
+
+
 def load_warehouses_config(folder: Path) -> dict[str, Any]:
     """Read a mission folder's ``src/warehouses.yaml``.
 

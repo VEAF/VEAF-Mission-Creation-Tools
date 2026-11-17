@@ -37,7 +37,13 @@ The branch already holds the CAP sized on the fighters, the escort item (`c066c5
 
 ## Findings
 
-- To be filled as the work goes.
+- **Combat zones and CTLD need no change for point 1.** A combat zone counts its own elements and searches no foreign unit; the VEAF CTLD build has no airbase occupation. Minakh going blue was DCS's own airbase capture (`Airbase.autoCapture`), now off on every airfield of a persistent campaign (known limitation `airbase-captured-by-nearby-ground-units`).
+- **The CSAR error after a `_destroy`** came from `checkWoundedGroupStatus` indexing the survivor before the KIA check that handles a group gone; it now hands that case to the KIA check, which also says "picked up" when a helicopter took him.
+- **A garrison its side cannot pay is token**, as the doc says: `TestCampaignResources.test_a_captured_zone_the_side_cannot_pay_gets_a_token_garrison` already held. Red's drain came from garrisons it *could* pay (essential spending goes down to zero): 109 then 65 points for two helicopter captures. A helicopter capture now gets the token garrison.
+- **The Mi-8 returns to Aleppo (20h23, 21h53) are not reproduced.** Probable cause: DCS lets an AI aircraft abort its task under a threat, and the route from Aleppo to Afrin ran near blue's convoy and Hatay's defences, while the Menagh helicopters, which arrived, did not. The campaign's helicopters are now told to evade rather than abort (`REACTION_ON_THREAT = EVADE_FIRE`), and one that lands away from its zone fails at once with where it landed. To check in game.
+- **Strike announcements**: the notes list "frappes" among the announcements to prefix, but no strike was announced; none is added.
+- **The waypoint numbers assume the client groups' route is the departure point then the injected waypoints**, which the build gives every player group; a module that holds fewer steerpoints keeps the first ones, the most strategic.
+- **Taftanaz and Menagh as airfield zones (Syria campaign)**: whether the AI copes with their short strips cannot be checked outside DCS; in the campaign, AI aircraft take off only from airfields of `nearestOwnZone(…, airfieldsOnly)`, so a red fixed-wing sortie may now leave from Taftanaz or Menagh. To watch in game.
 
 ## Done when
 

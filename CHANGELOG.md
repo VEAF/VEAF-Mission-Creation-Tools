@@ -93,6 +93,18 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   It engages helicopters and attack airplanes only on a draw of `air.cap_helicopter_chance` (25 %), the Hunter never chases them, and a refused CAP is logged once instead of every 10 s.
   The shop sells an escort for the buyer's own group: the DCS escort task for an airplane, a CAP circle that follows a helicopter.
 
+- **What the persistent campaign's first server evening taught** (FEAT-DYNAMIC-CAMPAIGN ticket 20, "Bouclier de l'Oronte" on Syria, 2026-11-16).
+  A pilot the CSAR module puts on the ground after an ejection is nobody's enemy, in every VEAF script (`veaf.isCombatant`): immortal, a red survivor kept Menagh contested and a blue convoy halted until an admin destroyed him; CSAR no longer raises on a survivor destroyed that way.
+  A long-range SAM is a zone's own (`long_range_sam: true`), two a side at most and 120 km apart, checked by `campaign validate`; the `airfield` class no longer draws one in every airfield zone.
+  DCS no longer captures an airfield of a persistent campaign on its own; the "(admin)" commands come last in the Campaign menu.
+  The AI starts with 1,000 resource points and makes 60 an hour plus 180 a factory, as red ran dry after 1 h 20; a zone taken by landed helicopters alone takes 10 minutes and gets a token garrison; a CAS strike keeps out of a measured air defence of 15 km or more.
+  A convoy whose target is already its side's, or on the road 45 minutes, frees its place; only the sides of `dynamic.attacks` send automatic convoys, never where a convoy of theirs already drives.
+  Every announcement says who speaks ("Commandement bleu :", "Renseignement :"); a convoy and an enemy helicopter are told when they leave; each zone has a waypoint in the players' flight plan, the most strategic first, and its number wherever it is named ("Taftanaz (WP 7)").
+  A kill pays half at once and half when the pilot lands at a friendly base (`economy.landing_share`); the AWACS and tankers of `dynamic.support` are held out of the enemy's air defence and told where they go.
+  A refusal is logged once until its reason changes, and `[CAMPAIGN FLIGHT]` says no `nil` and counts no wreck crushing the scenery.
+- **The BULLSEYE waypoint every VEAF mission gets is on the ground** (FEAT-DYNAMIC-CAMPAIGN ticket 20): at 0 m `RADIO`, where a pod or a weapon slaved to the steerpoint looks, no longer at 20,000 ft.
+- **`prepare --theatre` puts that map's airfields on the radio plan** (FEAT-DYNAMIC-CAMPAIGN ticket 20): the shipped plan named the Caucasus airfields whatever the theatre, and the Syria campaign flew with Batumi on its kneeboards; the build now warns about a channel named after another map's airfield.
+
 ## [6.36.0] — 2026-11-05
 
 ### Documentation

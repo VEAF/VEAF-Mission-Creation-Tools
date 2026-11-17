@@ -102,7 +102,7 @@ def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str
                 "size": size.size,
                 "defense": size.defense,
                 "armor": size.armor,
-                "long_range_sam": size.long_range_sam,
+                "long_range_sam": campaign.has_long_range_sam(zone),
             },
         }
         if zone.location.airfield:

@@ -100,14 +100,12 @@ def _category(campaign: CampaignDefinition, zone: CampaignZone) -> str:
     """``logistics``, ``main`` (a size class with a long-range SAM) or ``outpost``."""
     if zone.kind == "logistics":
         return "logistics"
-    size = campaign.size_classes.get(zone.size)
-    return "main" if size is not None and size.long_range_sam else "outpost"
+    return "main" if campaign.has_long_range_sam(zone) else "outpost"
 
 
 def _air_defence(campaign: CampaignDefinition, state: CampaignState, zone: CampaignZone) -> str | None:
     """What is said of a zone's long-range air defence, or ``None`` when it has none."""
-    size = campaign.size_classes.get(zone.size)
-    if size is None or not size.long_range_sam:
+    if not campaign.has_long_range_sam(zone):
         return None
     site = fixed_site(state.zones[zone.name].garrison)
     if site is None:

@@ -27,13 +27,13 @@ campaign:
 
 zones:
   # blue
-  - { name: Batumi, at: { airfield: Batumi }, size: airfield, side: blue }
+  - { name: Batumi, at: { airfield: Batumi }, size: airfield, side: blue, long_range_sam: true }
   - { name: Kobuleti, at: { airfield: Kobuleti }, size: airfield, side: blue }
   # nobody's
   - { name: Poti, at: { lat: 42.150, lon: 41.670 }, size: outpost, side: neutral }
   # red, the front
   - { name: Senaki, at: { airfield: Senaki-Kolkhi }, size: airfield, side: red, radius: 3000 }
-  - { name: Kutaisi, at: { airfield: Kutaisi }, size: airfield, side: red, radius: 3000 }
+  - { name: Kutaisi, at: { airfield: Kutaisi }, size: airfield, side: red, long_range_sam: true, radius: 3000 }
   - { name: Zugdidi, at: { lat: 42.510, lon: 41.870 }, size: outpost, side: red }
   - { name: Gali, at: { lat: 42.630, lon: 41.730 }, size: outpost, side: red }
   # red, the depth
@@ -41,7 +41,7 @@ zones:
   - { name: Tkvarcheli, at: { lat: 42.850, lon: 41.680 }, size: outpost, side: red }
   - { name: Sukhumi, at: { airfield: Sukhumi-Babushara }, size: airfield, side: red }
   - { name: Gudauta, at: { airfield: Gudauta }, size: airfield, side: red }
-  - { name: Sochi, at: { airfield: Sochi-Adler }, size: airfield, side: red, kind: logistics }
+  - { name: Sochi, at: { airfield: Sochi-Adler }, size: airfield, side: red, long_range_sam: true, kind: logistics }
 
 connections:
   - [Batumi, Kobuleti]

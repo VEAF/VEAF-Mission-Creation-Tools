@@ -23,7 +23,13 @@ VALID: dict[str, Any] = {
     "size_classes": {"outpost": {"size": 2}},
     "zones": [
         {"name": "Kobuleti", "at": {"airfield": "Kobuleti"}, "size": "airfield", "side": "blue"},
-        {"name": "Senaki", "at": {"airfield": "Senaki-Kolkhi"}, "size": "airfield", "side": "red"},
+        {
+            "name": "Senaki",
+            "at": {"airfield": "Senaki-Kolkhi"},
+            "size": "airfield",
+            "side": "red",
+            "long_range_sam": True,
+        },
         {
             "name": "Gudauta depot",
             "at": {"lat": 43.10, "lon": 40.58},

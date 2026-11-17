@@ -26,7 +26,7 @@ campaign:
 
 zones:
   # blue
-  - { name: Batumi, at: { airfield: Batumi }, size: airfield, side: blue, radius: 3000 }
+  - { name: Batumi, at: { airfield: Batumi }, size: airfield, side: blue, long_range_sam: true, radius: 3000 }
   - { name: Kobuleti, at: { airfield: Kobuleti }, size: airfield, side: blue, radius: 3000 }
   - { name: Ozurgeti, at: { lat: 41.925, lon: 42.005 }, size: outpost, side: blue, kind: factory }
   - { name: Supsa, at: { lat: 42.030, lon: 41.800 }, size: outpost, side: blue, kind: depot }
@@ -36,7 +36,7 @@ zones:
   - { name: Khobi, at: { lat: 42.315, lon: 41.905 }, size: outpost, side: red }
   - { name: Senaki, at: { airfield: Senaki-Kolkhi }, size: airfield, side: red, radius: 3000 }
   - { name: Samtredia, at: { lat: 42.165, lon: 42.335 }, size: outpost, side: red, kind: depot }
-  - { name: Kutaisi, at: { airfield: Kutaisi }, size: airfield, side: red, radius: 3000 }
+  - { name: Kutaisi, at: { airfield: Kutaisi }, size: airfield, side: red, long_range_sam: true, radius: 3000 }
   - { name: Tkibuli, at: { lat: 42.350, lon: 42.998 }, size: outpost, side: red, kind: factory }
   - { name: Zugdidi, at: { lat: 42.505, lon: 41.870 }, size: outpost, side: red }
 

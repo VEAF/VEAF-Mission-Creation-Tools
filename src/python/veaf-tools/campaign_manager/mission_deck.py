@@ -253,7 +253,7 @@ def _flow_page(
     defences = [
         line(zone.label, _after_colon(enemy_picture(campaign, state, zone)))
         for zone in campaign.zones
-        if state.zones[zone.name].owner == enemy and campaign.size_classes[zone.size].long_range_sam
+        if state.zones[zone.name].owner == enemy and campaign.has_long_range_sam(zone)
     ]
     defences.append(t("campaign.mission_deck.escort_defences"))
     blocks.append(Block(t("campaign.mission_deck.heading.air_defence"), tuple(defences)))

@@ -115,7 +115,8 @@ class TestTheFriendlyPicture:
     def test_our_positions_and_reserve_are_known(self) -> None:
         campaign = _campaign()
         with language("fr"):
-            assert friendly_picture(campaign, campaign.zone("Kobuleti")).startswith("base défendue")
+            # an airfield holds no long-range SAM unless the zone says so (ticket 20): a detachment
+            assert friendly_picture(campaign, campaign.zone("Kobuleti")).startswith("détachement")
             assert reserve_text({"armor": 4, "air_defense": 2, "transport": 3}) == (
                 "4 unités blindées, 2 de défense aérienne, 3 de transport"
             )

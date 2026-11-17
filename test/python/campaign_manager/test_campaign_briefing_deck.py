@@ -101,7 +101,7 @@ class TestTheDeck:
     def test_the_facts_come_from_the_campaign(self, tmp_path: Path) -> None:
         slides = {slide[0]: "\n".join(slide[1:]) for slide in _deck(tmp_path)[1:]}
         military = slides["2. Situation militaire"]
-        assert "– Kobuleti : base défendue" in military
+        assert "– Kobuleti : détachement" in military  # no long-range SAM of its own (ticket 20)
         assert (
             "Réserves : volume inconnu. Elles transiteraient par ses centres logistiques (Gudauta depot)." in military
         )

@@ -1548,6 +1548,7 @@
   "cmd.campaign_next.refreshed": "[bold green]✓ Mission {mission} refreshed from the campaign state: {path}[/bold green]",
   "cmd.campaign_next.airbases": "{count} airbase(s) given to their owner.",
   "cmd.campaign_next.name": "Mission name: {name} (the build appends its date; a server whose MizEdit skips _NoMizedit leaves its date, time and weather alone).",
+  "cmd.campaign_next.name_live": "Mission name: {name} (the build appends its date; the server's MizEdit preset sets its date, time and weather at each load).",
   "cmd.campaign_next.interpreter_commands": "Interpreter commands in a persistent campaign: {commands}. They spawn afresh at every restart, outside the save — their losses forgotten, paid by nobody. Declare these units as zones and garrisons in campaign.yaml instead.",
   "cmd.campaign_next.security_restored": "Security overrides removed from mission.yaml: the squadron flies with the server's security (veaf-pilots.txt), no password. Turn it off in a test copy, never in the campaign.",
   "cmd.campaign_next.waypoints": "Waypoints written from the mission's objectives: src/waypoints.yaml.",

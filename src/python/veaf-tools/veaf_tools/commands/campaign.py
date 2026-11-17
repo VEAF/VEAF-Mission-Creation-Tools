@@ -97,7 +97,9 @@ def campaign_next(
         key = "cmd.campaign_next.created" if report.created else "cmd.campaign_next.refreshed"
         console.print(t(key, mission=report.mission, path=report.folder))
         console.print(t("cmd.campaign_next.airbases", count=len(report.airbases)))
-        console.print(t("cmd.campaign_next.name", name=report.name))
+        # a persistent campaign's name carries no _NoMizedit: the server's MizEdit sets its weather at each load
+        name_key = "cmd.campaign_next.name" if report.name.endswith("_NoMizedit") else "cmd.campaign_next.name_live"
+        console.print(t(name_key, name=report.name))
         if report.security_restored:
             console.print(t("cmd.campaign_next.security_restored"))
         if report.interpreter_commands:

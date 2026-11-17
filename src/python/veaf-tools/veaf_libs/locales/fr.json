@@ -1548,6 +1548,7 @@
   "cmd.campaign_next.refreshed": "[bold green]✓ Mission {mission} rafraîchie à partir de l'état de la campagne : {path}[/bold green]",
   "cmd.campaign_next.airbases": "{count} aérodrome(s) attribué(s) à leur propriétaire.",
   "cmd.campaign_next.name": "Nom de la mission : {name} (le build y ajoute sa date ; un serveur dont le MizEdit ignore _NoMizedit laisse sa date, son heure et sa météo).",
+  "cmd.campaign_next.name_live": "Nom de la mission : {name} (le build y ajoute sa date ; le preset MizEdit du serveur règle sa date, son heure et sa météo à chaque chargement).",
   "cmd.campaign_next.interpreter_commands": "Commandes d'interpréteur dans une campagne persistante : {commands}. Elles refont apparaître leurs unités à chaque redémarrage, hors de la sauvegarde — pertes oubliées, payées par personne. Déclarez plutôt ces unités en zones et garnisons dans campaign.yaml.",
   "cmd.campaign_next.security_restored": "Réglages de sécurité retirés de mission.yaml : l'escadrille vole avec la sécurité du serveur (veaf-pilots.txt), sans mot de passe. La couper dans une copie de test, jamais dans la campagne.",
   "cmd.campaign_next.waypoints": "Waypoints écrits depuis les objectifs de la mission : src/waypoints.yaml.",

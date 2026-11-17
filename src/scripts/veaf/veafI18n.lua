@@ -2248,9 +2248,14 @@ veaf.i18nCatalog = {
   ["campaign.network.zone"] = { fr = "- %s : %d min depuis %s", en = "- %s: %d min from %s" },
   ["campaign.network.cut"] = { fr = "- %s : coupée du réseau", en = "- %s: cut off" },
   ["campaign.network.underway"] = { fr = " (livraison en route)", en = " (a delivery on its way)" },
-  ["campaign.support.moved"] = {
-    fr = "%s prend une nouvelle orbite, au %03d à %d nautiques du bullseye, hors de portée des défenses ennemies connues. Fréquence inchangée.",
-    en = "%s takes a new orbit, %03d for %d nm from the bullseye, out of the known enemy air defences. Same frequency.",
+  -- veafSupport
+  ["support.retreat"] = {
+    fr = "%s se replie sur une nouvelle orbite, au %03d à %d nautiques du bullseye, hors de portée d'une défense ennemie. Fréquence inchangée.",
+    en = "%s falls back to a new orbit, %03d for %d nm from the bullseye, out of an enemy air defence's reach. Same frequency.",
+  },
+  ["support.advance"] = {
+    fr = "%s se rapproche, nouvelle orbite au %03d à %d nautiques du bullseye : la voie est libre depuis un moment. Fréquence inchangée.",
+    en = "%s moves closer, new orbit %03d for %d nm from the bullseye: the way has been clear for a while. Same frequency.",
   },
   ["campaign.network.arrived"] = {
     fr = "%s est renforcée par le réseau d'approvisionnement.",

@@ -1599,82 +1599,35 @@ function TestCampaignCapReach:test_far_from_any_defence_it_keeps_its_full_reach(
 end
 
 -- ---------------------------------------------------------------------------
--- AWACS and tankers held out of the enemy's air defence (ticket 20, point 14)
+-- AWACS and tankers: the campaign feeds the SUPPORT module (ticket 20, point 14)
 -- ---------------------------------------------------------------------------
 TestCampaignSupport = { setUp = setUpSuite, tearDown = tearDownSuite }
 
-function TestCampaignSupport:setUp()
-  setUpSuite(self)
-  self.moves = {}
-  local this = self
-  self.supportSaved = { move = veafMove, group = Group.getByName, ref = coalition.getMainRefPoint }
-  veafMove = {
-    _getTankerRouteData = function()
-      return { point2 = { x = -100000, y = 0 } } -- the Mission Editor's orbit, 100 km behind Kobuleti
-    end,
-    moveTanker = function(point, name, _, _, heading, leg)
-      table.insert(this.moves, { x = point.x, z = point.z, name = name, heading = heading, leg = leg })
-      return true
-    end,
-  }
-  Group.getByName = function(name)
-    if name ~= "AWACS Magic" then
-      return this.supportSaved.group(name)
-    end
-    return {
-      isExist = function()
-        return true
-      end,
-      getCoalition = function()
-        return coalition.side.BLUE
-      end,
-      getID = function()
-        return this.groupId or 1
-      end,
-    }
-  end
-  coalition.getMainRefPoint = function()
-    return { x = 0, y = 0, z = 0 }
-  end
-end
-
-function TestCampaignSupport:tearDown()
-  veafMove, Group.getByName, coalition.getMainRefPoint = self.supportSaved.move, self.supportSaved.group, self.supportSaved.ref
-  tearDownSuite(self)
-end
-
-function TestCampaignSupport:test_the_awacs_holds_out_of_reach_and_comes_closer_when_a_sam_dies()
-  start({ support = { assets = { "AWACS Magic" } } })
-  -- Senaki's air defence measured at 120 km: the station is 150 km short of it, over Kobuleti's rear
+function TestCampaignSupport:test_the_threats_are_the_enemy_zones_at_their_reach_asleep_or_awake()
+  start()
   veafCampaign.zones["Senaki"].entry.reach = 120000
-  veafCampaignOps.maintainSupport(0)
-  luaunit.assertEquals(#self.moves, 1)
-  luaunit.assertEquals({ self.moves[1].x, self.moves[1].z }, { -50000, 0 })
-  luaunit.assertEquals(self.moves[1].heading, 90) -- the leg across the axis
-  luaunit.assertEquals(#messagesContaining("AWACS Magic"), 1)
-  -- weighed again before the period: nothing
-  veafCampaignOps.maintainSupport(100)
-  luaunit.assertEquals(#self.moves, 1)
-  -- the SAM is gone: forward, but never beyond our own front zone (Poti, 50 km from Senaki)
-  veafCampaign.zones["Senaki"].entry.reach = nil
-  veafCampaign.zones["Senaki"].entry.garrison = nil
-  veafCampaignOps.maintainSupport(300)
-  luaunit.assertEquals(#self.moves, 2)
-  luaunit.assertTrue(self.moves[2].x <= 50000)
-  luaunit.assertTrue(self.moves[2].x > -50000)
+  local threats = {}
+  for _, threat in ipairs(veafCampaignOps.supportThreats(coalition.side.BLUE)) do
+    threats[threat.name] = threat.reach
+  end
+  luaunit.assertEquals(threats["Senaki"], 120000)
+  luaunit.assertNil(threats["Poti"], "a zone of ours is no threat")
 end
 
-function TestCampaignSupport:test_an_asset_respawned_is_placed_again()
-  -- the review of #1293: a respawn from the assets menu brought the tanker back on its orbit, under the SAM, and
-  -- the station remembered said it was already placed
-  start({ support = { assets = { "AWACS Magic" } } })
-  veafCampaign.zones["Senaki"].entry.reach = 120000
-  veafCampaignOps.maintainSupport(0)
-  veafCampaignOps.maintainSupport(300)
-  luaunit.assertEquals(#self.moves, 1)
-  self.groupId = 2 -- respawned: a new group id
-  veafCampaignOps.maintainSupport(600)
-  luaunit.assertEquals(#self.moves, 2)
+function TestCampaignSupport:test_the_front_is_our_zone_nearest_the_threat()
+  start()
+  -- Poti (ours) stands 50 km from Senaki
+  luaunit.assertEquals(veafCampaignOps.supportFront(coalition.side.BLUE, nil, { center = { x = 100000, z = 0 } }), 50000)
+end
+
+function TestCampaignSupport:test_the_campaign_hands_its_hooks_to_the_module()
+  veafSupport = {}
+  start()
+  luaunit.assertEquals(veafSupport.threatSource, veafCampaignOps.supportThreats)
+  luaunit.assertEquals(veafSupport.frontLimit, veafCampaignOps.supportFront)
+  veafSupport.tell(coalition.side.BLUE, "Magic moves")
+  luaunit.assertEquals(#messagesContaining(veaf.t("campaign.speaker.blue") .. "Magic moves"), 1)
+  veafSupport = nil
 end
 
 -- ---------------------------------------------------------------------------

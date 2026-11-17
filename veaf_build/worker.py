@@ -154,6 +154,7 @@ LUA_BUNDLE_SCRIPTS: list[str] = [
     "veafQraCore.lua",
     "veafQraManager.lua",
     "veafSanctuary.lua",
+    "veafSupport.lua",
     "veafSkynetIadsHelper.lua",
     "veafSkynetIadsMonitor.lua",
     "veafTime.lua",

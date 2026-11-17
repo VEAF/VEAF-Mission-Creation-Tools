@@ -1041,13 +1041,44 @@ function TestCampaignAdminMenus:test_the_admin_commands_ask_the_admin_level()
     added[title] = command
     return command
   end
-  veafCampaign.buildRadioMenu()
+  veafCampaign.buildAdminMenu()
   veafRadio.addSecuredCommandToSubmenu = add
   for _, key in ipairs({ "menu.campaign.counters", "menu.campaign.self_check", "menu.campaign.reset" }) do
     local command = added[veaf.t(key)]
     luaunit.assertNotNil(command, key)
     luaunit.assertEquals(command.securityLevel, 90, key)
   end
+end
+
+-- 2026-11-16: the admin commands came before the shop and the rest, which fell to the menu's second page
+function TestCampaignAdminMenus:test_the_admin_commands_come_last()
+  local titles = {}
+  local saved = {}
+  for _, name in ipairs({ "addCommandToSubmenu", "addSecuredCommandToSubmenu", "addSubMenu" }) do
+    saved[name] = veafRadio[name]
+    veafRadio[name] = function(title, menu, ...)
+      if menu ~= nil and menu == veafCampaign.rootPath then
+        table.insert(titles, title)
+      end
+      return saved[name](title, menu, ...)
+    end
+  end
+  start()
+  for name, original in pairs(saved) do
+    veafRadio[name] = original
+  end
+  local admin =
+    { [veaf.t("menu.campaign.counters")] = true, [veaf.t("menu.campaign.self_check")] = true, [veaf.t("menu.campaign.reset")] = true }
+  local seenAdmin = false
+  for _, title in ipairs(titles) do
+    if admin[title] then
+      seenAdmin = true
+    else
+      luaunit.assertFalse(seenAdmin, "a command after the admin ones: " .. tostring(title))
+    end
+  end
+  luaunit.assertTrue(seenAdmin)
+  luaunit.assertEquals(titles[#titles], veaf.t("menu.campaign.reset"))
 end
 
 os.exit(luaunit.LuaUnit.run())

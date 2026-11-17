@@ -2308,6 +2308,15 @@ function veafCampaign.buildRadioMenu()
     nil,
     veafRadio.USAGE_ForAll
   )
+  veafRadio.refreshRadioMenu()
+end
+
+--- The "(admin)" commands of the Campaign menu, added once every other entry is: on the first server evening
+--- (2026-11-16) they came before the shop and the rest, which fell to the menu's second page.
+function veafCampaign.buildAdminMenu()
+  if not (veafRadio and veafCampaign.rootPath) then
+    return
+  end
   -- the "(admin)" commands ask the admin level: a secured command asks a senior pilot by default, and a
   -- senior pilot opened the self-check on the first server evening (2026-11-16)
   local function adminCommand(title, method)
@@ -3249,6 +3258,7 @@ function veafCampaign.initialize()
       end
     end
   end
+  veafCampaign.buildAdminMenu()
   veafCampaign.loopId =
     veafScheduler.scheduleFunction(veafCampaign.beat, nil, timer.getTime() + veafCampaign.BEAT_SECONDS, veafCampaign.BEAT_SECONDS)
   return true

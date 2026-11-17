@@ -340,7 +340,7 @@ def briefing_texts(
     Args:
         content: The mission table.
         dictionary: The mission's ``l10n/DEFAULT/dictionary``, for a ``DictKey_…`` text.
-        folder: The mission folder, for ``docs/briefing-contenu.md`` and ``docs/briefing.pptx``.
+        folder: The mission folder, for ``docs/briefing-contenu.md`` and ``docs/<mission>_briefing.pptx``.
 
     Returns:
         Text name to text, for those that exist.
@@ -356,9 +356,9 @@ def briefing_texts(
         markdown = folder / "docs" / "briefing-contenu.md"
         if markdown.is_file():
             texts["docs/briefing-contenu.md"] = markdown.read_text(encoding="utf-8")
-        deck = folder / "docs" / "briefing.pptx"
-        if deck.is_file():
-            texts["docs/briefing.pptx"] = _deck_text(deck)
+        # the deck is named after the mission (`docs/<mission>_briefing.pptx`), or `docs/briefing.pptx` before
+        for deck in sorted((folder / "docs").glob("*briefing.pptx")):
+            texts[f"docs/{deck.name}"] = _deck_text(deck)
     return texts
 
 

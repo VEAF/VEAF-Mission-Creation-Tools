@@ -68,7 +68,7 @@ def report(folder: Path):
 
 
 def test_the_briefing_gives_a_pdf_beside_the_deck(report, folder: Path) -> None:
-    assert report.pdf == folder / "docs" / "briefing.pdf"
+    assert report.pdf == report.deck.with_suffix(".pdf")
     assert report.pdf.read_bytes().startswith(b"%PDF")
     assert report.pdf_pages >= report.pages
     assert len(PdfReader(str(report.pdf)).pages) == report.pdf_pages

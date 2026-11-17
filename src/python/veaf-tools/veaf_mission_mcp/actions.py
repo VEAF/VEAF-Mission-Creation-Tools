@@ -2207,7 +2207,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ActionSpec(
             name="build_mission_briefing",
             description=(
-                "WRITE a one-shot mission's VEAF BRIEFING with no script: docs/briefing.pptx (the objective "
+                "WRITE a one-shot mission's VEAF BRIEFING with no script: docs/<mission>_briefing.pptx (the objective "
                 "mission template, page for page, in the mission's language; Drive imports it into Google "
                 "Slides), docs/maps/ (an overview and one zoom per objective, on OpenStreetMap or OpenTopoMap "
                 "tiles, plus a COMBAT AREA map framed on the objectives and threats), and the same maps as the DCS "
@@ -2230,7 +2230,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "pitch?, x?, y?, altitude_m?, order?} goes after its objective's zoom, two to a slide and to a "
                 "kneeboard page, captioned; the result's recon lists them. "
                 "Call it again after any change and a rebuild: it replaces its own pictures. It writes "
-                "docs/briefing.pdf too (the deck's pages and words, its own layout, no Office needed; pdf_pages) "
+                "docs/<mission>_briefing.pdf too (the deck's pages and words, its own layout, no Office needed; pdf_pages) "
                 "and warns about a W<n> the route does not carry, and about French text written without its "
                 "accents. When mission.yaml declares an operation, its tasks are the main objectives, the other "
                 "objectives secondary, and a chained zone (a counter-attack) is in neither list. With flights, the "

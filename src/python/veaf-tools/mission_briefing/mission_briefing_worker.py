@@ -135,6 +135,26 @@ DECK_FILE = Path("docs") / "briefing.pptx"
 #: The PDF of the same pages, in the mission folder.
 PDF_FILE = Path("docs") / "briefing.pdf"
 
+
+def briefing_files(folder: Path) -> tuple[Path, Path]:
+    """The deck and its PDF, named after the mission: ``docs/<mission>_briefing.pptx`` (David, 2026-11-17).
+
+    Args:
+        folder: The mission folder, whose ``mission.yaml`` gives the name.
+
+    Returns:
+        The deck's path and the PDF's; ``docs/briefing.pptx`` and ``.pdf`` when the mission has no name.
+    """
+    from campaign_manager.next_mission import _name_part
+
+    path = folder / "mission.yaml"
+    mission = (load_yaml(path).get("mission") if path.is_file() else None) or {}
+    name = _name_part(str(mission.get("name") or ""))
+    if not name:
+        return folder / DECK_FILE, folder / PDF_FILE
+    return folder / "docs" / f"{name}_briefing.pptx", folder / "docs" / f"{name}_briefing.pdf"
+
+
 #: The maps, in the mission folder.
 MAPS_FOLDER = Path("docs") / "maps"
 
@@ -1326,10 +1346,9 @@ def _write_deck_and_pdf(
             sheets.append(PhotoSheet(recon_title, pair))
     for item in closing:
         _write_item(deck, item, sheets)
-    out = folder / DECK_FILE
+    out, pdf = briefing_files(folder)
     out.parent.mkdir(parents=True, exist_ok=True)
     deck.save(str(out))
-    pdf = folder / PDF_FILE
     cover = Cover(
         content.title,
         t("campaign.mission_deck.subtitle"),
@@ -1505,8 +1524,7 @@ def _build(
             combat,
             recon,
         )
-    out = folder / DECK_FILE
-    pdf = folder / PDF_FILE
+    out, pdf = briefing_files(folder)
 
     maps = [overview.path, *([combat.path] if combat else []), *(zoom.path for zoom in zooms)]
     pages = (

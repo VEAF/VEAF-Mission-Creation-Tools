@@ -27,6 +27,7 @@ from campaign_manager.briefing_prose import MissionPage
 from campaign_manager.mission_conditions import MissionConditions, set_conditions
 from campaign_manager.models import COALITIONS, CampaignDefinition, CampaignState
 from campaign_manager.objective_waypoints import flight_plan_numbers, write_objective_waypoints, zone_waypoint_numbers
+from campaign_manager.radio_plan import write_campaign_radio_plan
 from campaign_manager.turn_manager import describe_change, enemy_of, evaluate_objectives, garrison_strength, outcome
 
 #: The data table, in the mission folder, the build turns into `veafCampaign.data`.
@@ -544,6 +545,9 @@ def prepare_next_mission(
         _set_opposition(mission_folder / "mission.yaml", opposition_for(expected, campaign.player_side))
     # date, time and weather are fixed once, when the folder is created: a refresh keeps what was set since
     conditions = set_conditions(campaign, state, mission_folder) if created else None
+    # the radio plan too: written with the folder, the mission maker's afterwards (radio_plan)
+    if created:
+        write_campaign_radio_plan(campaign, mission_folder)
     return NextMissionReport(
         mission=state.mission + 1,
         folder=mission_folder,

@@ -379,10 +379,13 @@ or a red base with slots nobody asked for, is an inconsistency.
 **A persistent campaign** (`mode: persistent`) also follows these, learnt on its first server evening
 (*Bouclier de l'Oronte*, Syria, 2026-11-16), each with what broke without it. `campaign validate` warns
 about most of them: a warning there is a defect to fix before the server, not a remark.
-- **The frequency plan is the theatre's.** `prepare --theatre X` puts X's airfields on the second radio;
-  then write the plan for the campaign's own bases (`describe_airfield_channels`, `set_airfield_channels`)
-  and its AWACS and tankers, and drop what the mission does not have (the scaffold's carriers and tankers).
-  The Syria campaign flew with Batumi, Beslan and Kutaisi on its kneeboards.
+- **The radio plan is David's, and the theatre's** (2026-11-17). VHF: channel 1 "Home Base" (each pilot
+  sets it to the field he took off from), then the players' side's airfields, with this theatre's
+  frequencies. UHF: the AWACS, the tankers, one common air-to-ground frequency "Air-Sol", then the VEAF
+  flights (Archer, Arctic, Ninja, Pinder, Bengal, Blade…). No carriers unless the mission has them, no
+  range of another map, nothing of the Caucasus off the Caucasus. `campaign next` writes this plan when it
+  creates the mission folder, from the zones and the support groups of the template: put the AWACS and the
+  tankers in the template first. The Syria campaign flew with Batumi, Beslan and Kutaisi on its kneeboards.
 - **An AWACS and a tanker in the template**, each with an orbit (`add_air_group` with an air start, then
   `edit_route`: a second point, the `awacs` or `tanker` task, `set_unlimited_fuel`, a race-track `orbit`),
   their channels in `src/presets.yaml`, declared in `modules.ASSETS`, named in `dynamic.support.assets`

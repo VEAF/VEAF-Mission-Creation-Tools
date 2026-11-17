@@ -70,7 +70,7 @@ Then the mission of the `missions\mission-01\mission` folder is built like any m
 The briefings `campaign next` and `campaign briefing` write ([campaign briefing](CAMPAIGN.en.md#briefing-deck), [mission briefing](CAMPAIGN.en.md#mission-briefing), and the strategic situation text that becomes the DCS briefing) speak of a persistent campaign: no count of missions, victory when the enemy holds no zone left, the tasks of `briefing.yaml` as standing orders, factories instead of reserves, an enemy air force active from its airfields, and an annex on the living front that leaves out what `dynamic:` turns off (`attacks`, `supply`, `bombers.enabled`, `resources.enabled`).
 
 `campaign next` also adds to the mission's `ctld-config.yaml` what the players carry for the campaign: the **"Zone supplies"** crate (one per side), the **"Spy"** troop group (one man) and the **"Sappers"** group (two men, the [demolition team](#demolition)).
-It writes the players' [waypoints](#waypoints), one per zone.
+It writes the players' [waypoints](#waypoints), one per zone, and, when it creates the mission folder, its [radio plan](#radio-plan).
 It also enforces the "fog of war" F10 view (`mission.forced_options.f10_view: fog_of_war`): a pilot sees only the enemies their side has detected, and a garrison's strength is learned by [reconnaissance](#intel). A view already chosen in `mission.yaml` is kept.
 
 **No interpreter command in a persistent campaign.**
@@ -92,6 +92,18 @@ A module that holds fewer steerpoints than there are zones keeps the first ones.
 Each zone keeps its number, the one after the departure point: the F10 label, the situation, the shop, the intelligence and every announcement name it "Taftanaz (WP 7)".
 The order is the one of the campaign's state when `campaign next` runs; the build adds BULLSEYE after them.
 A `waypoints.yaml` edited by hand is left alone, as for a [multi-mission campaign](CAMPAIGN.en.md), and the numbers the players read are the ones it holds: a zone it leaves out shows none.
+
+### The radio plan {#radio-plan}
+
+When it creates the mission folder, `campaign next` writes the players' radio plan in `src/presets.yaml`; edited afterwards, it is the mission maker's.
+
+| Radio | Channels |
+|---|---|
+| VHF, the airfields' radio | 1 **Home Base**, which each pilot sets to the field taken off from; then the players' side's airfields, with the frequencies DCS gives them on this theatre |
+| UHF | the AWACS and the tankers of `dynamic.support.assets` and `economy.tanker`, on their group's frequency; **Air-Sol**, the common air-to-ground frequency (305.0); then the VEAF flights, Archer first |
+
+A channel needs a frequency for the build to keep it on the radio and the kneeboard: Home Base carries a placeholder no airfield of DCS uses (VHF 118.025, UHF 230.025), which the pilot overwrites.
+The AWACS and the tankers must therefore be in the template before the first `campaign next`.
 
 ### Long-range SAMs {#long-range-sams}
 

@@ -70,7 +70,7 @@ Puis on construit la mission du dossier `missions\mission-01\mission` comme n'im
 Les briefings que `campaign next` et `campaign briefing` écrivent ([briefing de campagne](CAMPAIGN.md#briefing-deck), [briefing de mission](CAMPAIGN.md#mission-briefing), et le texte de situation stratégique qui devient le briefing DCS) parlent d'une campagne persistante : pas de nombre de missions, la victoire quand l'ennemi ne tient plus aucune zone, les tâches de `briefing.yaml` en ordres en cours, les usines à la place des réserves, une aviation ennemie active au départ de ses aérodromes, et une annexe sur le front vivant qui omet ce que `dynamic:` coupe (`attacks`, `supply`, `bombers.enabled`, `resources.enabled`).
 
 `campaign next` ajoute aussi au `ctld-config.yaml` de la mission ce que les joueurs transportent pour la campagne : la caisse **« Zone supplies »** (une par camp), le groupe de troupes **« Spy »** (un homme) et le groupe **« Sappers »** (deux hommes, l'[équipe de démolition](#demolition)).
-Il écrit les [waypoints](#waypoints) des joueurs, un par zone.
+Il écrit les [waypoints](#waypoints) des joueurs, un par zone, et, quand il crée le dossier de la mission, son [plan radio](#radio-plan).
 Il impose enfin la vue F10 « fog of war » (`mission.forced_options.f10_view: fog_of_war`) : un pilote ne voit que les ennemis que son camp a détectés, et la force d'une garnison s'apprend par la [reconnaissance](#intel). Une vue déjà choisie dans `mission.yaml` est gardée.
 
 **Pas de commande d'interpréteur dans une campagne persistante.**
@@ -92,6 +92,18 @@ Un module qui tient moins de points qu'il n'y a de zones garde les premiers.
 Chaque zone garde son numéro, celui qui suit le point de départ : l'étiquette F10, la situation, la boutique, le renseignement et chaque annonce la nomment « Taftanaz (WP 7) ».
 L'ordre est celui de l'état de la campagne au moment de `campaign next` ; le build ajoute BULLSEYE après eux.
 Un `waypoints.yaml` modifié à la main est laissé tel quel, comme pour une [campagne multi-missions](CAMPAIGN.md), et les numéros que lisent les joueurs sont ceux qu'il porte : une zone qu'il ne contient pas n'en affiche aucun.
+
+### Le plan radio {#radio-plan}
+
+Quand il crée le dossier de la mission, `campaign next` écrit le plan radio des joueurs dans `src/presets.yaml` ; modifié ensuite, il appartient au créateur de la mission.
+
+| Radio | Canaux |
+|---|---|
+| VHF, la radio des aérodromes | 1 **Home Base**, que chaque pilote règle sur le terrain d'où il a décollé ; puis les aérodromes du camp des joueurs, avec les fréquences que DCS leur donne sur ce théâtre |
+| UHF | les AWACS et ravitailleurs de `dynamic.support.assets` et `economy.tanker`, sur la fréquence de leur groupe ; **Air-Sol**, la fréquence air-sol commune (305,0) ; puis les vols VEAF, Archer en tête |
+
+Un canal a besoin d'une fréquence pour que le build le garde sur la radio et la planchette : Home Base porte une fréquence d'attente qu'aucun aérodrome de DCS n'utilise (VHF 118,025, UHF 230,025), que le pilote remplace.
+L'AWACS et les ravitailleurs doivent donc être dans le template avant le premier `campaign next`.
 
 ### Les SAM longue portée {#long-range-sams}
 

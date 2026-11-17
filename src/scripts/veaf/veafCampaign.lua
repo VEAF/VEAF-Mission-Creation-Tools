@@ -1319,12 +1319,17 @@ end
 function VeafCampaignZone:mapLabel()
   local capture = self.entry.capture
   if capture then
-    return veaf.t("campaign.map_label_capture", self.name, veaf.t("campaign.side." .. capture.side), math.floor(capture.seconds or 0))
+    return veaf.t(
+      "campaign.map_label_capture",
+      veafCampaign.zoneTitle(self.name),
+      veaf.t("campaign.side." .. capture.side),
+      math.floor(capture.seconds or 0)
+    )
   end
   if self.entry.owner == "neutral" then
-    return veaf.t("campaign.map_label_neutral", self.name)
+    return veaf.t("campaign.map_label_neutral", veafCampaign.zoneTitle(self.name))
   end
-  return veaf.t("campaign.map_label", self.name, self:strengthPercent())
+  return veaf.t("campaign.map_label", veafCampaign.zoneTitle(self.name), self:strengthPercent())
 end
 
 --- Whether the zone is revealed to the players' side now (FEAT-DYNAMIC-CAMPAIGN ticket 08).
@@ -1348,7 +1353,7 @@ end
 --- What a side sees of the zone on the map.
 function VeafCampaignZone:labelFor(side)
   if veafCampaign.hidesFrom(self, side) then
-    return veaf.t("campaign.map_label_hidden", self.name) .. self:kindSuffix()
+    return veaf.t("campaign.map_label_hidden", veafCampaign.zoneTitle(self.name)) .. self:kindSuffix()
   end
   return self:mapLabel() .. self:kindSuffix()
 end
@@ -2102,7 +2107,7 @@ function veafCampaign.buildAssaultMenu()
       for _, neighbour in ipairs(veafCampaign.neighbours(zone.name)) do
         if neighbour.entry.owner ~= "blue" then
           veafRadio.addSecuredCommandToSubmenu(
-            veaf.t("menu.campaign.assault_entry", zone.name, neighbour.name),
+            veaf.t("menu.campaign.assault_entry", veafCampaign.zoneTitle(zone.name), veafCampaign.zoneTitle(neighbour.name)),
             veafCampaign.assaultPath,
             veafCampaign.orderAssault,
             { zone.name, neighbour.name },
@@ -2323,9 +2328,10 @@ function veafCampaign.situationText(side)
     veaf.t("campaign.situation.header", data.campaign or "", data.mission or 0, data.missions or 0),
   }
   for _, zone in ipairs(veafCampaign.zoneList) do
-    local line = veaf.t("campaign.situation.zone", zone.name, veaf.t("campaign.side." .. zone.entry.owner), zone:strengthPercent())
+    local title = veafCampaign.zoneTitle(zone.name)
+    local line = veaf.t("campaign.situation.zone", title, veaf.t("campaign.side." .. zone.entry.owner), zone:strengthPercent())
     if side and veafCampaign.hidesFrom(zone, side) then
-      line = veaf.t("campaign.situation.zone_hidden", zone.name, veaf.t("campaign.side." .. zone.entry.owner))
+      line = veaf.t("campaign.situation.zone_hidden", title, veaf.t("campaign.side." .. zone.entry.owner))
     end
     local capture = zone.entry.capture
     if capture then

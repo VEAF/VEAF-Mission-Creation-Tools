@@ -257,3 +257,31 @@ class TestTheWorker:
         plane = _load(report.folder).get_flight_plan_for(coalition="blue", category="plane")
         assert plane is not None
         assert [wp.name for wp in plane.waypoints] == ["SENAKI", "GUDAUTA"]
+
+
+class TestAPersistentCampaignsWaypoints:
+    """FEAT-DYNAMIC-CAMPAIGN ticket 20: a waypoint per zone, the most strategic first, its number on the map."""
+
+    def test_every_zone_the_front_first(self) -> None:
+        from campaign_manager.objective_waypoints import strategic_zones
+
+        campaign = _campaign(mode="persistent", objectives=[])
+        state = initial_state(campaign)
+        # Kobuleti (blue) - Senaki (red) - Gudauta depot (red): the first two face each other
+        order = [zone.name for zone in strategic_zones(campaign, state)]
+        assert order == ["Kobuleti", "Senaki", "Gudauta depot"]
+        plan = objective_waypoints(campaign, None, state)
+        assert plan["settings"]["blue_planes"]["waypoints"] == ["KOBULETI", "SENAKI", "GUDAUTA"]
+
+    def test_the_numbers_reach_the_mission_data(self) -> None:
+        from campaign_manager.next_mission import mission_data
+
+        campaign = _campaign(mode="persistent", objectives=[])
+        zones = mission_data(campaign, initial_state(campaign))["zones"]
+        assert {zone["name"]: zone["waypoint"] for zone in zones} == {"Kobuleti": 1, "Senaki": 2, "Gudauta depot": 3}
+
+    def test_a_multi_mission_campaign_keeps_its_tasks_zones(self) -> None:
+        from campaign_manager.next_mission import mission_data
+
+        campaign = _campaign()
+        assert all("waypoint" not in zone for zone in mission_data(campaign, initial_state(campaign))["zones"])

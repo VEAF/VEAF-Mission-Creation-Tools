@@ -434,8 +434,9 @@ function veafCampaignLogistics.networkText(side)
   for _, zone in ipairs(veafCampaign.zoneList) do
     if zone.placed and zone.entry.owner == side then
       local route = delays[zone.name]
-      local line = route and veaf.t("campaign.network.zone", zone.name, math.floor(route.delay / 60), route.source)
-        or veaf.t("campaign.network.cut", zone.name)
+      local title = veafCampaign.zoneTitle(zone.name)
+      local line = route and veaf.t("campaign.network.zone", title, math.floor(route.delay / 60), veafCampaign.zoneTitle(route.source))
+        or veaf.t("campaign.network.cut", title)
       if deliveryUnderway(zone.name) then
         line = line .. veaf.t("campaign.network.underway")
       end

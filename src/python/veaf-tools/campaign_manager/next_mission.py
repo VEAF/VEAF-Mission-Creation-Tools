@@ -26,7 +26,7 @@ from veaf_mission_mcp.mission_settings import set_briefing
 from campaign_manager.briefing_prose import MissionPage
 from campaign_manager.mission_conditions import MissionConditions, set_conditions
 from campaign_manager.models import COALITIONS, CampaignDefinition, CampaignState
-from campaign_manager.objective_waypoints import write_objective_waypoints
+from campaign_manager.objective_waypoints import write_objective_waypoints, zone_waypoint_numbers
 from campaign_manager.turn_manager import describe_change, enemy_of, evaluate_objectives, garrison_strength, outcome
 
 #: The data table, in the mission folder, the build turns into `veafCampaign.data`.
@@ -91,6 +91,7 @@ def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str
         Plain data, with the structure the state file has on its way back.
     """
     zones = []
+    numbers = zone_waypoint_numbers(campaign, state)
     for zone in campaign.zones:
         zone_state = state.zones[zone.name]
         size = campaign.size_classes[zone.size]
@@ -111,6 +112,9 @@ def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str
             entry["lat"], entry["lon"] = zone.location.lat, zone.location.lon
         if zone.kind:
             entry["kind"] = zone.kind
+        if zone.name in numbers:
+            # its steerpoint in the players' flight plan, shown with its name on the map and in the messages
+            entry["waypoint"] = numbers[zone.name]
         if zone.garrison:
             # the declared side's garrison: a side that takes the zone draws its own instead
             entry["garrison_list"] = list(zone.garrison)
@@ -532,7 +536,7 @@ def prepare_next_mission(
         _set_opposition(mission_folder / "mission.yaml", opposition_for(expected, campaign.player_side))
     # date, time and weather are fixed once, when the folder is created: a refresh keeps what was set since
     conditions = set_conditions(campaign, state, mission_folder) if created else None
-    waypoints = write_objective_waypoints(campaign, page, mission_folder, created=created)
+    waypoints = write_objective_waypoints(campaign, page, mission_folder, created=created, state=state)
     return NextMissionReport(
         mission=state.mission + 1,
         folder=mission_folder,

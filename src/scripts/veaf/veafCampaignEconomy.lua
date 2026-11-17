@@ -228,7 +228,7 @@ function veafCampaignEconomy.reveal(zone, seconds, how)
   zone:draw()
   if not already then
     veafCampaignEconomy.counters.reveals = veafCampaignEconomy.counters.reveals + 1
-    tell("campaign.intel.revealed", zone.name, veaf.t("campaign.intel.by_" .. how))
+    tell("campaign.intel.revealed", veafCampaign.zoneTitle(zone.name), veaf.t("campaign.intel.by_" .. how))
     logger():info("zone [%s] revealed by %s", zone.name, how)
   end
 end
@@ -255,7 +255,7 @@ function veafCampaignEconomy.compositionText(zone)
     end
     return a < b
   end)
-  local lines = { veaf.t("campaign.intel.report", zone.name, zone:strengthPercent()) }
+  local lines = { veaf.t("campaign.intel.report", veafCampaign.zoneTitle(zone.name), zone:strengthPercent()) }
   for _, typeName in ipairs(order) do
     table.insert(lines, string.format("- %s x%d", typeName, counts[typeName]))
   end
@@ -870,7 +870,13 @@ function veafCampaignEconomy.buildRadioMenu()
       local path = veafRadio.addSubMenu(title, veafCampaignEconomy.shopPath, side)
       for _, zone in ipairs(veafCampaign.zoneList) do
         if zone.placed and zoneSuits(item.zones, zone) then
-          veafRadio.addCommandToSubmenu(zone.name, path, veafCampaignEconomy.buy, { item.id, zone.name }, veafRadio.USAGE_ForAll)
+          veafRadio.addCommandToSubmenu(
+            veafCampaign.zoneTitle(zone.name),
+            path,
+            veafCampaignEconomy.buy,
+            { item.id, zone.name },
+            veafRadio.USAGE_ForAll
+          )
         end
       end
     elseif item.id == "escort" then
@@ -952,7 +958,7 @@ function veafCampaignEconomy.initialize()
   table.insert(veafCampaign.selfChecks, veafCampaignEconomy.selfCheck)
   veafCampaign.listen("captured", function(zone, side)
     if side == veafCampaign.playerSide() then
-      veafCampaignEconomy.earn(veafCampaign.setting("economy", "capture"), "campaign.credits.capture", zone.name)
+      veafCampaignEconomy.earn(veafCampaign.setting("economy", "capture"), "campaign.credits.capture", veafCampaign.zoneTitle(zone.name))
     end
     veafCampaignEconomy.buildRadioMenu()
   end)
@@ -966,7 +972,7 @@ function veafCampaignEconomy.initialize()
   end)
   veafCampaign.listen("delivered", function(zone, side)
     if side == veafCampaign.playerSide() then
-      veafCampaignEconomy.earn(veafCampaign.setting("economy", "delivery"), "campaign.credits.delivery", zone.name)
+      veafCampaignEconomy.earn(veafCampaign.setting("economy", "delivery"), "campaign.credits.delivery", veafCampaign.zoneTitle(zone.name))
     end
   end)
   veafEventHandler.addCallback("veafCampaignEconomy.onKill", { "S_EVENT_KILL" }, veafCampaignEconomy.onKill)

@@ -295,6 +295,22 @@ function TestCampaignAirfields:test_dcs_captures_no_airfield_of_a_persistent_cam
 end
 
 -- ---------------------------------------------------------------------------
+-- A zone's waypoint number, everywhere it is named (ticket 20, point 11)
+-- ---------------------------------------------------------------------------
+TestCampaignZoneTitle = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+function TestCampaignZoneTitle:test_a_zone_with_a_waypoint_is_named_with_its_number()
+  local data = persistentData()
+  data.zones[2].waypoint = 7
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  luaunit.assertEquals(veafCampaign.zoneTitle("Senaki"), "Senaki (WP 7)")
+  luaunit.assertEquals(veafCampaign.zoneTitle("Kobuleti"), "Kobuleti")
+  luaunit.assertStrContains(veafCampaign.zones["Senaki"]:mapLabel(), "Senaki (WP 7)")
+  luaunit.assertStrContains(veafCampaign.situationText(), "Senaki (WP 7)")
+end
+
+-- ---------------------------------------------------------------------------
 -- The save reloaded
 -- ---------------------------------------------------------------------------
 TestCampaignSave = { setUp = setUpSuite, tearDown = tearDownSuite }

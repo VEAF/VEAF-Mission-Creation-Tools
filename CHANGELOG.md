@@ -20,6 +20,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 - **The known limitation `tanker-move-aliases-skip-their-security-level` is marked fixed in 6.37.0** (FIX-ALIAS-SKIPS-HANDLER-LEVEL): the fix shipped in that release, but the entry kept telling agents that `-tankerlow` and `-tankerhigh` run for anyone.
+- **An Open Training's kneeboard pages fit their page** (FIX-OT-KNEEBOARD-LAYOUT): a long page title is wrapped instead of running off the right edge; the "Commandes" sheet holds on one page again (half a line between two blocks of a text page instead of a blank line); a zone entry of the zone list is never cut between two pages; a zone's one recon photo goes under its zoom rather than on a half-empty page of its own (Falklands 67 → 40 pages, Caucasus 62 → 36); and a photo's caption gives the camera's position in degrees and decimal minutes, like the rest of the kneeboard, its altitude no longer split across two lines.
 
 ## [6.37.0] — 2026-11-16
 

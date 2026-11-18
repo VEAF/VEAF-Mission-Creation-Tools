@@ -185,6 +185,35 @@ Sans eux, la campagne tourne quand même, mais ne se sauvegarde pas, et le dit u
 **Remettre à zéro** : F10 → Autres → VEAF → Campagne → **Remettre la campagne à zéro (admin)**.
 La campagne repart de son état déclaré au prochain chargement de la mission ; une victoire ou une défaite fait la même chose.
 
+### Le bloc pour la carte web {#sitac}
+
+Chaque sauvegarde ajoute au même fichier un bloc `sitac`, fait pour une carte lue hors de DCS : la sitac web de VEAF ([foothold-sitac](https://github.com/VEAF/foothold-sitac)) le lit pour dessiner la campagne comme elle dessine Foothold.
+La mission ne relit jamais ce bloc : il est recalculé à chaque sauvegarde.
+
+```lua
+sitac = {
+  theatre = "Syria", campaign = "Bouclier de l'Oronte", updated = 5432.1, -- temps de simulation, en secondes
+  zones = {
+    { name = "Minakh", waypoint = 3, kind = "airfield", lat = 36.52, lon = 37.04, owner = "blue",
+      garrison = { alive = 9, total = 12 }, awake = true },
+    { name = "Tal Rifaat", kind = "outpost", lat = 36.47, lon = 37.10, owner = "neutral",
+      capture = { side = "blue", seconds = 42 }, awake = false },
+    { name = "Kafr Naya", kind = "factory", lat = 36.41, lon = 37.02, owner = "red",
+      garrison = { alive = 5, total = 6 }, structures = { standing = 2, total = 3 }, awake = false },
+  },
+  connections = { { "Minakh", "Tal Rifaat" }, { "Tal Rifaat", "Kafr Naya" } },
+  convoys = { { side = "blue", from = "Minakh", to = "Tal Rifaat", units = 4 } },
+  sides = { blue = { credits = 1915, resources = 600 }, red = { resources = 250 } },
+}
+```
+
+- `zones` suit l'ordre de `campaign.yaml` ; `kind` vaut `airfield`, `outpost`, `factory` ou `depot` ; `lat`/`lon` sont le centre de la zone, en degrés décimaux.
+- `garrison` ne donne que des **nombres** d'unités vivantes et totales, jamais leur type : la composition reste cachée tant que la zone n'est pas reconnue, et la carte est publique. Une zone neutre n'en a pas.
+- `capture` n'apparaît que pendant une capture ; `structures`, que pour une usine ou un dépôt qui a des bâtiments.
+- `awake` est faux pour une zone en sommeil.
+- `convoys` ne garde que les convois d'assaut encore en route ; `units` compte leurs véhicules vivants.
+- `sides` donne les crédits du camp des joueurs et les ressources de chaque camp, quand elles sont comptées.
+
 ## Les zones en sommeil {#dormancy}
 
 Loin des joueurs, une zone n'a aucune unité dans le monde : sa garnison n'est qu'une ligne de la sauvegarde, avec ses pertes.

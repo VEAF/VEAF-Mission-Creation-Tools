@@ -119,6 +119,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Every campaign briefing is written as a PDF too**: the campaign briefing, the mission briefing and the theatre dossier each get a `.pdf` beside their `.pptx`, the same pages drawn by the tool itself (no PowerPoint or LibreOffice needed), as the standalone mission briefing already did.
 - **The BULLSEYE waypoint every VEAF mission gets is on the ground** (FEAT-DYNAMIC-CAMPAIGN ticket 20): at 0 m `RADIO`, where a pod or a weapon slaved to the steerpoint looks, no longer at 20,000 ft.
 - **`prepare --theatre` puts that map's airfields on the radio plan** (FEAT-DYNAMIC-CAMPAIGN ticket 20): the shipped plan named the Caucasus airfields whatever the theatre, and the Syria campaign flew with Batumi on its kneeboards; the build now warns about a channel named after another map's airfield.
+- **A persistent campaign's state file carries a `sitac` block** (FEAT-CAMPAIGN-SITAC-STATE): at every save, `persistent.state` also holds what VEAF's web map `foothold-sitac` needs to draw the campaign — the zones in lat/lon with their kind, waypoint, owner, garrison counts (never their composition), capture, buildings and dormancy; the connections; the assault convoys on the road; each side's credits and resources. The mission never reads it back.
 
 ## [6.36.0] — 2026-11-05
 

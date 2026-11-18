@@ -101,6 +101,25 @@ def test_a_page_with_a_map_carries_its_image(tmp_path: Path) -> None:
     assert "Détruire le nœud." in reader.pages[1].extract_text()
 
 
+def test_a_legend_dot_is_drawn_in_its_owner_colour(tmp_path: Path) -> None:
+    """David, 2026-11-17: the "Tenu par les bleus / rouges / Neutre" dots of the dossier's maps were all black."""
+    from campaign_manager.briefing_deck import map_notes
+    from campaign_manager.strategic_map import OWNER_COLOURS, MapReport
+
+    image = tmp_path / "map.png"
+    Image.new("RGB", (300, 200), (200, 220, 200)).save(image)
+    out = tmp_path / "legend.pdf"
+    notes = map_notes(MapReport(path=image, offline=False))
+    write_pdf(out, Cover("T", "S", "D", "Sommaire", ["1. Carte"]), [MapSheet("1. Carte", image, notes)])
+    stream = PdfReader(str(out)).pages[1].get_contents().get_data().decode("latin-1")
+    fills = {
+        tuple(round(float(value) * 255) for value in match)
+        for match in re.findall(r"([\d.]+) ([\d.]+) ([\d.]+) rg", stream)
+    }
+    for owner in ("blue", "red", "neutral"):
+        assert OWNER_COLOURS[owner] in fills, owner
+
+
 def test_a_very_long_paragraph_runs_on_to_a_new_page_instead_of_overflowing(tmp_path: Path) -> None:
     from campaign_manager.briefing_deck import Block, Page
 

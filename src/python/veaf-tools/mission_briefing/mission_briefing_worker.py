@@ -85,6 +85,8 @@ from mission_briefing.briefing_kneeboard import (
     flight_card_tables,
     is_kneeboard_page,
     leg_text,
+    map_and_photo_aspect,
+    map_and_photo_page,
     map_page,
     page_name,
     photo_page,
@@ -1104,6 +1106,7 @@ def _kneeboard_pages(
             on a third of the page); a zone is named by its title; and the target
             list becomes the zone list, one position per zone (its centre) under the task that says how to start
             it from the F10 menu, where every unit took 19 pages on the Caucasus OT (FEAT-OPEN-TRAINING-KNEEBOARD 03).
+            A zone's one recon photo is drawn under its zoom rather than on a page of its own.
 
     Returns:
         Page file name -> JPEG, in the order the kneeboard shows them; and whether a map had to do without its
@@ -1156,24 +1159,30 @@ def _kneeboard_pages(
         sheets.append(("combat-area", map_page(t("mission_briefing.title.combat_area"), combat.path)))
         offline = offline or combat.offline
     for objective, area in areas:
+        title = objective.title if open_training else _objective_title(objective, area)
+        pairs = _pairs(theatre, picture.date, recon.get(area.zone, []), (area.x, area.y))
+        # an Open Training's one photo of a zone goes under its zoom, rather than on a half-empty page
+        beside = pairs[0][0] if open_training and len(pairs) == 1 and len(pairs[0]) == 1 else None
         zoom = render_objective_zoom(
             theatre,
             objective,
             area,
             threats,
             maps_folder / zoom_file(area.zone),
-            aspect=MAP_ASPECT,
+            aspect=map_and_photo_aspect(title, beside) if beside else MAP_ASPECT,
             width=_KNEEBOARD_MAP,
             inset=_inset(overview, area),
             rotation=turn or 0.0,
             **tiles,
         )
         offline = offline or zoom.offline
-        title = objective.title if open_training else _objective_title(objective, area)
         stem = Path(zoom_file(area.zone)).stem
+        if beside:
+            sheets.append((stem, map_and_photo_page(title, zoom.path, beside)))
+            continue
         sheets.append((stem, map_page(title, zoom.path)))
         recon_title = t("mission_briefing.title.recon", zone=area.name)
-        for n, pair in enumerate(_pairs(theatre, picture.date, recon.get(area.zone, []), (area.x, area.y)), 1):
+        for n, pair in enumerate(pairs, 1):
             sheets.append((f"{stem}-recon-{n}", photo_page(recon_title, pair)))
     card_tables = flight_card_tables(theatre, picture.date, list(picture.flight_plans), starts)
     card = table_pages(t("mission_briefing.kneeboard.flight_card"), card_tables) if card_tables else []

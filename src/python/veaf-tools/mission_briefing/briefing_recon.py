@@ -18,12 +18,15 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from veaf_libs.coordinates import to_dms, xy_to_latlon
+from veaf_libs.coordinates import to_ddm, xy_to_latlon
 from veaf_libs.i18n import t
 from veaf_libs.magnetic import grid_heading_to_magnetic
 from veaf_libs.terrain_elevation import metres_to_feet
 
 from mission_briefing.models import ReconPhoto
+
+#: A no-break space, between the digits of an altitude and before its unit.
+_NBSP = "\u00a0"
 
 #: Where the photos are by default, in the mission folder.
 RECON_FOLDER = Path("docs") / "recon"
@@ -106,7 +109,9 @@ def load_recon(folder: Path, zones: list[str]) -> tuple[dict[str, list[ReconPhot
 
 
 def caption(theatre: str, when: date, photo: ReconPhoto, near: tuple[float, float]) -> str:
-    """A photo's caption: ``Batterie SA-6 — cap 095°M, piqué -12°, depuis N33°… E036°…, 2 789 ft``.
+    """A photo's caption: ``Batterie SA-6 — cap 095°M, piqué -12°, depuis N33°07.536' E035°49.482', 2 789 ft``.
+
+    The camera's position is in degrees and decimal minutes, as the rest of the kneeboard.
 
     The sidecar's heading is on the mission's grid, as the DCS camera holds it: it is printed magnetic,
     taken where the camera is, or at ``near`` when the sidecar does not say.
@@ -128,7 +133,8 @@ def caption(theatre: str, when: date, photo: ReconPhoto, near: tuple[float, floa
     if photo.pitch is not None:
         parts.append(t("mission_briefing.recon.pitch", pitch=f"{photo.pitch:+.0f}"))
     if photo.x is not None and photo.y is not None:
-        parts.append(t("mission_briefing.recon.from", position=to_dms(*xy_to_latlon(theatre, photo.x, photo.y))))
+        parts.append(t("mission_briefing.recon.from", position=to_ddm(*xy_to_latlon(theatre, photo.x, photo.y))))
     if photo.altitude_m is not None:
-        parts.append(f"{metres_to_feet(photo.altitude_m):,.0f} ft".replace(",", " "))
+        # no-break spaces: "11 115 ft" was cut across two lines of the caption
+        parts.append(f"{metres_to_feet(photo.altitude_m):,.0f}{_NBSP}ft".replace(",", _NBSP))
     return f"{photo.title} — {', '.join(parts)}" if parts else photo.title

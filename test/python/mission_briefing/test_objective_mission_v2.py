@@ -27,7 +27,7 @@ from objective_mission_fixture import KHOBI_ZONE, objective_mission
 from offline import offline
 from PIL import Image
 from pptx import Presentation
-from veaf_libs.coordinates import xy_to_latlon
+from veaf_libs.coordinates import to_ddm, xy_to_latlon
 from veaf_libs.magnetic import declination
 
 CONTENT = BriefingContent(
@@ -208,7 +208,9 @@ class TestTheReconPhotos:
         with_all = caption("Caucasus", when, photo, (0.0, 0.0))
         assert with_all.startswith("Dépôt — ")
         assert f"{_grid_to_magnetic('Caucasus', when, (zx, zy), 5):03d}°M" in with_all
-        assert "-12°" in with_all and "3 281 ft" in with_all and "N" in with_all
+        assert "-12°" in with_all and "3 281 ft" in with_all  # never cut across two lines
+        lat, lon = xy_to_latlon("Caucasus", zx, zy)
+        assert to_ddm(lat, lon) in with_all  # degrees and decimal minutes, as the rest of the kneeboard
         assert caption("Caucasus", when, ReconPhoto(Path("a.jpg"), "Khobi", "Dépôt"), (zx, zy)) == "Dépôt"
 
     def test_a_heading_with_no_camera_position_is_taken_at_the_objective(self) -> None:

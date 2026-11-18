@@ -10,7 +10,7 @@
   An enemy zone reads "strength unknown" until it has been [reconnoitred](#intel).
 - **A zone never changes hands directly**: when its garrison is destroyed it turns **neutral** (grey).
   A neutral zone is taken by holding the ground: ground units of a single side staying there for `capture_seconds` (120 s by default) — CTLD 2 troops or crate, a convoy, a `_spawn` group, a Combined Arms vehicle, a **landed** helicopter.
-  Landed helicopters alone take `helicopter_capture_seconds` (600 s), and leave a token garrison: what a helicopter carries.
+  Landed helicopters alone take `helicopter_capture_seconds` (600 s), and leave a token garrison: what a helicopter carries, `helicopter_garrison` soldiers (6) and no vehicle, whatever the zone's size class.
   The new garrison appears at once.
 - **A pilot on the ground after an ejection is nobody's enemy**: the survivor the CSAR module puts down neither holds nor contests a zone, wakes no zone and stops no convoy, in every VEAF script.
 - **Slots follow the bases**: an airfield taken goes to the side that took it, with its dynamic slots.
@@ -531,6 +531,7 @@ A `KO` line is enough to know where to look.
 | `max_helicopters` | 2 | a side's supply helicopters in the air |
 | `helicopter_timeout` | 1200 | a helicopter not landed after this long is removed |
 | `helicopter_capture_seconds` | 600 | a neutral zone held by landed helicopters alone is taken after this long |
+| `helicopter_garrison` | 6 | the soldiers a capture by landed helicopters alone leaves; no vehicle |
 | `convoy_timeout` | 2700 | an assault convoy not arrived after this long is taken off the map, its place freed |
 | `helicopter` | `{red: Mi-8MT, blue: UH-1H}` | each side's helicopter type |
 | `supply_crate` | `Zone supplies` | the name of the CTLD 2 crate that resupplies |

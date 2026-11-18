@@ -440,6 +440,27 @@ function TestCampaignResources:test_a_zone_taken_by_a_helicopter_gets_a_token_ga
   end
 end
 
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 08: Menagh (an airfield outpost) got 14 units, Afrin 24, on 2026-11-17
+function TestCampaignResources:test_a_helicopter_capture_leaves_a_few_soldiers_whatever_the_size_class()
+  start()
+  for _, name in ipairs({ "Poti", "Senaki" }) do
+    local zone = veafCampaign.zones[name]
+    zone.entry.size = { size = 3, defense = 5, armor = 3, long_range_sam = true }
+    zone:becomeNeutral()
+    zone:capturedBy("red", "helicopter")
+    luaunit.assertEquals(#zone.entry.garrison, 1, name)
+    local units = zone.entry.garrison[1].units
+    luaunit.assertTrue(#units > 0 and #units <= 6, name .. ": " .. #units .. " units")
+    for _, unit in ipairs(units) do
+      local known = false
+      for _, infantry in ipairs(veafCasMission.INFANTRY_TYPES[coalition.side.RED][veaf.config.era]) do
+        known = known or unit.type == infantry
+      end
+      luaunit.assertTrue(known, name .. ": no vehicle, " .. tostring(unit.type))
+    end
+  end
+end
+
 function TestCampaignResources:test_landed_helicopters_alone_take_a_zone_slower()
   start()
   luaunit.assertEquals(veafCampaign.captureSeconds(true), 600)

@@ -80,6 +80,9 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   -- `capture_seconds`: on 2026-11-16 red's Mi-8 took both neutral zones in two minutes each, before the blue
   -- convoys sent 25 to 40 minutes earlier arrived
   helicopter_capture_seconds = 600,
+  -- the garrison a capture by landed helicopters alone leaves: soldiers, no vehicle, what one Mi-8 or UH-1 carries;
+  -- the smallest size class gave 14 (Menagh) and 24 (Afrin) units on 2026-11-17
+  helicopter_garrison = 6,
   -- an assault convoy not arrived after this long frees its place: on 2026-11-16 two red convoys held both of
   -- `max_convoys` for more than an hour, one 37 km short of its target after 22 minutes on the road
   convoy_timeout = 2700,
@@ -647,6 +650,25 @@ function veafCampaign.composeGarrison(name, center, radius, size, side)
   return units
 end
 
+--- What a transport helicopter carries: `count` soldiers of the side and the era, no vehicle. The garrison a
+--- capture by landed helicopters alone leaves, whatever the zone's size class (FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 08).
+--- @param name string the group name
+--- @param center table the zone's centre, a vec3
+--- @param radius number the zone's radius, in metres
+--- @param count number how many soldiers
+--- @param side number the DCS coalition
+--- @return table the placed units
+function veafCampaign.composeHelicopterGarrison(name, center, radius, count, side)
+  local types = veafCasMission.INFANTRY_TYPES[side][veaf.config.era] or veafCasMission.INFANTRY_TYPES[side][veaf.ERA.MODERN]
+  local definition = { disposition = { h = 4, w = 4 }, units = {}, description = name .. " - Infantry", groupName = name .. " - Infantry" }
+  for _ = 1, count do
+    table.insert(definition.units, { veaf.randomlyChooseFrom(types) })
+  end
+  local units = {}
+  veafCampaign.placeGarrisonGroup(definition, center, radius, units)
+  return units
+end
+
 --- The size class a draw uses: the zone's own, or the smallest one when the reserve it takes from is
 --- empty — a side with nothing left in reserve can only scrape a token garrison together.
 local function sizeForDraw(size, reserve)
@@ -664,9 +686,10 @@ end
 --- whose position does not suit them are dropped here, so that what is recorded is what spawns.
 --- @param reserve table|nil the reserve the draw takes from, unit by unit; nil for a garrison of the
 ---   campaign's starting situation, which costs nothing
+--- @param soldiers number|nil a helicopter capture's garrison: this many soldiers and nothing else
 --- @return table|nil the recorded garrison: a list of `{ name, units = { { type, x, z, heading, alive } } }`,
 ---   or nil when not a single unit could be placed
-function VeafCampaignZone:drawGarrison(reserve)
+function VeafCampaignZone:drawGarrison(reserve, soldiers)
   local side = veafCampaign.SIDES[self.entry.owner]
   local center = self:getCenter()
   local radius = self.entry.radius or 2000
@@ -674,7 +697,10 @@ function VeafCampaignZone:drawGarrison(reserve)
 
   -- the list is the garrison of the side that declared it: a side taking the zone draws its own
   local declared = self.entry.declared_side
-  if self.entry.garrison_list and (declared == nil or declared == self.entry.owner) then
+  if soldiers then
+    local units = veafCampaign.composeHelicopterGarrison(self.name .. " garrison", center, radius, soldiers, side)
+    table.insert(placedGroups, { name = self.name .. " garrison", units = units })
+  elseif self.entry.garrison_list and (declared == nil or declared == self.entry.owner) then
     local units = {}
     for _, definition in ipairs(explicitGroupDefinitions(self.name, self.entry.garrison_list)) do
       veafCampaign.placeGarrisonGroup(definition, center, radius, units)
@@ -1234,7 +1260,11 @@ function VeafCampaignZone:capturedBy(side, how)
     veaf.loggers
       .get(veafCampaign.Id)
       :info("zone [%s]: no assault convoy of %s in it, its garrison is drawn from the reserve", self.name, side)
-    self:drawGarrison(how == "helicopter" and {} or veafCampaign.reserveOf(side))
+    if how == "helicopter" then
+      self:drawGarrison({}, veafCampaign.setting("helicopter_garrison"))
+    else
+      self:drawGarrison(veafCampaign.reserveOf(side))
+    end
     veafCampaign.payGarrison(self, side)
     self:spawnGarrison()
   end

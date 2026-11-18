@@ -10,7 +10,7 @@
   Une zone ennemie affiche « force inconnue » tant qu'elle n'a pas été [reconnue](#intel).
 - **Une zone ne change jamais de camp directement** : quand sa garnison est détruite, elle devient **neutre** (grise).
   Une zone neutre se prend en y tenant le terrain : des unités au sol d'un seul camp y restent `capture_seconds` (120 s par défaut) — troupes ou caisse CTLD 2, convoi, groupe `_spawn`, véhicule Combined Arms, hélicoptère **posé**.
-  Des hélicoptères posés, seuls, mettent `helicopter_capture_seconds` (600 s), et ne laissent qu'une garnison symbolique : ce qu'emporte un hélicoptère.
+  Des hélicoptères posés, seuls, mettent `helicopter_capture_seconds` (600 s), et ne laissent qu'une garnison symbolique : ce qu'emporte un hélicoptère, `helicopter_garrison` fantassins (6) et aucun véhicule, quelle que soit la classe de la zone.
   La nouvelle garnison apparaît aussitôt.
 - **Un pilote au sol après une éjection n'est l'ennemi de personne** : le rescapé que pose le module CSAR ne tient ni ne conteste une zone, ne réveille aucune zone et n'arrête aucun convoi, dans tous les scripts VEAF.
 - **Les slots suivent les bases** : un aérodrome pris passe dans le camp du preneur, avec ses slots dynamiques.
@@ -531,6 +531,7 @@ Une ligne `KO` suffit à dire où regarder.
 | `max_helicopters` | 2 | hélicoptères de ravitaillement d'un camp en vol |
 | `helicopter_timeout` | 1200 | un hélicoptère pas posé au bout de ce temps est retiré |
 | `helicopter_capture_seconds` | 600 | une zone neutre tenue par des hélicoptères posés, seuls, est prise au bout de ce temps |
+| `helicopter_garrison` | 6 | les fantassins que laisse une capture par des hélicoptères posés, seuls ; aucun véhicule |
 | `convoy_timeout` | 2700 | un convoi d'assaut pas arrivé au bout de ce temps est retiré de la carte, sa place libérée |
 | `helicopter` | `{red: Mi-8MT, blue: UH-1H}` | le type de l'hélicoptère de chaque camp |
 | `supply_crate` | `Zone supplies` | le nom de la caisse CTLD 2 qui ravitaille |

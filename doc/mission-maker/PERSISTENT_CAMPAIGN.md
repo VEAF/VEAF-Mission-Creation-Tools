@@ -69,6 +69,24 @@ Puis on construit la mission du dossier `missions\mission-01\mission` comme n'im
 
 **La météo et l'heure viennent du serveur.** Une campagne persistante tourne des semaines : `campaign next` ne fixe ni date, ni heure de départ, ni météo, et le nom de la mission ne porte pas `_NoMizedit` (`Campaign_<campagne>_Mission_01_<titre>`), si bien que le preset MizEdit du serveur (avec RealWeather) les règle à chaque chargement. Une [campagne multi-missions](CAMPAIGN.md#squadron-settings) garde ses conditions fixées et son `_NoMizedit`.
 
+### Le nom du fichier de la mission {#mission-file}
+
+Le navigateur de serveurs de DCS affiche le nom du fichier, et `Campaign_<campagne>_Mission_01_<titre>_<AAAAMMJJ>.miz` y est trop long pour se lire.
+La date change aussi le nom à chaque redéploiement, et il faut alors reprendre la configuration du serveur.
+`mission_file` donne au fichier un nom fixe, sans date :
+
+```yaml
+campaign:
+  name: Northern Syria
+  mode: persistent
+  mission_file: Campagne_Oronte     # le build écrit Campagne_Oronte.miz
+```
+
+`campaign next` écrit ce nom dans `mission.name` et ajoute `mission.date_suffix: false` au `mission.yaml` : le build écrit alors `Campagne_Oronte.miz` dans le dossier de la mission, et un redéploiement remplace simplement le fichier.
+Le nom se compose de lettres ASCII, de chiffres, de tirets et de soulignés, sans extension ou en `.miz` ; `campaign validate` refuse tout autre nom.
+Sans la clé, le nom reste `Campaign_<campagne>_Mission_01_<titre>`, daté par le build.
+La clé est refusée sur une [campagne multi-missions](CAMPAIGN.md#squadron-settings) : chacune de ses missions a besoin de `_NoMizedit` dans son nom de fichier, et d'un fichier à elle.
+
 Les briefings sont ceux d'une campagne sans mission du jour : le [dossier de théâtre et la planchette](#theatre-dossier) remplacent le briefing de campagne et le briefing de mission.
 
 `campaign next` ajoute aussi au `ctld-config.yaml` de la mission ce que les joueurs transportent pour la campagne : la caisse **« Zone supplies »** (une par camp), le groupe de troupes **« Spy »** (un homme) et le groupe **« Sappers »** (deux hommes, l'[équipe de démolition](#demolition)).

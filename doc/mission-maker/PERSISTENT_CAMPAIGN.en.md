@@ -69,6 +69,24 @@ Then the mission of the `missions\mission-01\mission` folder is built like any m
 
 **Weather and time come from the server.** A persistent campaign runs for weeks: `campaign next` fixes neither date, start time nor weather, and the mission's name carries no `_NoMizedit` (`Campaign_<campaign>_Mission_01_<title>`), so the server's MizEdit preset (with RealWeather) sets them at each load. A [multi-mission campaign](CAMPAIGN.en.md#squadron-settings) keeps its fixed conditions and its `_NoMizedit`.
 
+### The mission's file name {#mission-file}
+
+The DCS server browser shows the file name, and `Campaign_<campaign>_Mission_01_<title>_<YYYYMMDD>.miz` is too long to read there.
+The date also changes the name at each redeploy, and the server's configuration must then be edited.
+`mission_file` gives the file a fixed name, with no date:
+
+```yaml
+campaign:
+  name: Northern Syria
+  mode: persistent
+  mission_file: Campagne_Oronte     # the build writes Campagne_Oronte.miz
+```
+
+`campaign next` writes this name into `mission.name` and adds `mission.date_suffix: false` to `mission.yaml`: the build then writes `Campagne_Oronte.miz` in the mission folder, and a redeploy just replaces the file.
+The name is made of ASCII letters, digits, dashes and underscores, with no extension or `.miz`; `campaign validate` refuses any other name.
+Without the key, the name stays `Campaign_<campaign>_Mission_01_<title>`, dated by the build.
+The key is refused on a [multi-mission campaign](CAMPAIGN.en.md#squadron-settings): each of its missions needs `_NoMizedit` in its file name, and a file of its own.
+
 The briefings are those of a campaign with no mission of the day: the [theatre dossier and the kneeboard](#theatre-dossier) replace the campaign briefing and the mission briefing.
 
 `campaign next` also adds to the mission's `ctld-config.yaml` what the players carry for the campaign: the **"Zone supplies"** crate (one per side), the **"Spy"** troop group (one man) and the **"Sappers"** group (two men, the [demolition team](#demolition)).

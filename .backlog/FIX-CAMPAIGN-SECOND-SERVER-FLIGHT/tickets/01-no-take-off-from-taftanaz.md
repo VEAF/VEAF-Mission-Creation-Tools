@@ -1,6 +1,6 @@
 # 01 — Red aircraft never take off from Taftanaz
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 
 ## Found
@@ -35,3 +35,17 @@ So also: two flights must never spawn on the same point (check the spot is free,
 ## Done when
 
 A red flight is never sent from a field it cannot leave; a test covers the refusal; the in-game check (red air activity from Aleppo or Kuweires instead) is written for the next evening.
+
+## Done
+
+- Read on the code: a flight starts hot on free stands when the field has enough, else `From Runway` at the airbase's reference point (`takeoffFrom`); every flight that found no stand at Taftanaz was sent to the same spot, which is what Tacview shows.
+- `canTakeOffFrom` refuses a field whose longest runway (`Airbase:getRunways`) is shorter than `min_runway_length` (1,500 m), and a field `grounded` lately (below). Helicopters do not go through it.
+- `spawnFlight`: one runway start at a time per field — a flight is refused while another of the field's runway starts still stands on the ground.
+- `followFlights` (each beat): a flight still on the ground `takeoff_timeout` (600 s) after its spawn is destroyed, its price goes back to the AI's stock, and its field sends no aeroplane for `grounded_seconds` (3,600 s). A raid's bomber is a flight like the others; its raid then ends "gone" (ticket 09).
+- Not measured: Taftanaz's runway length in DCS, so whether the 1,500 m threshold alone refuses it. The grounded field catches it anyway after the first flight. No `known-limitations.yaml` entry: the cause (the stand-less runway start, or the field) is not measured yet.
+- Tests: the runway refusal; a flight on the ground taken away after the timeout, refunded, its field grounded, a second runway start refused meanwhile; a flight in the air never taken away.
+
+## In-game check
+
+`grep "takes off from\|never took off\|still stands on its runway" dcs.log`: red air activity from Aleppo, Kuweires, Hama or Abu al-Duhur; at most one `never took off from [Taftanaz]` line, then no aeroplane from Taftanaz for an hour.
+To measure (fiddle hook): `Airbase.getByName("Taftanaz"):getRunways()[1].length`, and the number of stands `getParking()` reports free for a MiG-29.

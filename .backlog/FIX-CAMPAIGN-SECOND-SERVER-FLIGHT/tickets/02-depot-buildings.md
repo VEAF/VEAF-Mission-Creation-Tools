@@ -1,6 +1,6 @@
 # 02 — A depot is a set of buildings to destroy
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 
 ## Found
@@ -27,3 +27,17 @@ Recorded in `FEAT-DYNAMIC-CAMPAIGN` (row "A depot has buildings to destroy"):
 ## Done when
 
 Destroying a depot's buildings stops its self-supply and its store at once, and it is a depot again only after the delay; tests cover both, and the next evening's check is written.
+
+## Done
+
+- A depot draws and records its buildings as a factory does (`structures`, losses in the save): `network.depot_buildings` (3) among `network.depot_types` (`Warehouse`, `Fuel tank`, `Tank`, three types the DCS database and the spawner's shape table both know). `veafCampaign.staticCategory` gives each static its mission-table category from the DCS database: a warehouse is `Warehouses`, a workshop `Fortifications` — they were all spawned `Fortifications` before.
+- `VeafCampaignZone:isWorkingDepot`: a depot works while one of its buildings stands. Its buildings all down, its store is emptied at once and it is an ordinary node: no source of its own, no half hop, no refill from a factory (`hopSeconds`, `supplyDelays`).
+- `followDepot`: the time down is counted at each beat and saved (`depot_down_seconds`), so a restart neither rebuilds it nor starts the count again; after `network.depot_rebuild_seconds` (2,700 s, the convoy timeout, the reco) every building comes back at once for the side holding the zone. A delivery never rebuilds a depot's building (`repairStructure` is the factory's).
+- The F10 map label counts them, "dépôt 2/3"; both sides are told when a depot's buildings are all destroyed; the theatre dossier's depot line says its buildings destroyed, it stops.
+- Doc: the depot kind lives in `PERSISTENT_CAMPAIGN.md` / `.en.md` (`CAMPAIGN.md` covers the episodic campaign, whose `logistics` kind is another thing): what a depot is, how to take one, the settings.
+- Tests: the buildings drawn and their category; a depot with its buildings down is an ordinary node, its store emptied, no delivery rebuilds it; rebuilt only after the delay, the delay saved.
+- The Oronte save has no depot buildings yet: they are drawn at the next load (Saraqib, Kilis).
+
+## In-game check
+
+Saraqib and Kilis show "dépôt 3/3" on the F10 map. Destroy Saraqib's three buildings: `depot [Saraqib]: its buildings destroyed, an ordinary node for 2700 s`, then no `red supply for [Saraqib] from [Saraqib] … there in 0 s` any more; a destroyed Shilka at Saraqib stays destroyed until a delivery comes from Al-Safira through the network (its hop delay).

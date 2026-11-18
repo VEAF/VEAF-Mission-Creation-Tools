@@ -417,3 +417,9 @@ class TestTheParserNeverRaises:
         campaign, issues = parse_campaign(raw)
         assert campaign is None
         assert any(issue.level == ERROR for issue in issues)
+
+
+def test_the_shipped_air_defence_has_radar_sams_at_an_airfield() -> None:
+    """David, 2026-11-17: only short-range infrared SAMs at Aleppo; defence 5 draws SA-8, SA-15 and Tunguska."""
+    assert DEFAULT_SIZE_CLASSES["airfield"].defense == 5
+    assert DEFAULT_SIZE_CLASSES["outpost"].defense == 3

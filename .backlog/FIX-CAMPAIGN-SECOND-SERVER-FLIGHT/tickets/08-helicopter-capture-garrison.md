@@ -1,6 +1,6 @@
 # 08 — The garrison of a helicopter capture is not a token one
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 
 ## Found
@@ -17,3 +17,14 @@ Red's two helicopter captures of 2026-11-16 were in the same case.
 ## Done when
 
 A test shows an outpost and an airfield taken by helicopter both get the capped garrison.
+
+## Done
+
+- A capture by landed helicopters alone draws `veafCampaign.composeHelicopterGarrison`: `dynamic.helicopter_garrison` soldiers (default 6, a Mi-8's or UH-1's worth), of the side's and era's infantry types, no vehicle, no long-range battery, whatever the zone's size class.
+- The token garrison of a side that cannot pay a ground capture is unchanged (the smallest size class).
+- Test: an outpost and an airfield, both declared with a heavy size class, get at most 6 soldiers and no vehicle.
+- `PERSISTENT_CAMPAIGN.md` / `.en.md`: the setting and what a helicopter capture leaves.
+
+## In-game check
+
+The next zone taken by a helicopter (`zone [X]: garrison drawn, N unit(s)` in `dcs.log` right after `captured by`): N ≤ 6, all infantry.

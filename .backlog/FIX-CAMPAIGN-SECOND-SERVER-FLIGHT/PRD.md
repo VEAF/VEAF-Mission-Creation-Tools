@@ -1,6 +1,6 @@
 # FIX-CAMPAIGN-SECOND-SERVER-FLIGHT — what the second evening on the server taught
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 The persistent campaign "Bouclier de l'Oronte" (Northern Syria) flown on the Campagne server (`foothold2`) on 2026-11-17, 20:06–22:00 UTC, about ten players.
 Everything below was measured in that evening's `dcs.log` (copied whole during the flight) or reported by the players through David; the minute-by-minute notes are kept in the session notes of that evening.

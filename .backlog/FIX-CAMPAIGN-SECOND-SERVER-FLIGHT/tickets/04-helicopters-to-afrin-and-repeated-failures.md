@@ -1,6 +1,6 @@
 # 04 — AI helicopters never reach Afrin, and red repeats what fails
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 
 ## Found
@@ -29,3 +29,16 @@ A threat met on the way would not give four identical tracks starting 16 s after
 ## Done when
 
 A helicopter sent to Afrin from Aleppo reaches it in the next evening's check, or red stops sending it after the second failure; a test covers the memory of failures.
+
+## Done
+
+- The landing point, the first suspect: a supply helicopter is now sent to `veafCampaignOps.landingSpot` — an airfield zone's field as before (Menagh worked), any other zone the clear spot nearest its centre within 60 % of its radius (`veaf.findSpawnPoint`, 30 m of clearance, the Mi-8's), else the centre. `dcs.log` says where: `supply helicopters land in [Afrin] at x=… z=…, N m from its centre`, or that no clear spot was found.
+  Before, the named point was the zone's centre and `veafAircraftSpawn`'s own search looked only 300 m around it; in a town it found nothing and the `Land` task went to the centre among the buildings.
+- The cause is not proven: no DCS here. If the four identical tracks come back with a clear landing spot, the next suspect is the threat reaction (`NO_REACTION`); the in-game check below tells.
+- Red remembers what fails (reco: 2 failures, then 1 hour), `route_failures` / `route_failure_seconds`: a supply helicopter landed away, timed out or gone, and an assault convoy retired on `convoy_timeout` (ticket 05), count against `kind side target`; two in a row and the side sends none of that kind there for an hour (`supplyTarget`, `attackTarget`, the planned assaults); a helicopter that lands in its zone clears the count, the zone taken by the other side meanwhile counts nothing.
+- No `known-limitations.yaml` entry: the DCS behaviour is not measured yet.
+- Tests: the landing spot of a town and of an airfield; two failures to a zone, then none sent there for an hour, the other side's memory apart.
+
+## In-game check
+
+`grep "land in \[Afrin\]\|supply helicopter" dcs.log`: the spot chosen for Afrin, and the next red Mi-8 for Afrin landing there ("captured" or "delivered"), or after two failures `red sends no helicopter to [Afrin] for 3600 s`. In Tacview, the helicopter's track goes towards Afrin, not the 2.6 km loop.

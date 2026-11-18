@@ -2228,7 +2228,11 @@ veaf.i18nCatalog = {
     en = "%s: in this mission, this command is reserved to the %s level.",
   },
   ["campaign.map_factory"] = { fr = " · usine %d/%d", en = " · factory %d/%d" },
-  ["campaign.map_depot"] = { fr = " · dépôt", en = " · depot" },
+  ["campaign.map_depot"] = { fr = " · dépôt %d/%d", en = " · depot %d/%d" },
+  ["campaign.depot_destroyed"] = {
+    fr = "Les bâtiments du dépôt de %s sont détruits : il ne ravitaille plus rien en attendant d'être reconstruit.",
+    en = "The buildings of the depot of %s are destroyed: it supplies nothing until rebuilt.",
+  },
   ["campaign.shop.item.assault"] = { fr = "Assaut", en = "Assault" },
   ["campaign.shop.item.bomber"] = { fr = "Raid de bombardiers", en = "Bomber raid" },
   ["campaign.shop.refused_no_bomber"] = {

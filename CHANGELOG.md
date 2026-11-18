@@ -119,6 +119,19 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Every campaign briefing is written as a PDF too**: the campaign briefing, the mission briefing and the theatre dossier each get a `.pdf` beside their `.pptx`, the same pages drawn by the tool itself (no PowerPoint or LibreOffice needed), as the standalone mission briefing already did.
 - **The BULLSEYE waypoint every VEAF mission gets is on the ground** (FEAT-DYNAMIC-CAMPAIGN ticket 20): at 0 m `RADIO`, where a pod or a weapon slaved to the steerpoint looks, no longer at 20,000 ft.
 - **`prepare --theatre` puts that map's airfields on the radio plan** (FEAT-DYNAMIC-CAMPAIGN ticket 20): the shipped plan named the Caucasus airfields whatever the theatre, and the Syria campaign flew with Batumi on its kneeboards; the build now warns about a channel named after another map's airfield.
+- **What the second server evening of the persistent campaign taught** (FIX-CAMPAIGN-SECOND-SERVER-FLIGHT, "Bouclier de l'Oronte", 2026-11-17):
+  - the AI sends no aeroplane from a field whose runway is shorter than `min_runway_length`, one runway start at a time per field, and a flight still on the ground after `takeoff_timeout` is taken away, refunded, its field grounded for `grounded_seconds` (fifteen red aircraft piled up at Taftanaz);
+  - a depot is a set of buildings: destroyed, it stops storing, shortening hops and supplying itself until `network.depot_rebuild_seconds`; statics take their category from the DCS database;
+  - a network delivery brings back only what it paid for, cheapest first, spawned as its own group instead of respawning the whole garrison, and waits while the zone is under fire (`network.under_fire_seconds`); a delivery with nothing to repair goes back to the stock;
+  - supply helicopters land on a clear spot of a town zone, and the AI gives a zone up for `route_failure_seconds` after `route_failures` failed helicopters or convoys;
+  - an assault convoy drives at `assault_speed`, is given the time its road takes, logs its progress, drives on under air attack, and ends its assault when it falls back;
+  - a waking or captured garrison comes group by group, about `wake_units_per_beat` units per beat, its long-range battery last, and a zone sleeps only `sleep_margin` farther than it wakes;
+  - a drawn garrison unit never stands on a building; a helicopter capture leaves `helicopter_garrison` soldiers and no vehicle;
+  - the default air defence goes up: an airfield draws two groups of SA-8, SA-15 and Tunguska (defence 5), an outpost Strela-1 and Strela-10 (defence 3);
+  - every credit gain is logged with its pilot, a session summary is written, and each pilot's total is kept in the save;
+  - raids and helicopters that vanish without a death are logged "gone", not "destroyed" (DCS removes an aborted AI aircraft after 3 minutes);
+  - the Campaign menu's admin commands sort last (`veafRadio` honours a node's `sortLast`), and the PDF map legend draws its dots in their owners' colours.
+  The garrisons already recorded in a save keep their old air defence and positions (roofs included) until they are drawn again.
 - **A persistent campaign's state file carries a `sitac` block** (FEAT-CAMPAIGN-SITAC-STATE): at every save, `persistent.state` also holds what VEAF's web map `foothold-sitac` needs to draw the campaign — the zones in lat/lon with their kind, waypoint, owner, garrison counts (never their composition), capture, buildings and dormancy; the connections; the assault convoys on the road; each side's credits and resources. The mission never reads it back.
 
 ## [6.36.0] — 2026-11-05

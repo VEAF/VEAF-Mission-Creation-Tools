@@ -139,10 +139,12 @@ Une classe de taille est un jeu de paramètres des générateurs CAS : la garnis
 
 | classe livrée | `size` | `defense` | `armor` | SAM longue portée | unités (moyenne, min – max) |
 |---|---|---|---|---|---|
-| `outpost` | 1 | 1 | 1 | non | 23 (12 – 36) |
-| `airfield` | 1 | 3 | 2 | non | ≈ 31 (51 mesurées le 2026-10-06 avec une batterie d'environ 20, la batterie ôtée) |
+| `outpost` | 1 | 3 | 1 | non | pas encore mesuré (23, de 12 à 36, à la défense 1) |
+| `airfield` | 1 | 5 | 2 | non | pas encore mesuré (≈ 31 à la défense 3) |
 
-Mesuré sur 40 tirages, le 2026-10-06.
+Les nombres entre parenthèses sont ceux de 40 tirages du 2026-10-06, avant que la défense aérienne monte.
+Depuis le 18/11/2026, une base aérienne tire **deux** groupes de défense aérienne de niveau 4 ou 5 (SA-8, SA-15, Tunguska à l'ère moderne) et un avant-poste un groupe de niveau 3 environ (Strela-10, Strela-1) ; avant, une base n'avait que des SAM infrarouges de courte portée et un avant-poste une Shilka.
+Une campagne qui veut une défense plus légère la baisse avec `size_classes:`, par exemple `airfield: { defense: 3 }`.
 
 Un SAM longue portée appartient à une zone, pas à sa classe : `long_range_sam: true` sur la zone ajoute la batterie (une vingtaine d'unités) à sa garnison.
 Jusqu'au 17/11/2026, chaque zone d'aérodrome en tirait une, et le premier soir d'une campagne persistante, deux SA-5 à 17 nautiques l'un de l'autre couvraient tout le front.

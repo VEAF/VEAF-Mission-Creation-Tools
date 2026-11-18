@@ -10,7 +10,7 @@
   An enemy zone reads "strength unknown" until it has been [reconnoitred](#intel).
 - **A zone never changes hands directly**: when its garrison is destroyed it turns **neutral** (grey).
   A neutral zone is taken by holding the ground: ground units of a single side staying there for `capture_seconds` (120 s by default) — CTLD 2 troops or crate, a convoy, a `_spawn` group, a Combined Arms vehicle, a **landed** helicopter.
-  Landed helicopters alone take `helicopter_capture_seconds` (600 s), and leave a token garrison: what a helicopter carries.
+  Landed helicopters alone take `helicopter_capture_seconds` (600 s), and leave a token garrison: what a helicopter carries, `helicopter_garrison` soldiers (6) and no vehicle, whatever the zone's size class.
   The new garrison appears at once.
 - **A pilot on the ground after an ejection is nobody's enemy**: the survivor the CSAR module puts down neither holds nor contests a zone, wakes no zone and stops no convoy, in every VEAF script.
 - **Slots follow the bases**: an airfield taken goes to the side that took it, with its dynamic slots.
@@ -227,22 +227,29 @@ It comes back exactly as it was:
 Only a zone's enemies wake it; vehicles placed in the editor and aircraft not yet activated wake nothing.
 A defence's reach is its missiles', read from DCS while the zone is awake and kept in the save; a zone never seen awake has an assumed reach (75 km with a long-range SAM, 20 km otherwise).
 It disappears when nobody has come near for `sleep_seconds` (600 s), except near the front.
+Awake, a zone keeps its garrison `sleep_margin` (20 km) farther than it wakes: a player hovering around 60 km does not make it disappear and appear again.
+Asleep for less than `wake_rest_seconds` (300 s), it wakes for the front, a sortie or a player only, not for an AI aircraft passing by.
 
 At most `max_awake_zones` (12) zones of the rear are awake at once; the front and the targets of sorties do not count.
 When the cap is reached, a zone wanted by a player takes the place of a zone only AI wants, or of a zone wanted by a player farther away; between zones wanted by AI, the first keeps its place, so that passing aircraft do not make zones appear and disappear in a loop.
 Only one zone wakes per 10-second beat, so the whole front does not appear in one go.
+Its garrison comes group by group, about `wake_units_per_beat` (10) units per beat, its long-range battery last, a group never split (a launcher apart from its radar does not fire): Hama's 42 units in one go froze the server; the garrison of a zone just taken comes the same way.
 
 ## A front that moves on its own {#front}
 
 - **Counter-attacks**: every `attack_seconds` (900 s), a side listed in `attacks` (red by default) sends an assault convoy against the weakest enemy zone it borders, `max_convoys` (2) on the road at most.
   Only those sides send convoys on their own toward a neutral zone too; the players' side buys theirs (F10 → Other → VEAF → Campaign → Assaults), and no automatic convoy leaves for a zone a convoy of the same side already drives to.
-- **A convoy that will not arrive frees its place**: once its target is its side's (a helicopter took it first), or after `convoy_timeout` (2,700 s) on the road, it is taken off the map and the price of its survivors goes back to its side.
+- **An assault convoy drives at `assault_speed` (40 km/h)**, without dispersing under fire; at its departure, `dcs.log` gives the length of its road, the time it needs and when it will be retired, then every `convoy_report_seconds` (300 s) its distance to its target and whether it moves on, stands still or turns back.
+  Under aircraft it drives on; if it falls back before a stronger ground force, its assault is over: it is retired.
+- **A convoy that will not arrive frees its place**: once its target is its side's (a helicopter took it first), when it falls back, or after the time its road needs (half as long again as expected, `convoy_timeout`, 2,700 s, at least), it is taken off the map and the price of its survivors goes back to its side; on 2026-11-17, at 20 km/h on roads of 40 to 60 km, the 45 minutes retired every convoy before it arrived.
 - **The other side is told at once** of a convoy leaving, and sees its axis on the map.
 - **Resupply**: a delivery to a damaged friendly zone brings its first damaged group back to full strength.
   Deliveries are: a "Zone supplies" crate set down in the zone, CTLD 2 troops deployed in the zone (the spy team and the JTAC teams excepted), a supply helicopter landed in it.
 - **AI helicopters**: every `supply_seconds` (600 s), a side listed in `supply` (red by default) sends a helicopter (`helicopter`, a Mi-8MT for red, a UH-1H for blue) to a neutral zone it borders, which it takes by landing there, or else to its most damaged zone, which it resupplies; `max_helicopters` (2) in the air at most, and one that has not landed after `helicopter_timeout` (1,200 s) is removed.
   The other side is told when it leaves, to intercept it.
   One that lands again away from its zone has failed at once, and `dcs.log` says where it landed.
+  In an airfield zone it lands on the field; in any other zone (a town, a point), on the clear spot nearest the centre, within 60 % of its radius: sent to Afrin's centre, four Mi-8 turned back at once.
+- **The AI remembers what fails**: after `route_failures` (2) helicopters or assault convoys of a side failed in a row to the same zone, that side sends nothing of the kind there for `route_failure_seconds` (3,600 s); a success clears the count.
 
 ## Enemy air {#air}
 
@@ -254,6 +261,8 @@ Only one zone wakes per 10-second beat, so the whole front does not appear in on
   A CAS strike leaves out a zone under a measured air defence of 15 km or more (a Hawk, an SA-6), the zone's own or a neighbour's: that is the SEAD's job.
 - They **take off** from the nearest enemy airfield, hot on free stands (shelters first, open stands after; a large aircraft, bomber or transport, never in a shelter), or from the runway when there are not enough; no airfield, no sortie. So do the CAP, the BARCAP and the Hunter.
   Nothing takes off from an airfield within `takeoff_threat_range` (40 km) of an enemy air defence whose reach was measured (a Patriot would shoot the aircraft down while they climb); the reach DCS gives is the missile's against a high target, much longer than the range at which the SAM sees an aircraft taking off, hence this cap, an estimation to tune.
+  No aeroplane of the AI leaves a field whose longest runway is shorter than `min_runway_length` (1,500 m), and one flight at a time leaves a field's runway: on 2026-11-17 fifteen aircraft sent from Taftanaz piled up on one spot of its strip and never took off.
+  A flight still on the ground `takeoff_timeout` (600 s) after its spawn is taken away, its price back in the stock, and its field sends no aeroplane for `grounded_seconds` (3,600 s).
   A **SEAD** flight takes off all the same: putting that defence out is its job, and what it destroys frees the field for the strikes.
   Otherwise the sortie leaves from another airfield, or does not leave, and `dcs.log` says so (`[CAMPAIGN DECISION] nothing of red takes off from [Senaki]: it is under the air defence of [Kobuleti]`).
   `air.max_flights` (4) flights in the air at most per side.
@@ -348,7 +357,7 @@ A zone is declared of a kind, `kind:`, besides its location:
 | none, on an airfield | an **airfield**: it is captured, its slots follow |
 | none, on a point | an **outpost**: a garrison |
 | `factory` | a **factory**: a few buildings and a small garrison; it makes its side's [resources](#resources) while its buildings stand |
-| `depot` | a **depot**: it speeds the [supply network](#network) up and keeps a store of it |
+| `depot` | a **depot**: a few buildings; it speeds the [supply network](#network) up and keeps a store of it while its buildings stand |
 
 ```yaml
 zones:
@@ -361,6 +370,13 @@ They are statics: they stay in the world even while the zone sleeps.
 The map counts those standing, "factory 2/3".
 They are destroyed by bombs or by the [demolition team](#demolition); a factory is also captured like any other zone, and what stands of it then works for its new side.
 A delivery (crate, troops, helicopter) to a factory whose garrison is whole rebuilds one building.
+
+A depot has buildings too, drawn the same way: `network.depot_buildings` (3) among `network.depot_types` (`Warehouse`, `Fuel tank`, `Tank`); the map says "depot 2/3".
+While one of its buildings stands it is a depot: it keeps its store, shortens the hops and may supply itself.
+**Its buildings all destroyed**, its store burns with them and it is only an ordinary node of the network: supplied like any other zone, from a factory or another depot.
+It is a depot again only after `network.depot_rebuild_seconds` (2,700 s), all its buildings rebuilt at once for the side holding the zone: time enough to destroy its garrison and take it.
+No delivery rebuilds a depot's building.
+To take a depot: destroy its buildings first, or it repairs its garrison itself; then its garrison, before the rebuild.
 
 ## The AI's resources {#resources}
 
@@ -400,8 +416,12 @@ Credits stay the players': what they buy does not come out of the resources, and
 A side's factories feed its zones hop by hop, along the connections, and only through the side's zones: an enemy or neutral zone cuts the path, and the rest of the network is served by a detour, later.
 
 - **A hop** from one zone to the next takes `network.hop_seconds` (600 s); **a hop that touches a depot** half of it: factory → base → base is two full hops, factory → depot → base one.
-- **A depot** keeps a store of `network.depot_store` (4) deliveries, full while a factory reaches it: cut from its factories, it still feeds the zones around it until it runs dry.
-- **A damaged zone**, of either side, orders a delivery, paid from the resources at the order; its first damaged group comes back whole after the zone's delay; `network.max_deliveries` (3) deliveries of a side on their way at once. A zone lost meanwhile receives nothing.
+- **A depot** keeps a store of `network.depot_store` (4) deliveries, full while a factory reaches it: cut from its factories, it still feeds the zones around it until it runs dry. Its [buildings](#zone-kinds) destroyed, it keeps nothing and shortens no hop.
+- **A damaged zone**, of either side, orders a delivery, paid from the resources at the order at the price of the units it is missing; `network.max_deliveries` (3) deliveries of a side on their way at once.
+  After the zone's delay, the delivery brings back the dead units of its first damaged group, **cheapest first and up to what it paid**: a unit killed since the order stays dead.
+  The units brought back appear in their places; the living ones do not move.
+  **A zone under fire** — a unit lost less than `network.under_fire_seconds` (600 s) ago — is not reinforced: the delivery waits.
+  A zone lost meanwhile receives nothing; a delivery with nothing left to repair, or what it did not spend, goes back to the stock.
   Players who fly logistics go faster: a crate, troops or a helicopter reinforce at once, without waiting for the network or paying for it.
 - **A zone cut off** from every factory and depot is still served, from the background production, after `network.isolated_seconds` (3,600 s).
 
@@ -535,6 +555,12 @@ While the campaign is being tuned, `dynamic.debug` (on by default) writes in `dc
 
 `debug: false` turns it off, once the campaign is trusted.
 
+The credits earned are written whether `debug` is on or not:
+
+- one line `CREDITS <pilot> +<amount> (<reason>)` per gain — `kill`, `kill_held`, `landed`, `warehouse` for a pilot; `capture`, `delivery`, `task`, `demolition` under `team`;
+- a `CREDITS SUMMARY` at the mission's end, and as soon as nobody is left in a slot: what each earned since the previous summary, and the side's total;
+- each pilot's total over the whole campaign, in the save (`parts.economy.pilots`), for the debrief.
+
 ## Checking a mission in game {#self-check}
 
 F10 → Other → VEAF → Campaign → **Self-check (admin)** prints one `OK` or `KO` line per mechanism: zones placed, save read and written, outcome, dormancy, captures, factories, territory, both sides' resources, network (deliveries and zones cut off), paid spawns, sappers, warehouses, helicopters, air, bombers, credits, tasks, intelligence.
@@ -549,8 +575,14 @@ A `KO` line is enough to know where to look.
 | `ground_wake_radius` | 10000 | metres: an enemy ground group that is no garrison, this close, wakes a zone; vehicles placed in the editor wake nothing |
 | `reach_wake_margin` | 20000 | metres: an enemy aircraft this far beyond a zone's air defence reach wakes it |
 | `takeoff_threat_range` | 40000 | metres: nothing but a SEAD takes off this close to an enemy air defence measured |
+| `min_runway_length` | 1500 | metres: no aeroplane of the AI leaves a field whose longest runway is shorter |
+| `takeoff_timeout` | 600 | a flight still on the ground after this long is taken away, its price back |
+| `grounded_seconds` | 3600 | a field that kept a flight on the ground sends no aeroplane for this long |
 | `front_depth` | 40000 | metres: a zone this close to the front line drawn on the map is always awake |
 | `sleep_seconds` | 600 | a zone with no player near it for this long goes back to sleep |
+| `sleep_margin` | 20000 | metres added to an awake zone's wake distances before it goes back to sleep |
+| `wake_rest_seconds` | 300 | a zone asleep for less than this does not wake for an AI aircraft |
+| `wake_units_per_beat` | 10 | the units of a garrison that appear per beat, at a wake or after a capture; a group is never split |
 | `max_awake_zones` | 12 | zones of the rear awake at once (the front and the targets of sorties do not count) |
 | `attacks` | `[red]` | the sides that counter-attack on their own |
 | `attack_seconds` | 900 | interval between two counter-attacks of a side |
@@ -560,7 +592,12 @@ A `KO` line is enough to know where to look.
 | `max_helicopters` | 2 | a side's supply helicopters in the air |
 | `helicopter_timeout` | 1200 | a helicopter not landed after this long is removed |
 | `helicopter_capture_seconds` | 600 | a neutral zone held by landed helicopters alone is taken after this long |
-| `convoy_timeout` | 2700 | an assault convoy not arrived after this long is taken off the map, its place freed |
+| `helicopter_garrison` | 6 | the soldiers a capture by landed helicopters alone leaves; no vehicle |
+| `convoy_timeout` | 2700 | the least time an assault convoy has before it is taken off the map, its place freed; else half as long again as its road needs |
+| `assault_speed` | 40 | km/h: an assault convoy's speed |
+| `convoy_report_seconds` | 300 | seconds between two `dcs.log` lines on an assault convoy's progress |
+| `route_failures` | 2 | helicopters or convoys failed in a row to a zone before the side gives it up |
+| `route_failure_seconds` | 3600 | how long it gives it up |
 | `helicopter` | `{red: Mi-8MT, blue: UH-1H}` | each side's helicopter type |
 | `supply_crate` | `Zone supplies` | the name of the CTLD 2 crate that resupplies |
 | `hunter` | `{enabled: true, ground_kills: 8, air_kills: 4, chance: 10}` | the Hunter |
@@ -570,7 +607,7 @@ A `KO` line is enough to know where to look.
 | `intel` | see [intelligence](#intel) | `hidden`, `seconds`, `overflight_altitude`, `spy_troops`, `spy_range` |
 | `resources` | see [the resources](#resources) | `enabled` (true), `start` (1000), `background_per_hour` (60), `reserve` (100), `prices` |
 | `factory` | see [the factories](#zone-kinds) | `buildings` (3), `per_hour` (180), `types` |
-| `network` | see [the network](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3) |
+| `network` | see [the network](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3), `under_fire_seconds` (600), `depot_buildings` (3), `depot_types`, `depot_rebuild_seconds` (2700) |
 | `demolition` | see [demolition](#demolition) | `troops` (`Sappers`), `range` (5000), `fuse` (120) |
 | `warehouse` | see [the stocks](#warehouses) | `enabled` (true), `load` (10) |
 | `bombers` | see [the bombers](#bombers) | `enabled` (true), `seconds` (3600), `min_distance` (80000), `escort` (false), `package_delay` (30) |

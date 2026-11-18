@@ -235,6 +235,40 @@ function TestCampaignHelicopters:test_it_flies_the_transport_job_from_the_neares
   luaunit.assertEquals(told[1].target, coalition.side.BLUE)
 end
 
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 04: four Mi-8 sent to Afrin's centre, a town, turned back at once
+function TestCampaignHelicopters:test_a_town_zone_is_landed_in_on_a_clear_spot_an_airfield_on_its_field()
+  start()
+  local asked = {}
+  local findSpawnPoint = veaf.findSpawnPoint
+  veaf.findSpawnPoint = function(point, radius, clearance)
+    table.insert(asked, { radius = radius, clearance = clearance })
+    return { x = point.x + 300, y = 0, z = point.z }
+  end
+  local poti = veafCampaign.zones["Poti"]
+  local spot = veafCampaignOps.landingSpot(poti)
+  local senaki = veafCampaignOps.landingSpot(veafCampaign.zones["Senaki"])
+  veaf.findSpawnPoint = findSpawnPoint
+  luaunit.assertEquals(spot.x, poti:getCenter().x + 300)
+  luaunit.assertEquals(asked[1].radius, (poti.entry.radius or 2000) * veafCampaignOps.LANDING_SEARCH_SHARE)
+  luaunit.assertEquals(#asked, 1, "an airfield is landed on its field, as Menagh was")
+  luaunit.assertEquals(senaki.x, veafCampaign.zones["Senaki"]:getCenter().x)
+end
+
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 04: red sent one every 10 minutes regardless, 60 points for nothing
+function TestCampaignHelicopters:test_after_two_failures_to_a_zone_red_sends_none_there_for_an_hour()
+  start({ route_failures = 2, route_failure_seconds = 3600 })
+  local first = veafCampaignOps.sendHelicopter("red", veafCampaign.zones["Poti"], "capture")
+  veafCampaignOps.followHelicopter(first, 100) -- gone, no death seen
+  luaunit.assertEquals(veafCampaignOps.supplyTarget("red").name, "Poti", "one failure is not enough")
+  local second = veafCampaignOps.sendHelicopter("red", veafCampaign.zones["Poti"], "capture")
+  veafCampaignOps.followHelicopter(second, 200)
+  luaunit.assertNil(veafCampaignOps.supplyTarget("red"), "Poti given up, nothing else to do")
+  luaunit.assertTrue(veafCampaign.givenUp("helicopter", "red", "Poti"))
+  luaunit.assertFalse(veafCampaign.givenUp("helicopter", "blue", "Poti"), "the other side's memory is its own")
+  dcs_mocks.currentTime = timer.getTime() + 3600
+  luaunit.assertEquals(veafCampaignOps.supplyTarget("red").name, "Poti")
+end
+
 function TestCampaignHelicopters:test_no_more_helicopters_than_the_cap()
   start({ supply_seconds = 10, max_helicopters = 1, air = {} })
   veafCampaignOps.dispatchHelicopters(0)
@@ -305,8 +339,18 @@ end
 function TestCampaignHelicopters:test_shot_down_it_is_counted_as_failed()
   start()
   local record = veafCampaignOps.sendHelicopter("red", veafCampaign.zones["Poti"], "capture")
+  veafCampaignOps.onFlightEvent({ id = world.event.S_EVENT_CRASH, initiator = { unitName = record.name .. " #1" } })
   veafCampaignOps.followHelicopter(record, 100)
   luaunit.assertEquals(record.outcome, "destroyed")
+  luaunit.assertEquals(veafCampaignOps.counters.helicoptersFailed, 1)
+end
+
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 09: a group that vanished with no death seen is "gone", not "destroyed"
+function TestCampaignHelicopters:test_vanished_with_no_death_seen_it_is_gone()
+  start()
+  local record = veafCampaignOps.sendHelicopter("red", veafCampaign.zones["Poti"], "capture")
+  veafCampaignOps.followHelicopter(record, 100)
+  luaunit.assertEquals(record.outcome, "gone")
   luaunit.assertEquals(veafCampaignOps.counters.helicoptersFailed, 1)
 end
 
@@ -653,6 +697,50 @@ function TestCampaignShop:test_the_held_credits_are_lost_with_the_pilot()
   luaunit.assertNil(veafCampaignEconomy.held["Zip's Hog"])
   luaunit.assertEquals(veafCampaignEconomy.credits, 115)
   luaunit.assertEquals(#dcs_mocks.messagesContaining("15"), 2) -- the kill, then the loss
+end
+
+--- The dcs.log lines holding `text`.
+local function loggedLines(text)
+  local found = {}
+  for _, entry in ipairs(dcs_mocks.logs) do
+    if string.find(entry.text, text, 1, true) then
+      table.insert(found, entry.text)
+    end
+  end
+  return found
+end
+
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 10: 400 credits earned around 21:35 on 2026-11-17 could not be told to anyone
+function TestCampaignShop:test_each_gain_is_logged_with_its_pilot_and_its_reason()
+  veafCampaignEconomy.onKill(kill("Zip"))
+  veafCampaign.notify("captured", veafCampaign.zones["Poti"], "blue")
+  luaunit.assertEquals(#loggedLines("CREDITS Zip +5 (kill_held)"), 1)
+  luaunit.assertEquals(#loggedLines("CREDITS team +200 (capture)"), 1)
+  luaunit.assertEquals(veafCampaignEconomy.pilots["Zip"].total, 5)
+  luaunit.assertEquals(veafCampaignEconomy.pilots["team"].reasons.capture, 200)
+  -- kept in the save, for the debrief
+  local saved = veafCampaignEconomy.save()
+  luaunit.assertEquals(saved.pilots["Zip"].total, 5)
+end
+
+function TestCampaignShop:test_the_session_summary_says_who_earned_what_once_nobody_is_left()
+  veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
+  veafCampaignEconomy.onKill(kill("Paluche"))
+  local getPlayers = coalition.getPlayers
+  coalition.getPlayers = function()
+    return { "someone" }
+  end
+  veafCampaignEconomy.beat(100)
+  luaunit.assertEquals(#loggedLines("CREDITS SUMMARY"), 0, "players still in a slot")
+  coalition.getPlayers = function()
+    return {}
+  end
+  veafCampaignEconomy.beat(200)
+  coalition.getPlayers = getPlayers
+  luaunit.assertEquals(#loggedLines("CREDITS SUMMARY (nobody left in a slot): 20 earned by the side"), 1)
+  luaunit.assertEquals(#loggedLines("CREDITS SUMMARY Zip: 15 this session"), 1)
+  luaunit.assertEquals(#loggedLines("CREDITS SUMMARY Paluche: 5 this session"), 1)
+  luaunit.assertFalse(veafCampaignEconomy.summarizeSession("again"), "said once")
 end
 
 function TestCampaignShop:test_credits_never_go_below_zero()
@@ -1167,7 +1255,9 @@ function TestCampaignAdminMenus:test_the_admin_commands_ask_the_admin_level()
     local command = added[veaf.t(key)]
     luaunit.assertNotNil(command, key)
     luaunit.assertEquals(command.securityLevel, 90, key)
+    luaunit.assertTrue(command.sortLast, key .. ": veafRadio sorts by label, the order of insertion is not enough")
   end
+  luaunit.assertTrue(added[veaf.t("menu.campaign.counters")].sortKey < added[veaf.t("menu.campaign.reset")].sortKey)
 end
 
 -- 2026-11-16: the admin commands came before the shop and the rest, which fell to the menu's second page

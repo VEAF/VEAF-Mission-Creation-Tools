@@ -404,6 +404,107 @@ function TestCampaignResources:test_the_enemy_cap_is_paid_and_grounded_when_it_c
   luaunit.assertEquals(veafCampaignLogistics.stock("red"), 140) -- two MiG-29 at 30
 end
 
+--- Airbases as DCS gives them, with runways of `length` metres and no free stand: a flight starts on the runway.
+local function airfieldsWithRunway(length)
+  Airbase.getByName = function(name)
+    return {
+      getID = function()
+        return name == "Kobuleti" and 24 or 23
+      end,
+      getPoint = function()
+        return { x = 0, y = 0, z = 0 }
+      end,
+      getRunways = function()
+        return { { length = length } }
+      end,
+      getParking = function()
+        return {}
+      end,
+    }
+  end
+end
+
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 01: no red aeroplane sent from Taftanaz took off all evening
+function TestCampaignResources:test_no_aeroplane_leaves_a_field_whose_runway_is_too_short()
+  start({ min_runway_length = 1500 })
+  local senaki = veafCampaign.zones["Senaki"]
+  airfieldsWithRunway(2400)
+  local allowed = veafCampaignOps.canTakeOffFrom("red", senaki)
+  luaunit.assertTrue(allowed)
+  airfieldsWithRunway(1000)
+  luaunit.assertFalse(veafCampaignOps.canTakeOffFrom("red", senaki))
+end
+
+function TestCampaignResources:test_a_flight_that_never_takes_off_is_taken_away_refunded_and_its_field_grounded()
+  start({ takeoff_timeout = 600, grounded_seconds = 3600 })
+  airfieldsWithRunway(2400)
+  local this = self
+  veafAircraftSpawn.spawnAirplaneGroup = function(groupData, role, params)
+    table.insert(this.flights, { group = groupData, role = role, params = params })
+    dcs_mocks.addGroup(groupData.name, {
+      getUnits = function()
+        return { unitAt({ x = 0 }, { inAir = false }) }
+      end,
+    })
+    return groupData.name
+  end
+  veafCampaignLogistics.stocks.red = 200
+  veafCampaignOps.maintainCaps("red")
+  luaunit.assertEquals(#self.flights, 1)
+  local flight = veafCampaignOps.flights[1]
+  luaunit.assertTrue(flight.runway)
+  luaunit.assertEquals(veafCampaignLogistics.stock("red"), 140)
+  -- a second flight from the same field would spawn onto the first, still on the runway
+  luaunit.assertNil(
+    veafCampaignOps.spawnFlight("red", "cap", veafCampaign.zones[flight.origin], "campaign_cap", { zone = { x = 0, y = 0 } }, 6000)
+  )
+  veafCampaignOps.followFlights(flight.spawnedAt + 599)
+  luaunit.assertNil(flight.done)
+  veafCampaignOps.followFlights(flight.spawnedAt + 600)
+  luaunit.assertEquals(flight.outcome, "grounded")
+  luaunit.assertEquals(veafCampaignLogistics.stock("red"), 200, "its price back")
+  luaunit.assertEquals(veafCampaignOps.counters.grounded, 1)
+  luaunit.assertFalse(veafCampaignOps.canTakeOffFrom("red", veafCampaign.zones[flight.origin]))
+end
+
+-- review of #1310: the flights of one raid leave one field together; a flight the players bought is theirs
+function TestCampaignResources:test_a_raid_s_flights_leave_together_and_a_players_flight_is_never_taken_away()
+  start({ takeoff_timeout = 600 })
+  airfieldsWithRunway(2400)
+  local this = self
+  veafAircraftSpawn.spawnAirplaneGroup = function(groupData, role, params)
+    table.insert(this.flights, { group = groupData, role = role, params = params })
+    dcs_mocks.addGroup(groupData.name, {
+      getUnits = function()
+        return { unitAt({ x = 0 }, { inAir = false }) }
+      end,
+    })
+    return groupData.name
+  end
+  local senaki = veafCampaign.zones["Senaki"]
+  local first = veafCampaignOps.spawnFlight("red", "cap", senaki, "zone_defense", { zone = { x = 0, y = 0 }, package = "raid 1" }, 6000)
+  local second = veafCampaignOps.spawnFlight("red", "cap", senaki, "zone_defense", { zone = { x = 0, y = 0 }, package = "raid 1" }, 6000)
+  luaunit.assertNotNil(first)
+  luaunit.assertNotNil(second, "one package")
+  local kobuleti = veafCampaign.zones["Kobuleti"]
+  veafCampaignOps.spawnFlight("blue", "cap", kobuleti, "zone_defense", { zone = { x = 0, y = 0 } }, 6000)
+  local bought = veafCampaignOps.flights[#veafCampaignOps.flights]
+  veafCampaignOps.followFlights(bought.spawnedAt + 5000)
+  luaunit.assertNil(bought.outcome)
+end
+
+function TestCampaignResources:test_a_flight_in_the_air_is_never_taken_away()
+  start({ takeoff_timeout = 600 })
+  airfieldsWithRunway(2400)
+  veafCampaignLogistics.stocks.red = 200
+  veafCampaignOps.maintainCaps("red")
+  local flight = veafCampaignOps.flights[1]
+  veafCampaignOps.followFlights(flight.spawnedAt + 10)
+  luaunit.assertTrue(flight.airborne)
+  veafCampaignOps.followFlights(flight.spawnedAt + 5000)
+  luaunit.assertNil(flight.outcome)
+end
+
 function TestCampaignResources:test_a_bought_cap_costs_credits_not_resources()
   start()
   local before = veafCampaignLogistics.stock("blue")
@@ -437,6 +538,43 @@ function TestCampaignResources:test_a_zone_taken_by_a_helicopter_gets_a_token_ga
   luaunit.assertEquals(type(drawnFrom), "table")
   for category, count in pairs(drawnFrom) do
     luaunit.assertEquals(count, 0, "an empty reserve draws the token garrison: " .. category)
+  end
+end
+
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 08: Menagh (an airfield outpost) got 14 units, Afrin 24, on 2026-11-17
+function TestCampaignResources:test_a_helicopter_capture_leaves_a_few_soldiers_whatever_the_size_class()
+  start()
+  for _, name in ipairs({ "Poti", "Senaki" }) do
+    local zone = veafCampaign.zones[name]
+    zone.entry.size = { size = 3, defense = 5, armor = 3, long_range_sam = true }
+    zone:becomeNeutral()
+    zone:capturedBy("red", "helicopter")
+    luaunit.assertEquals(#zone.entry.garrison, 1, name)
+    local units = zone.entry.garrison[1].units
+    luaunit.assertTrue(#units > 0 and #units <= 6, name .. ": " .. #units .. " units")
+    for _, unit in ipairs(units) do
+      local known = false
+      for _, infantry in ipairs(veafCasMission.INFANTRY_TYPES[coalition.side.RED][veaf.config.era]) do
+        known = known or unit.type == infantry
+      end
+      luaunit.assertTrue(known, name .. ": no vehicle, " .. tostring(unit.type))
+    end
+  end
+end
+
+-- review of #1310: a side that could not pay its soldiers fell back on the smallest size class, vehicles included
+function TestCampaignResources:test_a_helicopter_capture_the_side_cannot_pay_still_leaves_soldiers_only()
+  start()
+  veafCampaignLogistics.stocks.red = 0
+  local poti = veafCampaign.zones["Poti"]
+  poti:becomeNeutral()
+  poti:capturedBy("red", "helicopter")
+  for _, unit in ipairs(poti.entry.garrison[1].units) do
+    local known = false
+    for _, infantry in ipairs(veafCasMission.INFANTRY_TYPES[coalition.side.RED][veaf.config.era]) do
+      known = known or unit.type == infantry
+    end
+    luaunit.assertTrue(known, "no vehicle: " .. tostring(unit.type))
   end
 end
 
@@ -522,6 +660,57 @@ function TestCampaignNetwork:test_a_segment_touching_a_depot_takes_half()
   ) -- factory > depot > base: T/2 + T/2
 end
 
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 02: Saraqib supplied itself "in 0 s" while a factory reached it, invulnerable
+function TestCampaignNetwork:test_a_depot_has_buildings_to_destroy()
+  network(nil, true)
+  local zugdidi = veafCampaign.zones["Zugdidi"]
+  luaunit.assertEquals(#zugdidi.entry.structures, veafCampaign.setting("network", "depot_buildings"))
+  luaunit.assertEquals(zugdidi.entry.structures[1].type, "Warehouse")
+  luaunit.assertEquals(veafCampaign.staticCategory("Warehouse"), "Warehouses")
+  luaunit.assertEquals(veafCampaign.staticCategory("Workshop A"), "Fortifications")
+  luaunit.assertTrue(zugdidi:isWorkingDepot())
+end
+
+function TestCampaignNetwork:test_a_depot_with_its_buildings_down_is_an_ordinary_node()
+  network(nil, true)
+  local zugdidi = veafCampaign.zones["Zugdidi"]
+  veafCampaignLogistics.supplyDelays("red") -- reached by the factory: its store full
+  for index in ipairs(zugdidi.entry.structures) do
+    zugdidi:onStructureLost(index)
+  end
+  luaunit.assertFalse(zugdidi:isWorkingDepot())
+  luaunit.assertEquals(veafCampaignLogistics.depotStores["Zugdidi"], 0, "its store burnt with it")
+  local delays = veafCampaignLogistics.supplyDelays("red")
+  luaunit.assertEquals(delays["Zugdidi"].delay, 600, "no longer a source of its own")
+  luaunit.assertEquals(delays["Senaki"].delay, 1200, "no shorter hop")
+  luaunit.assertEquals(veafCampaignLogistics.depotStores["Zugdidi"], 0, "a factory reaching it does not refill it")
+  luaunit.assertFalse(zugdidi:repairStructure(), "a delivery rebuilds no depot building")
+end
+
+-- review of #1310: a depot at 2/3 read as damaged for ever, and the shop sold a resupply nothing could do
+function TestCampaignNetwork:test_a_depot_s_lost_building_is_no_damage_a_delivery_repairs()
+  network(nil, true)
+  local zugdidi = veafCampaign.zones["Zugdidi"]
+  zugdidi:onStructureLost(1)
+  luaunit.assertFalse(zugdidi:isDamaged())
+end
+
+function TestCampaignNetwork:test_a_depot_is_rebuilt_only_after_its_long_delay()
+  network({ network = { depot_rebuild_seconds = 2700 } }, true)
+  local zugdidi = veafCampaign.zones["Zugdidi"]
+  for index in ipairs(zugdidi.entry.structures) do
+    zugdidi:onStructureLost(index)
+  end
+  luaunit.assertFalse(zugdidi:followDepot(2690))
+  luaunit.assertFalse(zugdidi:isWorkingDepot())
+  -- the delay is saved: a restart does not rebuild it, nor start the count again
+  luaunit.assertEquals(veafCampaign.stateTable().zones["Zugdidi"].depot_down_seconds, 2690)
+  luaunit.assertTrue(zugdidi:followDepot(10))
+  luaunit.assertTrue(zugdidi:isWorkingDepot())
+  luaunit.assertEquals(zugdidi:structuresStanding(), veafCampaign.setting("network", "depot_buildings"))
+  luaunit.assertNil(zugdidi.entry.depot_down_seconds)
+end
+
 function TestCampaignNetwork:test_an_enemy_zone_cuts_the_path()
   network()
   veafCampaign.zones["Zugdidi"].entry.owner = "blue"
@@ -587,6 +776,35 @@ function TestCampaignNetwork:test_a_zone_lost_meanwhile_receives_nothing()
   veafCampaignLogistics.arriveDeliveries(1200)
   luaunit.assertTrue(senaki:garrisonDamaged())
   luaunit.assertEquals(veafCampaignLogistics.counters.lost, 1)
+end
+
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 03: Aleppo, under a player's fire, was reinforced every 5 minutes
+function TestCampaignNetwork:test_a_delivery_waits_while_the_zone_is_under_fire()
+  network()
+  local senaki = veafCampaign.zones["Senaki"]
+  senaki.entry.garrison = garrison("Senaki", { 1 })
+  veafCampaignLogistics.dispatchDeliveries(0)
+  senaki.lastLossAt = 1000
+  veafCampaignLogistics.arriveDeliveries(1200)
+  luaunit.assertTrue(senaki:garrisonDamaged())
+  luaunit.assertEquals(#veafCampaignLogistics.deliveries, 1, "kept, not lost")
+  veafCampaignLogistics.arriveDeliveries(1600)
+  luaunit.assertFalse(senaki:garrisonDamaged())
+  luaunit.assertEquals(#veafCampaignLogistics.deliveries, 0)
+end
+
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 09: "lost: the zone is no longer theirs" said of Aleppo, still red, whole again
+function TestCampaignNetwork:test_a_delivery_with_nothing_to_repair_goes_back_to_the_stock()
+  network()
+  local senaki = veafCampaign.zones["Senaki"]
+  senaki.entry.garrison = garrison("Senaki", { 1 })
+  veafCampaignLogistics.dispatchDeliveries(0)
+  local paid = veafCampaignLogistics.stock("red")
+  senaki:reinforce() -- a supply helicopter made it whole meanwhile
+  veafCampaignLogistics.arriveDeliveries(1200)
+  luaunit.assertEquals(veafCampaignLogistics.stock("red"), paid + 6)
+  luaunit.assertEquals(veafCampaignLogistics.counters.lost, 0)
+  luaunit.assertEquals(veafCampaignLogistics.counters.unneeded, 1)
 end
 
 function TestCampaignNetwork:test_a_zone_cut_off_waits_the_isolated_delay()
@@ -1165,10 +1383,25 @@ function TestCampaignBombers:test_shot_down_the_intercept_task_pays()
   veafCampaignEconomy.refreshTasks()
   local credits = veafCampaignEconomy.credits
   dcs_mocks.clearUnitsAndGroups() -- the bomber is gone
+  veafCampaignOps.onFlightEvent({ id = world.event.S_EVENT_KILL, target = { unitName = raid.name .. " #1" } })
   veafCampaignOps.followRaid(raid, 100)
   luaunit.assertEquals(raid.outcome, "destroyed")
   veafCampaignEconomy.checkTasks()
   luaunit.assertEquals(veafCampaignEconomy.credits, credits + 400)
+end
+
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 09: the Tu-22M3 of 2026-11-17 aborted on the ground and vanished, no death seen
+function TestCampaignBombers:test_a_bomber_gone_without_a_death_is_not_a_raid_shot_down()
+  start({ bombers = { min_distance = 50000 } })
+  local raid = veafCampaignOps.sendRaid("red", veafCampaign.zones["Poti"])
+  veafCampaignEconomy.refreshTasks()
+  local credits = veafCampaignEconomy.credits
+  dcs_mocks.clearUnitsAndGroups()
+  veafCampaignOps.followRaid(raid, 100)
+  luaunit.assertEquals(raid.outcome, "gone")
+  luaunit.assertEquals(veafCampaignOps.counters.raidsDestroyed, 0)
+  veafCampaignEconomy.checkTasks()
+  luaunit.assertEquals(veafCampaignEconomy.credits, credits, "nobody shot it down")
 end
 
 function TestCampaignBombers:test_the_escort_keeps_fighting_when_its_bomber_falls_and_goes_with_it_home()
@@ -1187,6 +1420,7 @@ function TestCampaignBombers:test_the_escort_keeps_fighting_when_its_bomber_fall
   local shot = { name = "bomber A", escort = "escort A", side = "red", target = "Poti", startedAt = 0 }
   flight("bomber A", false)
   flight("escort A", true)
+  veafCampaignOps.onFlightEvent({ id = world.event.S_EVENT_DEAD, initiator = { unitName = "bomber A #1" } })
   veafCampaignOps.followRaid(shot, 100)
   luaunit.assertEquals(shot.outcome, "destroyed")
   luaunit.assertEquals(destroyed, {})

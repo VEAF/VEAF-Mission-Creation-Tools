@@ -969,6 +969,19 @@ function veafRadio.RadioMenuBuilder:_buildChildren(node, dcsMenu, coalitionSide,
   for _, subMenu in ipairs(node.subMenus) do
     collect("menu", subMenu)
   end
+  -- An entry with `sortLast` goes after every other one, commands and submenus alike, in its own
+  -- `sortKey` order: the "(admin)" commands of the Campaign menu, which must fall to its last page
+  -- whatever their labels sort to in any language (FIX-CAMPAIGN-SECOND-SERVER-FLIGHT ticket 11).
+  local regular, last = {}, {}
+  for _, item in ipairs(items) do
+    table.insert(item.child.sortLast and last or regular, item)
+  end
+  if #last > 0 then
+    items = regular
+    for _, item in ipairs(last) do
+      table.insert(items, item)
+    end
+  end
   -- The root mixes commands and menus in one order, by rank first (FEAT-RADIO-MENU-ORDER).
   if isRoot then
     local position = {}
@@ -1000,9 +1013,28 @@ function veafRadio.RadioMenuBuilder:_buildChildren(node, dcsMenu, coalitionSide,
   local previousPages = paginate and self._pagesByNode[nodeKey] or {}
   local capacity = paginate and (veafRadio.MENU_PAGE_SIZE - 1) or math.huge
   local pageOf, countOnPage, lastPage = {}, {}, 1
+  -- the regular entries keep their page; a `sortLast` entry keeps its page only while it is still
+  -- the last one, and moves to the end otherwise
   for _, item in ipairs(items) do
-    local page = previousPages[item.id]
+    local page = not item.child.sortLast and previousPages[item.id]
     if page and (countOnPage[page] or 0) < capacity then
+      pageOf[item.id] = page
+      countOnPage[page] = (countOnPage[page] or 0) + 1
+      lastPage = math.max(lastPage, page)
+    end
+  end
+  for _, item in ipairs(items) do
+    if not pageOf[item.id] and not item.child.sortLast then
+      while (countOnPage[lastPage] or 0) >= capacity do
+        lastPage = lastPage + 1
+      end
+      pageOf[item.id] = lastPage
+      countOnPage[lastPage] = (countOnPage[lastPage] or 0) + 1
+    end
+  end
+  for _, item in ipairs(items) do
+    local page = item.child.sortLast and previousPages[item.id]
+    if page and page >= lastPage and (countOnPage[page] or 0) < capacity then
       pageOf[item.id] = page
       countOnPage[page] = (countOnPage[page] or 0) + 1
       lastPage = math.max(lastPage, page)

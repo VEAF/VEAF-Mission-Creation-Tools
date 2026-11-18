@@ -580,6 +580,16 @@ function TestConvoyContact:test_an_assault_convoy_too_weak_still_falls_back()
   luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FALLING_BACK)
 end
 
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 05: the campaign's assault on Hatay drove back home under a player's fire
+function TestConvoyContact:test_an_assault_convoy_under_air_attack_drives_on()
+  local handler, units = self:_convoy(TANK)
+  veafGroundAI.setConvoyObjective("Convoy-1", POTI)
+  local jet = makeUnit("su25", { side = RED, categoryEx = Unit.Category.AIRPLANE, type = "Su-25T", point = { x = 1000, y = 500, z = 0 } })
+  veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_SHOOTING_START, initiator = jet, target = units[1] })
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_DRIVING)
+  luaunit.assertNotNil(lastTaskSetOn("Convoy-1"), "sent on its way again")
+end
+
 function TestConvoyContact:test_a_wholly_unarmed_convoy_flees_as_one()
   local handler = self:_convoy(nil)
   local shooter = makeUnit("r-1", { side = RED, attributes = APC, point = { x = 1500, y = 0, z = 0 } })

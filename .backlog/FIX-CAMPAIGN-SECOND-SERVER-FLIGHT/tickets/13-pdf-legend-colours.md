@@ -1,6 +1,6 @@
 # 13 — The theatre dossier's PDF legend is black
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 
 ## Found
@@ -17,3 +17,10 @@ David, 2026-11-17: on the "Carte du réseau" and "Défenses aériennes connues" 
 ## Done when
 
 The three dots of the PDF legend are blue, red and grey.
+
+## Done
+
+- `MapNote` (`briefing_pdf.py`): a map note may be `(text, is_heading, dot)`; `_map_page` draws the dot in that colour and the text in black.
+- `map_notes` gives each owner's line its `OWNER_COLOURS` colour, the slide's: the theatre dossier's two maps and the campaign deck's strategic map follow.
+- Test: the three colours are in the PDF page's content stream.
+- Left to the controlling session (out of this lot's scope): regenerate the Oronte dossier and the pictures of the campaign's follow-up document.

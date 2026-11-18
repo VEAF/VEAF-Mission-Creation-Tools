@@ -1639,6 +1639,20 @@ function ConvoyUnitHandler:engage(now)
     enemyStrength = enemyStrength + threat.strength
   end
 
+  -- An assault convoy (`setConvoyObjective`) hit by nothing it can answer — aircraft, a gun out of reach — drives on: it cannot outrun
+  -- them, and falling back drove the campaign's assault on Hatay home under a player's fire (2026-11-17,
+  -- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT ticket 05). Against ground forces it fights, or falls back when too weak.
+  local unanswerable = true
+  for _, threat in ipairs(threats) do
+    unanswerable = unanswerable and threat.strength == math.huge
+  end
+  if veafGroundAI.convoyObjectives[self.groupName] and #armed > 0 and unanswerable then
+    veaf.goRoute(self.groupName, self:onwardRoute(group))
+    self.state = ConvoyUnitHandler.STATE_DRIVING
+    veaf.loggers.get(veafGroundAI.Id):info("convoy %s: an assault under air attack drives on", veaf.p(self:getName()))
+    self:markDanger(now)
+    return
+  end
   local rally, destination = self:fallBackPoints(group, threats)
   if #armed == 0 then
     self:fallBack(self.groupName, rally, destination)

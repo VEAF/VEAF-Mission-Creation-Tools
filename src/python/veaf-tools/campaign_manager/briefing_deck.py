@@ -14,6 +14,7 @@ from __future__ import annotations
 import functools
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from PIL import Image, ImageFont
 from pptx import Presentation
@@ -30,6 +31,9 @@ from campaign_manager.intelligence import enemy_picture, friendly_picture, reser
 from campaign_manager.models import COALITIONS, CampaignDefinition, CampaignState, CampaignZone
 from campaign_manager.strategic_map import OWNER_COLOURS, MapReport, render_strategic_map
 from campaign_manager.turn_manager import enemy_of
+
+if TYPE_CHECKING:  # briefing_pdf imports this module
+    from mission_briefing.briefing_pdf import MapNote
 
 #: The deck, in the mission's sub-folder (`missions/mission-NN/`).
 DECK_FILE = "briefing-campagne.pptx"
@@ -568,8 +572,8 @@ def deck_file(campaign: CampaignDefinition, prose: BriefingProse | None, kind: s
     return "_".join([*parts, kind])
 
 
-def map_notes(report: MapReport, extra: list[str] | None = None) -> list[tuple[str, bool]]:
-    """A map page's legend as the PDF's notes: ``(text, is_heading)``, as the slide writes it.
+def map_notes(report: MapReport, extra: list[str] | None = None) -> list[MapNote]:
+    """A map page's legend as the PDF's notes, as the slide writes it: each owner's line led by a dot of its colour.
 
     Args:
         report: The map drawn.
@@ -578,8 +582,8 @@ def map_notes(report: MapReport, extra: list[str] | None = None) -> list[tuple[s
     Returns:
         The notes.
     """
-    notes = [(t("campaign.deck.legend"), True)]
-    notes += [(f"● {t(f'campaign.deck.legend_{owner}')}", False) for owner in ("blue", "red", "neutral")]
+    notes: list[MapNote] = [(t("campaign.deck.legend"), True)]
+    notes += [(t(f"campaign.deck.legend_{owner}"), False, OWNER_COLOURS[owner]) for owner in ("blue", "red", "neutral")]
     notes += [(line, False) for line in extra or ()]
     if report.offline:
         notes.append((t("campaign.deck.map_offline"), False))

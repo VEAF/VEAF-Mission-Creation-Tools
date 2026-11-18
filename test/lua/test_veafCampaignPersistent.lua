@@ -715,6 +715,102 @@ function TestCampaignDormancy:test_a_sleep_is_not_a_loss_and_losses_survive_it()
   luaunit.assertEquals(#dcs_mocks.groupsAdded[1].group.units, 2)
 end
 
+--- A garrison of `count` units in one group, and a long-range battery of `battery` units after it.
+local function largeGarrison(name, count, battery)
+  local main, sam = { name = name .. " garrison", units = {} }, { name = name .. " long-range SAM", units = {} }
+  for index = 1, count do
+    table.insert(main.units, { type = "BMP-2", x = index, z = 0, heading = 0, alive = true })
+  end
+  for index = 1, battery do
+    table.insert(sam.units, { type = "S-200_Launcher", x = index, z = 10, heading = 0, alive = true })
+  end
+  return { main, sam }
+end
+
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 06: Hama's 42 units, its SA-5 battery included, in one go froze the server
+function TestCampaignDormancy:test_a_waking_garrison_comes_group_by_group_its_battery_last_never_split()
+  local data = persistentData({ wake_units_per_beat = 10 })
+  data.zones[3].garrison = largeGarrison("Poti", 25, 6)
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  local poti = veafCampaign.zones["Poti"]
+  dcs_mocks.groupsAdded = {}
+  poti:wake()
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1, "the battery waits for the next beat")
+  luaunit.assertEquals(dcs_mocks.groupsAdded[1].group.name, "Poti garrison")
+  luaunit.assertEquals(#dcs_mocks.groupsAdded[1].group.units, 25, "a group is never split")
+  poti:continueSpawning()
+  luaunit.assertEquals(dcs_mocks.groupsAdded[2].group.name, "Poti long-range SAM")
+  luaunit.assertEquals(#dcs_mocks.groupsAdded[2].group.units, 6, "its radar and its launchers in one DCS group")
+  luaunit.assertNil(poti.wakeQueue)
+end
+
+function TestCampaignDormancy:test_a_unit_brought_back_while_its_zone_wakes_is_spawned_once()
+  local data = persistentData({ wake_units_per_beat = 4 })
+  data.zones[3].garrison = largeGarrison("Poti", 5, 4)
+  data.zones[3].garrison[1].units[3].alive = false
+  data.zones[3].garrison[2].units[2].alive = false
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  local poti = veafCampaign.zones["Poti"]
+  poti:wake() -- the garrison now, the battery at the next beat
+  dcs_mocks.groupsAdded = {}
+  poti:reinforce() -- the garrison's BMP: its group is in the world, it joins it
+  poti:reinforce() -- the battery's launcher: its group is still to come, it comes with it
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1)
+  luaunit.assertEquals(#dcs_mocks.groupsAdded[1].group.units, 1)
+  poti:continueSpawning()
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 2)
+  luaunit.assertEquals(#dcs_mocks.groupsAdded[2].group.units, 4, "the battery whole, its launcher included")
+end
+
+-- review of #1310: a radar brought back alone in a group of its own would leave its launchers blind
+function TestCampaignDormancy:test_an_air_defence_unit_brought_back_respawns_its_whole_group()
+  local data = persistentData()
+  data.zones[3].garrison = largeGarrison("Poti", 0, 4)
+  data.zones[3].garrison[1] = { name = "Poti garrison", units = { { type = "BMP-2", x = 1, z = 0, heading = 0, alive = true } } }
+  data.zones[3].garrison[2].units[2].alive = false
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  local poti = veafCampaign.zones["Poti"]
+  poti:spawnGarrison()
+  dcs_mocks.groupsAdded = {}
+  luaunit.assertTrue(poti:reinforce())
+  luaunit.assertEquals(dcs_mocks.groupsAdded[1].group.name, "Poti long-range SAM")
+  luaunit.assertEquals(#dcs_mocks.groupsAdded[1].group.units, 4)
+end
+
+function TestCampaignDormancy:test_an_awake_zone_keeps_its_garrison_a_margin_farther_than_it_wakes()
+  veafCampaign.data = persistentData({ wake_radius = 60000, sleep_margin = 20000, sleep_seconds = 600 })
+  veafCampaign.initialize()
+  local poti = veafCampaign.zones["Poti"]
+  playersAt({ { x = 170000 } }) -- 70 km: beyond the wake radius
+  passes(3)
+  luaunit.assertFalse(poti.awake)
+  playersAt({ { x = 150000 } }) -- 50 km
+  passes(1, 200)
+  luaunit.assertTrue(poti.awake)
+  playersAt({ { x = 170000 } }) -- back to 70 km, within the margin, for longer than the sleep delay
+  passes(1, 900)
+  luaunit.assertTrue(poti.awake)
+  playersAt({ { x = 190000 } }) -- 90 km
+  passes(1, 1000)
+  passes(1, 1700)
+  luaunit.assertFalse(poti.awake)
+end
+
+function TestCampaignDormancy:test_a_zone_just_asleep_does_not_wake_for_an_ai_aircraft()
+  veafCampaign.data = persistentData({ wake_rest_seconds = 300 })
+  veafCampaign.initialize()
+  local poti = veafCampaign.zones["Poti"]
+  poti.sleptAt = 100
+  worldGroups({ { name = "cap", category = Group.Category.AIRPLANE, x = 115000, inAir = true } }) -- 15 km
+  passes(4, 200) -- the front wakes first, one zone per pass
+  luaunit.assertFalse(poti.awake)
+  passes(1, 401)
+  luaunit.assertTrue(poti.awake)
+end
+
 function TestCampaignDormancy:test_the_target_of_a_sortie_wakes_even_when_the_rear_is_full()
   veafCampaign.data = persistentData({ max_awake_zones = 1 })
   veafCampaign.initialize()
@@ -782,9 +878,49 @@ function TestCampaignReinforce:test_the_first_damaged_group_gets_its_dead_back_i
   senaki.awake = true
   luaunit.assertTrue(senaki:reinforce())
   luaunit.assertEquals({ senaki:countUnits() }, { 3, 3 })
-  local units = dcs_mocks.groupsAdded[1].group.units
-  luaunit.assertEquals(#units, 3)
-  luaunit.assertEquals({ units[1].x, units[1].y }, { 10, 20 })
+  -- only the units brought back are spawned, as a group of their own: the living BMP-2 is not respawned
+  local added = dcs_mocks.groupsAdded[1].group
+  luaunit.assertEquals(added.name, "Senaki garrison +1")
+  luaunit.assertEquals(#added.units, 2)
+  luaunit.assertEquals({ added.units[1].x, added.units[1].y }, { 10, 20 })
+  luaunit.assertEquals(added.units[1].name, veafCampaign.unitName(senaki.entry.garrison[1], 1))
+end
+
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 03: 2 points brought a Shilka and the lorries back to Saraqib
+function TestCampaignReinforce:test_a_delivery_brings_back_only_what_it_pays_for_cheapest_first()
+  local data = persistentData()
+  data.zones[2].garrison = garrison("Senaki", { 1, 2, 3 }) -- T-72B 6, BMP-2 4, Ural-375 2
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  local senaki = veafCampaign.zones["Senaki"]
+  local reinforced, spent = senaki:reinforce(2)
+  luaunit.assertTrue(reinforced)
+  luaunit.assertEquals(spent, 2)
+  local units = senaki.entry.garrison[1].units
+  luaunit.assertEquals({ units[1].alive, units[2].alive, units[3].alive }, { false, false, true })
+  luaunit.assertEquals({ senaki:reinforce(1) }, { false, 0 }, "not enough for the cheapest dead unit")
+  luaunit.assertEquals({ senaki:reinforce(10) }, { true, 10 })
+  luaunit.assertTrue(units[1].alive and units[2].alive)
+end
+
+function TestCampaignReinforce:test_the_groups_a_delivery_added_leave_with_the_zone_s_sleep()
+  local data = persistentData()
+  data.zones[2].garrison = garrison("Senaki", { 1 })
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  local senaki = veafCampaign.zones["Senaki"]
+  senaki.awake = true
+  senaki:reinforce()
+  local destroyed = {}
+  dcs_mocks.addGroup("Senaki garrison +1", {
+    destroy = function()
+      table.insert(destroyed, "Senaki garrison +1")
+    end,
+  })
+  senaki:sleep("test")
+  luaunit.assertEquals(destroyed, { "Senaki garrison +1" })
+  luaunit.assertNil(senaki.reinforcementGroups)
+  dcs_mocks.removeGroup("Senaki garrison +1")
 end
 
 function TestCampaignReinforce:test_a_sleeping_zone_is_reinforced_in_its_record_only()
@@ -953,6 +1089,79 @@ function TestCampaignConvoyGoal:test_a_convoy_on_the_road_too_long_frees_its_pla
   luaunit.assertNil(record.ended)
   veafCampaign.checkConvoyGoal(record, 700)
   luaunit.assertTrue(record.ended)
+end
+
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 05: 13 to 16 km covered in 45 min, on roads of 38 to 61 km: retired by construction
+function TestCampaignConvoyGoal:test_an_assault_is_given_the_time_its_road_takes()
+  veafCampaign.data = persistentData({ convoy_timeout = 2700, assault_speed = 40 })
+  veafCampaign.initialize()
+  local findPath = land.findPathOnRoads
+  land.findPathOnRoads = function()
+    return { { x = 0, y = 0 }, { x = 30000, y = 0 }, { x = 30000, y = 30000 } } -- 60 km of road
+  end
+  local record = { name = "Senaki - Kobuleti assault", side = "red", from = "Senaki", to = "Kobuleti", sentAt = 0 }
+  veafCampaign.planConvoyTime(record, veafCampaign.zones["Senaki"], veafCampaign.zones["Kobuleti"])
+  land.findPathOnRoads = findPath
+  -- 7 min to start, 60 km at 40 km/h = 90 min: 97 min expected, retired after half as long again
+  luaunit.assertEquals(math.floor(record.expected / 60), 97)
+  luaunit.assertEquals(record.timeout, math.floor(record.expected * 1.5))
+  table.insert(veafCampaign.convoys, record)
+  veafCampaign.checkConvoyGoal(record, 2700)
+  luaunit.assertNil(record.ended, "the old 45-minute timeout no longer retires it")
+  veafCampaign.checkConvoyGoal(record, record.timeout)
+  luaunit.assertTrue(record.ended)
+end
+
+function TestCampaignConvoyGoal:test_an_assault_that_falls_back_ends_and_counts_as_a_failure()
+  veafCampaign.data = persistentData({ route_failures = 2 })
+  veafCampaign.initialize()
+  local savedHandlers = veafGroundAI and veafGroundAI.convoysByGroupName
+  veafGroundAI = veafGroundAI or {}
+  local savedClass = ConvoyUnitHandler
+  ConvoyUnitHandler = ConvoyUnitHandler or { STATE_FALLING_BACK = 4 }
+  veafGroundAI.convoysByGroupName = { ["Poti assault"] = { state = ConvoyUnitHandler.STATE_FALLING_BACK } }
+  local record = { name = "Poti assault", side = "red", from = "Poti", to = "Kobuleti", sentAt = 0 }
+  table.insert(veafCampaign.convoys, record)
+  veafCampaign.checkConvoyGoal(record, 10)
+  veafGroundAI.convoysByGroupName = savedHandlers
+  ConvoyUnitHandler = savedClass
+  luaunit.assertTrue(record.ended)
+  luaunit.assertEquals(veafCampaign.failures["convoy red Kobuleti"].count, 1)
+end
+
+function TestCampaignConvoyGoal:test_where_an_assault_stands_is_logged_on_its_way()
+  veafCampaign.data = persistentData({ convoy_report_seconds = 300 })
+  veafCampaign.initialize()
+  local x = 50000
+  local savedUnits = veafCampaign.convoyUnits
+  veafCampaign.convoyUnits = function()
+    return {
+      {
+        getPoint = function()
+          return { x = x, y = 0, z = 0 }
+        end,
+      },
+    }
+  end
+  local record = { name = "Senaki - Kobuleti assault", side = "red", from = "Senaki", to = "Kobuleti", sentAt = 0 }
+  veafCampaign.followConvoyProgress(record, 299)
+  luaunit.assertNil(record.lastDistance, "not before its first period")
+  veafCampaign.followConvoyProgress(record, 300)
+  x = 45000
+  veafCampaign.followConvoyProgress(record, 600)
+  x = 47000
+  veafCampaign.followConvoyProgress(record, 900)
+  veafCampaign.convoyUnits = savedUnits
+  local lines = {}
+  for _, entry in ipairs(dcs_mocks.logs) do
+    if entry.text:find("assault convoy [Senaki - Kobuleti assault]:", 1, true) then
+      table.insert(lines, entry.text)
+    end
+  end
+  luaunit.assertEquals(#lines, 3)
+  luaunit.assertStrContains(lines[1], "50.0 km from [Kobuleti] after 5 min, on its way")
+  luaunit.assertStrContains(lines[2], "45.0 km from [Kobuleti] after 10 min, on its way (5.0 km in 5 min)")
+  luaunit.assertStrContains(lines[3], "turning back")
 end
 
 -- ---------------------------------------------------------------------------

@@ -10,7 +10,7 @@
   Une zone ennemie affiche « force inconnue » tant qu'elle n'a pas été [reconnue](#intel).
 - **Une zone ne change jamais de camp directement** : quand sa garnison est détruite, elle devient **neutre** (grise).
   Une zone neutre se prend en y tenant le terrain : des unités au sol d'un seul camp y restent `capture_seconds` (120 s par défaut) — troupes ou caisse CTLD 2, convoi, groupe `_spawn`, véhicule Combined Arms, hélicoptère **posé**.
-  Des hélicoptères posés, seuls, mettent `helicopter_capture_seconds` (600 s), et ne laissent qu'une garnison symbolique : ce qu'emporte un hélicoptère.
+  Des hélicoptères posés, seuls, mettent `helicopter_capture_seconds` (600 s), et ne laissent qu'une garnison symbolique : ce qu'emporte un hélicoptère, `helicopter_garrison` fantassins (6) et aucun véhicule, quelle que soit la classe de la zone.
   La nouvelle garnison apparaît aussitôt.
 - **Un pilote au sol après une éjection n'est l'ennemi de personne** : le rescapé que pose le module CSAR ne tient ni ne conteste une zone, ne réveille aucune zone et n'arrête aucun convoi, dans tous les scripts VEAF.
 - **Les slots suivent les bases** : un aérodrome pris passe dans le camp du preneur, avec ses slots dynamiques.
@@ -227,22 +227,29 @@ Elle réapparaît exactement comme elle était :
 Seuls les ennemis d'une zone la réveillent ; les véhicules posés dans l'éditeur et les avions pas encore activés ne réveillent rien.
 La portée d'une défense est celle de ses missiles, lue dans DCS pendant que la zone est éveillée et retenue dans la sauvegarde ; une zone jamais vue éveillée a une portée supposée (75 km avec un SAM longue portée, 20 km sinon).
 Elle disparaît quand personne n'est venu depuis `sleep_seconds` (600 s), sauf près du front.
+Éveillée, une zone garde sa garnison `sleep_margin` (20 km) plus loin qu'elle ne se réveille : un joueur qui oscille autour de 60 km ne la fait pas disparaître et réapparaître.
+Endormie depuis moins de `wake_rest_seconds` (300 s), elle ne se réveille que pour le front, une sortie ou un joueur, pas pour un avion IA qui passe.
 
 Au plus `max_awake_zones` (12) zones de l'arrière sont éveillées à la fois ; le front et les cibles de sorties ne comptent pas.
 Quand la limite est atteinte, une zone voulue par un joueur prend la place d'une zone voulue seulement par une IA, ou d'une zone voulue par un joueur plus lointain ; entre zones voulues par des IA, la première garde sa place, pour que des avions qui passent ne fassent pas apparaître et disparaître les zones en boucle.
 Une seule zone se réveille à chaque battement de 10 s, pour ne pas faire apparaître tout le front d'un coup.
+Sa garnison arrive groupe par groupe, environ `wake_units_per_beat` (10) unités à chaque battement, la batterie longue portée en dernier, sans jamais couper un groupe (un lanceur séparé de son radar ne tire pas) : les 42 unités de Hama d'un coup gelaient le serveur ; la garnison d'une zone prise arrive de la même façon.
 
 ## Un front qui bouge tout seul {#front}
 
 - **Contre-attaques** : toutes les `attack_seconds` (900 s), un camp listé dans `attacks` (le rouge par défaut) envoie un convoi d'assaut contre la zone ennemie la plus faible qui le borde, `max_convoys` (2) sur la route au plus.
   Seuls ces camps envoient aussi d'eux-mêmes des convois vers une zone neutre ; le camp des joueurs achète les siens (F10 → Autres → VEAF → Campagne → Assauts), et aucun convoi automatique ne part vers une zone qu'un convoi du même camp vise déjà.
-- **Un convoi qui n'arrivera pas libère sa place** : dès que sa cible est à son camp (un hélicoptère l'a prise avant lui), ou après `convoy_timeout` (2 700 s) de route, il est retiré de la carte et le prix de ses survivants retourne à son camp.
+- **Un convoi d'assaut roule à `assault_speed` (40 km/h)**, sans se disperser sous le feu ; à son départ, `dcs.log` donne la longueur de sa route, le temps qu'il lui faut et quand il sera retiré, puis toutes les `convoy_report_seconds` (300 s) sa distance à sa cible et s'il avance, s'arrête ou fait demi-tour.
+  Sous des avions il poursuit sa route ; s'il se replie devant plus fort que lui au sol, son assaut est fini : il est retiré.
+- **Un convoi qui n'arrivera pas libère sa place** : dès que sa cible est à son camp (un hélicoptère l'a prise avant lui), quand il se replie, ou après le temps que demande sa route (une fois et demie le temps prévu, `convoy_timeout`, 2 700 s, au moins), il est retiré de la carte et le prix de ses survivants retourne à son camp ; le 17/11/2026, à 20 km/h sur des routes de 40 à 60 km, les 45 minutes retiraient chaque convoi avant son arrivée.
 - **L'autre camp est prévenu aussitôt** du départ d'un convoi, et voit son axe sur la carte.
 - **Ravitaillement** : une livraison dans une zone amie abîmée ramène au complet son premier groupe touché.
   Livrent : une caisse « Zone supplies » posée dans la zone, des troupes CTLD 2 déposées dans la zone (sauf l'équipe espion et les équipes JTAC), un hélicoptère de ravitaillement posé.
 - **Hélicoptères IA** : toutes les `supply_seconds` (600 s), un camp listé dans `supply` (le rouge par défaut) envoie un hélicoptère (`helicopter`, Mi-8MT rouge, UH-1H bleu) vers une zone neutre qui le borde, qu'il prend en s'y posant, ou à défaut vers sa zone la plus abîmée, qu'il ravitaille ; `max_helicopters` (2) en vol au plus, et un hélicoptère qui ne s'est pas posé au bout de `helicopter_timeout` (1 200 s) est retiré.
   L'autre camp est prévenu à son départ, pour l'intercepter.
   Un hélicoptère qui se repose loin de sa zone a échoué aussitôt, et `dcs.log` dit où il s'est posé.
+  Dans une zone d'aérodrome, il se pose sur le terrain ; dans une autre zone (une ville, un point), sur l'endroit dégagé le plus proche du centre, dans les 60 % de son rayon : envoyés au centre d'Afrin, quatre Mi-8 ont fait demi-tour aussitôt.
+- **L'IA retient ce qui échoue** : après `route_failures` (2) hélicoptères ou convois d'assaut d'un camp ratés de suite vers la même zone, ce camp n'y envoie plus rien de ce genre pendant `route_failure_seconds` (3 600 s) ; un succès efface le compte.
 
 ## L'aviation ennemie {#air}
 
@@ -254,6 +261,8 @@ Une seule zone se réveille à chaque battement de 10 s, pour ne pas faire appar
   Une frappe CAS laisse de côté une zone sous une défense antiaérienne mesurée de 15 km ou plus (un Hawk, un SA-6), la sienne ou celle d'une voisine : c'est le travail de la SEAD.
 - Elles **décollent** de l'aérodrome ennemi le plus proche, moteur chaud sur des parkings libres (les abris d'abord, les places ouvertes ensuite ; un gros avion, bombardier ou transport, jamais dans un abri), ou de la piste quand il n'y en a pas assez ; sans aérodrome, pas de sortie. Il en va de même pour la CAP, la BARCAP et le Hunter.
   Rien ne décolle d'un aérodrome à moins de `takeoff_threat_range` (40 km) d'une défense antiaérienne ennemie dont la portée a été mesurée (un Patriot abattrait les avions pendant qu'ils montent) ; la portée que donne DCS est celle du missile contre une cible haute, bien plus longue que celle à laquelle le SAM voit un avion qui décolle, d'où ce plafond, une estimation à régler.
+  Aucun avion de l'IA ne part d'un terrain dont la plus longue piste fait moins de `min_runway_length` (1 500 m), et un seul vol à la fois part de la piste d'un terrain : le 17/11/2026, quinze avions envoyés de Taftanaz se sont empilés sur un même point de sa piste sans jamais décoller.
+  Un vol encore au sol `takeoff_timeout` (600 s) après son apparition est retiré, son prix rendu au stock, et son terrain n'envoie plus d'avion pendant `grounded_seconds` (3 600 s).
   Une **SEAD** décolle quand même : éteindre cette défense est son travail, et ce qu'elle détruit libère le terrain pour les frappes.
   Sinon la sortie part d'un autre aérodrome, ou ne part pas, et `dcs.log` le dit (`[CAMPAIGN DECISION] nothing of red takes off from [Senaki]: it is under the air defence of [Kobuleti]`).
   `air.max_flights` (4) vols en l'air au plus par camp.
@@ -348,7 +357,7 @@ Une zone se déclare d'une sorte, `kind:`, en plus de son emplacement :
 | aucune, sur un aérodrome | un **aérodrome** : il se prend, ses slots suivent |
 | aucune, sur un point | un **avant-poste** : une garnison |
 | `factory` | une **usine** : quelques bâtiments et une petite garnison ; elle fait les [ressources](#resources) de son camp tant que ses bâtiments tiennent |
-| `depot` | un **dépôt** : il accélère le [réseau d'approvisionnement](#network) et en garde une réserve |
+| `depot` | un **dépôt** : quelques bâtiments ; il accélère le [réseau d'approvisionnement](#network) et en garde une réserve tant que ses bâtiments tiennent |
 
 ```yaml
 zones:
@@ -361,6 +370,13 @@ Ce sont des statics : ils restent dans le monde même quand la zone dort.
 La carte compte ceux qui tiennent, « usine 2/3 ».
 On les détruit à la bombe ou avec l'[équipe de démolition](#demolition) ; une usine se prend aussi comme n'importe quelle zone, et ce qui en tient travaille alors pour son nouveau camp.
 Une livraison (caisse, troupes, hélicoptère) dans une usine dont la garnison est complète relève un bâtiment.
+
+Un dépôt a lui aussi ses bâtiments, tirés de la même façon : `network.depot_buildings` (3) parmi `network.depot_types` (`Warehouse`, `Fuel tank`, `Tank`) ; la carte dit « dépôt 2/3 ».
+Tant qu'un de ses bâtiments tient, c'est un dépôt : il garde sa réserve, raccourcit les sauts et peut se ravitailler lui-même.
+**Ses bâtiments tous détruits**, sa réserve brûle avec eux et il n'est plus qu'un nœud ordinaire du réseau : ravitaillé comme une autre zone, depuis une usine ou un autre dépôt.
+Il ne redevient dépôt qu'au bout de `network.depot_rebuild_seconds` (2 700 s), tous ses bâtiments relevés d'un coup pour le camp qui tient la zone : de quoi détruire sa garnison et le prendre.
+Aucune livraison ne relève un bâtiment de dépôt.
+Pour prendre un dépôt : détruire ses bâtiments d'abord, sinon il répare sa garnison lui-même ; puis sa garnison, avant la reconstruction.
 
 ## Les ressources de l'IA {#resources}
 
@@ -400,8 +416,12 @@ Les crédits restent ceux des joueurs : ce qu'ils achètent ne sort pas des ress
 Les usines d'un camp nourrissent ses zones de proche en proche, le long des liaisons, et seulement à travers les zones du camp : une zone ennemie ou neutre coupe le chemin, et le reste du réseau est servi par un détour, plus tard.
 
 - **Un saut** d'une zone à la suivante prend `network.hop_seconds` (600 s) ; **un saut qui touche un dépôt** la moitié : usine → base → base fait deux sauts pleins, usine → dépôt → base un seul.
-- **Un dépôt** garde une réserve de `network.depot_store` (4) livraisons, pleine tant qu'une usine l'atteint : coupé de ses usines, il nourrit encore les zones autour de lui le temps de la vider.
-- **Une zone abîmée**, d'un camp comme de l'autre, commande une livraison, payée sur les ressources à la commande ; son premier groupe touché revient au complet après le délai de la zone ; `network.max_deliveries` (3) livraisons d'un camp en route à la fois. Une zone perdue entre-temps ne reçoit rien.
+- **Un dépôt** garde une réserve de `network.depot_store` (4) livraisons, pleine tant qu'une usine l'atteint : coupé de ses usines, il nourrit encore les zones autour de lui le temps de la vider. Ses [bâtiments](#zone-kinds) détruits, il ne garde plus rien et ne raccourcit plus aucun saut.
+- **Une zone abîmée**, d'un camp comme de l'autre, commande une livraison, payée sur les ressources à la commande au prix des unités qui lui manquent ; `network.max_deliveries` (3) livraisons d'un camp en route à la fois.
+  Après le délai de la zone, la livraison ramène les unités mortes de son premier groupe touché, **les moins chères d'abord et à hauteur de ce qu'elle a payé** : une unité tuée depuis la commande reste morte.
+  Les unités ramenées apparaissent à leur place, les vivantes ne bougent pas.
+  **Une zone sous le feu** — une unité perdue il y a moins de `network.under_fire_seconds` (600 s) — n'est pas renforcée : la livraison attend.
+  Une zone perdue entre-temps ne reçoit rien ; une livraison qui n'a plus rien à réparer, ou ce qu'elle n'a pas dépensé, retourne au stock.
   Les joueurs qui font de la logistique vont plus vite : une caisse, des troupes ou un hélicoptère renforcent sur-le-champ, sans attendre le réseau ni le payer.
 - **Une zone coupée** de toute usine et de tout dépôt est encore servie, sur la production de fond, au bout de `network.isolated_seconds` (3 600 s).
 
@@ -535,6 +555,12 @@ Pendant la mise au point, `dynamic.debug` (activé par défaut) écrit dans `dcs
 
 `debug: false` l'éteint, une fois la campagne sûre.
 
+Les gains de crédits s'écrivent, eux, que `debug` soit activé ou non :
+
+- une ligne `CREDITS <pilote> +<montant> (<raison>)` par gain — `kill`, `kill_held`, `landed`, `warehouse` pour un pilote ; `capture`, `delivery`, `task`, `demolition` au nom de `team` ;
+- un bilan `CREDITS SUMMARY` à la fin de la mission, et dès que plus personne n'est dans un slot : ce que chacun a gagné depuis le bilan précédent, et le total du camp ;
+- le cumul de chaque pilote sur toute la campagne, dans la sauvegarde (`parts.economy.pilots`), pour le débriefing.
+
 ## Contrôler une mission en jeu {#self-check}
 
 F10 → Autres → VEAF → Campagne → **Auto-contrôle (admin)** affiche une ligne `OK` ou `KO` par mécanisme : zones placées, sauvegarde relue et écrite, issue, dormance, captures, usines, territoire, ressources des deux camps, réseau (livraisons et zones coupées), spawns payants, sapeurs, entrepôts, hélicoptères, aviation, bombardiers, crédits, tâches, renseignement.
@@ -549,8 +575,14 @@ Une ligne `KO` suffit à dire où regarder.
 | `ground_wake_radius` | 10000 | mètres : un groupe au sol ennemi qui n'est pas une garnison, aussi près, réveille une zone ; les véhicules posés dans l'éditeur ne réveillent rien |
 | `reach_wake_margin` | 20000 | mètres : un avion ennemi aussi loin au-delà de la portée de la défense d'une zone la réveille |
 | `takeoff_threat_range` | 40000 | mètres : rien d'autre qu'une SEAD ne décolle aussi près d'une défense ennemie mesurée |
+| `min_runway_length` | 1500 | mètres : aucun avion de l'IA ne part d'un terrain dont la plus longue piste est plus courte |
+| `takeoff_timeout` | 600 | un vol encore au sol au bout de ce temps est retiré, son prix rendu |
+| `grounded_seconds` | 3600 | un terrain qui a gardé un vol au sol n'envoie plus d'avion pendant ce temps |
 | `front_depth` | 40000 | mètres : une zone aussi près de la ligne de front tracée sur la carte est toujours éveillée |
 | `sleep_seconds` | 600 | une zone sans joueur près d'elle depuis ce temps se rendort |
+| `sleep_margin` | 20000 | mètres ajoutés aux distances de réveil d'une zone éveillée, avant qu'elle se rendorme |
+| `wake_rest_seconds` | 300 | une zone endormie depuis moins longtemps ne se réveille pas pour un avion IA |
+| `wake_units_per_beat` | 10 | unités d'une garnison qui apparaissent à chaque battement, au réveil ou après une prise ; un groupe n'est jamais coupé |
 | `max_awake_zones` | 12 | zones de l'arrière éveillées à la fois (le front et les cibles de sorties ne comptent pas) |
 | `attacks` | `[red]` | les camps qui contre-attaquent seuls |
 | `attack_seconds` | 900 | intervalle entre deux contre-attaques d'un camp |
@@ -560,7 +592,12 @@ Une ligne `KO` suffit à dire où regarder.
 | `max_helicopters` | 2 | hélicoptères de ravitaillement d'un camp en vol |
 | `helicopter_timeout` | 1200 | un hélicoptère pas posé au bout de ce temps est retiré |
 | `helicopter_capture_seconds` | 600 | une zone neutre tenue par des hélicoptères posés, seuls, est prise au bout de ce temps |
-| `convoy_timeout` | 2700 | un convoi d'assaut pas arrivé au bout de ce temps est retiré de la carte, sa place libérée |
+| `helicopter_garrison` | 6 | les fantassins que laisse une capture par des hélicoptères posés, seuls ; aucun véhicule |
+| `convoy_timeout` | 2700 | le moins de temps qu'a un convoi d'assaut avant d'être retiré de la carte, sa place libérée ; sinon une fois et demie le temps que demande sa route |
+| `assault_speed` | 40 | km/h : la vitesse d'un convoi d'assaut |
+| `convoy_report_seconds` | 300 | intervalle entre deux lignes de `dcs.log` sur l'avancée d'un convoi d'assaut |
+| `route_failures` | 2 | hélicoptères ou convois ratés de suite vers une zone avant que le camp y renonce |
+| `route_failure_seconds` | 3600 | combien de temps il y renonce |
 | `helicopter` | `{red: Mi-8MT, blue: UH-1H}` | le type de l'hélicoptère de chaque camp |
 | `supply_crate` | `Zone supplies` | le nom de la caisse CTLD 2 qui ravitaille |
 | `hunter` | `{enabled: true, ground_kills: 8, air_kills: 4, chance: 10}` | le Hunter |
@@ -570,7 +607,7 @@ Une ligne `KO` suffit à dire où regarder.
 | `intel` | voir [le renseignement](#intel) | `hidden`, `seconds`, `overflight_altitude`, `spy_troops`, `spy_range` |
 | `resources` | voir [les ressources](#resources) | `enabled` (true), `start` (1000), `background_per_hour` (60), `reserve` (100), `prices` |
 | `factory` | voir [les usines](#zone-kinds) | `buildings` (3), `per_hour` (180), `types` |
-| `network` | voir [le réseau](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3) |
+| `network` | voir [le réseau](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3), `under_fire_seconds` (600), `depot_buildings` (3), `depot_types`, `depot_rebuild_seconds` (2700) |
 | `demolition` | voir [la démolition](#demolition) | `troops` (`Sappers`), `range` (5000), `fuse` (120) |
 | `warehouse` | voir [les stocks](#warehouses) | `enabled` (true), `load` (10) |
 | `bombers` | voir [les bombardiers](#bombers) | `enabled` (true), `seconds` (3600), `min_distance` (80000), `escort` (false), `package_delay` (30) |

@@ -56,13 +56,17 @@ _REGULAR = "DejaVuSans.ttf"
 _BOLD = "DejaVuSans-Bold.ttf"
 
 
+#: A map note: ``(text, is_heading)``, or ``(text, is_heading, dot)`` for a legend line led by a dot of that colour.
+MapNote = tuple[str, bool] | tuple[str, bool, tuple[int, int, int]]
+
+
 @dataclass(frozen=True)
 class MapSheet:
-    """A page with a map on the left and its notes on the right; a note is ``(text, is_heading)``."""
+    """A page with a map on the left and its notes on the right (see `MapNote`)."""
 
     title: str
     image: Path
-    notes: list[tuple[str, bool]]
+    notes: Sequence[MapNote]
 
 
 @dataclass(frozen=True)
@@ -195,8 +199,13 @@ def _map_page(pdf: _Pdf, sheet: MapSheet) -> None:
     left = _MARGIN + width + 8
     pdf.set_xy(left, _BODY_TOP)
     pdf.set_left_margin(left)
-    for text, heading in sheet.notes:
-        pdf.say(text, _HEADING_SIZE if heading else _BODY_SIZE * 0.95, bold=heading)
+    for text, heading, *dot in sheet.notes:
+        size = _HEADING_SIZE if heading else _BODY_SIZE * 0.95
+        if dot:  # the owner's colour on the dot, the text in black (FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 13)
+            pdf.set_font(_FAMILY, "B" if heading else "", size)
+            pdf.set_text_color(*dot[0])
+            pdf.cell(pdf.get_string_width("● "), size * 0.3528 * _LINE_SPACING, "● ")
+        pdf.say(text, size, bold=heading)
     pdf.set_left_margin(_MARGIN)
 
 

@@ -226,6 +226,18 @@ local function uniqueGroupName(base)
   return name
 end
 
+--- The campaign groups a death was seen in: a crash, a death or a kill of one of their units (ticket 09).
+veafCampaignOps.deaths = {}
+
+--- How a group that no longer exists ended: "destroyed" when a death of one of its units was seen, "gone" otherwise.
+--- DCS removes an AI aircraft about 3 minutes after its `ai abort mission`, with no event: the Tu-22M3 of
+--- 2026-11-17 aborted on the ground at Taftanaz, vanished, and was logged as a raid "destroyed".
+--- @param groupName string
+--- @return string
+function veafCampaignOps.endOf(groupName)
+  return veafCampaignOps.deaths[groupName] and "destroyed" or "gone"
+end
+
 --- Whether a group still flies: it exists and has a live unit.
 local function liveUnit(groupName)
   local group = Group.getByName(groupName)
@@ -254,6 +266,17 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Supply helicopters (ticket 04)
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- Remember how a supply helicopter ended, for the side's memory of what fails (ticket 04): landed in its zone is a
+--- success, the zone taken by the other side meanwhile nothing, anything else a failure.
+--- @param record table
+function veafCampaignOps.rememberHelicopter(record)
+  if record.outcome == "delivered" or record.outcome == "captured" then
+    veafCampaign.recordSuccess("helicopter", record.side, record.to)
+  elseif record.outcome ~= "aborted" then
+    veafCampaign.recordFailure("helicopter", record.side, record.from, record.to, tostring(record.outcome))
+  end
+end
 
 --- Whether a helicopter of that side is already flying to that zone.
 local function helicopterUnderway(side, zoneName)
@@ -284,7 +307,12 @@ end
 --- @return string|nil "capture" or "resupply"
 function veafCampaignOps.supplyTarget(side)
   for _, zone in ipairs(veafCampaign.zoneList) do
-    if zone.placed and zone.entry.owner == "neutral" and not helicopterUnderway(side, zone.name) then
+    if
+      zone.placed
+      and zone.entry.owner == "neutral"
+      and not helicopterUnderway(side, zone.name)
+      and not veafCampaign.givenUp("helicopter", side, zone.name)
+    then
       for _, neighbour in ipairs(veafCampaign.neighbours(zone.name)) do
         if neighbour.entry.owner == side then
           return zone, "capture"
@@ -294,7 +322,13 @@ function veafCampaignOps.supplyTarget(side)
   end
   local worst, worstStrength = nil, 100
   for _, zone in ipairs(veafCampaign.zoneList) do
-    if zone.placed and zone.entry.owner == side and zone:isDamaged() and not helicopterUnderway(side, zone.name) then
+    if
+      zone.placed
+      and zone.entry.owner == side
+      and zone:isDamaged()
+      and not helicopterUnderway(side, zone.name)
+      and not veafCampaign.givenUp("helicopter", side, zone.name)
+    then
       local strength = zone:strengthPercent()
       if strength < worstStrength then
         worst, worstStrength = zone, strength
@@ -330,9 +364,35 @@ function veafCampaignOps.coveringEnemy(side, zone)
   return nil
 end
 
---- Whether a side's aircraft may take off from an airfield zone: it has an airbase and no enemy air defence
---- covers it. A SEAD flight takes off all the same: putting that defence out is its job, and what it destroys
---- frees the field for the strikes (David, 2026-11-16). A field refused is logged with the defence covering it.
+--- The fields that kept a flight on the ground, by zone name: the time until which they send no aeroplane.
+veafCampaignOps.groundedFields = {}
+
+--- The longest runway of a zone's airfield, in metres, as DCS gives it (`Airbase:getRunways`); nil when unknown.
+--- @param zone table
+--- @return number|nil
+function veafCampaignOps.runwayLength(zone)
+  local airbase = zone.entry.airbase and Airbase.getByName(zone.entry.airbase)
+  if not (airbase and airbase.getRunways) then
+    return nil
+  end
+  local ok, runways = pcall(airbase.getRunways, airbase)
+  if not ok or type(runways) ~= "table" then
+    return nil
+  end
+  local longest = nil
+  for _, runway in pairs(runways) do
+    local length = type(runway) == "table" and tonumber(runway.length)
+    if length then
+      longest = math.max(longest or 0, length)
+    end
+  end
+  return longest
+end
+
+--- Whether the side's aeroplanes may take off from an airfield zone: a runway long enough
+--- (`min_runway_length`), no flight kept on the ground there lately (`grounded_seconds`), and no enemy air defence
+--- covering it. A SEAD flight takes off all the same: putting that defence out is its job, and what it destroys
+--- frees the field for the strikes (David, 2026-11-16). A field refused is logged with its reason.
 --- @param side string
 --- @param zone table
 --- @param role string|nil the flight's role: "sead" ignores the defence
@@ -341,8 +401,26 @@ function veafCampaignOps.canTakeOffFrom(side, zone, role)
   if not zone.entry.airbase then
     return false
   end
-  local covering = role ~= "sead" and veafCampaignOps.coveringEnemy(side, zone)
   local key = "takeoff " .. side .. " " .. zone.name
+  local grounded = veafCampaignOps.groundedFields[zone.name]
+  if grounded and grounded > timer.getTime() then
+    veafCampaign.debugOnce(key, "grounded", "DECISION", "nothing of %s takes off from [%s]: a flight stayed on its ground", side, zone.name)
+    return false
+  end
+  local length = veafCampaignOps.runwayLength(zone)
+  if length and length < veafCampaign.setting("min_runway_length") then
+    veafCampaign.debugOnce(
+      key,
+      "runway",
+      "DECISION",
+      "nothing of %s takes off from [%s]: its longest runway is %d m",
+      side,
+      zone.name,
+      math.floor(length)
+    )
+    return false
+  end
+  local covering = role ~= "sead" and veafCampaignOps.coveringEnemy(side, zone)
   if covering then
     veafCampaign.debugOnce(
       key,
@@ -391,7 +469,7 @@ function veafCampaignOps.sendHelicopter(side, target, kind)
     return nil
   end
   local typeName = veafCampaign.setting("helicopter")[side] or veafCampaign.DYNAMIC_DEFAULTS.helicopter[side]
-  local center = target:getCenter()
+  local center = veafCampaignOps.landingSpot(target)
   local pointName = "CAMPAIGN SUPPLY " .. target.name
   veafNamedPoints.addPoint(pointName, { x = center.x, y = 0, z = center.z })
   local start = source:getCenter()
@@ -448,10 +526,43 @@ function veafCampaignOps.sendHelicopter(side, target, kind)
   return record
 end
 
+--- The share of a zone's radius its helicopters land within: the capture counts a helicopter down within the radius.
+veafCampaignOps.LANDING_SEARCH_SHARE = 0.6
+
+--- Where a supply helicopter is sent to land in a zone. An airfield's centre is its field; any other zone is a town or
+--- a point, whose centre may stand among buildings: the four Mi-8 sent to Afrin's centre on 2026-11-17 flew the very
+--- same 3-minute loop and landed back at Aleppo, while the one sent to Menagh's airfield got there. The nearest clear,
+--- flat spot within `LANDING_SEARCH_SHARE` of the radius is asked (`veaf.findSpawnPoint`), else the centre. Said in
+--- dcs.log, to check in game.
+--- @param zone table
+--- @return table a vec3
+function veafCampaignOps.landingSpot(zone)
+  local center = zone:getCenter()
+  if zone.entry.airbase then
+    return center
+  end
+  local search = (zone.entry.radius or 2000) * veafCampaignOps.LANDING_SEARCH_SHARE
+  local clearance = veafAircraftSpawn and veafAircraftSpawn.HELICOPTER_LZ_CLEARANCE or 30
+  local spot = veaf.findSpawnPoint(center, search, clearance, nil, true)
+  if spot then
+    logger():info(
+      "supply helicopters land in [%s] at x=%d z=%d, %d m from its centre",
+      zone.name,
+      spot.x,
+      spot.z,
+      math.floor(distance2d(spot, center))
+    )
+    return spot
+  end
+  logger():info("no clear spot for a helicopter within %d m of [%s]'s centre: it is sent to the centre", search, zone.name)
+  return center
+end
+
 --- Close a helicopter's record, and take the helicopter away.
 local function finish(record, outcome)
   record.done, record.outcome = true, outcome
   destroyGroup(record.name)
+  veafCampaignOps.rememberHelicopter(record)
   if outcome == "failed" then
     veafCampaignOps.counters.helicoptersFailed = veafCampaignOps.counters.helicoptersFailed + 1
   end
@@ -475,9 +586,14 @@ function veafCampaignOps.followHelicopter(record, now)
   end
   local unit = liveUnit(record.name)
   if not unit then
-    record.done, record.outcome = true, "destroyed"
+    record.done, record.outcome = true, veafCampaignOps.endOf(record.name)
     veafCampaignOps.counters.helicoptersFailed = veafCampaignOps.counters.helicoptersFailed + 1
-    logger():info("supply helicopter [%s] to [%s] destroyed", record.name, record.to)
+    veafCampaignOps.rememberHelicopter(record)
+    if record.outcome == "destroyed" then
+      logger():info("supply helicopter [%s] to [%s] destroyed", record.name, record.to)
+    else
+      logger():info("supply helicopter [%s] to [%s] gone: the group no longer exists and no death of it was seen", record.name, record.to)
+    end
     return
   end
   local inAir = unit:inAir()
@@ -631,6 +747,43 @@ function veafCampaignOps.paidSortie(side, price, what, launch)
     veafCampaign.debug("DECISION", "%s could not spawn %s: nothing paid", side, what)
   end
   return sent
+end
+
+--- Take away the flights that never took off: still on the ground `takeoff_timeout` after their spawn, they are
+--- destroyed, their price goes back to the AI's stock, and their field sends no aeroplane for `grounded_seconds`
+--- (FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 01: about 880 points of red's stock sat on Taftanaz's strip for an hour).
+--- @param now number the mission time
+function veafCampaignOps.followFlights(now)
+  for _, flight in ipairs(veafCampaignOps.flights) do
+    -- the AI's flights only: a flight the players bought is theirs to wait for, paid in credits
+    if flight.onGround and not flight.airborne and not flight.done and flight.side ~= veafCampaign.playerSide() then
+      local unit = liveUnit(flight.name)
+      if unit and unit:inAir() then
+        flight.airborne = true
+      elseif unit and now - (flight.spawnedAt or now) >= veafCampaign.setting("takeoff_timeout") then
+        flight.done, flight.outcome = true, "grounded"
+        destroyGroup(flight.name)
+        veafCampaignOps.groundedFields[flight.origin] = now + veafCampaign.setting("grounded_seconds")
+        local refund = 0
+        if veafCampaignLogistics and veafCampaignLogistics.active then
+          refund = flight.price or 0
+          veafCampaignLogistics.credit(flight.side, refund)
+        end
+        veafCampaignOps.counters.grounded = veafCampaignOps.counters.grounded + 1
+        logger():info(
+          "%s %s flight [%s] never took off from [%s] in %d s: taken away, %d point(s) back; no aeroplane leaves [%s] for %d s",
+          flight.side,
+          tostring(flight.role),
+          flight.name,
+          flight.origin,
+          math.floor(now - flight.spawnedAt),
+          refund,
+          flight.origin,
+          veafCampaign.setting("grounded_seconds")
+        )
+      end
+    end
+  end
 end
 
 --- How many of a side's flights fly now, by role or all of them.
@@ -994,6 +1147,23 @@ function veafCampaignOps.spawnFlight(side, aircraftRole, origin, roleName, param
   local takeoff, positions = nil, {}
   if airbase and airbase.getParking and not airStart then
     takeoff, positions = veafCampaignOps.takeoffFrom(airbase, aircraft.count, aircraft.type)
+    -- one runway start at a time: every flight sent from Taftanaz on 2026-11-17 spawned onto the ones before it
+    if takeoff.action == "From Runway" then
+      for _, flight in ipairs(veafCampaignOps.flights) do
+        local samePackage = params.package ~= nil and flight.package == params.package
+        if
+          flight.origin == origin.name
+          and flight.runway
+          and not samePackage
+          and not flight.done
+          and not flight.airborne
+          and liveUnit(flight.name)
+        then
+          logger():info("no %s %s flight from [%s]: [%s] still stands on its runway", side, aircraftRole, origin.name, flight.name)
+          return nil
+        end
+      end
+    end
     params.takeoffPoint = takeoff
   end
   local name = uniqueGroupName(string.format("%s %s %s", side, aircraftRole, origin.name))
@@ -1025,6 +1195,10 @@ function veafCampaignOps.spawnFlight(side, aircraftRole, origin, roleName, param
       aim = aim,
       spawnedAt = timer.getTime(),
       typeName = aircraft.type,
+      onGround = takeoff ~= nil,
+      package = params.package,
+      runway = takeoff ~= nil and takeoff.action == "From Runway",
+      price = veafCampaignOps.flightPrice(side, aircraftRole),
     })
     veafCampaignOps.counters.flights = veafCampaignOps.counters.flights + 1
     logger():info("%s %s flight [%s] leaves [%s] (%s)", side, aircraftRole, spawned, origin.name, takeoff and takeoff.action or "air start")
@@ -1439,7 +1613,7 @@ veafAircraftSpawn.roles.campaign_escort = {
   afterSpawn = function() end,
 }
 
---- What a raid on a side's zones would hit: its factories with a building standing first, by how many stand;
+--- What a raid on a side's zones would hit: its factories and depots with a building standing first, by how many stand;
 --- else its zone with the most garrison units alive. Only a zone some airfield of the side can reach counts
 --- (`raidOrigin`): a target with no field far enough would send nothing, raid after raid.
 --- @param side string the side that sends the raid
@@ -1552,10 +1726,19 @@ function veafCampaignOps.sendRaid(side, target, purchased)
     purchased = purchased or nil,
     startedAt = now,
     airdromeId = airbase and airbase:getID(),
+    -- its flights leave one field together: the one-runway-start rule of spawnFlight does not hold them apart
+    package = string.format("raid %s %s %d", side, target.name, math.floor(now)),
   }
   local station = veafCampaignOps.barcapStation(side, target)
   if station and veafCampaignOps.aircraft(side, "cap") then
-    record.barcap = veafCampaignOps.spawnFlight(side, "cap", origin, "zone_defense", { zone = station }, veafCampaignOps.CAP_ALTITUDE)
+    record.barcap = veafCampaignOps.spawnFlight(
+      side,
+      "cap",
+      origin,
+      "zone_defense",
+      { zone = station, package = record.package },
+      veafCampaignOps.CAP_ALTITUDE
+    )
   end
   if defence then
     veafCampaignOps.raidSerial = veafCampaignOps.raidSerial + 1
@@ -1571,6 +1754,7 @@ function veafCampaignOps.sendRaid(side, target, purchased)
       home = origin:getCenter(),
       task = "SEAD",
       hold = { x = hold.x, z = hold.z, flag = record.seadFlag },
+      package = record.package,
     }
     record.sead = veafCampaignOps.spawnFlight(side, "sead", origin, "campaign_strike", seadParams, veafCampaignOps.STRIKE_ALTITUDE)
     record.seadAltitude = seadParams.altitude
@@ -1636,8 +1820,8 @@ function veafCampaignOps.spawnRaidBomber(record)
   if not (origin and target) then
     return false
   end
-  local aim = target:isFactory() and target:structuresCenter() or target:getCenter()
-  local params = { target = aim, airdromeId = record.airdromeId, home = origin:getCenter() }
+  local aim = target:hasStructures() and target:structuresCenter() or target:getCenter()
+  local params = { target = aim, airdromeId = record.airdromeId, home = origin:getCenter(), package = record.package }
   if record.hold then
     -- in a package it flies at the SEAD's speed, so that it stays behind it
     params.hold = { x = record.hold.x, z = record.hold.z, flag = record.bomberFlag }
@@ -1656,6 +1840,7 @@ function veafCampaignOps.spawnRaidBomber(record)
       home = params.home,
       -- beside and above its bomber, not inside it, when a field DCS does not know starts both in the air
       startOffset = veafCampaignOps.ESCORT_START_OFFSET,
+      package = record.package,
     }, veafCampaignOps.BOMBER_ALTITUDE)
   end
   veafCampaign.debug(
@@ -1763,9 +1948,17 @@ function veafCampaignOps.followRaid(raid, now)
     pushFromHold(raid, unit, now)
   end
   if not unit then
-    raid.done, raid.outcome = true, "destroyed"
-    veafCampaignOps.counters.raidsDestroyed = veafCampaignOps.counters.raidsDestroyed + 1
-    logger():info("bomber raid [%s] on [%s] destroyed", raid.name, raid.target)
+    raid.done, raid.outcome = true, veafCampaignOps.endOf(raid.name)
+    if raid.outcome == "destroyed" then
+      veafCampaignOps.counters.raidsDestroyed = veafCampaignOps.counters.raidsDestroyed + 1
+      logger():info("bomber raid [%s] on [%s] destroyed", raid.name, raid.target)
+    else
+      logger():info(
+        "bomber raid [%s] on [%s] gone: the group no longer exists and no death of it was seen (an abort, removed by DCS?)",
+        raid.name,
+        raid.target
+      )
+    end
   elseif (raid.airborne and not flying) or now - raid.startedAt > veafCampaignOps.RAID_TIMEOUT then
     raid.done, raid.outcome = true, "home"
     destroyGroup(raid.name)
@@ -1879,14 +2072,27 @@ end
 
 --- A weapon released, a kill, a landing, a crash: told when a campaign aircraft is in it.
 function veafCampaignOps.onFlightEvent(event)
-  if not veafCampaign.debugging() or type(event) ~= "table" then
+  if type(event) ~= "table" then
+    return
+  end
+  -- veafEventHandler hands a data table: its type under `type`, the DCS objects under `dcs…`
+  local id = event.type and event.type.id or event.id
+  -- a death is remembered whether debugging or not: it tells a group destroyed from a group gone (ticket 09)
+  local dead = nil
+  if id == world.event.S_EVENT_CRASH or id == world.event.S_EVENT_DEAD then
+    dead = eventUnitName(event.initiator) or eventUnitName(event.dcsInitiator)
+  elseif id == world.event.S_EVENT_KILL then
+    dead = eventUnitName(event.target) or eventUnitName(event.dcsTarget)
+  end
+  if type(dead) == "string" then
+    veafCampaignOps.deaths[dead:match("^(.-) #%d+$") or dead] = true
+  end
+  if not veafCampaign.debugging() then
     return
   end
   local shooter = event.dcsInitiator or event.initiator
   local flight = veafCampaignOps.flightOf(eventUnitName(event.initiator) or eventUnitName(shooter))
   local victim = veafCampaignOps.flightOf(eventUnitName(event.target))
-  -- veafEventHandler hands a data table: its type under `type`, the DCS objects under `dcs…`
-  local id = event.type and event.type.id or event.id
   if flight and id == world.event.S_EVENT_SHOT then
     local weapon = event.weaponName
       or (event.weapon and event.weapon.getTypeName and select(2, pcall(event.weapon.getTypeName, event.weapon)))
@@ -2141,6 +2347,7 @@ function veafCampaignOps.beat(now)
   for _, record in ipairs(veafCampaignOps.helicopters) do
     veafCampaignOps.followHelicopter(record, now)
   end
+  veafCampaignOps.followFlights(now)
   for _, raid in ipairs(veafCampaignOps.raids) do
     veafCampaignOps.followRaid(raid, now)
   end
@@ -2180,6 +2387,7 @@ function veafCampaignOps.initialize()
   veafCampaignOps.usedNames, veafCampaignOps.nextAirDefenceReport = {}, nil
   veafCampaignOps.capDraws, veafCampaignOps.lastCapRefusal = {}, {}
   veafCampaignOps.feedSupport()
+  veafCampaignOps.deaths, veafCampaignOps.groundedFields = {}, {}
   veafCampaignOps.counters = {
     helicoptersSent = 0,
     helicoptersLanded = 0,
@@ -2188,6 +2396,7 @@ function veafCampaignOps.initialize()
     hunters = 0,
     raids = 0,
     raidsDestroyed = 0,
+    grounded = 0,
     unpaid = 0,
   }
   table.insert(veafCampaign.beatHooks, veafCampaignOps.beat)

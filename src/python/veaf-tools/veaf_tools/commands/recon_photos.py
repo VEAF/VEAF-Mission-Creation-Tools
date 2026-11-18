@@ -24,18 +24,26 @@ from veaf_libs.dcs_recon import (
     COALITIONS,
     ENV_EXPORT,
     INFO_BAR_PX,
-    UNITS_LUA,
+    WARMUP_PAUSE,
+    ZONES_LUA,
+    airbase_lua,
     briefing_sidecar,
     derive_recon_mission,
+    load_objectives,
     load_plan,
-    parse_units,
-    plan_from_units,
+    parse_point,
+    parse_zones,
+    plan_from_zones,
     recon_mission_path,
     shoot_plan,
 )
+from veaf_libs.dcs_screenshot import default_screenshots_dir
 
 from veaf_tools.app import VERBOSE_HELP, VERSION, app, console, logger, t
 from veaf_tools.bridge import open_bridge
+
+#: The briefing's words of an Open Training, whose objectives the plan follows when no file is named.
+DEFAULT_OBJECTIVES = Path("docs/kneeboard.json")
 
 
 def _latlon(theatre: str, x: float, z: float) -> tuple[float, float] | None:
@@ -74,6 +82,8 @@ def recon_plan(
     out: Path = typer.Option(Path("shots.yaml"), "--out", help=t("cmd.recon_plan.opt.out")),
     coalition: str = typer.Option("red", "--coalition", help=t("cmd.recon_plan.opt.coalition")),
     operation: str = typer.Option("", "--operation", help=t("cmd.recon_plan.opt.operation")),
+    origin: str | None = typer.Option(None, "--from", help=t("cmd.recon_plan.opt.from")),
+    objectives: Path | None = typer.Option(None, "--objectives", help=t("cmd.recon_plan.opt.objectives")),
     force: bool = typer.Option(False, "--force", help=t("cmd.recon_plan.opt.force")),
     serve_url: str = typer.Option(DEFAULT_SERVE_URL, "--serve-url", help=t("cmd.bridge.opt.serve_url")),
     dcs_serve: str | None = typer.Option(None, "--dcs-serve", help=t("cmd.bridge.opt.dcs_serve")),
@@ -93,15 +103,30 @@ def recon_plan(
     if out.exists() and not force:
         console.print(f"[red]✗[/]  {t('cmd.recon_plan.exists', path=out)}")
         raise typer.Exit(code=2)
+    words = objectives or (DEFAULT_OBJECTIVES if DEFAULT_OBJECTIVES.is_file() else None)
+    try:
+        wanted = load_objectives(words) if words else None
+    except (OSError, ValueError, KeyError) as error:
+        console.print(f"[red]✗[/]  {error}")
+        raise typer.Exit(code=2) from error
     bridge = open_bridge(serve_url, dcs_serve, api_key, config, wait)
     try:
-        units = parse_units(bridge.run(UNITS_LUA))
-    except RuntimeError as error:
+        zones = parse_zones(bridge.run(ZONES_LUA))
+        home = parse_point(bridge.run(airbase_lua(origin))) if origin else None
+    except (RuntimeError, ValueError) as error:
         console.print(f"[red]✗[/]  {error}")
         raise typer.Exit(code=1) from error
     finally:
         bridge.close()
-    plan = plan_from_units(units, COALITIONS[coalition], operation)
+    if origin and home is None:
+        console.print(f"[red]✗[/]  {t('cmd.recon_plan.no_airbase', name=origin)}")
+        raise typer.Exit(code=2)
+    plan, missing = plan_from_zones(zones, coalition, operation, wanted, home)
+    if words:
+        console.print(t("cmd.recon_plan.objectives", path=words))
+    for zone in missing:
+        console.print(f"[yellow]![/]  {t('cmd.recon_plan.missing_zone', zone=zone)}")
+    out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(yaml.safe_dump(plan, allow_unicode=True, sort_keys=False), encoding="utf-8")
     console.print(t("cmd.recon_plan.written", path=out, count=len(plan["shots"])))
     console.print(t("cmd.recon_plan.next"))
@@ -112,6 +137,11 @@ def recon_shoot(
     shots: Path = typer.Option(Path("shots.yaml"), "--shots", exists=True, help=t("cmd.recon.opt.shots")),
     raw_dir: Path = typer.Option(Path("docs/build/recon/raw"), "--raw-dir", help=t("cmd.recon.opt.raw_dir")),
     only: list[str] = typer.Option([], "--only", help=t("cmd.recon.opt.only")),
+    capture: str = typer.Option("dcs", "--capture", help=t("cmd.recon_shoot.opt.capture")),
+    screenshots_dir: Path | None = typer.Option(
+        None, "--screenshots-dir", help=t("cmd.recon_shoot.opt.screenshots_dir")
+    ),
+    warmup: float = typer.Option(WARMUP_PAUSE, "--warmup", min=0, help=t("cmd.recon_shoot.opt.warmup")),
     serve_url: str = typer.Option(DEFAULT_SERVE_URL, "--serve-url", help=t("cmd.bridge.opt.serve_url")),
     dcs_serve: str | None = typer.Option(None, "--dcs-serve", help=t("cmd.bridge.opt.dcs_serve")),
     api_key: str | None = typer.Option(
@@ -121,29 +151,44 @@ def recon_shoot(
     wait: int = typer.Option(DEFAULT_WAIT_SECONDS, "--wait", min=0, help=t("cmd.bridge.opt.wait")),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
 ) -> None:
-    """Move the F11 camera onto each shot and grab the DCS window."""
+    """Move the F11 camera onto each shot, one combat zone active at a time, and take the picture."""
+    from veaf_libs.dcs_screenshot import grab_dcs_screenshot  # noqa: PLC0415
     from veaf_libs.dcs_window_capture import CaptureError, grab_dcs  # noqa: PLC0415
 
     logger.set_verbose(verbose)
     console.print(t("cmd.recon_shoot.title", version=VERSION))
+    if capture not in ("dcs", "window"):
+        console.print(f"[red]✗[/]  {t('cmd.recon_shoot.bad_capture', capture=capture)}")
+        raise typer.Exit(code=2)
     try:
         plan = load_plan(shots)
     except ValueError as error:
         console.print(f"[red]✗[/]  {error}")
         raise typer.Exit(code=2) from error
-    console.print(t("cmd.recon_shoot.expect", count=len(plan.shots)))
+    console.print(t(f"cmd.recon_shoot.expect_{capture}", count=len(plan.shots)))
+    folder = screenshots_dir or default_screenshots_dir()
     bridge = open_bridge(serve_url, dcs_serve, api_key, config, wait)
+
+    def run_export(code: str) -> Any:
+        return bridge.run_in(ENV_EXPORT, code, timeout=10.0)
+
+    def grab(retry: Any) -> Any:
+        if capture == "window":
+            return grab_dcs(retry, ignore_bottom=INFO_BAR_PX)
+        return grab_dcs_screenshot(run_export, folder, time.sleep)
+
     try:
         taken = shoot_plan(
             plan,
             raw_dir,
             run_server=bridge.run,
-            run_export=lambda code: bridge.run_in(ENV_EXPORT, code, timeout=10.0),
-            grab=lambda retry: grab_dcs(retry, ignore_bottom=INFO_BAR_PX),
+            run_export=run_export,
+            grab=grab,
             latlon_of=_latlon,
             sleep=time.sleep,
             progress=lambda line: console.print(f"  {line}"),
             only=only or None,
+            warmup=warmup,
         )
     except (RuntimeError, CaptureError) as error:
         console.print(f"[red]✗[/]  {error}")

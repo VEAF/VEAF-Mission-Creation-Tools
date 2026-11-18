@@ -7,6 +7,7 @@ kneeboard, and the sheets the session writes (mission, conduct, commands) come f
 from __future__ import annotations
 
 import io
+import json
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -195,3 +196,43 @@ class TestTheZones:
         calls, _ = self._spied(monkeypatch, tmp_path, "render_overview_map")
         assert calls and all(kwargs.get("rotation") is None for _, kwargs in calls)
         assert all(area.name == "Khobi - blindés - facile" for args, _ in calls for _, area in args[1])
+
+
+class TestTheReconPhoto:
+    """An OT has one photo per zone: on a page of its own it left the bottom half empty (6.37.0)."""
+
+    @staticmethod
+    def _photos(folder: Path, count: int) -> None:
+        recon = folder / "docs" / "recon"
+        recon.mkdir(parents=True)
+        for n in range(count):
+            Image.new("RGB", (1400, 980), (90, 110, 70)).save(recon / f"{n}.jpg")
+            sidecar = {"zone": "khobi", "title": "Dépôt", "heading": 95, "order": n}
+            (recon / f"{n}.json").write_text(json.dumps(sidecar), encoding="utf-8")
+
+    def _build_with(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path, count: int) -> tuple[list[Any], Any]:
+        calls: list[Any] = []
+        real = mission_briefing_worker.map_and_photo_page
+
+        def spy(*args: Any) -> bytes:
+            calls.append(args)
+            return real(*args)
+
+        monkeypatch.setattr(mission_briefing_worker, "map_and_photo_page", spy)
+        with offline(tmp_path):
+            objective_mission(tmp_path)
+            self._photos(tmp_path, count)
+            return calls, _build(tmp_path, kneeboard_only=True)
+
+    def test_the_one_photo_of_a_zone_is_drawn_under_its_zoom(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        calls, report = self._build_with(monkeypatch, tmp_path, 1)
+        ((title, _, (image, text)),) = calls
+        assert title == "Khobi - blindés - facile" and image.name == "0.jpg" and text.startswith("Dépôt — ")
+        assert not any("recon" in name for name in report.kneeboard)
+
+    def test_two_photos_keep_their_page(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        calls, report = self._build_with(monkeypatch, tmp_path, 2)
+        assert not calls
+        assert [name for name in report.kneeboard if "recon" in name] == ["07-briefing-objective-khobi-recon-1.jpg"]

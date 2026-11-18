@@ -12,6 +12,10 @@ The kneeboard pages of an Open Training, as the eight OTs regenerated with 6.37.
 
 ## 🧑 Waiting for a human
 
+### [FIX-RECON-OT-FINDINGS](FIX-RECON-OT-FINDINGS/PRD.md) · 🧑
+
+The recon commands taught by the eight Open Training photo shoots (2026-11-17/18): one combat zone active at a time, DCS's own screenshot with the window in the background, terrain warm-up and positions read at the grab, one shot per combat zone from the kneeboard's objectives, one ring per group with plural category labels, names shown last in `veaf-config.lua`, a guard on a copy without its spawn database, and fourteen unit types of the spawn database called by their DCS ids. Five tickets, done in the code; waits for an Open Training shot end to end in David's DCS.
+
 ### [FEAT-MISSION-WIND-CHECK](FEAT-MISSION-WIND-CHECK/PRD.md) · 🧑
 
 All of the wind, on DCS's static-weather model decoded from `Weather.dll` and checked in game (whitepaper `dcs-wind-model`): the model as a standard-library `veaf_libs` brick tested on the five measured runs and shared with the DCSServerBot fork; the tools set the wind wanted at a reference airfield and compute `atGround` from it, with `at2000` at 2.2 × the ground veered 20° and the METAR's gust gap into `groundTurbulence`, by the measured gust mapping; the deck, the MCP answers, the guide and the prompts describe the simulated wind, with a helicopter rule on 0-600 m; `mission-check` compares the briefing with the model without DCS; the ATIS rounds its speeds and gains a "max wind 0-2000 ft" line. Seven tickets; from *Marteau du Golan* (2026-10-31), where 17 kt set and announced became 36 kt at 1,000 ft. Merged in #1239; waits for the ATIS max-wind line seen in game, and the demo step (VEAF/VEAF-Demo-Mission-v6#13) built with a release carrying the lot.

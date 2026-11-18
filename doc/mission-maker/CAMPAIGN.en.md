@@ -284,7 +284,7 @@ The build appends its date after the name (`…_NoMizedit_20261015.miz`): the fi
 
 On every run, `campaign next` writes into the mission's `mission.yaml`:
 
-- **its name**, `Campaign_<campaign>_Mission_<NN>_<title>_NoMizedit`: the title is the mission's in `briefing.yaml`, once designed, in ASCII letters, digits and dashes; no title yet, no title part. The name never contains `ICAO_`.
+- **its name**, `Campaign_<campaign>_Mission_<NN>_<title>_NoMizedit`: the title is the mission's in `briefing.yaml`, once designed, in ASCII letters, digits and dashes; no title yet, no title part. The name never contains `ICAO_`. A persistent campaign can fix it, with no date, with [`mission_file`](PERSISTENT_CAMPAIGN.en.md#mission-file).
 - **`silence_atc_on_all_airbases: true`**, as on the other VEAF missions, unless the key is already there: a value set to `false` on purpose is kept.
 - **the server's security**: it removes `security.disabled` and the passwords. A pilot listed in the server's `veaf-pilots.txt` passes by his level, with no password. It is a **test copy** that runs with security off, never the campaign: *Kolkhida*'s template had it, and the squadron flew mission 1 with every protected command open.
 

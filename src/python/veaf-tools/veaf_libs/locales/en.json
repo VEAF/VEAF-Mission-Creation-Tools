@@ -1791,6 +1791,8 @@
   "campaign.issue.deck_failed": "The campaign briefing could not be written ({error}): the mission is ready without it. `veaf-tools campaign briefing` tries again.",
   "campaign.issue.bad_start_date": "campaign.yaml: `start_date` must be a date written YYYY-MM-DD, not `{value}`.",
   "campaign.issue.bad_players": "campaign.yaml: `players` must be a number of players (6) or a range (5-7), not {value}.",
+  "campaign.issue.bad_mission_file": "campaign.yaml: `mission_file` must be a plain file name — ASCII letters, digits, dashes and underscores, with no extension or `.miz` — not {value}.",
+  "campaign.issue.mission_file_needs_persistent": "campaign.yaml: `mission_file` is for a persistent campaign only: each mission of a multi-mission campaign needs `_NoMizedit` in its own file name.",
   "campaign.issue.bad_start_time": "campaign.yaml: `start_time` must be a clock time (`06:30`) or a solar expression (`sunrise+30*60`), not `{value}`.",
   "campaign.mission_deck.subtitle": "Mission briefing",
   "campaign.mission_deck.untitled": "Mission {mission}",

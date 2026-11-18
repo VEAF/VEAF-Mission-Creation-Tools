@@ -133,6 +133,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - the Campaign menu's admin commands sort last (`veafRadio` honours a node's `sortLast`), and the PDF map legend draws its dots in their owners' colours.
   The garrisons already recorded in a save keep their old air defence and positions (roofs included) until they are drawn again.
 - **A persistent campaign's state file carries a `sitac` block** (FEAT-CAMPAIGN-SITAC-STATE): at every save, `persistent.state` also holds what VEAF's web map `foothold-sitac` needs to draw the campaign — the zones in lat/lon with their kind, waypoint, owner, garrison counts (never their composition), capture, buildings and dormancy; the connections; the assault convoys on the road; each side's credits and resources. The mission never reads it back.
+- **A persistent campaign names its mission file, with no date** (FEAT-CAMPAIGN-MISSION-FILE): `campaign.mission_file: Campagne_Oronte` in `campaign.yaml` makes `campaign next` write that name and `mission.date_suffix: false` into `mission.yaml`, and the build then writes `Campagne_Oronte.miz` in the mission folder — a name the DCS server browser can show, which a redeploy keeps. `mission.date_suffix: false` works on any mission. `campaign validate` refuses a name that is not plain ASCII letters, digits, dashes and underscores (no extension or `.miz`), and refuses the key on a multi-mission campaign, whose missions need `_NoMizedit` in their names.
 
 ## [6.36.0] — 2026-11-05
 

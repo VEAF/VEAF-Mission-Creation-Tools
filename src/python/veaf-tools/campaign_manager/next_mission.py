@@ -70,7 +70,8 @@ class NextMissionReport:
     waypoints: bool = False
     """Whether `src/waypoints.yaml` was written from the objectives; ``False`` when an edited one was kept."""
     name: str = ""
-    """The mission's name, written into `mission.yaml`; the build appends its date to it."""
+    """The mission's name, written into `mission.yaml`; the build appends its date to it, unless it is the campaign's
+    `mission_file`."""
     security_restored: bool = False
     """Whether security overrides (`disabled`, passwords) were removed from `mission.yaml`."""
     interpreter_commands: list[str] = field(default_factory=list)
@@ -374,12 +375,14 @@ def mission_title(mode: str, page: MissionPage | None, prose: BriefingProse | No
     return None
 
 
-def _set_squadron_settings(mission_yaml: Path, name: str) -> bool:
+def _set_squadron_settings(mission_yaml: Path, name: str, *, dated: bool = True) -> bool:
     """Name the mission, silence the ATC unless told otherwise, and give it the server's security.
 
     Args:
         mission_yaml: The mission's `mission.yaml`.
-        name: The name `mission_name` computed.
+        name: The name `mission_name` computed, or the campaign's `mission_file`.
+        dated: Whether the build appends its date to the file's name; ``False`` writes `date_suffix: false`
+            (FEAT-CAMPAIGN-MISSION-FILE), ``True`` removes it.
 
     Returns:
         Whether a security override was removed.
@@ -389,6 +392,10 @@ def _set_squadron_settings(mission_yaml: Path, name: str) -> bool:
     if mission is None:
         mission = data["mission"] = {}
     mission["name"] = name
+    if dated:
+        mission.pop("date_suffix", None)
+    else:
+        mission["date_suffix"] = False
     mission.setdefault("silence_atc_on_all_airbases", True)
     security = data.get("security")
     restored = isinstance(security, dict) and any(key in security for key in _SECURITY_OVERRIDES)
@@ -657,10 +664,13 @@ def prepare_next_mission(
     # rewritten on every run: the title arrives with the design, and a test copy is the one that turns
     # security off, never the campaign
     persistent = campaign.mode == "persistent"
-    name = mission_name(
+    # a persistent campaign may name its file, with no date: the server browser shows it, and a redeploy replaces it
+    name = campaign.mission_file or mission_name(
         campaign.name, state.mission + 1, mission_title(campaign.mode, page, prose), fixed_conditions=not persistent
     )
-    security_restored = _set_squadron_settings(mission_folder / "mission.yaml", name)
+    security_restored = _set_squadron_settings(
+        mission_folder / "mission.yaml", name, dated=campaign.mission_file is None
+    )
     expected = players or campaign.players
     if expected:
         _set_opposition(mission_folder / "mission.yaml", opposition_for(expected, campaign.player_side))

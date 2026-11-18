@@ -284,7 +284,7 @@ Le build ajoute sa date après le nom (`…_NoMizedit_20261015.miz`) : le filtre
 
 À chaque passage, `campaign next` écrit dans le `mission.yaml` de la mission :
 
-- **son nom**, `Campaign_<campagne>_Mission_<NN>_<titre>_NoMizedit` : le titre est celui de la mission dans `briefing.yaml`, une fois conçue, en lettres ASCII, chiffres et tirets ; pas de titre encore, pas de partie titre. Le nom ne contient jamais `ICAO_`.
+- **son nom**, `Campaign_<campagne>_Mission_<NN>_<titre>_NoMizedit` : le titre est celui de la mission dans `briefing.yaml`, une fois conçue, en lettres ASCII, chiffres et tirets ; pas de titre encore, pas de partie titre. Le nom ne contient jamais `ICAO_`. Une campagne persistante peut le fixer, sans date, avec [`mission_file`](PERSISTENT_CAMPAIGN.md#mission-file).
 - **`silence_atc_on_all_airbases: true`**, comme sur les autres missions VEAF, sauf si la clé y est déjà : une valeur mise à `false` exprès est gardée.
 - **la sécurité du serveur** : il retire `security.disabled` et les mots de passe. Un pilote inscrit dans le `veaf-pilots.txt` du serveur passe par son niveau, sans mot de passe. C'est une **copie de test** qu'on passe en sécurité coupée, jamais la campagne : le template de *Kolkhida* l'avait, et l'escadrille a volé la mission 1 avec toutes les commandes protégées ouvertes.
 

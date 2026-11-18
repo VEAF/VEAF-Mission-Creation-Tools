@@ -3098,6 +3098,80 @@ function VeafCampaignZone:readWarehouse()
   return nil
 end
 
+--- What a web map outside DCS needs to draw the campaign (FEAT-CAMPAIGN-SITAC-STATE): positions in lat/lon,
+--- kinds, links, and counts only. The garrison's composition stays out: the intelligence rule hides it until
+--- the zone is reconnoitred, and the map is public. Rebuilt at every save; the reload never reads it.
+--- @return table the `sitac` block of the state file
+function veafCampaign.sitacTable()
+  local zones = {}
+  for _, zone in ipairs(veafCampaign.zoneList) do
+    local entry = zone.entry
+    if entry.x and entry.z then
+      local lat, lon = coord.LOtoLL(zone:getCenter())
+      local garrison
+      if entry.garrison then
+        local alive, total = 0, 0
+        for _, group in ipairs(entry.garrison) do
+          for _, unit in ipairs(group.units or {}) do
+            total = total + 1
+            if unit.alive then
+              alive = alive + 1
+            end
+          end
+        end
+        garrison = { alive = alive, total = total }
+      end
+      local structures
+      if entry.structures then
+        local standing, total = zone:structuresStanding()
+        structures = { standing = standing, total = total }
+      end
+      table.insert(zones, {
+        name = zone.name,
+        waypoint = entry.waypoint,
+        kind = entry.kind or (entry.airbase and "airfield" or "outpost"),
+        lat = lat,
+        lon = lon,
+        owner = entry.owner,
+        garrison = garrison,
+        capture = entry.capture and { side = entry.capture.side, seconds = entry.capture.seconds } or nil,
+        structures = structures,
+        awake = zone.awake ~= false,
+      })
+    end
+  end
+  local connections = {}
+  for _, connection in ipairs(veafCampaign.data.connections or {}) do
+    table.insert(connections, { connection[1], connection[2] })
+  end
+  local convoys = {}
+  for _, record in ipairs(veafCampaign.convoys) do
+    if not record.ended then
+      table.insert(convoys, { side = record.side, from = record.from, to = record.to, units = #(record.alive or {}) })
+    end
+  end
+  local sides = {}
+  for side in pairs(veafCampaign.SIDES) do
+    sides[side] = {}
+    if veafCampaignLogistics and veafCampaignLogistics.active and veafCampaignLogistics.stock then
+      sides[side].resources = veafCampaignLogistics.stock(side)
+    end
+  end
+  local player = sides[veafCampaign.playerSide()]
+  if player and veafCampaignEconomy and veafCampaignEconomy.credits then
+    player.credits = veafCampaignEconomy.credits
+  end
+  return {
+    theatre = env.mission and env.mission.theatre,
+    campaign = veafCampaign.data.campaign,
+    updated = timer.getTime(),
+    zones = zones,
+    connections = connections,
+    convoys = convoys,
+    sides = sides,
+  }
+end
+
 --- What the next mission depends on, as it stands now: the campaign state's structure, zones by name.
 function veafCampaign.stateTable()
   local data = veafCampaign.data
@@ -3137,6 +3211,8 @@ function veafCampaign.stateTable()
     convoys = convoys,
     sides = data.sides or {},
     scenery_destroyed = veafCampaign.destroyedScenery(),
+    -- after the convoys above: refreshed there, so the block counts the same units
+    sitac = veafCampaign.sitacTable(),
   }
   if veafCampaign.isPersistent() then
     -- once the campaign is over, every save says so: the next load starts afresh

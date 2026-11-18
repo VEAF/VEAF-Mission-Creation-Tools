@@ -132,6 +132,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - raids and helicopters that vanish without a death are logged "gone", not "destroyed" (DCS removes an aborted AI aircraft after 3 minutes);
   - the Campaign menu's admin commands sort last (`veafRadio` honours a node's `sortLast`), and the PDF map legend draws its dots in their owners' colours.
   The garrisons already recorded in a save keep their old air defence and positions (roofs included) until they are drawn again.
+- **A persistent campaign's state file carries a `sitac` block** (FEAT-CAMPAIGN-SITAC-STATE): at every save, `persistent.state` also holds what VEAF's web map `foothold-sitac` needs to draw the campaign — the zones in lat/lon with their kind, waypoint, owner, garrison counts (never their composition), capture, buildings and dormancy; the connections; the assault convoys on the road; each side's credits and resources. The mission never reads it back.
 
 ## [6.36.0] — 2026-11-05
 

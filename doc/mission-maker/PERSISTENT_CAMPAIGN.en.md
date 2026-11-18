@@ -185,6 +185,35 @@ Without them the campaign runs anyway, but does not save, and says so once.
 **Reset**: F10 → Other → VEAF → Campaign → **Reset the campaign (admin)**.
 The campaign starts again from its declared state at the next load of the mission; a victory or a defeat does the same.
 
+### The block for the web map {#sitac}
+
+Every save adds a `sitac` block to the same file, made for a map read outside DCS: VEAF's web sitac ([foothold-sitac](https://github.com/VEAF/foothold-sitac)) reads it to draw the campaign as it draws Foothold.
+The mission never reads this block back: it is computed again at every save.
+
+```lua
+sitac = {
+  theatre = "Syria", campaign = "Bouclier de l'Oronte", updated = 5432.1, -- simulation time, in seconds
+  zones = {
+    { name = "Minakh", waypoint = 3, kind = "airfield", lat = 36.52, lon = 37.04, owner = "blue",
+      garrison = { alive = 9, total = 12 }, awake = true },
+    { name = "Tal Rifaat", kind = "outpost", lat = 36.47, lon = 37.10, owner = "neutral",
+      capture = { side = "blue", seconds = 42 }, awake = false },
+    { name = "Kafr Naya", kind = "factory", lat = 36.41, lon = 37.02, owner = "red",
+      garrison = { alive = 5, total = 6 }, structures = { standing = 2, total = 3 }, awake = false },
+  },
+  connections = { { "Minakh", "Tal Rifaat" }, { "Tal Rifaat", "Kafr Naya" } },
+  convoys = { { side = "blue", from = "Minakh", to = "Tal Rifaat", units = 4 } },
+  sides = { blue = { credits = 1915, resources = 600 }, red = { resources = 250 } },
+}
+```
+
+- `zones` follows the order of `campaign.yaml`; `kind` is `airfield`, `outpost`, `factory` or `depot`; `lat`/`lon` are the zone's centre, in decimal degrees.
+- `garrison` gives only the **counts** of units alive and in total, never their type: the composition stays hidden until the zone is reconnoitred, and the map is public. A neutral zone has none.
+- `capture` is there only during a capture; `structures`, only for a factory or a depot that has buildings.
+- `awake` is false for a sleeping zone.
+- `convoys` keeps only the assault convoys still on the road; `units` counts their vehicles alive.
+- `sides` gives the players' side's credits and each side's resources, when they are counted.
+
 ## Sleeping zones {#dormancy}
 
 Away from the players, a zone has no unit in the world: its garrison is only a line of the save, losses included.

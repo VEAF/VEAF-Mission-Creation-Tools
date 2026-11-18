@@ -107,9 +107,14 @@ class SizeClass:
 #: flight of a persistent campaign, two SA-5 17 nautical miles apart put the whole front under 240 km of
 #: missile reach. A long-range SAM is now a zone's own `long_range_sam`, capped and spaced by
 #: `long_range_sams` (FEAT-DYNAMIC-CAMPAIGN ticket 20).
+#:
+#: The air defence went up on 2026-11-18 (FIX-CAMPAIGN-SECOND-SERVER-FLIGHT ticket 12): at defence 3 an airfield
+#: drew one group of short-range infrared SAMs (Strela-10, Strela-1) and an outpost a Shilka alone, "pas très
+#: réaliste" for a base like Aleppo. Defence 5 draws two groups of level 4 or 5 (SA-8, SA-15, Tunguska) in the
+#: modern era; defence 3 a Strela-10 or a Strela-1. Each era keeps its own table for a level.
 DEFAULT_SIZE_CLASSES: dict[str, SizeClass] = {
-    "outpost": SizeClass("outpost", size=1, defense=1, armor=1),
-    "airfield": SizeClass("airfield", size=1, defense=3, armor=2),
+    "outpost": SizeClass("outpost", size=1, defense=3, armor=1),
+    "airfield": SizeClass("airfield", size=1, defense=5, armor=2),
 }
 
 #: How many zones of a declared side may hold a long-range SAM, by default.

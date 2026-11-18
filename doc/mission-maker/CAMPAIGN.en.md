@@ -139,10 +139,12 @@ A size class is a set of parameters of the CAS generators: the garrison has as m
 
 | shipped class | `size` | `defense` | `armor` | long-range SAM | units (average, min – max) |
 |---|---|---|---|---|---|
-| `outpost` | 1 | 1 | 1 | no | 23 (12 – 36) |
-| `airfield` | 1 | 3 | 2 | no | ≈ 31 (51 measured on 2026-10-06 with a battery of ≈ 20, the battery taken off) |
+| `outpost` | 1 | 3 | 1 | no | not measured yet (23, from 12 to 36, at defence 1) |
+| `airfield` | 1 | 5 | 2 | no | not measured yet (≈ 31 at defence 3) |
 
-Measured over 40 draws on 2026-10-06.
+The figures in brackets come from 40 draws on 2026-10-06, before the air defence went up.
+Since 2026-11-18 an airfield draws **two** air defence groups of level 4 or 5 (SA-8, SA-15, Tunguska in the modern era) and an outpost one group of about level 3 (Strela-10, Strela-1); before, an airfield had only short-range infrared SAMs and an outpost a Shilka.
+A campaign that wants a lighter defence lowers it with `size_classes:`, for instance `airfield: { defense: 3 }`.
 
 A long-range SAM belongs to a zone, not to its class: `long_range_sam: true` on the zone adds the battery (about 20 units) to its garrison.
 Until 2026-11-17 every airfield zone drew one, and on the first evening of a persistent campaign two SA-5 17 nautical miles apart covered the whole front.

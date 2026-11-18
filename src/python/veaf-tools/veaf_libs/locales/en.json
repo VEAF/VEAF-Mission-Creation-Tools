@@ -1948,6 +1948,5 @@
   "recon.render.marks": "{name}: {count} mark(s)",
   "recon.prepare.weather": "weather: clear sky, no fog or dust, maximum visibility",
   "recon.prepare.time": "start time: {time}",
-  "recon.prepare.zones": "every combat zone active at start",
   "recon.prepare.names": "spawned groups keep their zone's name"
 }

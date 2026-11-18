@@ -10,10 +10,11 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from mission_tools.miz_tools import create_miz, read_member, read_miz
+from mission_tools.miz_tools import create_miz, read_member, read_miz, write_miz
 from PIL import Image
 from veaf_libs import dcs_recon
 from veaf_libs.blank_mission import generate_blank_mission
+from veaf_libs.dcs_mission_check import derive_check_mission
 from veaf_libs.dcs_recon import (
     INFO_BAR_PX,
     LiveUnit,
@@ -320,7 +321,9 @@ class TestShootingMission:
     @pytest.fixture
     def miz(self, tmp_path: Path) -> Path:
         files = generate_blank_mission("caucasus")
-        files["l10n/DEFAULT/veaf-config.lua"] = b"veaf.silenceAtcOnAllAirbases()\nveafCombatZone.initialize()\n"
+        files["l10n/DEFAULT/veaf-config.lua"] = (
+            b"veaf.HideNamesFromSpawnedGroups = true\nveaf.silenceAtcOnAllAirbases()\nveafCombatZone.initialize()\n"
+        )
         path = tmp_path / "Golan.miz"
         create_miz(path, files)
         return path
@@ -366,17 +369,18 @@ class TestShootingMission:
         out = recon_mission_path(miz)
         changes = derive_recon_mission(miz, out, "09:15", self._bridge(miz))
         assert miz.read_bytes() == before
-        assert len(changes) == 5
+        assert len(changes) == 4
         content = read_miz(out).mission_content or {}
         assert content["start_time"] == 9 * 3600 + 15 * 60
         assert content["weather"]["visibility"] == {"distance": 80000}
         config = read_member(out, "l10n/DEFAULT/veaf-config.lua").decode("utf-8")
         check_lua_syntax(config)
-        assert config.index("HideNamesFromSpawnedGroups = false") < config.index("veafCombatZone.initialize()")
-        assert config.index("veafCombatZone.initialize()") < config.index("ActivateZone(")
-        assert "taskingOrderDict" in config  # operations are left alone
-        # later, once per name, never a zone already active: an immediate loop spawned every zone twice or thrice
-        assert "timer.scheduleFunction" in config and "done[name]" in config and "zone:isActive()" in config
+        # after the mission's own settings, which set it back to true when it came first (Open Training, 2026-11-17)
+        assert config.index("veaf.HideNamesFromSpawnedGroups = true") < config.index(
+            "HideNamesFromSpawnedGroups = false"
+        )
+        # recon-shoot activates the zones one at a time: the copy leaves them as the mission has them
+        assert "ActivateZone(" not in config
         with zipfile.ZipFile(out) as archive:
             assert archive.namelist().count("l10n/DEFAULT/veaf-config.lua") == 1
             # recon-plan and recon-shoot talk to the mission through the bridge
@@ -392,3 +396,28 @@ class TestShootingMission:
     def test_the_copy_never_overwrites_the_original(self, miz: Path) -> None:
         with pytest.raises(ValueError, match="must not overwrite"):
             derive_recon_mission(miz, miz, "11:30", self._bridge(miz))
+
+    @staticmethod
+    def _with_spawn_data(miz: Path, loaded: bool) -> Path:
+        """*miz* carrying ``veaf-spawn-data.lua``, loaded by a trigger or not."""
+        mission = read_miz(miz)
+        if loaded:
+            content = mission.mission_content or {}
+            content.setdefault("trig", {}).setdefault("actions", {})[1] = (
+                'a_do_script_file(getValueResourceByKey("VEAF_MapKey_SpawnData"));'
+            )
+        write_miz(mission, miz, additional_files={"l10n/DEFAULT/veaf-spawn-data.lua": b"veafUnits.GroupsDatabase = {}\n"})
+        return miz
+
+    def test_a_spawn_database_no_trigger_loads_is_refused(self, miz: Path, tmp_path: Path) -> None:
+        # the Caucasus _RECON copy of 2026-11-17: every #command zone spawned nothing
+        self._with_spawn_data(miz, loaded=False)
+        with pytest.raises(ValueError, match="VEAF_MapKey_SpawnData"):
+            derive_recon_mission(miz, tmp_path / "out.miz", "11:30", self._bridge(miz))
+        with pytest.raises(ValueError, match="VEAF_MapKey_SpawnData"):
+            derive_check_mission(miz, tmp_path / "check.miz", self._bridge(miz))
+
+    def test_a_spawn_database_a_trigger_loads_is_accepted(self, miz: Path, tmp_path: Path) -> None:
+        self._with_spawn_data(miz, loaded=True)
+        derive_recon_mission(miz, tmp_path / "out.miz", "11:30", self._bridge(miz))
+        derive_check_mission(miz, tmp_path / "check.miz", self._bridge(miz))

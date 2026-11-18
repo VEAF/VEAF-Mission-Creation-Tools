@@ -1948,6 +1948,5 @@
   "recon.render.marks": "{name} : {count} marque(s)",
   "recon.prepare.weather": "météo : ciel dégagé, ni brume ni poussière, visibilité maximale",
   "recon.prepare.time": "heure de départ : {time}",
-  "recon.prepare.zones": "toutes les zones de combat actives au démarrage",
   "recon.prepare.names": "les groupes tirés gardent le nom de leur zone"
 }

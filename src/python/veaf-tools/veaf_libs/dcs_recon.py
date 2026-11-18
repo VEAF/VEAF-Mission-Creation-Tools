@@ -564,32 +564,13 @@ def camera_of(meta: dict[str, Any]) -> Camera:
 
 VEAF_CONFIG_MEMBER = "l10n/DEFAULT/veaf-config.lua"
 
-#: Prepended to ``veaf-config.lua``: a spawned group keeps its zone and element in its name, so a
-#: shot's ``groups`` prefixes can find it. Before anything spawns, hence at the top.
-_SHOW_NAMES_LUA = "-- recon-prepare: spawned groups keep their zone's name, for the shots\nveaf.HideNamesFromSpawnedGroups = false\n\n"
-
-#: Appended to ``veaf-config.lua``, after the zones are initialised: every combat zone up. An operation
-#: is left alone — activating one activates its zones anyway, and it would start its watchdog.
-#:
-#: Five seconds later, once per name, and only a zone not already active. Measured on "Marteau du
-#: Golan" (2026-10-28) with an immediate loop: every zone on the map two or three times over.
-#: ``ActivateZone`` marks a zone active only when its scheduled activation runs a second later, so the
-#: zones started by ``active_at_start`` and by the operation still read inactive; and, in a mission
-#: built with scripts older than 6.34.0, a zone an operation lists is in ``zonesList`` twice.
-_ACTIVATE_ALL_LUA = """
--- recon-prepare: every combat zone active at start, for the reconnaissance photos
-if veafCombatZone then
-    timer.scheduleFunction(function()
-        local done = {}
-        for _, zone in ipairs(veafCombatZone.zonesList) do
-            local name = zone:getMissionEditorZoneName()
-            if not zone.taskingOrderDict and not done[name] and not zone:isActive() then
-                done[name] = true
-                veafCombatZone.ActivateZone(name, true)
-            end
-        end
-    end, nil, timer.getTime() + 5)
-end
+#: Appended to ``veaf-config.lua``: a spawned group keeps its zone and element in its name. At the end,
+#: after the mission's own settings: prepended, it was set back to ``true`` a few lines below by the
+#: mission's config, and 227 shots out of 236 of the Open Training missions carried a random name
+#: (2026-11-17). Nothing spawns before the config has run, so the end is early enough.
+_SHOW_NAMES_LUA = """
+-- recon-prepare: spawned groups keep their zone's name, for the shots
+veaf.HideNamesFromSpawnedGroups = false
 """
 
 
@@ -656,17 +637,20 @@ def derive_recon_mission(miz: Path, out: Path, start_time: str, bridge_lua: Path
         What was changed, one line each, for the command to print.
 
     Raises:
-        ValueError: *start_time* is malformed, *out* is *miz*, or the mission has no VEAF config.
+        ValueError: *start_time* is malformed, *out* is *miz*, the mission has no VEAF config, or it
+            carries the spawn database without loading it.
     """
     from mission_tools.miz_tools import list_members, read_member, read_miz, write_miz  # noqa: PLC0415
 
-    from veaf_libs.dcs_bridge_capture import inject_bridge_in_memory  # noqa: PLC0415
+    from veaf_libs.dcs_bridge_capture import check_spawn_data_loaded, inject_bridge_in_memory  # noqa: PLC0415
 
     seconds = seconds_of_day(start_time)
     if out.resolve() == miz.resolve():
         raise ValueError("the shooting mission must not overwrite the mission it is made from")
-    if VEAF_CONFIG_MEMBER not in list_members(miz):
+    members = list_members(miz)
+    if VEAF_CONFIG_MEMBER not in members:
         raise ValueError(f"{miz.name} has no {VEAF_CONFIG_MEMBER}: is it a mission built by veaf-tools?")
+    check_spawn_data_loaded(read_miz(miz), members)
     config = read_member(miz, VEAF_CONFIG_MEMBER).decode("utf-8")
 
     shutil.copyfile(miz, out)
@@ -674,14 +658,13 @@ def derive_recon_mission(miz: Path, out: Path, start_time: str, bridge_lua: Path
     content = mission.mission_content or {}
     content["weather"] = clear_sky(content.get("weather") or {})
     content["start_time"] = seconds
-    patched = _SHOW_NAMES_LUA + config.rstrip("\n") + "\n" + _ACTIVATE_ALL_LUA
+    patched = config.rstrip("\n") + "\n" + _SHOW_NAMES_LUA
     files = inject_bridge_in_memory(mission, bridge_lua)
     files[VEAF_CONFIG_MEMBER] = patched.encode("utf-8")
     write_miz(mission, out, additional_files=files)
     return [
         t("recon.prepare.weather"),
         t("recon.prepare.time", time=start_time),
-        t("recon.prepare.zones"),
         t("recon.prepare.names"),
         t("recon.prepare.bridge"),
     ]

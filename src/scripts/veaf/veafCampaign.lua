@@ -111,7 +111,9 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   -- 1 h 20 (no raid, SEAD or CAP), its two garrisons taken by helicopter having cost it 128 points of 225
   resources = { enabled = true, start = 1000, background_per_hour = 60, reserve = 100, prices = {} },
   factory = { buildings = 3, per_hour = 180, types = { "Workshop A", "Tech combine", "Tech hangar A" } },
-  network = { hop_seconds = 600, isolated_seconds = 3600, depot_store = 4, max_deliveries = 3 },
+  -- `under_fire_seconds`: a delivery waits this long after the zone's last loss: on 2026-11-17 Aleppo, attacked by
+  -- a player's helicopter, was reinforced every 5 minutes and the players' Shilka was back 2 minutes after its death
+  network = { hop_seconds = 600, isolated_seconds = 3600, depot_store = 4, max_deliveries = 3, under_fire_seconds = 600 },
   demolition = { troops = "Sappers", range = 5000, fuse = 120 },
   warehouse = { enabled = true, load = 10 },
   bombers = { enabled = true, seconds = 3600, min_distance = 80000, escort = false, package_delay = 30 },
@@ -760,18 +762,26 @@ end
 
 --- Spawn one group of the zone's recorded garrison, without the units it has lost. A group of that name
 --- already in the world is replaced by it: `coalition.addGroup` with an existing name replaces the group
---- (dcs-runtime-traps), which is what a reinforcement wants.
+--- (dcs-runtime-traps).
 --- @param groupIndex number the group, in the zone's garrison
+--- @param only table|nil the units to spawn, by index in the group, as their own DCS group: a delivery's (ticket 03)
 --- @return number the number of units submitted to DCS
-function VeafCampaignZone:spawnGroup(groupIndex)
+function VeafCampaignZone:spawnGroup(groupIndex, only)
   local group = self.entry.garrison and self.entry.garrison[groupIndex]
   local side = veafCampaign.SIDES[self.entry.owner]
   if not group or not side then
     return 0
   end
+  local wanted = nil
+  if only then
+    wanted = {}
+    for _, unitIndex in ipairs(only) do
+      wanted[unitIndex] = true
+    end
+  end
   local dcsUnits = {}
   for unitIndex, unit in ipairs(group.units) do
-    if unit.alive then
+    if unit.alive and (wanted == nil or wanted[unitIndex]) then
       local name = veafCampaign.unitName(group, unitIndex)
       -- drawn before the concrete was kept clear, or by hand: moved, and recorded where it now stands
       if veafCampaign.isOnConcrete({ x = unit.x, z = unit.z }) then
@@ -802,10 +812,18 @@ function VeafCampaignZone:spawnGroup(groupIndex)
   if #dcsUnits == 0 then
     return 0
   end
+  local groupName = group.name
+  if only then
+    -- the units a delivery brings back join the zone as a group of their own: respawning the whole group under
+    -- its name recreated its 18 living units at every delivery to Saraqib (Tacview, 2026-11-17)
+    self.reinforcementGroups = self.reinforcementGroups or {}
+    groupName = string.format("%s +%d", group.name, #self.reinforcementGroups + 1)
+    table.insert(self.reinforcementGroups, groupName)
+  end
   veaf.addGroup({
     country = veaf.getCountryForCoalition(side),
     category = "GROUND_UNIT",
-    name = group.name,
+    name = groupName,
     hidden = false,
     units = dcsUnits,
   })
@@ -813,9 +831,22 @@ function VeafCampaignZone:spawnGroup(groupIndex)
   return #dcsUnits
 end
 
+--- Take the groups the deliveries added out of the world: the garrison's own groups, spawned again, carry
+--- their units.
+function VeafCampaignZone:removeReinforcementGroups()
+  for _, name in ipairs(self.reinforcementGroups or {}) do
+    local dcsGroup = Group.getByName(name)
+    if dcsGroup then
+      pcall(dcsGroup.destroy, dcsGroup)
+    end
+  end
+  self.reinforcementGroups = nil
+end
+
 --- Spawn the zone's recorded garrison, without the units it has lost.
 --- @return number the number of units submitted to DCS
 function VeafCampaignZone:spawnGarrison()
+  self:removeReinforcementGroups()
   local submitted = 0
   for groupIndex in ipairs(self.entry.garrison or {}) do
     submitted = submitted + self:spawnGroup(groupIndex)
@@ -838,6 +869,7 @@ function VeafCampaignZone:sleep(reason)
       pcall(dcsGroup.destroy, dcsGroup)
     end
   end
+  self:removeReinforcementGroups()
   self.awake = false
   veafCampaign.counters.sleeps = veafCampaign.counters.sleeps + 1
   veaf.loggers.get(veafCampaign.Id):info("zone [%s] sleeps: %s", self.name, reason or "put to sleep")
@@ -850,30 +882,54 @@ function VeafCampaignZone:wake()
   veaf.loggers.get(veafCampaign.Id):info("zone [%s] wakes: %d unit(s)", self.name, submitted)
 end
 
---- Bring back the dead units of the zone's first damaged group, in their places: what one supply
---- delivery does (ticket 03). A sleeping zone gets them back in its record, an awake one in the world.
---- @return boolean true when a group was reinforced, false when nothing was missing
-function VeafCampaignZone:reinforce()
+--- Bring back dead units of the zone's first damaged group, in their places: what one supply delivery does
+--- (ticket 03). With `points`, only what they pay for, cheapest first: on 2026-11-17 a delivery of 2 points brought
+--- a Shilka and the lorries back to Saraqib. A sleeping zone gets them back in its record, an awake one in the
+--- world, as a group of their own: the living units are not respawned.
+--- @param points number|nil what the delivery carries, in resource points; nil brings the whole group back
+--- @return boolean true when units were brought back, false when nothing was missing or nothing could be paid
+--- @return number the points spent
+function VeafCampaignZone:reinforce(points)
   for groupIndex, group in ipairs(self.entry.garrison or {}) do
-    local damaged = false
-    for _, unit in ipairs(group.units) do
+    local dead = {}
+    for unitIndex, unit in ipairs(group.units) do
       if not unit.alive then
-        damaged = true
-        unit.alive = true
-        unit.missiles = nil
+        table.insert(dead, { index = unitIndex, price = veafCampaign.unitPrice(unit.type) })
       end
     end
-    if damaged then
+    if #dead > 0 then
+      table.sort(dead, function(a, b)
+        if a.price ~= b.price then
+          return a.price < b.price
+        end
+        return a.index < b.index
+      end)
+      local revived, spent = {}, 0
+      for _, candidate in ipairs(dead) do
+        if points == nil or spent + candidate.price <= points then
+          local unit = group.units[candidate.index]
+          unit.alive = true
+          unit.missiles = nil
+          spent = spent + candidate.price
+          table.insert(revived, candidate.index)
+        end
+      end
+      if #revived == 0 then
+        return false, 0
+      end
+      table.sort(revived)
       if self.awake ~= false then
-        self:spawnGroup(groupIndex)
+        self:spawnGroup(groupIndex, revived)
       end
       veafCampaign.counters.reinforcements = veafCampaign.counters.reinforcements + 1
-      veaf.loggers.get(veafCampaign.Id):info("zone [%s]: group [%s] reinforced", self.name, group.name)
+      veaf.loggers
+        .get(veafCampaign.Id)
+        :info("zone [%s]: group [%s] reinforced, %d of %d dead unit(s) back, %d point(s)", self.name, group.name, #revived, #dead, spent)
       self:draw()
-      return true
+      return true, spent
     end
   end
-  return false
+  return false, 0
 end
 
 --- How many garrison units the zone has, and how many of them are alive.
@@ -902,6 +958,7 @@ function VeafCampaignZone:onUnitLost(groupIndex, unitIndex)
     return -- already recorded: DCS sends both a dead and a lost event for the same unit
   end
   unit.alive = false
+  self.lastLossAt = timer.getTime() -- under fire: no delivery reinforces it for a while (ticket 03)
   if self:countUnits() == 0 then
     self:becomeNeutral()
   end

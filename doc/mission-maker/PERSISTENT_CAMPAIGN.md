@@ -372,7 +372,11 @@ Les usines d'un camp nourrissent ses zones de proche en proche, le long des liai
 
 - **Un saut** d'une zone à la suivante prend `network.hop_seconds` (600 s) ; **un saut qui touche un dépôt** la moitié : usine → base → base fait deux sauts pleins, usine → dépôt → base un seul.
 - **Un dépôt** garde une réserve de `network.depot_store` (4) livraisons, pleine tant qu'une usine l'atteint : coupé de ses usines, il nourrit encore les zones autour de lui le temps de la vider.
-- **Une zone abîmée**, d'un camp comme de l'autre, commande une livraison, payée sur les ressources à la commande ; son premier groupe touché revient au complet après le délai de la zone ; `network.max_deliveries` (3) livraisons d'un camp en route à la fois. Une zone perdue entre-temps ne reçoit rien.
+- **Une zone abîmée**, d'un camp comme de l'autre, commande une livraison, payée sur les ressources à la commande au prix des unités qui lui manquent ; `network.max_deliveries` (3) livraisons d'un camp en route à la fois.
+  Après le délai de la zone, la livraison ramène les unités mortes de son premier groupe touché, **les moins chères d'abord et à hauteur de ce qu'elle a payé** : une unité tuée depuis la commande reste morte.
+  Les unités ramenées apparaissent à leur place, les vivantes ne bougent pas.
+  **Une zone sous le feu** — une unité perdue il y a moins de `network.under_fire_seconds` (600 s) — n'est pas renforcée : la livraison attend.
+  Une zone perdue entre-temps ne reçoit rien ; une livraison qui n'a plus rien à réparer, ou ce qu'elle n'a pas dépensé, retourne au stock.
   Les joueurs qui font de la logistique vont plus vite : une caisse, des troupes ou un hélicoptère renforcent sur-le-champ, sans attendre le réseau ni le payer.
 - **Une zone coupée** de toute usine et de tout dépôt est encore servie, sur la production de fond, au bout de `network.isolated_seconds` (3 600 s).
 
@@ -542,7 +546,7 @@ Une ligne `KO` suffit à dire où regarder.
 | `intel` | voir [le renseignement](#intel) | `hidden`, `seconds`, `overflight_altitude`, `spy_troops`, `spy_range` |
 | `resources` | voir [les ressources](#resources) | `enabled` (true), `start` (1000), `background_per_hour` (60), `reserve` (100), `prices` |
 | `factory` | voir [les usines](#zone-kinds) | `buildings` (3), `per_hour` (180), `types` |
-| `network` | voir [le réseau](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3) |
+| `network` | voir [le réseau](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3), `under_fire_seconds` (600) |
 | `demolition` | voir [la démolition](#demolition) | `troops` (`Sappers`), `range` (5000), `fuse` (120) |
 | `warehouse` | voir [les stocks](#warehouses) | `enabled` (true), `load` (10) |
 | `bombers` | voir [les bombardiers](#bombers) | `enabled` (true), `seconds` (3600), `min_distance` (80000), `escort` (false), `package_delay` (30) |

@@ -396,26 +396,55 @@ function veafCampaignLogistics.dispatchDeliveries(now)
   end
 end
 
---- Bring the deliveries that are due: a zone still the side's is reinforced, any other loses them.
+--- Bring the deliveries that are due. A zone no longer the side's loses them; a zone that lost a unit less than
+--- `network.under_fire_seconds` ago waits for them (ticket 03); otherwise the zone gets back what the delivery
+--- pays for, and the points it does not spend — all of them when nothing is missing any more — go back to the
+--- side's stock (ticket 09: "lost: the zone is no longer theirs" was also said of a zone with nothing to repair).
 --- @param now number the mission time
 function veafCampaignLogistics.arriveDeliveries(now)
   local underway = {}
+  local underFire = veafCampaign.setting("network", "under_fire_seconds")
   for _, delivery in ipairs(veafCampaignLogistics.deliveries) do
-    if delivery.at <= now then
-      local zone = veafCampaign.zones[delivery.zone]
-      if zone and zone.entry.owner == delivery.side and zone:reinforce() then
+    local zone = veafCampaign.zones[delivery.zone]
+    if delivery.at > now then
+      table.insert(underway, delivery)
+    elseif not zone or zone.entry.owner ~= delivery.side then
+      veafCampaignLogistics.counters.lost = veafCampaignLogistics.counters.lost + 1
+      veafCampaign.debug("SUPPLY", "the %s supply for [%s] is lost", delivery.side, delivery.zone)
+      logger():info("the %s supply for [%s] is lost: the zone is no longer theirs", delivery.side, delivery.zone)
+    elseif zone.lastLossAt and now - zone.lastLossAt < underFire then
+      if not delivery.held then
+        delivery.held = true
+        logger():info(
+          "the %s supply for [%s] waits: the zone lost a unit %d s ago, under fire",
+          delivery.side,
+          delivery.zone,
+          math.floor(now - zone.lastLossAt)
+        )
+      end
+      table.insert(underway, delivery)
+    else
+      local cost = delivery.cost or 0
+      local reinforced, spent = zone:reinforce(cost)
+      local unspent = math.max(0, cost - (spent or 0))
+      if unspent > 0 then
+        veafCampaignLogistics.credit(delivery.side, unspent)
+      end
+      if reinforced then
         veafCampaignLogistics.counters.arrived = veafCampaignLogistics.counters.arrived + 1
         veafCampaign.debug("SUPPLY", "the %s supply reaches [%s]", delivery.side, delivery.zone)
         if delivery.side == veafCampaign.playerSide() then
           veafCampaign.announce(delivery.side, delivery.side, veaf.t("campaign.network.arrived", veafCampaign.zoneTitle(zone.name)))
         end
       else
-        veafCampaignLogistics.counters.lost = veafCampaignLogistics.counters.lost + 1
-        veafCampaign.debug("SUPPLY", "the %s supply for [%s] is lost", delivery.side, delivery.zone)
-        logger():info("the %s supply for [%s] is lost: the zone is no longer theirs", delivery.side, delivery.zone)
+        veafCampaignLogistics.counters.unneeded = veafCampaignLogistics.counters.unneeded + 1
+        logger():info(
+          "the %s supply for [%s] has nothing to repair there: its %d point(s) go back to the stock",
+          delivery.side,
+          delivery.zone,
+          unspent
+        )
       end
-    else
-      table.insert(underway, delivery)
     end
   end
   veafCampaignLogistics.deliveries = underway
@@ -1080,6 +1109,7 @@ function veafCampaignLogistics.initialize()
     ordered = 0,
     arrived = 0,
     lost = 0,
+    unneeded = 0,
     spawnsCharged = 0,
     spawnsRefused = 0,
     teams = 0,

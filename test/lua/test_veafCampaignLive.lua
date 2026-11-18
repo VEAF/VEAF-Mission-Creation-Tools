@@ -305,8 +305,18 @@ end
 function TestCampaignHelicopters:test_shot_down_it_is_counted_as_failed()
   start()
   local record = veafCampaignOps.sendHelicopter("red", veafCampaign.zones["Poti"], "capture")
+  veafCampaignOps.onFlightEvent({ id = world.event.S_EVENT_CRASH, initiator = { unitName = record.name .. " #1" } })
   veafCampaignOps.followHelicopter(record, 100)
   luaunit.assertEquals(record.outcome, "destroyed")
+  luaunit.assertEquals(veafCampaignOps.counters.helicoptersFailed, 1)
+end
+
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 09: a group that vanished with no death seen is "gone", not "destroyed"
+function TestCampaignHelicopters:test_vanished_with_no_death_seen_it_is_gone()
+  start()
+  local record = veafCampaignOps.sendHelicopter("red", veafCampaign.zones["Poti"], "capture")
+  veafCampaignOps.followHelicopter(record, 100)
+  luaunit.assertEquals(record.outcome, "gone")
   luaunit.assertEquals(veafCampaignOps.counters.helicoptersFailed, 1)
 end
 

@@ -628,6 +628,21 @@ three launches in one DCS session, the first `math.random(1000000)` after `veaf.
 **What to do:** Nothing to do: rely on `math.random`. Do not write code that seeds it, or that needs the same
 sequence twice — a replay cannot be forced.
 
+### DCS removes an AI aircraft about 3 minutes after its `ai abort mission`, with no death event {#aborted-ai-aircraft-removed-after-three-minutes}
+
+Measured **2026-11-17**.
+
+On the persistent campaign's second server evening (Syria), red aircraft spawned at Taftanaz never moved and
+aborted on the ground. In the server's Tacview recording the MiG-29 #2 of three CAPs aborted at 21:05:41 and
+were removed at 21:08:41; the Tu-22M3 aborted at 21:29:53 and was removed at 21:32:53. `dcs.log` holds no
+`crash`, `dead` or `kill` for them: the group simply stops existing.
+
+**What to do:** Do not read "the group no longer exists" as "shot down": tell it from a death event seen on one of its units.
+The campaign's raid and helicopter followers say "destroyed" or "gone" since FIX-CAMPAIGN-SECOND-SERVER-FLIGHT
+ticket 09.
+
+*What it cost:* A raid that never took off was logged "destroyed", and the evening's debrief counted it as shot down.
+
 ## Air defence {#air-defence}
 
 ### A SAM site with no early-warning radar is not dark — it is permanently lit {#sam-without-ewr-is-lit}

@@ -782,9 +782,49 @@ function TestCampaignReinforce:test_the_first_damaged_group_gets_its_dead_back_i
   senaki.awake = true
   luaunit.assertTrue(senaki:reinforce())
   luaunit.assertEquals({ senaki:countUnits() }, { 3, 3 })
-  local units = dcs_mocks.groupsAdded[1].group.units
-  luaunit.assertEquals(#units, 3)
-  luaunit.assertEquals({ units[1].x, units[1].y }, { 10, 20 })
+  -- only the units brought back are spawned, as a group of their own: the living BMP-2 is not respawned
+  local added = dcs_mocks.groupsAdded[1].group
+  luaunit.assertEquals(added.name, "Senaki garrison +1")
+  luaunit.assertEquals(#added.units, 2)
+  luaunit.assertEquals({ added.units[1].x, added.units[1].y }, { 10, 20 })
+  luaunit.assertEquals(added.units[1].name, veafCampaign.unitName(senaki.entry.garrison[1], 1))
+end
+
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 03: 2 points brought a Shilka and the lorries back to Saraqib
+function TestCampaignReinforce:test_a_delivery_brings_back_only_what_it_pays_for_cheapest_first()
+  local data = persistentData()
+  data.zones[2].garrison = garrison("Senaki", { 1, 2, 3 }) -- T-72B 6, BMP-2 4, Ural-375 2
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  local senaki = veafCampaign.zones["Senaki"]
+  local reinforced, spent = senaki:reinforce(2)
+  luaunit.assertTrue(reinforced)
+  luaunit.assertEquals(spent, 2)
+  local units = senaki.entry.garrison[1].units
+  luaunit.assertEquals({ units[1].alive, units[2].alive, units[3].alive }, { false, false, true })
+  luaunit.assertEquals({ senaki:reinforce(1) }, { false, 0 }, "not enough for the cheapest dead unit")
+  luaunit.assertEquals({ senaki:reinforce(10) }, { true, 10 })
+  luaunit.assertTrue(units[1].alive and units[2].alive)
+end
+
+function TestCampaignReinforce:test_the_groups_a_delivery_added_leave_with_the_zone_s_sleep()
+  local data = persistentData()
+  data.zones[2].garrison = garrison("Senaki", { 1 })
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  local senaki = veafCampaign.zones["Senaki"]
+  senaki.awake = true
+  senaki:reinforce()
+  local destroyed = {}
+  dcs_mocks.addGroup("Senaki garrison +1", {
+    destroy = function()
+      table.insert(destroyed, "Senaki garrison +1")
+    end,
+  })
+  senaki:sleep("test")
+  luaunit.assertEquals(destroyed, { "Senaki garrison +1" })
+  luaunit.assertNil(senaki.reinforcementGroups)
+  dcs_mocks.removeGroup("Senaki garrison +1")
 end
 
 function TestCampaignReinforce:test_a_sleeping_zone_is_reinforced_in_its_record_only()

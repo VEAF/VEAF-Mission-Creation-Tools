@@ -227,6 +227,18 @@ local function uniqueGroupName(base)
 end
 
 --- Whether a group still flies: it exists and has a live unit.
+--- The campaign groups a death was seen in: a crash, a death or a kill of one of their units (ticket 09).
+veafCampaignOps.deaths = {}
+
+--- How a group that no longer exists ended: "destroyed" when a death of one of its units was seen, "gone" otherwise.
+--- DCS removes an AI aircraft about 3 minutes after its `ai abort mission`, with no event: the Tu-22M3 of
+--- 2026-11-17 aborted on the ground at Taftanaz, vanished, and was logged as a raid "destroyed".
+--- @param groupName string
+--- @return string
+function veafCampaignOps.endOf(groupName)
+  return veafCampaignOps.deaths[groupName] and "destroyed" or "gone"
+end
+
 local function liveUnit(groupName)
   local group = Group.getByName(groupName)
   if not (group and group:isExist()) then
@@ -475,9 +487,13 @@ function veafCampaignOps.followHelicopter(record, now)
   end
   local unit = liveUnit(record.name)
   if not unit then
-    record.done, record.outcome = true, "destroyed"
+    record.done, record.outcome = true, veafCampaignOps.endOf(record.name)
     veafCampaignOps.counters.helicoptersFailed = veafCampaignOps.counters.helicoptersFailed + 1
-    logger():info("supply helicopter [%s] to [%s] destroyed", record.name, record.to)
+    if record.outcome == "destroyed" then
+      logger():info("supply helicopter [%s] to [%s] destroyed", record.name, record.to)
+    else
+      logger():info("supply helicopter [%s] to [%s] gone: the group no longer exists and no death of it was seen", record.name, record.to)
+    end
     return
   end
   local inAir = unit:inAir()
@@ -1763,9 +1779,17 @@ function veafCampaignOps.followRaid(raid, now)
     pushFromHold(raid, unit, now)
   end
   if not unit then
-    raid.done, raid.outcome = true, "destroyed"
-    veafCampaignOps.counters.raidsDestroyed = veafCampaignOps.counters.raidsDestroyed + 1
-    logger():info("bomber raid [%s] on [%s] destroyed", raid.name, raid.target)
+    raid.done, raid.outcome = true, veafCampaignOps.endOf(raid.name)
+    if raid.outcome == "destroyed" then
+      veafCampaignOps.counters.raidsDestroyed = veafCampaignOps.counters.raidsDestroyed + 1
+      logger():info("bomber raid [%s] on [%s] destroyed", raid.name, raid.target)
+    else
+      logger():info(
+        "bomber raid [%s] on [%s] gone: the group no longer exists and no death of it was seen (an abort, removed by DCS?)",
+        raid.name,
+        raid.target
+      )
+    end
   elseif (raid.airborne and not flying) or now - raid.startedAt > veafCampaignOps.RAID_TIMEOUT then
     raid.done, raid.outcome = true, "home"
     destroyGroup(raid.name)
@@ -1879,14 +1903,27 @@ end
 
 --- A weapon released, a kill, a landing, a crash: told when a campaign aircraft is in it.
 function veafCampaignOps.onFlightEvent(event)
-  if not veafCampaign.debugging() or type(event) ~= "table" then
+  if type(event) ~= "table" then
+    return
+  end
+  -- veafEventHandler hands a data table: its type under `type`, the DCS objects under `dcs…`
+  local id = event.type and event.type.id or event.id
+  -- a death is remembered whether debugging or not: it tells a group destroyed from a group gone (ticket 09)
+  local dead = nil
+  if id == world.event.S_EVENT_CRASH or id == world.event.S_EVENT_DEAD then
+    dead = eventUnitName(event.initiator) or eventUnitName(event.dcsInitiator)
+  elseif id == world.event.S_EVENT_KILL then
+    dead = eventUnitName(event.target) or eventUnitName(event.dcsTarget)
+  end
+  if type(dead) == "string" then
+    veafCampaignOps.deaths[dead:match("^(.-) #%d+$") or dead] = true
+  end
+  if not veafCampaign.debugging() then
     return
   end
   local shooter = event.dcsInitiator or event.initiator
   local flight = veafCampaignOps.flightOf(eventUnitName(event.initiator) or eventUnitName(shooter))
   local victim = veafCampaignOps.flightOf(eventUnitName(event.target))
-  -- veafEventHandler hands a data table: its type under `type`, the DCS objects under `dcs…`
-  local id = event.type and event.type.id or event.id
   if flight and id == world.event.S_EVENT_SHOT then
     local weapon = event.weaponName
       or (event.weapon and event.weapon.getTypeName and select(2, pcall(event.weapon.getTypeName, event.weapon)))
@@ -2180,6 +2217,7 @@ function veafCampaignOps.initialize()
   veafCampaignOps.usedNames, veafCampaignOps.nextAirDefenceReport = {}, nil
   veafCampaignOps.capDraws, veafCampaignOps.lastCapRefusal = {}, {}
   veafCampaignOps.feedSupport()
+  veafCampaignOps.deaths = {}
   veafCampaignOps.counters = {
     helicoptersSent = 0,
     helicoptersLanded = 0,

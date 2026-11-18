@@ -1,6 +1,6 @@
 # 09 — Log lines that say the wrong thing
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 
 ## Found
@@ -17,3 +17,14 @@ Type: fix
 ## Done when
 
 Tests cover the two branches of each; the debrief of the next evening can trust these lines.
+
+## Done
+
+- `veafCampaignOps.deaths`: every crash, death or kill of a unit of a campaign group is remembered, debug or not; `followRaid` and `followHelicopter` then say **"destroyed"** (a death seen) or **"gone"** (the group no longer exists, no death seen). A raid gone counts no raid shot down, and its intercept task is withdrawn, not paid.
+- What removed the Tu-22M3: DCS removes an aborted AI aircraft about 3 minutes after its abort, with no event (Tacview, 2026-11-17) — written in `known-limitations.yaml` (`aborted-ai-aircraft-removed-after-three-minutes`) and the generated `dcs-runtime-traps.md`.
+- `arriveDeliveries`: "lost: the zone is no longer theirs" only when it is no longer theirs; a delivery with nothing left to repair goes back to the stock ("has nothing to repair there: its N point(s) go back to the stock", counter `unneeded`).
+- Tests: both branches of each.
+
+## In-game check
+
+The debrief's log lines: a raid or helicopter that never took off reads "gone", one shot down "destroyed"; no "is lost: the zone is no longer theirs" for a zone that is still theirs.

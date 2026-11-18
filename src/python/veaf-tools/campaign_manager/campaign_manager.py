@@ -604,6 +604,32 @@ def _parse_objectives(
     return objectives
 
 
+def _parse_mission_file(raw: Any, mode: str, issues: list[ValidationIssue]) -> str | None:
+    """Read `mission_file`, the name a persistent campaign gives its mission's file (FEAT-CAMPAIGN-MISSION-FILE).
+
+    The server browser shows the file's name, and the build's date changes it at every redeploy.
+
+    Args:
+        raw: The value under `campaign.mission_file`, or ``None`` when absent.
+        mode: The campaign's mode; only a persistent campaign may name its file.
+        issues: Where the problems found are added.
+
+    Returns:
+        The name without its `.miz`, or ``None`` when absent or wrong.
+    """
+    if raw is None:
+        return None
+    match = re.fullmatch(r"([A-Za-z0-9_-]+)(\.miz)?", raw, re.IGNORECASE) if isinstance(raw, str) else None
+    if match is None:
+        issues.append(_error("bad_mission_file", value=raw))
+        return None
+    if mode != "persistent":
+        # a multi-mission campaign's missions each need `_NoMizedit` in their name, and a file of their own
+        issues.append(_error("mission_file_needs_persistent"))
+        return None
+    return match.group(1)
+
+
 def parse_campaign(raw: Any) -> tuple[CampaignDefinition | None, list[ValidationIssue]]:
     """Read a loaded `campaign.yaml` into a campaign, reporting every problem found.
 
@@ -653,6 +679,7 @@ def parse_campaign(raw: Any) -> tuple[CampaignDefinition | None, list[Validation
     mode = str(head.get("mode", "episodic"))
     if mode not in MODES:
         issues.append(_error("unknown_mode", mode=mode, known=", ".join(MODES)))
+    mission_file = _parse_mission_file(head.get("mission_file"), mode, issues)
     dynamic = parse_dynamic(raw.get("dynamic"), issues)
     raw_sides = raw.get("sides")
     declared_reserves = tuple(side for side in COALITIONS if isinstance(raw_sides, dict) and side in raw_sides)
@@ -716,6 +743,7 @@ def parse_campaign(raw: Any) -> tuple[CampaignDefinition | None, list[Validation
         start_time=start_time,
         players=players,
         mode=mode,
+        mission_file=mission_file,
         dynamic=dynamic,
         declared_reserves=declared_reserves,
         long_range_sam_cap=long_range_sam_cap,

@@ -128,6 +128,28 @@ class TestResolveOutputMission(unittest.TestCase):
         self.assertTrue(path.name.startswith("Training-Syrie_"))
         self.assertTrue(path.name.endswith(".miz"))
 
+    def test_date_suffix_false_drops_the_date(self) -> None:
+        """FEAT-CAMPAIGN-MISSION-FILE: a fixed name, in the mission folder, for a server that replaces the file."""
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            (folder / "mission.yaml").write_text(
+                "mission:\n  name: Campagne_Oronte\n  date_suffix: false\n", encoding="utf-8"
+            )
+            with patch("veaf_tools.commands.build.validate_yaml_file"):
+                path, base = self._resolve(self.DEFAULT, folder)
+        self.assertEqual(path, folder / "Campagne_Oronte.miz")
+        self.assertEqual(base, "Campagne_Oronte")
+
+    def test_date_suffix_true_keeps_the_date(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            (folder / "mission.yaml").write_text(
+                "mission:\n  name: Campagne_Oronte\n  date_suffix: true\n", encoding="utf-8"
+            )
+            with patch("veaf_tools.commands.build.validate_yaml_file"):
+                path, _ = self._resolve(self.DEFAULT, folder)
+        self.assertRegex(path.name, r"^Campagne_Oronte_\d{8}\.miz$")
+
     def test_bare_name_is_anchored_in_folder(self) -> None:
         """Regression: a bare name must yield an absolute path inside the folder."""
         with tempfile.TemporaryDirectory() as td:

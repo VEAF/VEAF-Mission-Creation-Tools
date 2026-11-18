@@ -27,7 +27,7 @@ from campaign_manager.next_mission import (
     prepare_next_mission,
     strategic_situation,
 )
-from veaf_libs.i18n import language
+from veaf_libs.i18n import language, t
 from veaf_libs.mission_validator import ERROR, ValidationIssue
 
 
@@ -357,3 +357,48 @@ class TestTheStrategicSituation:
         assert "La campagne est gagnée." not in text
         assert "[x]" not in text and "[ ]" not in text
         assert "gagnée quand l'ennemi ne tient plus aucune zone" in text
+
+
+class TestTheMissionFile:
+    """FEAT-CAMPAIGN-MISSION-FILE: the server browser shows the file name, and a dated one changes at every redeploy."""
+
+    def test_absent_leaves_the_computed_name(self) -> None:
+        assert _persistent().mission_file is None
+
+    @pytest.mark.parametrize("value", ["Campagne_Oronte", "Campagne_Oronte.miz", "Campagne_Oronte.MIZ"])
+    def test_a_plain_name_is_read_without_its_extension(self, value: str) -> None:
+        assert _persistent(head={"mission_file": value}).mission_file == "Campagne_Oronte"
+
+    @pytest.mark.parametrize(
+        "value",
+        ["Campagne Oronte", "missions/Campagne_Oronte", "Campagne_Oronte.txt", "Campagné", ".miz", "", 12],
+    )
+    def test_anything_but_a_plain_file_name_is_refused(self, value: Any) -> None:
+        campaign, issues = _parse(head={"mode": "persistent", "mission_file": value})
+        assert campaign is None
+        assert t("campaign.issue.bad_mission_file", value=value) in _errors(issues)
+
+    def test_a_multi_mission_campaign_is_refused(self) -> None:
+        # each of its missions needs `_NoMizedit` in its file name, and its own file
+        campaign, issues = _parse(head={"mission_file": "Campagne_Oronte"})
+        assert campaign is None
+        assert t("campaign.issue.mission_file_needs_persistent") in _errors(issues)
+
+    def test_campaign_next_names_the_mission_and_turns_the_date_off(self, tmp_path: Path) -> None:
+        mission_template(tmp_path)
+        campaign = _persistent(head={"mission_file": "Campagne_Oronte.miz"})
+        report = prepare_next_mission(campaign, initial_state(campaign), tmp_path, tmp_path / "m1")
+        assert report.name == "Campagne_Oronte"
+        mission = yaml.safe_load((tmp_path / "m1" / "mission.yaml").read_text(encoding="utf-8"))["mission"]
+        assert mission["name"] == "Campagne_Oronte"
+        assert mission["date_suffix"] is False
+
+    def test_a_campaign_without_it_gives_the_date_back(self, tmp_path: Path) -> None:
+        mission_template(tmp_path)
+        named = _persistent(head={"mission_file": "Campagne_Oronte"})
+        prepare_next_mission(named, initial_state(named), tmp_path, tmp_path / "m1")
+        campaign = _persistent()
+        report = prepare_next_mission(campaign, initial_state(campaign), tmp_path, tmp_path / "m1")
+        mission = yaml.safe_load((tmp_path / "m1" / "mission.yaml").read_text(encoding="utf-8"))["mission"]
+        assert mission["name"] == report.name != "Campagne_Oronte"
+        assert "date_suffix" not in mission

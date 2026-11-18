@@ -197,6 +197,8 @@ class CampaignDefinition:
     """The fewest and the most players the squadron expects, or ``None`` when the campaign does not say."""
     mode: str = "episodic"
     """One of `MODES`."""
+    mission_file: str | None = None
+    """The mission's file name, without `.miz` and with no date (`campaign.mission_file`), or ``None`` for the computed one."""
     dynamic: dict[str, Any] = field(default_factory=dict)
     """The live play's settings (`dynamic:`), checked, with the aircraft resolved to payloads."""
     declared_reserves: tuple[str, ...] = ()

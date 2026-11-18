@@ -228,6 +228,8 @@ Its garrison comes `wake_units_per_beat` (10) units per beat, its long-range bat
   A CAS strike leaves out a zone under a measured air defence of 15 km or more (a Hawk, an SA-6), the zone's own or a neighbour's: that is the SEAD's job.
 - They **take off** from the nearest enemy airfield, hot on free stands (shelters first, open stands after; a large aircraft, bomber or transport, never in a shelter), or from the runway when there are not enough; no airfield, no sortie. So do the CAP, the BARCAP and the Hunter.
   Nothing takes off from an airfield within `takeoff_threat_range` (40 km) of an enemy air defence whose reach was measured (a Patriot would shoot the aircraft down while they climb); the reach DCS gives is the missile's against a high target, much longer than the range at which the SAM sees an aircraft taking off, hence this cap, an estimation to tune.
+  No aeroplane of the AI leaves a field whose longest runway is shorter than `min_runway_length` (1,500 m), and one flight at a time leaves a field's runway: on 2026-11-17 fifteen aircraft sent from Taftanaz piled up on one spot of its strip and never took off.
+  A flight still on the ground `takeoff_timeout` (600 s) after its spawn is taken away, its price back in the stock, and its field sends no aeroplane for `grounded_seconds` (3,600 s).
   A **SEAD** flight takes off all the same: putting that defence out is its job, and what it destroys frees the field for the strikes.
   Otherwise the sortie leaves from another airfield, or does not leave, and `dcs.log` says so (`[CAMPAIGN DECISION] nothing of red takes off from [Senaki]: it is under the air defence of [Kobuleti]`).
   `air.max_flights` (4) flights in the air at most per side.
@@ -540,6 +542,9 @@ A `KO` line is enough to know where to look.
 | `ground_wake_radius` | 10000 | metres: an enemy ground group that is no garrison, this close, wakes a zone; vehicles placed in the editor wake nothing |
 | `reach_wake_margin` | 20000 | metres: an enemy aircraft this far beyond a zone's air defence reach wakes it |
 | `takeoff_threat_range` | 40000 | metres: nothing but a SEAD takes off this close to an enemy air defence measured |
+| `min_runway_length` | 1500 | metres: no aeroplane of the AI leaves a field whose longest runway is shorter |
+| `takeoff_timeout` | 600 | a flight still on the ground after this long is taken away, its price back |
+| `grounded_seconds` | 3600 | a field that kept a flight on the ground sends no aeroplane for this long |
 | `front_depth` | 40000 | metres: a zone this close to the front line drawn on the map is always awake |
 | `sleep_seconds` | 600 | a zone with no player near it for this long goes back to sleep |
 | `sleep_margin` | 20000 | metres added to an awake zone's wake distances before it goes back to sleep |

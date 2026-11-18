@@ -66,6 +66,10 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   ground_wake_radius = 10000, -- metres: an enemy ground group that is no garrison (convoy, troops, spawn) this close too
   reach_wake_margin = 20000, -- metres: an enemy aircraft this far beyond a zone's air defence reach wakes it
   takeoff_threat_range = 40000, -- metres: no take-off (but a SEAD's) this close to an enemy air defence measured
+  -- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 01: 15 red aircraft stacked on one spot of Taftanaz's strip never took off
+  min_runway_length = 1500, -- metres: no aeroplane of the AI leaves a field whose longest runway is shorter
+  takeoff_timeout = 600, -- seconds: a flight still on the ground this long after its spawn is taken away, refunded
+  grounded_seconds = 3600, -- seconds a field that kept a flight on the ground sends no aeroplane
   front_depth = 40000, -- metres: a zone this close to the front line drawn on the map is always awake
   sleep_seconds = 600, -- a zone nobody has come near for this long goes back to sleep
   -- metres added to every wake distance while a zone is awake: Hama slept at 21:15 on 2026-11-17 and woke again

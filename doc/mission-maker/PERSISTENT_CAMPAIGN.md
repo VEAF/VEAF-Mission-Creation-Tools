@@ -228,6 +228,8 @@ Sa garnison arrive par paquets de `wake_units_per_beat` (10) unités à chaque b
   Une frappe CAS laisse de côté une zone sous une défense antiaérienne mesurée de 15 km ou plus (un Hawk, un SA-6), la sienne ou celle d'une voisine : c'est le travail de la SEAD.
 - Elles **décollent** de l'aérodrome ennemi le plus proche, moteur chaud sur des parkings libres (les abris d'abord, les places ouvertes ensuite ; un gros avion, bombardier ou transport, jamais dans un abri), ou de la piste quand il n'y en a pas assez ; sans aérodrome, pas de sortie. Il en va de même pour la CAP, la BARCAP et le Hunter.
   Rien ne décolle d'un aérodrome à moins de `takeoff_threat_range` (40 km) d'une défense antiaérienne ennemie dont la portée a été mesurée (un Patriot abattrait les avions pendant qu'ils montent) ; la portée que donne DCS est celle du missile contre une cible haute, bien plus longue que celle à laquelle le SAM voit un avion qui décolle, d'où ce plafond, une estimation à régler.
+  Aucun avion de l'IA ne part d'un terrain dont la plus longue piste fait moins de `min_runway_length` (1 500 m), et un seul vol à la fois part de la piste d'un terrain : le 17/11/2026, quinze avions envoyés de Taftanaz se sont empilés sur un même point de sa piste sans jamais décoller.
+  Un vol encore au sol `takeoff_timeout` (600 s) après son apparition est retiré, son prix rendu au stock, et son terrain n'envoie plus d'avion pendant `grounded_seconds` (3 600 s).
   Une **SEAD** décolle quand même : éteindre cette défense est son travail, et ce qu'elle détruit libère le terrain pour les frappes.
   Sinon la sortie part d'un autre aérodrome, ou ne part pas, et `dcs.log` le dit (`[CAMPAIGN DECISION] nothing of red takes off from [Senaki]: it is under the air defence of [Kobuleti]`).
   `air.max_flights` (4) vols en l'air au plus par camp.
@@ -540,6 +542,9 @@ Une ligne `KO` suffit à dire où regarder.
 | `ground_wake_radius` | 10000 | mètres : un groupe au sol ennemi qui n'est pas une garnison, aussi près, réveille une zone ; les véhicules posés dans l'éditeur ne réveillent rien |
 | `reach_wake_margin` | 20000 | mètres : un avion ennemi aussi loin au-delà de la portée de la défense d'une zone la réveille |
 | `takeoff_threat_range` | 40000 | mètres : rien d'autre qu'une SEAD ne décolle aussi près d'une défense ennemie mesurée |
+| `min_runway_length` | 1500 | mètres : aucun avion de l'IA ne part d'un terrain dont la plus longue piste est plus courte |
+| `takeoff_timeout` | 600 | un vol encore au sol au bout de ce temps est retiré, son prix rendu |
+| `grounded_seconds` | 3600 | un terrain qui a gardé un vol au sol n'envoie plus d'avion pendant ce temps |
 | `front_depth` | 40000 | mètres : une zone aussi près de la ligne de front tracée sur la carte est toujours éveillée |
 | `sleep_seconds` | 600 | une zone sans joueur près d'elle depuis ce temps se rendort |
 | `sleep_margin` | 20000 | mètres ajoutés aux distances de réveil d'une zone éveillée, avant qu'elle se rendorme |

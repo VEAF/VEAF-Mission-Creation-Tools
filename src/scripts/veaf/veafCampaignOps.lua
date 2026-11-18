@@ -349,12 +349,58 @@ end
 --- @param zone table
 --- @param role string|nil the flight's role: "sead" ignores the defence
 --- @return boolean
+--- The fields that kept a flight on the ground, by zone name: the time until which they send no aeroplane.
+veafCampaignOps.groundedFields = {}
+
+--- The longest runway of a zone's airfield, in metres, as DCS gives it (`Airbase:getRunways`); nil when unknown.
+--- @param zone table
+--- @return number|nil
+function veafCampaignOps.runwayLength(zone)
+  local airbase = zone.entry.airbase and Airbase.getByName(zone.entry.airbase)
+  if not (airbase and airbase.getRunways) then
+    return nil
+  end
+  local ok, runways = pcall(airbase.getRunways, airbase)
+  if not ok or type(runways) ~= "table" then
+    return nil
+  end
+  local longest = nil
+  for _, runway in pairs(runways) do
+    local length = type(runway) == "table" and tonumber(runway.length)
+    if length then
+      longest = math.max(longest or 0, length)
+    end
+  end
+  return longest
+end
+
+--- Whether the side's aeroplanes may take off from an airfield zone: a runway long enough
+--- (`min_runway_length`), no flight kept on the ground there lately (`grounded_seconds`), and no enemy air defence
+--- covering it (a SEAD excepted).
 function veafCampaignOps.canTakeOffFrom(side, zone, role)
   if not zone.entry.airbase then
     return false
   end
-  local covering = role ~= "sead" and veafCampaignOps.coveringEnemy(side, zone)
   local key = "takeoff " .. side .. " " .. zone.name
+  local grounded = veafCampaignOps.groundedFields[zone.name]
+  if grounded and grounded > timer.getTime() then
+    veafCampaign.debugOnce(key, "grounded", "DECISION", "nothing of %s takes off from [%s]: a flight stayed on its ground", side, zone.name)
+    return false
+  end
+  local length = veafCampaignOps.runwayLength(zone)
+  if length and length < veafCampaign.setting("min_runway_length") then
+    veafCampaign.debugOnce(
+      key,
+      "runway",
+      "DECISION",
+      "nothing of %s takes off from [%s]: its longest runway is %d m",
+      side,
+      zone.name,
+      math.floor(length)
+    )
+    return false
+  end
+  local covering = role ~= "sead" and veafCampaignOps.coveringEnemy(side, zone)
   if covering then
     veafCampaign.debugOnce(
       key,
@@ -647,6 +693,42 @@ function veafCampaignOps.paidSortie(side, price, what, launch)
     veafCampaign.debug("DECISION", "%s could not spawn %s: nothing paid", side, what)
   end
   return sent
+end
+
+--- Take away the flights that never took off: still on the ground `takeoff_timeout` after their spawn, they are
+--- destroyed, their price goes back to the AI's stock, and their field sends no aeroplane for `grounded_seconds`
+--- (FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 01: about 880 points of red's stock sat on Taftanaz's strip for an hour).
+--- @param now number the mission time
+function veafCampaignOps.followFlights(now)
+  for _, flight in ipairs(veafCampaignOps.flights) do
+    if flight.onGround and not flight.airborne and not flight.done then
+      local unit = liveUnit(flight.name)
+      if unit and unit:inAir() then
+        flight.airborne = true
+      elseif unit and now - (flight.spawnedAt or now) >= veafCampaign.setting("takeoff_timeout") then
+        flight.done, flight.outcome = true, "grounded"
+        destroyGroup(flight.name)
+        veafCampaignOps.groundedFields[flight.origin] = now + veafCampaign.setting("grounded_seconds")
+        local refund = 0
+        if flight.side ~= veafCampaign.playerSide() and veafCampaignLogistics and veafCampaignLogistics.active then
+          refund = flight.price or 0
+          veafCampaignLogistics.credit(flight.side, refund)
+        end
+        veafCampaignOps.counters.grounded = veafCampaignOps.counters.grounded + 1
+        logger():info(
+          "%s %s flight [%s] never took off from [%s] in %d s: taken away, %d point(s) back; no aeroplane leaves [%s] for %d s",
+          flight.side,
+          tostring(flight.role),
+          flight.name,
+          flight.origin,
+          math.floor(now - flight.spawnedAt),
+          refund,
+          flight.origin,
+          veafCampaign.setting("grounded_seconds")
+        )
+      end
+    end
+  end
 end
 
 --- How many of a side's flights fly now, by role or all of them.
@@ -1010,6 +1092,15 @@ function veafCampaignOps.spawnFlight(side, aircraftRole, origin, roleName, param
   local takeoff, positions = nil, {}
   if airbase and airbase.getParking and not airStart then
     takeoff, positions = veafCampaignOps.takeoffFrom(airbase, aircraft.count, aircraft.type)
+    -- one runway start at a time: every flight sent from Taftanaz on 2026-11-17 spawned onto the ones before it
+    if takeoff.action == "From Runway" then
+      for _, flight in ipairs(veafCampaignOps.flights) do
+        if flight.origin == origin.name and flight.runway and not flight.done and not flight.airborne and liveUnit(flight.name) then
+          logger():info("no %s %s flight from [%s]: [%s] still stands on its runway", side, aircraftRole, origin.name, flight.name)
+          return nil
+        end
+      end
+    end
     params.takeoffPoint = takeoff
   end
   local name = uniqueGroupName(string.format("%s %s %s", side, aircraftRole, origin.name))
@@ -1041,6 +1132,9 @@ function veafCampaignOps.spawnFlight(side, aircraftRole, origin, roleName, param
       aim = aim,
       spawnedAt = timer.getTime(),
       typeName = aircraft.type,
+      onGround = takeoff ~= nil,
+      runway = takeoff ~= nil and takeoff.action == "From Runway",
+      price = veafCampaignOps.flightPrice(side, aircraftRole),
     })
     veafCampaignOps.counters.flights = veafCampaignOps.counters.flights + 1
     logger():info("%s %s flight [%s] leaves [%s] (%s)", side, aircraftRole, spawned, origin.name, takeoff and takeoff.action or "air start")
@@ -2178,6 +2272,7 @@ function veafCampaignOps.beat(now)
   for _, record in ipairs(veafCampaignOps.helicopters) do
     veafCampaignOps.followHelicopter(record, now)
   end
+  veafCampaignOps.followFlights(now)
   for _, raid in ipairs(veafCampaignOps.raids) do
     veafCampaignOps.followRaid(raid, now)
   end
@@ -2217,7 +2312,7 @@ function veafCampaignOps.initialize()
   veafCampaignOps.usedNames, veafCampaignOps.nextAirDefenceReport = {}, nil
   veafCampaignOps.capDraws, veafCampaignOps.lastCapRefusal = {}, {}
   veafCampaignOps.feedSupport()
-  veafCampaignOps.deaths = {}
+  veafCampaignOps.deaths, veafCampaignOps.groundedFields = {}, {}
   veafCampaignOps.counters = {
     helicoptersSent = 0,
     helicoptersLanded = 0,
@@ -2226,6 +2321,7 @@ function veafCampaignOps.initialize()
     hunters = 0,
     raids = 0,
     raidsDestroyed = 0,
+    grounded = 0,
     unpaid = 0,
   }
   table.insert(veafCampaign.beatHooks, veafCampaignOps.beat)

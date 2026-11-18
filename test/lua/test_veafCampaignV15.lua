@@ -404,6 +404,81 @@ function TestCampaignResources:test_the_enemy_cap_is_paid_and_grounded_when_it_c
   luaunit.assertEquals(veafCampaignLogistics.stock("red"), 140) -- two MiG-29 at 30
 end
 
+--- Airbases as DCS gives them, with runways of `length` metres and no free stand: a flight starts on the runway.
+local function airfieldsWithRunway(length)
+  Airbase.getByName = function(name)
+    return {
+      getID = function()
+        return name == "Kobuleti" and 24 or 23
+      end,
+      getPoint = function()
+        return { x = 0, y = 0, z = 0 }
+      end,
+      getRunways = function()
+        return { { length = length } }
+      end,
+      getParking = function()
+        return {}
+      end,
+    }
+  end
+end
+
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 01: no red aeroplane sent from Taftanaz took off all evening
+function TestCampaignResources:test_no_aeroplane_leaves_a_field_whose_runway_is_too_short()
+  start({ min_runway_length = 1500 })
+  local senaki = veafCampaign.zones["Senaki"]
+  airfieldsWithRunway(2400)
+  local allowed = veafCampaignOps.canTakeOffFrom("red", senaki)
+  luaunit.assertTrue(allowed)
+  airfieldsWithRunway(1000)
+  luaunit.assertFalse(veafCampaignOps.canTakeOffFrom("red", senaki))
+end
+
+function TestCampaignResources:test_a_flight_that_never_takes_off_is_taken_away_refunded_and_its_field_grounded()
+  start({ takeoff_timeout = 600, grounded_seconds = 3600 })
+  airfieldsWithRunway(2400)
+  local this = self
+  veafAircraftSpawn.spawnAirplaneGroup = function(groupData, role, params)
+    table.insert(this.flights, { group = groupData, role = role, params = params })
+    dcs_mocks.addGroup(groupData.name, {
+      getUnits = function()
+        return { unitAt({ x = 0 }, { inAir = false }) }
+      end,
+    })
+    return groupData.name
+  end
+  veafCampaignLogistics.stocks.red = 200
+  veafCampaignOps.maintainCaps("red")
+  luaunit.assertEquals(#self.flights, 1)
+  local flight = veafCampaignOps.flights[1]
+  luaunit.assertTrue(flight.runway)
+  luaunit.assertEquals(veafCampaignLogistics.stock("red"), 140)
+  -- a second flight from the same field would spawn onto the first, still on the runway
+  luaunit.assertNil(
+    veafCampaignOps.spawnFlight("red", "cap", veafCampaign.zones[flight.origin], "campaign_cap", { zone = { x = 0, y = 0 } }, 6000)
+  )
+  veafCampaignOps.followFlights(flight.spawnedAt + 599)
+  luaunit.assertNil(flight.done)
+  veafCampaignOps.followFlights(flight.spawnedAt + 600)
+  luaunit.assertEquals(flight.outcome, "grounded")
+  luaunit.assertEquals(veafCampaignLogistics.stock("red"), 200, "its price back")
+  luaunit.assertEquals(veafCampaignOps.counters.grounded, 1)
+  luaunit.assertFalse(veafCampaignOps.canTakeOffFrom("red", veafCampaign.zones[flight.origin]))
+end
+
+function TestCampaignResources:test_a_flight_in_the_air_is_never_taken_away()
+  start({ takeoff_timeout = 600 })
+  airfieldsWithRunway(2400)
+  veafCampaignLogistics.stocks.red = 200
+  veafCampaignOps.maintainCaps("red")
+  local flight = veafCampaignOps.flights[1]
+  veafCampaignOps.followFlights(flight.spawnedAt + 10)
+  luaunit.assertTrue(flight.airborne)
+  veafCampaignOps.followFlights(flight.spawnedAt + 5000)
+  luaunit.assertNil(flight.outcome)
+end
+
 function TestCampaignResources:test_a_bought_cap_costs_credits_not_resources()
   start()
   local before = veafCampaignLogistics.stock("blue")

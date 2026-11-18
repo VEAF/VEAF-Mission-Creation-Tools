@@ -15,6 +15,12 @@ Red sent one every 10 minutes regardless: 60 points for nothing.
 The destination, not the spawn point: the AI judges the `Land` task towards Afrin impossible, or sees a known threat on the route from the start (a blue air defence near Afrin or on the way), which `EVADE_FIRE` does not cover.
 The abort of the Menagh helicopter at 20:30:43 came 7 s before an Apache killed it: `ai abort mission` also means "under threat", so the Afrin aborts must be read with the blue units then near the route (Tacview, Aleppo → Afrin, 20:17–21:01 UTC).
 
+## Measured in Tacview (2026-11-18)
+
+In the server's recording, the three Afrin helicopters that took off flew **the very same track**, to the metre: up to about 65 m above Aleppo (452 m), a 2.6 km loop to the east, and down again 1 km west of Aleppo's centre after 3 minutes; the distance to Afrin never went below 47.9 km. The first did not climb above 12 m and crashed on the spot.
+The Menagh helicopter, from the same spawn point, climbed to 643 m and flew straight at the zone at constant speed (passing 14.8 km from Afrin).
+A threat met on the way would not give four identical tracks starting 16 s after the spawn: **the AI rejects the Afrin task itself at once**. Afrin is a town (a point in its centre) where Menagh is an airfield: the `Land` point in the town — the "nearest clearing" `veafAircraftSpawn` finds, or fails to find — is the first suspect. Log the landing point chosen, and check it is a clear, flat spot.
+
 ## To do
 
 - Find the cause in game or in Tacview, then fix it (route, landing point, threat reaction option such as `NO_REACTION`), with the measurement in `known-limitations.yaml` if it is a DCS behaviour.

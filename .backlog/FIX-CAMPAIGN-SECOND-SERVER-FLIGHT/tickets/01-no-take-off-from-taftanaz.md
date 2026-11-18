@@ -17,6 +17,15 @@ Taftanaz is a helicopter base with a short strip; an aeroplane spawned "From Run
 `veafCampaignOps.canTakeOffFrom` only asks whether the zone has an airbase and no enemy air defence covers it.
 Check in Tacview (Taftanaz, 20:27–21:30 UTC) before writing the remedy.
 
+## Measured in Tacview (2026-11-18)
+
+The server's own recording (`Documents\Tacview\foothold2_server\Tacview-20261117-132513-DCS-Host-…txt.acmi`, positions readable; the clients' recordings scramble them) settles it:
+- **every red aeroplane sent from Taftanaz spawned at the very same point**, 35.9735 N 36.7860 E, the two of a flight 9 m apart, and **moved 0 m** for its whole life, at 313 m (the ground): SEAD 20:27, CAP 20:35, CAP 20:42, SEAD ×2 + CAP + bomber 20:57 — 15 aircraft stacked on one spot;
+- the first SEAD pair did not move either, when the spot was still free: the field itself, or that spawn point, does not let an aeroplane roll; every later flight then spawned onto the ones already stuck there;
+- **DCS removes an aborted AI aircraft 3 minutes after its abort**: the MiG-29 #2 of three CAPs aborted at 21:05:41 and were removed at 21:08:41, the Tu-22M3 aborted at 21:29:53 and was removed at 21:32:53 — which `followRaid` then reported as "destroyed" (ticket 09).
+
+So also: two flights must never spawn on the same point (check the spot is free, or space them), whatever the field.
+
 ## To do
 
 - `canTakeOffFrom` (or the choice of the departure field) refuses a field an aeroplane cannot leave: from the runway length DCS gives (`Airbase:getRunways()`) against what the type needs, or from the airbase category (helipad, FARP); helicopters keep using it.

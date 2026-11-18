@@ -143,5 +143,5 @@ print(#veafCampaign.zoneList, drawn, #dcs_mocks.groupsAdded, veafCampaignEconomy
     )
     assert result.returncode == 0, result.stderr
     # ten garrisons drawn, none spawned (every zone asleep), the logistics, the sorties and the economy
-    # started; the two factories' buildings are in the world, statics that cost no AI
-    assert result.stdout.split() == ["11", "10", "0", "500", "3", "6", "1000"]
+    # started; the two factories' and the two depots' buildings are in the world, statics that cost no AI
+    assert result.stdout.split() == ["11", "10", "0", "500", "3", "12", "1000"]

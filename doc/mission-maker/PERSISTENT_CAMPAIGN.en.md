@@ -322,7 +322,7 @@ A zone is declared of a kind, `kind:`, besides its location:
 | none, on an airfield | an **airfield**: it is captured, its slots follow |
 | none, on a point | an **outpost**: a garrison |
 | `factory` | a **factory**: a few buildings and a small garrison; it makes its side's [resources](#resources) while its buildings stand |
-| `depot` | a **depot**: it speeds the [supply network](#network) up and keeps a store of it |
+| `depot` | a **depot**: a few buildings; it speeds the [supply network](#network) up and keeps a store of it while its buildings stand |
 
 ```yaml
 zones:
@@ -335,6 +335,13 @@ They are statics: they stay in the world even while the zone sleeps.
 The map counts those standing, "factory 2/3".
 They are destroyed by bombs or by the [demolition team](#demolition); a factory is also captured like any other zone, and what stands of it then works for its new side.
 A delivery (crate, troops, helicopter) to a factory whose garrison is whole rebuilds one building.
+
+A depot has buildings too, drawn the same way: `network.depot_buildings` (3) among `network.depot_types` (`Warehouse`, `Fuel tank`, `Tank`); the map says "depot 2/3".
+While one of its buildings stands it is a depot: it keeps its store, shortens the hops and may supply itself.
+**Its buildings all destroyed**, its store burns with them and it is only an ordinary node of the network: supplied like any other zone, from a factory or another depot.
+It is a depot again only after `network.depot_rebuild_seconds` (2,700 s), all its buildings rebuilt at once for the side holding the zone: time enough to destroy its garrison and take it.
+No delivery rebuilds a depot's building.
+To take a depot: destroy its buildings first, or it repairs its garrison itself; then its garrison, before the rebuild.
 
 ## The AI's resources {#resources}
 
@@ -374,7 +381,7 @@ Credits stay the players': what they buy does not come out of the resources, and
 A side's factories feed its zones hop by hop, along the connections, and only through the side's zones: an enemy or neutral zone cuts the path, and the rest of the network is served by a detour, later.
 
 - **A hop** from one zone to the next takes `network.hop_seconds` (600 s); **a hop that touches a depot** half of it: factory → base → base is two full hops, factory → depot → base one.
-- **A depot** keeps a store of `network.depot_store` (4) deliveries, full while a factory reaches it: cut from its factories, it still feeds the zones around it until it runs dry.
+- **A depot** keeps a store of `network.depot_store` (4) deliveries, full while a factory reaches it: cut from its factories, it still feeds the zones around it until it runs dry. Its [buildings](#zone-kinds) destroyed, it keeps nothing and shortens no hop.
 - **A damaged zone**, of either side, orders a delivery, paid from the resources at the order at the price of the units it is missing; `network.max_deliveries` (3) deliveries of a side on their way at once.
   After the zone's delay, the delivery brings back the dead units of its first damaged group, **cheapest first and up to what it paid**: a unit killed since the order stays dead.
   The units brought back appear in their places; the living ones do not move.
@@ -558,7 +565,7 @@ A `KO` line is enough to know where to look.
 | `intel` | see [intelligence](#intel) | `hidden`, `seconds`, `overflight_altitude`, `spy_troops`, `spy_range` |
 | `resources` | see [the resources](#resources) | `enabled` (true), `start` (1000), `background_per_hour` (60), `reserve` (100), `prices` |
 | `factory` | see [the factories](#zone-kinds) | `buildings` (3), `per_hour` (180), `types` |
-| `network` | see [the network](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3), `under_fire_seconds` (600) |
+| `network` | see [the network](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3), `under_fire_seconds` (600), `depot_buildings` (3), `depot_types`, `depot_rebuild_seconds` (2700) |
 | `demolition` | see [demolition](#demolition) | `troops` (`Sappers`), `range` (5000), `fuse` (120) |
 | `warehouse` | see [the stocks](#warehouses) | `enabled` (true), `load` (10) |
 | `bombers` | see [the bombers](#bombers) | `enabled` (true), `seconds` (3600), `min_distance` (80000), `escort` (false), `package_delay` (30) |

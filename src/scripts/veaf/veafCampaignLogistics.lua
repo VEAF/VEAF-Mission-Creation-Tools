@@ -237,7 +237,7 @@ end
 --- Seconds one hop between two zones takes: `network.hop_seconds`, half of it when either is a depot.
 function veafCampaignLogistics.hopSeconds(a, b)
   local hop = veafCampaign.setting("network", "hop_seconds")
-  if a:isDepot() or b:isDepot() then
+  if a:isWorkingDepot() or b:isWorkingDepot() then
     return hop / 2
   end
   return hop
@@ -295,7 +295,7 @@ function veafCampaignLogistics.supplyDelays(side)
   local fromFactories = veafCampaignLogistics.shortestDelays(side, factories)
   local sources = factories
   for _, zone in ipairs(veafCampaign.zoneList) do
-    if zone.placed and zone.entry.owner == side and zone:isDepot() then
+    if zone.placed and zone.entry.owner == side and zone:isWorkingDepot() then
       if fromFactories[zone.name] then
         veafCampaignLogistics.depotStores[zone.name] = veafCampaign.setting("network", "depot_store")
       end

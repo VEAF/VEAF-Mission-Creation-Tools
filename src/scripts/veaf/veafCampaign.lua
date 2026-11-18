@@ -121,7 +121,18 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   factory = { buildings = 3, per_hour = 180, types = { "Workshop A", "Tech combine", "Tech hangar A" } },
   -- `under_fire_seconds`: a delivery waits this long after the zone's last loss: on 2026-11-17 Aleppo, attacked by
   -- a player's helicopter, was reinforced every 5 minutes and the players' Shilka was back 2 minutes after its death
-  network = { hop_seconds = 600, isolated_seconds = 3600, depot_store = 4, max_deliveries = 3, under_fire_seconds = 600 },
+  -- a depot is a set of buildings (David, 2026-11-17): all destroyed, it is an ordinary node for `depot_rebuild_seconds`,
+  -- long enough to take the zone (the convoy timeout, until an evening measures better)
+  network = {
+    hop_seconds = 600,
+    isolated_seconds = 3600,
+    depot_store = 4,
+    max_deliveries = 3,
+    under_fire_seconds = 600,
+    depot_buildings = 3,
+    depot_types = { "Warehouse", "Fuel tank", "Tank" },
+    depot_rebuild_seconds = 2700,
+  },
   demolition = { troops = "Sappers", range = 5000, fuse = 120 },
   warehouse = { enabled = true, load = 10 },
   bombers = { enabled = true, seconds = 3600, min_distance = 80000, escort = false, package_delay = 30 },
@@ -1123,6 +1134,45 @@ function VeafCampaignZone:isDepot()
   return self.entry.kind == "depot"
 end
 
+--- Whether the zone has buildings to destroy: a factory, and a depot since FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 02.
+function VeafCampaignZone:hasStructures()
+  return self:isFactory() or self:isDepot()
+end
+
+--- Whether the zone works as a depot: a depot with a building standing. Its buildings all destroyed, it is an
+--- ordinary node — it stores nothing, shortens no hop, supplies nothing from itself — until they are rebuilt
+--- (David, 2026-11-17: Saraqib supplied itself "in 0 s" while its factory reached it, invulnerable).
+function VeafCampaignZone:isWorkingDepot()
+  return self:isDepot() and (self.entry.structures == nil or self:structuresStanding() > 0)
+end
+
+--- A depot whose buildings are all down counts the time towards their rebuild, and rebuilds them all after
+--- `network.depot_rebuild_seconds`, for the side that holds the zone then.
+--- @param elapsed number seconds since the last call
+--- @return boolean whether it was rebuilt now
+function VeafCampaignZone:followDepot(elapsed)
+  if not (self:isDepot() and self.entry.structures) or self:structuresStanding() > 0 then
+    self.entry.depot_down_seconds = nil
+    return false
+  end
+  self.entry.depot_down_seconds = (self.entry.depot_down_seconds or 0) + elapsed
+  if self.entry.depot_down_seconds < veafCampaign.setting("network", "depot_rebuild_seconds") then
+    return false
+  end
+  if not veafCampaign.SIDES[self.entry.owner] then
+    return false -- nobody to rebuild it: the next owner will
+  end
+  for _, structure in ipairs(self.entry.structures) do
+    structure.alive = true
+  end
+  self.entry.depot_down_seconds = nil
+  self:spawnStructures()
+  veaf.loggers.get(veafCampaign.Id):info("depot [%s]: its buildings rebuilt by %s, a depot again", self.name, self.entry.owner)
+  veafCampaign.debug("ZONE", "depot [%s] rebuilt by %s", self.name, self.entry.owner)
+  self:draw()
+  return true
+end
+
 --- The name a factory building spawns under: stable from one load to the next, so a loss recorded against
 --- it designates the same building.
 function veafCampaign.structureName(zone, index)
@@ -1133,8 +1183,8 @@ end
 --- `STRUCTURE_SPACING` apart, on open ground within half the zone's radius.
 --- @return table the recorded buildings
 function VeafCampaignZone:drawStructures()
-  local types = veafCampaign.setting("factory", "types")
-  local count = veafCampaign.setting("factory", "buildings")
+  local types = self:isDepot() and veafCampaign.setting("network", "depot_types") or veafCampaign.setting("factory", "types")
+  local count = self:isDepot() and veafCampaign.setting("network", "depot_buildings") or veafCampaign.setting("factory", "buildings")
   local center, radius = self:getCenter(), self.entry.radius or 2000
   local spacing = veafCampaign.STRUCTURE_SPACING
   local anchor = { x = center.x, z = center.z }
@@ -1167,7 +1217,7 @@ function VeafCampaignZone:drawStructures()
     })
   end
   self.entry.structures = structures
-  veaf.loggers.get(veafCampaign.Id):info("factory [%s]: %d building(s) drawn", self.name, count)
+  veaf.loggers.get(veafCampaign.Id):info("%s [%s]: %d building(s) drawn", self.entry.kind, self.name, count)
   return structures
 end
 
@@ -1182,6 +1232,18 @@ function VeafCampaignZone:structuresCenter()
     x, z = x + structure.x, z + structure.z
   end
   return { x = x / #structures, y = 0, z = z / #structures }
+end
+
+--- The mission-table category of a static type: a depot's warehouse and tank are "Warehouses", a factory's
+--- workshop "Fortifications", as the DCS unit database files them.
+--- @param typeName string
+--- @return string
+function veafCampaign.staticCategory(typeName)
+  local unit = dcsUnits and dcsUnits.DcsUnitsDatabase and dcsUnits.DcsUnitsDatabase[typeName]
+  if unit and unit.category == "Warehouse" then
+    return "Warehouses"
+  end
+  return "Fortifications"
 end
 
 --- Put one building in the world for the side it was last spawned for: standing, or as a wreck. A static of
@@ -1202,7 +1264,7 @@ function VeafCampaignZone:spawnStructure(index)
   end
   veafDcsSpawner.addStatic({
     country = veaf.getCountryForCoalition(side),
-    category = "Fortifications",
+    category = veafCampaign.staticCategory(structure.type),
     type = structure.type,
     name = name,
     x = structure.x,
@@ -1255,13 +1317,31 @@ function VeafCampaignZone:onStructureLost(index)
   veafCampaign.structureIndex[veafCampaign.structureName(self, index)] = nil
   veafCampaign.counters.structuresLost = veafCampaign.counters.structuresLost + 1
   local standing, total = self:structuresStanding()
-  veaf.loggers.get(veafCampaign.Id):info("factory [%s]: a building destroyed, %d of %d standing", self.name, standing, total)
+  veaf.loggers.get(veafCampaign.Id):info("%s [%s]: a building destroyed, %d of %d standing", self.entry.kind, self.name, standing, total)
+  if self:isDepot() and standing == 0 then
+    self.entry.depot_down_seconds = 0
+    if veafCampaignLogistics and veafCampaignLogistics.depotStores then
+      veafCampaignLogistics.depotStores[self.name] = 0 -- its store burnt with it
+    end
+    veaf.loggers.get(veafCampaign.Id):info(
+      "depot [%s]: its buildings destroyed, an ordinary node for %d s",
+      self.name,
+      veafCampaign.setting("network", "depot_rebuild_seconds")
+    )
+    veafCampaign.debug("ZONE", "depot [%s] destroyed", self.name)
+    veafCampaign.announceToBoth(veaf.t("campaign.depot_destroyed", veafCampaign.zoneTitle(self.name)), 15)
+    self:draw()
+  end
   veafCampaign.notify("structure_lost", self, index)
 end
 
 --- Rebuild the factory's first destroyed building: what a supply delivery does once the garrison is whole.
+--- A depot's buildings come back only all together, after their delay (`followDepot`).
 --- @return boolean whether one was rebuilt
 function VeafCampaignZone:repairStructure()
+  if not self:isFactory() then
+    return false
+  end
   for index, structure in ipairs(self.entry.structures or {}) do
     if not structure.alive then
       structure.alive = true
@@ -1279,8 +1359,8 @@ end
 function VeafCampaignZone:kindSuffix()
   if self:isFactory() and self.entry.structures then
     return veaf.t("campaign.map_factory", self:structuresStanding())
-  elseif self:isDepot() then
-    return veaf.t("campaign.map_depot")
+  elseif self:isDepot() and self.entry.structures then
+    return veaf.t("campaign.map_depot", self:structuresStanding())
   end
   return ""
 end
@@ -1440,7 +1520,7 @@ function VeafCampaignZone:capturedBy(side, how)
     veafCampaign.payGarrison(self, side)
     self:startSpawning() -- Afrin's 24 units at once on 2026-11-17: spread like a wake (ticket 06)
   end
-  if self:isFactory() then
+  if self:hasStructures() then
     self:spawnStructures() -- what stands of it now works for its new owner
   end
   veafCampaign.drawTerritory()
@@ -2858,6 +2938,7 @@ function veafCampaign.stateTable()
       warehouse = zone:readWarehouse(),
       structures = zone.entry.structures,
       structures_side = zone.entry.structures_side,
+      depot_down_seconds = zone.entry.depot_down_seconds,
       reach = zone.entry.reach,
     }
   end
@@ -3067,6 +3148,7 @@ function veafCampaign.applySave(state)
       entry.capture = saved.capture
       entry.structures = saved.structures or entry.structures
       entry.structures_side = saved.structures_side or entry.structures_side
+      entry.depot_down_seconds = saved.depot_down_seconds
       entry.saved_warehouse = saved.warehouse
       entry.reach = saved.reach
     end
@@ -3460,6 +3542,7 @@ function veafCampaign.beat()
     if zone.placed then
       veafCampaign.counters.zonesProcessed = veafCampaign.counters.zonesProcessed + 1
       zone:continueSpawning()
+      zone:followDepot(veafCampaign.BEAT_SECONDS)
       zone:checkCapture(veafCampaign.BEAT_SECONDS)
       if veafCampaign.isPersistent() and not veafCampaign.over then
         veafCampaign.collectDeliveries(zone)
@@ -3618,8 +3701,8 @@ function veafCampaign.initialize()
         zone:spawnGarrison()
       end
     end
-    -- a factory's buildings are always in the world: a static costs no AI (ticket 11)
-    if zone.placed and zone:isFactory() then
+    -- a factory's and a depot's buildings are always in the world: a static costs no AI (ticket 11)
+    if zone.placed and zone:hasStructures() then
       if not zone.entry.structures then
         zone:drawStructures()
       end

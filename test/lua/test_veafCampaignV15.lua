@@ -543,6 +543,49 @@ function TestCampaignNetwork:test_a_segment_touching_a_depot_takes_half()
   ) -- factory > depot > base: T/2 + T/2
 end
 
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 02: Saraqib supplied itself "in 0 s" while a factory reached it, invulnerable
+function TestCampaignNetwork:test_a_depot_has_buildings_to_destroy()
+  network(nil, true)
+  local zugdidi = veafCampaign.zones["Zugdidi"]
+  luaunit.assertEquals(#zugdidi.entry.structures, veafCampaign.setting("network", "depot_buildings"))
+  luaunit.assertEquals(zugdidi.entry.structures[1].type, "Warehouse")
+  luaunit.assertEquals(veafCampaign.staticCategory("Warehouse"), "Warehouses")
+  luaunit.assertEquals(veafCampaign.staticCategory("Workshop A"), "Fortifications")
+  luaunit.assertTrue(zugdidi:isWorkingDepot())
+end
+
+function TestCampaignNetwork:test_a_depot_with_its_buildings_down_is_an_ordinary_node()
+  network(nil, true)
+  local zugdidi = veafCampaign.zones["Zugdidi"]
+  veafCampaignLogistics.supplyDelays("red") -- reached by the factory: its store full
+  for index in ipairs(zugdidi.entry.structures) do
+    zugdidi:onStructureLost(index)
+  end
+  luaunit.assertFalse(zugdidi:isWorkingDepot())
+  luaunit.assertEquals(veafCampaignLogistics.depotStores["Zugdidi"], 0, "its store burnt with it")
+  local delays = veafCampaignLogistics.supplyDelays("red")
+  luaunit.assertEquals(delays["Zugdidi"].delay, 600, "no longer a source of its own")
+  luaunit.assertEquals(delays["Senaki"].delay, 1200, "no shorter hop")
+  luaunit.assertEquals(veafCampaignLogistics.depotStores["Zugdidi"], 0, "a factory reaching it does not refill it")
+  luaunit.assertFalse(zugdidi:repairStructure(), "a delivery rebuilds no depot building")
+end
+
+function TestCampaignNetwork:test_a_depot_is_rebuilt_only_after_its_long_delay()
+  network({ network = { depot_rebuild_seconds = 2700 } }, true)
+  local zugdidi = veafCampaign.zones["Zugdidi"]
+  for index in ipairs(zugdidi.entry.structures) do
+    zugdidi:onStructureLost(index)
+  end
+  luaunit.assertFalse(zugdidi:followDepot(2690))
+  luaunit.assertFalse(zugdidi:isWorkingDepot())
+  -- the delay is saved: a restart does not rebuild it, nor start the count again
+  luaunit.assertEquals(veafCampaign.stateTable().zones["Zugdidi"].depot_down_seconds, 2690)
+  luaunit.assertTrue(zugdidi:followDepot(10))
+  luaunit.assertTrue(zugdidi:isWorkingDepot())
+  luaunit.assertEquals(zugdidi:structuresStanding(), veafCampaign.setting("network", "depot_buildings"))
+  luaunit.assertNil(zugdidi.entry.depot_down_seconds)
+end
+
 function TestCampaignNetwork:test_an_enemy_zone_cuts_the_path()
   network()
   veafCampaign.zones["Zugdidi"].entry.owner = "blue"

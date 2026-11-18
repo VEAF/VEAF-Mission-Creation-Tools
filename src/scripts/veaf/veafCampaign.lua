@@ -400,6 +400,26 @@ function veafCampaign.isOnConcrete(point)
   return veaf.isTerrainValid(point, "RUNWAY")
 end
 
+--- Metres around a garrison unit's spot that must hold no building (and no other object): a vehicle stood on a
+--- roof at Aleppo on 2026-11-17 (FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 07).
+veafCampaign.GARRISON_BUILDING_CLEARANCE = 15
+
+--- Whether a garrison unit drawn at this spot would stand in or on a building, or on another object.
+---
+--- `veafCasMission.placeGroup` already settles a drawn group off the scenery (`veafUnits.settleGroup`), but as one
+--- rigid body within 300 m, and only against what `Disposition` sees: in a town it keeps the group where it is.
+--- This asks `world.searchObjects` about each spot, buildings included (`veafGrass.isSpotOccupied`). A search
+--- matches an object's position, so the centre of a building larger than the clearance can escape it.
+--- @param point table a vec3 (`spawnPoint`)
+--- @return boolean
+function veafCampaign.isOnBuilding(point)
+  if not (veafGrass and veafGrass.isSpotOccupied and point) then
+    return false
+  end
+  local ok, occupied = pcall(veafGrass.isSpotOccupied, { x = point.x, y = point.z or point.y }, veafCampaign.GARRISON_BUILDING_CLEARANCE)
+  return ok and occupied == true
+end
+
 --- The nearest point off the concrete, on drivable ground, from `(x, z)`.
 --- @return table|nil `{ x, z }`, or nil when there is none within `OFF_CONCRETE_MAX`
 function veafCampaign.nearestOffConcrete(x, z)
@@ -432,14 +452,14 @@ function veafCampaign.placeGarrisonGroup(definition, center, radius, units)
       return
     end
     placed = veafCasMission.placeGroup(definition, { x = position.x, y = position.z or position.y }, veafCampaign.GARRISON_SPACING, {})
-    local onConcrete = false
+    local misplaced = false
     for _, unit in ipairs(placed) do
-      if unit.spawnPoint and veafCampaign.isOnConcrete(unit.spawnPoint) then
-        onConcrete = true
+      if unit.spawnPoint and (veafCampaign.isOnConcrete(unit.spawnPoint) or veafCampaign.isOnBuilding(unit.spawnPoint)) then
+        misplaced = true
         break
       end
     end
-    if not onConcrete then
+    if not misplaced then
       break
     end
   end
@@ -726,7 +746,12 @@ function VeafCampaignZone:drawGarrison(reserve, soldiers)
   for _, placed in ipairs(placedGroups) do
     local group = { name = placed.name, units = {} }
     for _, unit in ipairs(placed.units) do
-      if unit.spawnPoint and veafUnits.checkPositionForUnit(unit.spawnPoint, unit) and not veafCampaign.isOnConcrete(unit.spawnPoint) then
+      if
+        unit.spawnPoint
+        and veafUnits.checkPositionForUnit(unit.spawnPoint, unit)
+        and not veafCampaign.isOnConcrete(unit.spawnPoint)
+        and not veafCampaign.isOnBuilding(unit.spawnPoint)
+      then
         table.insert(group.units, recordUnit(unit))
       end
     end

@@ -181,6 +181,28 @@ function TestVeafCampaignDraw:test_no_drawn_unit_stands_on_the_airfields_concret
   luaunit.assertEquals(units[1].type, "BMP-2")
 end
 
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 07: "un véhicule sur un bâtiment à Alep", 2026-11-17
+function TestVeafCampaignDraw:test_no_drawn_unit_stands_on_a_building()
+  local asked = {}
+  veafGrass = {
+    isSpotOccupied = function(position, clearance)
+      table.insert(asked, { position.x, position.y, clearance })
+      return position.x > 50, "a house"
+    end,
+  }
+  veafCampaign.composeGarrison = function()
+    return { placed("T-72B", 10, 2), placed("BMP-2", 60, 4) }
+  end
+  veafCampaign.data = { zones = { zoneEntry("Senaki", "red") } }
+  veafCampaign.initialize()
+  veafGrass = nil
+  local units = veafCampaign.data.zones[1].garrison[1].units
+  luaunit.assertEquals(#units, 1)
+  luaunit.assertEquals(units[1].type, "T-72B")
+  -- a mission-table position: y is the easting, the spawn point's z
+  luaunit.assertEquals(asked[1], { 10, 2, veafCampaign.GARRISON_BUILDING_CLEARANCE })
+end
+
 function TestVeafCampaignDraw:test_a_zone_with_a_recorded_garrison_does_not_draw_again()
   veafCampaign.data = { zones = { zoneEntry("Senaki", "red", { garrison = recordedGarrison("Senaki") }) } }
   veafCampaign.initialize()
@@ -390,6 +412,25 @@ function TestVeafCampaignCompose:test_a_group_landing_on_concrete_is_placed_agai
   -- two sections: the first tries twice on the concrete then lands on x = 100, the second at once
   luaunit.assertEquals(asked, 4)
   luaunit.assertEquals(#units, 2)
+  for _, unit in ipairs(units) do
+    luaunit.assertEquals(unit.spawnPoint.x, 100)
+  end
+end
+
+function TestVeafCampaignCompose:test_a_group_landing_on_a_building_is_placed_again_elsewhere_in_the_zone()
+  veafGrass = {
+    isSpotOccupied = function(position)
+      return position.x < 50
+    end,
+  }
+  local points = { { x = 0, y = 0 }, { x = 100, y = 0 } }
+  local asked = 0
+  veaf.findPointInZone = function()
+    asked = asked + 1
+    return points[math.min(asked, #points)]
+  end
+  local units = veafCampaign.composeGarrison("Z", { x = 1, y = 0, z = 2 }, 1500, { size = 1, defense = 0, armor = 0 }, coalition.side.RED)
+  veafGrass = nil
   for _, unit in ipairs(units) do
     luaunit.assertEquals(unit.spawnPoint.x, 100)
   end

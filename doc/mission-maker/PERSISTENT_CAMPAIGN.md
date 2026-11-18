@@ -217,6 +217,8 @@ Sa garnison arrive par paquets de `wake_units_per_beat` (10) unités à chaque b
 - **Hélicoptères IA** : toutes les `supply_seconds` (600 s), un camp listé dans `supply` (le rouge par défaut) envoie un hélicoptère (`helicopter`, Mi-8MT rouge, UH-1H bleu) vers une zone neutre qui le borde, qu'il prend en s'y posant, ou à défaut vers sa zone la plus abîmée, qu'il ravitaille ; `max_helicopters` (2) en vol au plus, et un hélicoptère qui ne s'est pas posé au bout de `helicopter_timeout` (1 200 s) est retiré.
   L'autre camp est prévenu à son départ, pour l'intercepter.
   Un hélicoptère qui se repose loin de sa zone a échoué aussitôt, et `dcs.log` dit où il s'est posé.
+  Dans une zone d'aérodrome, il se pose sur le terrain ; dans une autre zone (une ville, un point), sur l'endroit dégagé le plus proche du centre, dans les 60 % de son rayon : envoyés au centre d'Afrin, quatre Mi-8 ont fait demi-tour aussitôt.
+- **L'IA retient ce qui échoue** : après `route_failures` (2) hélicoptères ou convois d'assaut d'un camp ratés de suite vers la même zone, ce camp n'y envoie plus rien de ce genre pendant `route_failure_seconds` (3 600 s) ; un succès efface le compte.
 
 ## L'aviation ennemie {#air}
 
@@ -561,6 +563,8 @@ Une ligne `KO` suffit à dire où regarder.
 | `helicopter_capture_seconds` | 600 | une zone neutre tenue par des hélicoptères posés, seuls, est prise au bout de ce temps |
 | `helicopter_garrison` | 6 | les fantassins que laisse une capture par des hélicoptères posés, seuls ; aucun véhicule |
 | `convoy_timeout` | 2700 | un convoi d'assaut pas arrivé au bout de ce temps est retiré de la carte, sa place libérée |
+| `route_failures` | 2 | hélicoptères ou convois ratés de suite vers une zone avant que le camp y renonce |
+| `route_failure_seconds` | 3600 | combien de temps il y renonce |
 | `helicopter` | `{red: Mi-8MT, blue: UH-1H}` | le type de l'hélicoptère de chaque camp |
 | `supply_crate` | `Zone supplies` | le nom de la caisse CTLD 2 qui ravitaille |
 | `hunter` | `{enabled: true, ground_kills: 8, air_kills: 4, chance: 10}` | le Hunter |

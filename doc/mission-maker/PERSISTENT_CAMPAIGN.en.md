@@ -217,6 +217,8 @@ Its garrison comes `wake_units_per_beat` (10) units per beat, its long-range bat
 - **AI helicopters**: every `supply_seconds` (600 s), a side listed in `supply` (red by default) sends a helicopter (`helicopter`, a Mi-8MT for red, a UH-1H for blue) to a neutral zone it borders, which it takes by landing there, or else to its most damaged zone, which it resupplies; `max_helicopters` (2) in the air at most, and one that has not landed after `helicopter_timeout` (1,200 s) is removed.
   The other side is told when it leaves, to intercept it.
   One that lands again away from its zone has failed at once, and `dcs.log` says where it landed.
+  In an airfield zone it lands on the field; in any other zone (a town, a point), on the clear spot nearest the centre, within 60 % of its radius: sent to Afrin's centre, four Mi-8 turned back at once.
+- **The AI remembers what fails**: after `route_failures` (2) helicopters or assault convoys of a side failed in a row to the same zone, that side sends nothing of the kind there for `route_failure_seconds` (3,600 s); a success clears the count.
 
 ## Enemy air {#air}
 
@@ -561,6 +563,8 @@ A `KO` line is enough to know where to look.
 | `helicopter_capture_seconds` | 600 | a neutral zone held by landed helicopters alone is taken after this long |
 | `helicopter_garrison` | 6 | the soldiers a capture by landed helicopters alone leaves; no vehicle |
 | `convoy_timeout` | 2700 | an assault convoy not arrived after this long is taken off the map, its place freed |
+| `route_failures` | 2 | helicopters or convoys failed in a row to a zone before the side gives it up |
+| `route_failure_seconds` | 3600 | how long it gives it up |
 | `helicopter` | `{red: Mi-8MT, blue: UH-1H}` | each side's helicopter type |
 | `supply_crate` | `Zone supplies` | the name of the CTLD 2 crate that resupplies |
 | `hunter` | `{enabled: true, ground_kills: 8, air_kills: 4, chance: 10}` | the Hunter |

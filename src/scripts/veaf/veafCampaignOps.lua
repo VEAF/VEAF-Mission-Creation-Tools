@@ -268,6 +268,17 @@ end
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --- Whether a helicopter of that side is already flying to that zone.
+--- Remember how a supply helicopter ended, for the side's memory of what fails (ticket 04): landed in its zone is a
+--- success, the zone taken by the other side meanwhile nothing, anything else a failure.
+--- @param record table
+function veafCampaignOps.rememberHelicopter(record)
+  if record.outcome == "delivered" or record.outcome == "captured" then
+    veafCampaign.recordSuccess("helicopter", record.side, record.to)
+  elseif record.outcome ~= "aborted" then
+    veafCampaign.recordFailure("helicopter", record.side, record.from, record.to, tostring(record.outcome))
+  end
+end
+
 local function helicopterUnderway(side, zoneName)
   for _, record in ipairs(veafCampaignOps.helicopters) do
     if record.side == side and record.to == zoneName and not record.done then
@@ -296,7 +307,12 @@ end
 --- @return string|nil "capture" or "resupply"
 function veafCampaignOps.supplyTarget(side)
   for _, zone in ipairs(veafCampaign.zoneList) do
-    if zone.placed and zone.entry.owner == "neutral" and not helicopterUnderway(side, zone.name) then
+    if
+      zone.placed
+      and zone.entry.owner == "neutral"
+      and not helicopterUnderway(side, zone.name)
+      and not veafCampaign.givenUp("helicopter", side, zone.name)
+    then
       for _, neighbour in ipairs(veafCampaign.neighbours(zone.name)) do
         if neighbour.entry.owner == side then
           return zone, "capture"
@@ -306,7 +322,13 @@ function veafCampaignOps.supplyTarget(side)
   end
   local worst, worstStrength = nil, 100
   for _, zone in ipairs(veafCampaign.zoneList) do
-    if zone.placed and zone.entry.owner == side and zone:isDamaged() and not helicopterUnderway(side, zone.name) then
+    if
+      zone.placed
+      and zone.entry.owner == side
+      and zone:isDamaged()
+      and not helicopterUnderway(side, zone.name)
+      and not veafCampaign.givenUp("helicopter", side, zone.name)
+    then
       local strength = zone:strengthPercent()
       if strength < worstStrength then
         worst, worstStrength = zone, strength
@@ -449,7 +471,7 @@ function veafCampaignOps.sendHelicopter(side, target, kind)
     return nil
   end
   local typeName = veafCampaign.setting("helicopter")[side] or veafCampaign.DYNAMIC_DEFAULTS.helicopter[side]
-  local center = target:getCenter()
+  local center = veafCampaignOps.landingSpot(target)
   local pointName = "CAMPAIGN SUPPLY " .. target.name
   veafNamedPoints.addPoint(pointName, { x = center.x, y = 0, z = center.z })
   local start = source:getCenter()
@@ -506,10 +528,43 @@ function veafCampaignOps.sendHelicopter(side, target, kind)
   return record
 end
 
+--- The share of a zone's radius its helicopters land within: the capture counts a helicopter down within the radius.
+veafCampaignOps.LANDING_SEARCH_SHARE = 0.6
+
+--- Where a supply helicopter is sent to land in a zone. An airfield's centre is its field; any other zone is a town or
+--- a point, whose centre may stand among buildings: the four Mi-8 sent to Afrin's centre on 2026-11-17 flew the very
+--- same 3-minute loop and landed back at Aleppo, while the one sent to Menagh's airfield got there. The nearest clear,
+--- flat spot within `LANDING_SEARCH_SHARE` of the radius is asked (`veaf.findSpawnPoint`), else the centre. Said in
+--- dcs.log, to check in game.
+--- @param zone table
+--- @return table a vec3
+function veafCampaignOps.landingSpot(zone)
+  local center = zone:getCenter()
+  if zone.entry.airbase then
+    return center
+  end
+  local search = (zone.entry.radius or 2000) * veafCampaignOps.LANDING_SEARCH_SHARE
+  local clearance = veafAircraftSpawn and veafAircraftSpawn.HELICOPTER_LZ_CLEARANCE or 30
+  local spot = veaf.findSpawnPoint(center, search, clearance, nil, true)
+  if spot then
+    logger():info(
+      "supply helicopters land in [%s] at x=%d z=%d, %d m from its centre",
+      zone.name,
+      spot.x,
+      spot.z,
+      math.floor(distance2d(spot, center))
+    )
+    return spot
+  end
+  logger():info("no clear spot for a helicopter within %d m of [%s]'s centre: it is sent to the centre", search, zone.name)
+  return center
+end
+
 --- Close a helicopter's record, and take the helicopter away.
 local function finish(record, outcome)
   record.done, record.outcome = true, outcome
   destroyGroup(record.name)
+  veafCampaignOps.rememberHelicopter(record)
   if outcome == "failed" then
     veafCampaignOps.counters.helicoptersFailed = veafCampaignOps.counters.helicoptersFailed + 1
   end
@@ -535,6 +590,7 @@ function veafCampaignOps.followHelicopter(record, now)
   if not unit then
     record.done, record.outcome = true, veafCampaignOps.endOf(record.name)
     veafCampaignOps.counters.helicoptersFailed = veafCampaignOps.counters.helicoptersFailed + 1
+    veafCampaignOps.rememberHelicopter(record)
     if record.outcome == "destroyed" then
       logger():info("supply helicopter [%s] to [%s] destroyed", record.name, record.to)
     else

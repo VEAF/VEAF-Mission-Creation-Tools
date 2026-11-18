@@ -98,6 +98,11 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   -- an assault convoy not arrived after this long frees its place: on 2026-11-16 two red convoys held both of
   -- `max_convoys` for more than an hour, one 37 km short of its target after 22 minutes on the road
   convoy_timeout = 2700,
+  -- red remembers what fails (FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 04): after `route_failures` failed helicopters or
+  -- convoys to the same zone, it sends no more there for `route_failure_seconds` — four Mi-8 for Afrin turned back
+  -- in a row on 2026-11-17, one every 10 minutes
+  route_failures = 2,
+  route_failure_seconds = 3600,
   helicopter = { red = "Mi-8MT", blue = "UH-1H" },
   supply_crate = "Zone supplies", -- the CTLD 2 crate description that resupplies a friendly zone
   hunter = { enabled = true, ground_kills = 8, air_kills = 4, chance = 10 },
@@ -1924,6 +1929,47 @@ function veafCampaign.planAssaults(target, now)
   end
 end
 
+--- What failed lately, by `kind side target`: `{ count, bannedUntil }` (ticket 04).
+veafCampaign.failures = {}
+
+local function failureKey(kind, side, target)
+  return string.format("%s %s %s", kind, side, target)
+end
+
+--- Remember that a side's sortie of a kind ("helicopter", "convoy") to a zone failed; after `route_failures` in a
+--- row, the side sends no more of them there for `route_failure_seconds`.
+--- @param kind string
+--- @param side string
+--- @param from string the zone it left, for the log
+--- @param target string the zone it was sent to
+--- @param why string for the log
+function veafCampaign.recordFailure(kind, side, from, target, why)
+  local key = failureKey(kind, side, target)
+  local entry = veafCampaign.failures[key] or { count = 0 }
+  entry.count = entry.count + 1
+  veafCampaign.failures[key] = entry
+  local logger = veaf.loggers.get(veafCampaign.Id)
+  logger:info("%s %s from [%s] to [%s] failed (%s): %d in a row", side, kind, tostring(from), target, why, entry.count)
+  if entry.count >= veafCampaign.setting("route_failures") then
+    entry.count = 0
+    entry.bannedUntil = timer.getTime() + veafCampaign.setting("route_failure_seconds")
+    logger:info("%s sends no %s to [%s] for %d s", side, kind, target, veafCampaign.setting("route_failure_seconds"))
+    veafCampaign.debug("DECISION", "%s gives up sending a %s to [%s] for a while: it failed twice", side, kind, target)
+  end
+end
+
+--- Forget a side's failures of a kind to a zone: one got through.
+function veafCampaign.recordSuccess(kind, side, target)
+  veafCampaign.failures[failureKey(kind, side, target)] = nil
+end
+
+--- Whether a side has given up sending a kind of sortie to a zone for now (`recordFailure`).
+--- @return boolean
+function veafCampaign.givenUp(kind, side, target)
+  local entry = veafCampaign.failures[failureKey(kind, side, target)]
+  return entry ~= nil and (entry.bannedUntil or 0) > timer.getTime()
+end
+
 --- Send the assaults that are due, if they still make sense: the source still held by its side.
 --- @param now number the mission time
 function veafCampaign.launchDueAssaults(now)
@@ -1945,6 +1991,7 @@ function veafCampaign.launchDueAssaults(now)
       and from.entry.owner == pending.side
       and to.entry.owner ~= pending.side
       and not convoyUnderway(pending.side, to.name)
+      and not veafCampaign.givenUp("convoy", pending.side, to.name)
     then
       veafCampaign.sendConvoy(pending.side, from, to)
     end
@@ -2076,6 +2123,7 @@ function veafCampaign.checkConvoyGoal(record, now)
     veafCampaign.retireConvoy(record, "its target is its side's already")
   elseif record.sentAt and now - record.sentAt >= veafCampaign.setting("convoy_timeout") then
     veafCampaign.retireConvoy(record, string.format("not arrived after %d min", math.floor((now - record.sentAt) / 60)))
+    veafCampaign.recordFailure("convoy", record.side, record.from, record.to, "not arrived")
   end
 end
 
@@ -2444,7 +2492,12 @@ function veafCampaign.attackTarget(side)
   local enemy = veafCampaign.enemyOf(side)
   local best, bestFrom, bestStrength = nil, nil, nil
   for _, zone in ipairs(veafCampaign.zoneList) do
-    if zone.placed and zone.entry.owner == enemy and not convoyUnderway(side, zone.name) then
+    if
+      zone.placed
+      and zone.entry.owner == enemy
+      and not convoyUnderway(side, zone.name)
+      and not veafCampaign.givenUp("convoy", side, zone.name)
+    then
       for _, neighbour in ipairs(veafCampaign.neighbours(zone.name)) do
         if neighbour.entry.owner == side then
           local strength = zone:strengthPercent()
@@ -3655,6 +3708,7 @@ function veafCampaign.initialize()
   veafCampaign.territorySignature, veafCampaign.frontCache = nil, nil
   veafCampaign.convoys, veafCampaign.pendingAssaults, veafCampaign.assaultPath = {}, {}, nil
   veafCampaign.nextAttack, veafCampaign.over, veafCampaign.savedParts = {}, nil, {}
+  veafCampaign.failures = {}
   veafCampaign.beatHooks, veafCampaign.selfChecks = {}, {}
   veafCampaign.builtGroups = nil -- taken at the first dormancy pass
   veafCampaign.counters = {

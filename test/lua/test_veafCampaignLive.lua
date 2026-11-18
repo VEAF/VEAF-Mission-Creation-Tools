@@ -235,6 +235,40 @@ function TestCampaignHelicopters:test_it_flies_the_transport_job_from_the_neares
   luaunit.assertEquals(told[1].target, coalition.side.BLUE)
 end
 
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 04: four Mi-8 sent to Afrin's centre, a town, turned back at once
+function TestCampaignHelicopters:test_a_town_zone_is_landed_in_on_a_clear_spot_an_airfield_on_its_field()
+  start()
+  local asked = {}
+  local findSpawnPoint = veaf.findSpawnPoint
+  veaf.findSpawnPoint = function(point, radius, clearance)
+    table.insert(asked, { radius = radius, clearance = clearance })
+    return { x = point.x + 300, y = 0, z = point.z }
+  end
+  local poti = veafCampaign.zones["Poti"]
+  local spot = veafCampaignOps.landingSpot(poti)
+  local senaki = veafCampaignOps.landingSpot(veafCampaign.zones["Senaki"])
+  veaf.findSpawnPoint = findSpawnPoint
+  luaunit.assertEquals(spot.x, poti:getCenter().x + 300)
+  luaunit.assertEquals(asked[1].radius, (poti.entry.radius or 2000) * veafCampaignOps.LANDING_SEARCH_SHARE)
+  luaunit.assertEquals(#asked, 1, "an airfield is landed on its field, as Menagh was")
+  luaunit.assertEquals(senaki.x, veafCampaign.zones["Senaki"]:getCenter().x)
+end
+
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 04: red sent one every 10 minutes regardless, 60 points for nothing
+function TestCampaignHelicopters:test_after_two_failures_to_a_zone_red_sends_none_there_for_an_hour()
+  start({ route_failures = 2, route_failure_seconds = 3600 })
+  local first = veafCampaignOps.sendHelicopter("red", veafCampaign.zones["Poti"], "capture")
+  veafCampaignOps.followHelicopter(first, 100) -- gone, no death seen
+  luaunit.assertEquals(veafCampaignOps.supplyTarget("red").name, "Poti", "one failure is not enough")
+  local second = veafCampaignOps.sendHelicopter("red", veafCampaign.zones["Poti"], "capture")
+  veafCampaignOps.followHelicopter(second, 200)
+  luaunit.assertNil(veafCampaignOps.supplyTarget("red"), "Poti given up, nothing else to do")
+  luaunit.assertTrue(veafCampaign.givenUp("helicopter", "red", "Poti"))
+  luaunit.assertFalse(veafCampaign.givenUp("helicopter", "blue", "Poti"), "the other side's memory is its own")
+  dcs_mocks.currentTime = timer.getTime() + 3600
+  luaunit.assertEquals(veafCampaignOps.supplyTarget("red").name, "Poti")
+end
+
 function TestCampaignHelicopters:test_no_more_helicopters_than_the_cap()
   start({ supply_seconds = 10, max_helicopters = 1, air = {} })
   veafCampaignOps.dispatchHelicopters(0)

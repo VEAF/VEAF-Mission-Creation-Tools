@@ -2501,17 +2501,21 @@ function veafCampaign.buildAdminMenu()
   end
   -- the "(admin)" commands ask the admin level: a secured command asks a senior pilot by default, and a
   -- senior pilot opened the self-check on the first server evening (2026-11-16)
-  local function adminCommand(title, method)
+  -- `veafRadio` sorts a menu's entries by label, commands before submenus: the order they are added in
+  -- changes nothing (2026-11-17, second server evening), `sortLast` puts them after every other entry
+  local function adminCommand(title, method, rank)
     local command = veafRadio.addSecuredCommandToSubmenu(veaf.t(title), veafCampaign.rootPath, method)
     if command then
       command.securityLevel = veafSecurity and veafSecurity.LEVEL_ADMIN or 90
+      command.sortLast = true
+      command.sortKey = rank
     end
     return command
   end
-  adminCommand("menu.campaign.counters", veafCampaign.reportCounters)
-  adminCommand("menu.campaign.self_check", veafCampaign.reportSelfCheck)
+  adminCommand("menu.campaign.counters", veafCampaign.reportCounters, "1")
+  adminCommand("menu.campaign.self_check", veafCampaign.reportSelfCheck, "2")
   if veafCampaign.isPersistent() then
-    adminCommand("menu.campaign.reset", veafCampaign.resetCampaign)
+    adminCommand("menu.campaign.reset", veafCampaign.resetCampaign, "3")
   end
   veafRadio.refreshRadioMenu()
 end

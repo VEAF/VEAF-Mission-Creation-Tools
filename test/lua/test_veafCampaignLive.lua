@@ -1167,7 +1167,9 @@ function TestCampaignAdminMenus:test_the_admin_commands_ask_the_admin_level()
     local command = added[veaf.t(key)]
     luaunit.assertNotNil(command, key)
     luaunit.assertEquals(command.securityLevel, 90, key)
+    luaunit.assertTrue(command.sortLast, key .. ": veafRadio sorts by label, the order of insertion is not enough")
   end
+  luaunit.assertTrue(added[veaf.t("menu.campaign.counters")].sortKey < added[veaf.t("menu.campaign.reset")].sortKey)
 end
 
 -- 2026-11-16: the admin commands came before the shop and the rest, which fell to the menu's second page

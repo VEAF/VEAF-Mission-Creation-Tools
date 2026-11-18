@@ -1,6 +1,6 @@
 # 11 — The Campaign menu's admin commands sort last
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 
 ## Found
@@ -18,3 +18,15 @@ The test of #1293 checked the order of insertion, not the order rendered.
 ## Done when
 
 The rendered Campaign menu ends with the three admin commands, on its second page when it paginates.
+
+## Done
+
+- `veafRadio` puts a command before every submenu, then sorts each kind by label: a `sortKey` alone could not place a command after the shop and the warehouse submenus.
+  A node now takes `sortLast`: it goes after every other entry, commands and submenus alike, in its own `sortKey` order; it keeps its page only while it is still the last one, and moves to the end when the menu grows.
+- `veafCampaign.buildAdminMenu` sets `sortLast` and a rank on the three commands (counters, self-check, reset).
+- Tests on the rendered order (`test_veafRadio.lua`: after the submenus, on the second page; moved when the menu grows past a page), both failing without the change.
+- Limit: an entry added later **on the admin commands' page** is appended after them by DCS, which never reorders a rendered entry; they come back last at the next mission start.
+
+## In-game check
+
+F10 → VEAF → CAMPAGNE at the start of the evening: the three "(admin)" commands are the last entries, after the submenus, on the menu's last page.

@@ -6,11 +6,11 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [FIX-CAMPAIGN-SECOND-SERVER-FLIGHT](FIX-CAMPAIGN-SECOND-SERVER-FLIGHT/PRD.md) · 🔄
-
-What the second evening of "Bouclier de l'Oronte" on the Campagne server taught (2026-11-17): red aircraft that never take off at Taftanaz, a depot that repairs itself forever (decided: a depot has buildings to destroy), deliveries that bring a whole group back, helicopters and convoys that never arrive, freezes when a zone wakes, garrisons on roofs, a heavier air defence, per-pilot credits, the Campaign menu's admin commands last. Thirteen tickets; implementation started 2026-11-18 on David's go. PRs into `feature/dynamic-campaign`.
-
 ## 🧑 Waiting for a human
+
+### [FIX-CAMPAIGN-SECOND-SERVER-FLIGHT](FIX-CAMPAIGN-SECOND-SERVER-FLIGHT/PRD.md) · 🧑
+
+What the second evening of "Bouclier de l'Oronte" on the Campagne server taught (2026-11-17): red aircraft that never take off at Taftanaz, a depot that repairs itself forever (decided: a depot has buildings to destroy), deliveries that bring a whole group back, helicopters and convoys that never arrive, freezes when a zone wakes, garrisons on roofs, a heavier air defence, per-pilot credits, the Campaign menu's admin commands last. Thirteen tickets, implemented in one PR into `feature/dynamic-campaign`; waits for the PR's review, the in-game checks written in each ticket, and ticket 12's redraw of the red garrisons in the Oronte save (server empty, David's go).
 
 ### [FEAT-DYNAMIC-CAMPAIGN](FEAT-DYNAMIC-CAMPAIGN/PRD.md) · 🧑
 

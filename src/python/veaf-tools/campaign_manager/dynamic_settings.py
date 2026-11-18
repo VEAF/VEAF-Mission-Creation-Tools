@@ -120,6 +120,8 @@ _SCHEMA: dict[str, Check | dict[str, Check]] = {
     "helicopter_capture_seconds": _positive,
     "helicopter_garrison": _positive,
     "convoy_timeout": _positive,
+    "assault_speed": _positive,
+    "convoy_report_seconds": _positive,
     "route_failures": _positive,
     "route_failure_seconds": _natural,
     "helicopter": _helicopters,

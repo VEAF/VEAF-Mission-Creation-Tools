@@ -98,6 +98,12 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   -- an assault convoy not arrived after this long frees its place: on 2026-11-16 two red convoys held both of
   -- `max_convoys` for more than an hour, one 37 km short of its target after 22 minutes on the road
   convoy_timeout = 2700,
+  -- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 05: the four assault convoys of 2026-11-17 covered 13 to 16 km in 45 min, about
+  -- 20 km/h, on roads longer than 38 to 61 km: the timeout retired every one of them by construction. An assault
+  -- drives at `assault_speed` (km/h), and is retired after its expected time on the road, `convoy_timeout` at least;
+  -- where it stands is logged every `convoy_report_seconds`
+  assault_speed = 40,
+  convoy_report_seconds = 300,
   -- red remembers what fails (FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 04): after `route_failures` failed helicopters or
   -- convoys to the same zone, it sends no more there for `route_failure_seconds` — four Mi-8 for Afrin turned back
   -- in a row on 2026-11-17, one every 10 minutes
@@ -2121,10 +2127,21 @@ function veafCampaign.checkConvoyGoal(record, now)
   local target = veafCampaign.zones[record.to]
   if target and target.entry.owner == record.side then
     veafCampaign.retireConvoy(record, "its target is its side's already")
-  elseif record.sentAt and now - record.sentAt >= veafCampaign.setting("convoy_timeout") then
+  elseif record.sentAt and now - record.sentAt >= (record.timeout or veafCampaign.setting("convoy_timeout")) then
     veafCampaign.retireConvoy(record, string.format("not arrived after %d min", math.floor((now - record.sentAt) / 60)))
     veafCampaign.recordFailure("convoy", record.side, record.from, record.to, "not arrived")
+  elseif veafCampaign.convoyFellBack(record) then
+    -- an assault that falls back ends: it drove the Hatay assault back home under a player's fire (2026-11-17)
+    veafCampaign.retireConvoy(record, "it fell back under fire")
+    veafCampaign.recordFailure("convoy", record.side, record.from, record.to, "fell back")
   end
+end
+
+--- Whether the convoy watch (`veafGroundAI`) made an assault convoy fall back.
+--- @return boolean
+function veafCampaign.convoyFellBack(record)
+  local handler = veafGroundAI and veafGroundAI.convoysByGroupName and veafGroundAI.convoysByGroupName[record.name]
+  return handler ~= nil and ConvoyUnitHandler ~= nil and handler.state == ConvoyUnitHandler.STATE_FALLING_BACK
 end
 
 --- Count what is left of a convoy; a convoy with nobody left has ended.
@@ -2233,7 +2250,7 @@ function veafCampaign.sendConvoy(side, from, to, purchased)
     veafCampaign.SIDES[side],
     0,
     5,
-    nil,
+    veafCampaign.setting("assault_speed"),
     false,
     false,
     destination,
@@ -2253,6 +2270,13 @@ function veafCampaign.sendConvoy(side, from, to, purchased)
   -- of the moment for as long as the zone's garrison stays in sight (FIX-CAPTURE-ZONE-MEMBERSHIP)
   if veafGroundAI and veafGroundAI.setConvoyObjective then
     veafGroundAI.setConvoyObjective(groupName, target)
+  end
+  -- no dispersal off the road under fire: an assault has somewhere to be (ticket 05)
+  local spawnedGroup = Group.getByName(groupName)
+  if spawnedGroup then
+    pcall(function()
+      spawnedGroup:getController():setOption(AI.Option.Ground.id.DISPERSE_ON_ATTACK, 0)
+    end)
   end
   local record = { name = groupName, side = side, from = from.name, to = to.name, absorbed = {}, purchased = purchased or nil }
   record.sent = typesOf(veafCampaign.convoyUnits(record))
@@ -2291,6 +2315,7 @@ function veafCampaign.sendConvoy(side, from, to, purchased)
     .get(veafCampaign.Id)
     :info("%s assault convoy [%s] left [%s] for [%s], %d unit(s)", side, groupName, from.name, to.name, #record.sent)
   veafCampaign.logRoadEnd(groupName, to)
+  veafCampaign.planConvoyTime(record, from, to)
   return record
 end
 
@@ -2318,6 +2343,97 @@ function veafCampaign.logRoadEnd(groupName, to)
     tostring(to.entry.radius or 2000),
     trueEnd and tostring(trueEnd.action) or "nothing"
   )
+end
+
+--- The length of the road between two points, in metres, as DCS routes it (`land.findPathOnRoads`); the straight
+--- line times `ROAD_DETOUR` when DCS gives no path.
+--- @return number metres
+--- @return boolean whether DCS gave the path
+function veafCampaign.roadLength(a, b)
+  local ok, path = pcall(land.findPathOnRoads, "roads", a.x, a.z, b.x, b.z)
+  if ok and type(path) == "table" and #path > 1 then
+    local length = 0
+    for index = 2, #path do
+      length = length + math.sqrt((path[index].x - path[index - 1].x) ^ 2 + (path[index].y - path[index - 1].y) ^ 2)
+    end
+    return length, true
+  end
+  return math.sqrt((a.x - b.x) ^ 2 + (a.z - b.z) ^ 2) * veafCampaign.ROAD_DETOUR, false
+end
+
+--- How much longer than the straight line a road is assumed to be, when DCS gives no path (an estimation).
+veafCampaign.ROAD_DETOUR = 1.3
+
+--- Minutes an assault convoy takes to get moving: 3 to 7 on 2026-11-17 (Tacview), the longest kept.
+veafCampaign.CONVOY_START_SECONDS = 420
+
+--- An assault convoy's expected time on the road, and the time after which it is retired: half as long again as
+--- expected, `convoy_timeout` at least (ticket 05). Logged at its departure, so a timeout can be told from a stuck
+--- convoy.
+--- @param record table the convoy's record
+--- @param from table its source zone
+--- @param to table its target zone
+function veafCampaign.planConvoyTime(record, from, to)
+  local length, routed = veafCampaign.roadLength(from:getCenter(), to:getCenter())
+  local speed = veafCampaign.setting("assault_speed")
+  local expected = veafCampaign.CONVOY_START_SECONDS + length / (speed / 3.6)
+  record.timeout = math.max(veafCampaign.setting("convoy_timeout"), math.floor(expected * 1.5))
+  record.expected = math.floor(expected)
+  veaf.loggers.get(veafCampaign.Id):info(
+    "assault convoy [%s]: %d km of road to [%s]%s, about %d min at %d km/h; retired after %d min",
+    record.name,
+    math.floor(length / 1000),
+    to.name,
+    routed and "" or " (estimated)",
+    math.floor(expected / 60),
+    speed,
+    math.floor(record.timeout / 60)
+  )
+end
+
+--- Where an assault convoy stands, every `convoy_report_seconds`: its distance to its target and what it covered
+--- since the last report, so the log says whether it drives on, stands still or turns back (ticket 05).
+--- @param record table the convoy's record
+--- @param now number the mission time
+function veafCampaign.followConvoyProgress(record, now)
+  if record.ended or not record.sentAt then
+    return
+  end
+  local every = veafCampaign.setting("convoy_report_seconds")
+  if now < (record.nextProgressAt or record.sentAt + every) then
+    return
+  end
+  record.nextProgressAt = now + every
+  local units = veafCampaign.convoyUnits(record)
+  local target = veafCampaign.zones[record.to]
+  if #units == 0 or not target then
+    return
+  end
+  local x, z = 0, 0
+  for _, unit in ipairs(units) do
+    local point = unit:getPoint()
+    x, z = x + point.x, z + point.z
+  end
+  local here = { x = x / #units, z = z / #units }
+  local center = target:getCenter()
+  local distance = math.sqrt((here.x - center.x) ^ 2 + (here.z - center.z) ^ 2)
+  local moved = record.lastPoint and math.sqrt((here.x - record.lastPoint.x) ^ 2 + (here.z - record.lastPoint.z) ^ 2) or nil
+  local how = "on its way"
+  if record.lastDistance and distance > record.lastDistance + 200 then
+    how = "turning back"
+  elseif moved and moved < 200 then
+    how = "standing still"
+  end
+  veaf.loggers.get(veafCampaign.Id):info(
+    "assault convoy [%s]: %.1f km from [%s] after %d min, %s%s",
+    record.name,
+    distance / 1000,
+    record.to,
+    math.floor((now - record.sentAt) / 60),
+    how,
+    moved and string.format(" (%.1f km in %d min)", moved / 1000, math.floor(every / 60)) or ""
+  )
+  record.lastPoint, record.lastDistance = here, distance
 end
 
 --- A convoy name nobody uses yet, so a second assault on the same axis is a second group.
@@ -3588,6 +3704,7 @@ function veafCampaign.beat()
     veafCampaign.refreshConvoy(record)
     veafCampaign.checkConvoyGoal(record, now)
     veafCampaign.reportConvoy(record, now)
+    veafCampaign.followConvoyProgress(record, now)
   end
   if veafCampaign.isPersistent() then
     veafCampaign.launchOffensives(now)

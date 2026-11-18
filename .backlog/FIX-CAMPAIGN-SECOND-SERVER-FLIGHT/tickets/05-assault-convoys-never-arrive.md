@@ -1,6 +1,6 @@
 # 05 — Assault convoys never arrive, and turn back under fire
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 
 ## Found
@@ -35,3 +35,17 @@ The first Jisr al-Shughur → Hatay convoy is the one Paluche fired upon: at 21:
 ## Done when
 
 The log says why an assault convoy did not arrive (stopped, fell back, too slow), an assault convoy fired upon keeps its target, and a convoy reaches a target in the next evening's check.
+
+## Done
+
+- **The time**: an assault convoy's road is measured at its departure (`land.findPathOnRoads`, else the straight line × 1.3), its expected time computed at `assault_speed` plus 7 minutes to get moving, and it is retired after half as long again, `convoy_timeout` at least. Logged at departure: `assault convoy [X]: 55 km of road to [Menagh], about 89 min at 40 km/h; retired after 134 min`.
+- **The speed**: `assault_speed` (40 km/h, was the 30 km/h default of `generateVehiclesRoute`); `DISPERSE_ON_ATTACK` off.
+- **The progress**: every `convoy_report_seconds` (300 s), `assault convoy [X]: 33.4 km from [Menagh] after 25 min, on its way (4.1 km in 5 min)` — or `standing still`, or `turning back`.
+- **Under fire**: an assault convoy (`veafGroundAI.setConvoyObjective`) hit by nothing it can answer — aircraft, a gun out of its reach — drives on instead of falling back; against a stronger ground force it still falls back (the existing rule and its test), and the campaign then retires it as "it fell back under fire", refunded, a failure for ticket 04's memory.
+- A retirement on time counts as a failure too: two in a row to the same zone, and red sends no assault there for an hour (ticket 04).
+- Not done: targets "within reach" (a cap on the road length): the time now follows the road, so a far target is slow but not hopeless.
+- Tests: the time given by the road and the 45-minute timeout no longer retiring it; a fall-back ending the assault and counted; the progress lines; an assault under air attack driving on.
+
+## In-game check
+
+`grep "assault convoy" dcs.log`: each departure line with its road and time; the progress lines every 5 minutes; a convoy reaching its target (`captured by red`, or the assault absorbed) within its time; a convoy fired upon by a player's aircraft keeps `on its way`.

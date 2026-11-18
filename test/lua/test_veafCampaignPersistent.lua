@@ -1088,6 +1088,79 @@ function TestCampaignConvoyGoal:test_a_convoy_on_the_road_too_long_frees_its_pla
   luaunit.assertTrue(record.ended)
 end
 
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 05: 13 to 16 km covered in 45 min, on roads of 38 to 61 km: retired by construction
+function TestCampaignConvoyGoal:test_an_assault_is_given_the_time_its_road_takes()
+  veafCampaign.data = persistentData({ convoy_timeout = 2700, assault_speed = 40 })
+  veafCampaign.initialize()
+  local findPath = land.findPathOnRoads
+  land.findPathOnRoads = function()
+    return { { x = 0, y = 0 }, { x = 30000, y = 0 }, { x = 30000, y = 30000 } } -- 60 km of road
+  end
+  local record = { name = "Senaki - Kobuleti assault", side = "red", from = "Senaki", to = "Kobuleti", sentAt = 0 }
+  veafCampaign.planConvoyTime(record, veafCampaign.zones["Senaki"], veafCampaign.zones["Kobuleti"])
+  land.findPathOnRoads = findPath
+  -- 7 min to start, 60 km at 40 km/h = 90 min: 97 min expected, retired after half as long again
+  luaunit.assertEquals(math.floor(record.expected / 60), 97)
+  luaunit.assertEquals(record.timeout, math.floor(record.expected * 1.5))
+  table.insert(veafCampaign.convoys, record)
+  veafCampaign.checkConvoyGoal(record, 2700)
+  luaunit.assertNil(record.ended, "the old 45-minute timeout no longer retires it")
+  veafCampaign.checkConvoyGoal(record, record.timeout)
+  luaunit.assertTrue(record.ended)
+end
+
+function TestCampaignConvoyGoal:test_an_assault_that_falls_back_ends_and_counts_as_a_failure()
+  veafCampaign.data = persistentData({ route_failures = 2 })
+  veafCampaign.initialize()
+  local savedHandlers = veafGroundAI and veafGroundAI.convoysByGroupName
+  veafGroundAI = veafGroundAI or {}
+  local savedClass = ConvoyUnitHandler
+  ConvoyUnitHandler = ConvoyUnitHandler or { STATE_FALLING_BACK = 4 }
+  veafGroundAI.convoysByGroupName = { ["Poti assault"] = { state = ConvoyUnitHandler.STATE_FALLING_BACK } }
+  local record = { name = "Poti assault", side = "red", from = "Poti", to = "Kobuleti", sentAt = 0 }
+  table.insert(veafCampaign.convoys, record)
+  veafCampaign.checkConvoyGoal(record, 10)
+  veafGroundAI.convoysByGroupName = savedHandlers
+  ConvoyUnitHandler = savedClass
+  luaunit.assertTrue(record.ended)
+  luaunit.assertEquals(veafCampaign.failures["convoy red Kobuleti"].count, 1)
+end
+
+function TestCampaignConvoyGoal:test_where_an_assault_stands_is_logged_on_its_way()
+  veafCampaign.data = persistentData({ convoy_report_seconds = 300 })
+  veafCampaign.initialize()
+  local x = 50000
+  local savedUnits = veafCampaign.convoyUnits
+  veafCampaign.convoyUnits = function()
+    return {
+      {
+        getPoint = function()
+          return { x = x, y = 0, z = 0 }
+        end,
+      },
+    }
+  end
+  local record = { name = "Senaki - Kobuleti assault", side = "red", from = "Senaki", to = "Kobuleti", sentAt = 0 }
+  veafCampaign.followConvoyProgress(record, 299)
+  luaunit.assertNil(record.lastDistance, "not before its first period")
+  veafCampaign.followConvoyProgress(record, 300)
+  x = 45000
+  veafCampaign.followConvoyProgress(record, 600)
+  x = 47000
+  veafCampaign.followConvoyProgress(record, 900)
+  veafCampaign.convoyUnits = savedUnits
+  local lines = {}
+  for _, entry in ipairs(dcs_mocks.logs) do
+    if entry.text:find("assault convoy [Senaki - Kobuleti assault]:", 1, true) then
+      table.insert(lines, entry.text)
+    end
+  end
+  luaunit.assertEquals(#lines, 3)
+  luaunit.assertStrContains(lines[1], "50.0 km from [Kobuleti] after 5 min, on its way")
+  luaunit.assertStrContains(lines[2], "45.0 km from [Kobuleti] after 10 min, on its way (5.0 km in 5 min)")
+  luaunit.assertStrContains(lines[3], "turning back")
+end
+
 -- ---------------------------------------------------------------------------
 -- Deliveries by players: CTLD 2 crates and troops
 -- ---------------------------------------------------------------------------

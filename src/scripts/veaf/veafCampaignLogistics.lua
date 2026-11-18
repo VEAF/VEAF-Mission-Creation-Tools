@@ -891,8 +891,18 @@ function veafCampaignLogistics.unloadWeapons(parameters)
   veafCampaignLogistics.delivered[unitName] = delivered
   local paid = not delivered[zone.name]
   delivered[zone.name] = true
-  if paid and veafCampaignEconomy and veafCampaignEconomy.earn then
-    veafCampaignEconomy.earn(veafCampaign.setting("economy", "warehouse_delivery"), "campaign.credits.warehouse", zone.name)
+  if paid and veafCampaignEconomy and veafCampaignEconomy.earnBy then
+    local unit = Unit.getByName(unitName)
+    local ok, pilot = false, nil
+    if unit and unit.getPlayerName then
+      ok, pilot = pcall(unit.getPlayerName, unit)
+    end
+    veafCampaignEconomy.earnBy(
+      ok and pilot or nil,
+      veafCampaign.setting("economy", "warehouse_delivery"),
+      "campaign.credits.warehouse",
+      zone.name
+    )
   end
 end
 

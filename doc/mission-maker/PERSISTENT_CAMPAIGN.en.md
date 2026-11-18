@@ -510,6 +510,12 @@ While the campaign is being tuned, `dynamic.debug` (on by default) writes in `dc
 
 `debug: false` turns it off, once the campaign is trusted.
 
+The credits earned are written whether `debug` is on or not:
+
+- one line `CREDITS <pilot> +<amount> (<reason>)` per gain — `kill`, `kill_held`, `landed`, `warehouse` for a pilot; `capture`, `delivery`, `task`, `demolition` under `team`;
+- a `CREDITS SUMMARY` at the mission's end, and as soon as nobody is left in a slot: what each earned since the previous summary, and the side's total;
+- each pilot's total over the whole campaign, in the save (`parts.economy.pilots`), for the debrief.
+
 ## Checking a mission in game {#self-check}
 
 F10 → Other → VEAF → Campaign → **Self-check (admin)** prints one `OK` or `KO` line per mechanism: zones placed, save read and written, outcome, dormancy, captures, factories, territory, both sides' resources, network (deliveries and zones cut off), paid spawns, sappers, warehouses, helicopters, air, bombers, credits, tasks, intelligence.

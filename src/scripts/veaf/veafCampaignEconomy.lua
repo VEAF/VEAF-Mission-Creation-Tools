@@ -96,19 +96,89 @@ end
 -- Credits (ticket 06)
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- What each pilot has earned, by player name: `{ total, reasons = { [reason] = credits } }`, kept in the save for
+--- the debrief (FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 10: 400 credits earned around 21:35 on 2026-11-17 could not
+--- be told to anyone). The gains nobody flew for (a capture, a task, a delivery by the network) go to `TEAM`.
+veafCampaignEconomy.pilots = {}
+
+--- The gains since the last summary of the session, by pilot; nil when there are none.
+veafCampaignEconomy.sessionGains = nil
+
+--- Who a gain nobody flew for is written against.
+veafCampaignEconomy.TEAM = "team"
+
 --- Add credits (or take them, with a negative amount; never below zero), and tell the side. A gain pays a debt
 --- off before it adds anything: a balance of -50 earning 10 is -40 (ticket 14).
 --- @param amount number
 --- @param reasonKey string|nil the i18n key of why, nil to say nothing
 function veafCampaignEconomy.earn(amount, reasonKey, ...)
+  veafCampaignEconomy.earnBy(nil, amount, reasonKey, ...)
+end
+
+--- `earn`, written against a pilot: one `CREDITS` line in dcs.log per gain, and the pilot's totals.
+--- @param pilot string|nil the player's name; nil for a gain of the whole side
+--- @param amount number
+--- @param reasonKey string|nil the i18n key of why
+function veafCampaignEconomy.earnBy(pilot, amount, reasonKey, ...)
   if amount < 0 then
     veafCampaignEconomy.credits = math.max(0, veafCampaignEconomy.credits + amount)
   else
     veafCampaignEconomy.credits = veafCampaignEconomy.credits + amount
   end
+  if amount > 0 then
+    local who = pilot or veafCampaignEconomy.TEAM
+    local reason = reasonKey and (reasonKey:gsub("^campaign%.credits%.", "")) or "other"
+    local books = veafCampaignEconomy.pilots[who] or { total = 0, reasons = {} }
+    books.total = books.total + amount
+    books.reasons[reason] = (books.reasons[reason] or 0) + amount
+    veafCampaignEconomy.pilots[who] = books
+    veafCampaignEconomy.sessionGains = veafCampaignEconomy.sessionGains or {}
+    veafCampaignEconomy.sessionGains[who] = (veafCampaignEconomy.sessionGains[who] or 0) + amount
+    logger():info("CREDITS %s +%d (%s): %d for the side", who, amount, reason, veafCampaignEconomy.credits)
+  end
   if reasonKey and amount ~= 0 then
     tell("campaign.credits.earned", amount, veaf.t(reasonKey, ...), veafCampaignEconomy.credits)
   end
+end
+
+--- Write who earned what since the last summary: one `CREDITS SUMMARY` line per pilot, best first, and the side's
+--- total. Said at the mission's end, and when nobody is left in a slot.
+--- @param why string what ends the session
+--- @return boolean whether there was anything to say
+function veafCampaignEconomy.summarizeSession(why)
+  local gains = veafCampaignEconomy.sessionGains
+  if not gains then
+    return false
+  end
+  local names, total = {}, 0
+  for name, amount in pairs(gains) do
+    table.insert(names, name)
+    total = total + amount
+  end
+  table.sort(names, function(a, b)
+    if gains[a] ~= gains[b] then
+      return gains[a] > gains[b]
+    end
+    return a < b
+  end)
+  logger():info("CREDITS SUMMARY (%s): %d earned by the side, %d for the side now", why, total, veafCampaignEconomy.credits)
+  for _, name in ipairs(names) do
+    local books = veafCampaignEconomy.pilots[name]
+    logger():info("CREDITS SUMMARY %s: %d this session, %d in the campaign", name, gains[name], books and books.total or gains[name])
+  end
+  veafCampaignEconomy.sessionGains = nil
+  return true
+end
+
+--- Whether a player sits in a slot of either side.
+local function anyPlayer()
+  for _, side in ipairs({ coalition.side.BLUE, coalition.side.RED }) do
+    local ok, players = pcall(coalition.getPlayers, side)
+    if ok and type(players) == "table" and #players > 0 then
+      return true
+    end
+  end
+  return false
 end
 
 --- What each pilot's aircraft holds until it lands, by unit name: `{ player, amount }`. Not saved: like the aircraft,
@@ -140,9 +210,9 @@ function veafCampaignEconomy.onKill(event)
     local books = veafCampaignEconomy.held[unitName] or { player = kill.player, amount = 0 }
     books.amount = books.amount + held
     veafCampaignEconomy.held[unitName] = books
-    veafCampaignEconomy.earn(amount - held, "campaign.credits.kill_held", kill.player, books.amount)
+    veafCampaignEconomy.earnBy(kill.player, amount - held, "campaign.credits.kill_held", kill.player, books.amount)
   else
-    veafCampaignEconomy.earn(amount, "campaign.credits.kill", kill.player)
+    veafCampaignEconomy.earnBy(kill.player, amount, "campaign.credits.kill", kill.player)
   end
   if kill.air then
     for _, task in ipairs(veafCampaignEconomy.tasks) do
@@ -183,7 +253,7 @@ function veafCampaignEconomy.onPilotEvent(event)
   if id == world.event.S_EVENT_LAND then
     if friendlyPlace(event) then
       veafCampaignEconomy.held[unitName] = nil
-      veafCampaignEconomy.earn(books.amount, "campaign.credits.landed", books.player)
+      veafCampaignEconomy.earnBy(books.player, books.amount, "campaign.credits.landed", books.player)
     end
     return
   end
@@ -946,6 +1016,9 @@ function veafCampaignEconomy.beat(now)
   if veafCampaign.over then
     return
   end
+  if veafCampaignEconomy.sessionGains and not anyPlayer() then
+    veafCampaignEconomy.summarizeSession("nobody left in a slot")
+  end
   veafCampaignEconomy.checkOverflights()
   veafCampaignEconomy.followSpies()
   veafCampaignEconomy.checkTasks()
@@ -963,7 +1036,7 @@ function veafCampaignEconomy.save()
       revealed[zone.name] = math.floor(zone.revealedUntil - now)
     end
   end
-  return { credits = veafCampaignEconomy.credits, revealed = revealed }
+  return { credits = veafCampaignEconomy.credits, revealed = revealed, pilots = veafCampaignEconomy.pilots }
 end
 
 --- Take back what the save kept.
@@ -972,6 +1045,9 @@ function veafCampaignEconomy.load(saved)
     return
   end
   veafCampaignEconomy.credits = tonumber(saved.credits) or veafCampaignEconomy.credits
+  if type(saved.pilots) == "table" then
+    veafCampaignEconomy.pilots = saved.pilots
+  end
   for name, seconds in pairs(type(saved.revealed) == "table" and saved.revealed or {}) do
     local zone = veafCampaign.zones[name]
     if zone and tonumber(seconds) then
@@ -1001,6 +1077,7 @@ end
 function veafCampaignEconomy.initialize()
   logger():info("Initializing module")
   veafCampaignEconomy.credits = veafCampaign.setting("economy", "start_credits")
+  veafCampaignEconomy.pilots, veafCampaignEconomy.sessionGains = {}, nil
   veafCampaignEconomy.tasks, veafCampaignEconomy.spies, veafCampaignEconomy.nextTasks = {}, {}, nil
   veafCampaignEconomy.menuBuilt, veafCampaignEconomy.shopPath = false, nil
   veafCampaignEconomy.counters = { purchases = 0, posted = 0, completed = 0, reveals = 0, spies = 0 }
@@ -1028,6 +1105,9 @@ function veafCampaignEconomy.initialize()
     end
   end)
   veafEventHandler.addCallback("veafCampaignEconomy.onKill", { "S_EVENT_KILL" }, veafCampaignEconomy.onKill)
+  veafEventHandler.addCallback("veafCampaignEconomy.onMissionEnd", { "S_EVENT_MISSION_END" }, function()
+    veafCampaignEconomy.summarizeSession("the mission ends")
+  end)
   veafCampaignEconomy.held = {}
   veafEventHandler.addCallback(
     "veafCampaignEconomy.onPilotEvent",

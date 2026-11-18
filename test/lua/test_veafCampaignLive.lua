@@ -665,6 +665,50 @@ function TestCampaignShop:test_the_held_credits_are_lost_with_the_pilot()
   luaunit.assertEquals(#dcs_mocks.messagesContaining("15"), 2) -- the kill, then the loss
 end
 
+--- The dcs.log lines holding `text`.
+local function loggedLines(text)
+  local found = {}
+  for _, entry in ipairs(dcs_mocks.logs) do
+    if string.find(entry.text, text, 1, true) then
+      table.insert(found, entry.text)
+    end
+  end
+  return found
+end
+
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 10: 400 credits earned around 21:35 on 2026-11-17 could not be told to anyone
+function TestCampaignShop:test_each_gain_is_logged_with_its_pilot_and_its_reason()
+  veafCampaignEconomy.onKill(kill("Zip"))
+  veafCampaign.notify("captured", veafCampaign.zones["Poti"], "blue")
+  luaunit.assertEquals(#loggedLines("CREDITS Zip +5 (kill_held)"), 1)
+  luaunit.assertEquals(#loggedLines("CREDITS team +200 (capture)"), 1)
+  luaunit.assertEquals(veafCampaignEconomy.pilots["Zip"].total, 5)
+  luaunit.assertEquals(veafCampaignEconomy.pilots["team"].reasons.capture, 200)
+  -- kept in the save, for the debrief
+  local saved = veafCampaignEconomy.save()
+  luaunit.assertEquals(saved.pilots["Zip"].total, 5)
+end
+
+function TestCampaignShop:test_the_session_summary_says_who_earned_what_once_nobody_is_left()
+  veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
+  veafCampaignEconomy.onKill(kill("Paluche"))
+  local getPlayers = coalition.getPlayers
+  coalition.getPlayers = function()
+    return { "someone" }
+  end
+  veafCampaignEconomy.beat(100)
+  luaunit.assertEquals(#loggedLines("CREDITS SUMMARY"), 0, "players still in a slot")
+  coalition.getPlayers = function()
+    return {}
+  end
+  veafCampaignEconomy.beat(200)
+  coalition.getPlayers = getPlayers
+  luaunit.assertEquals(#loggedLines("CREDITS SUMMARY (nobody left in a slot): 20 earned by the side"), 1)
+  luaunit.assertEquals(#loggedLines("CREDITS SUMMARY Zip: 15 this session"), 1)
+  luaunit.assertEquals(#loggedLines("CREDITS SUMMARY Paluche: 5 this session"), 1)
+  luaunit.assertFalse(veafCampaignEconomy.summarizeSession("again"), "said once")
+end
+
 function TestCampaignShop:test_credits_never_go_below_zero()
   veafCampaignEconomy.earn(-1000)
   luaunit.assertEquals(veafCampaignEconomy.credits, 0)

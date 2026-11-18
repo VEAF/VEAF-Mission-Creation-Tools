@@ -510,6 +510,12 @@ Pendant la mise au point, `dynamic.debug` (activé par défaut) écrit dans `dcs
 
 `debug: false` l'éteint, une fois la campagne sûre.
 
+Les gains de crédits s'écrivent, eux, que `debug` soit activé ou non :
+
+- une ligne `CREDITS <pilote> +<montant> (<raison>)` par gain — `kill`, `kill_held`, `landed`, `warehouse` pour un pilote ; `capture`, `delivery`, `task`, `demolition` au nom de `team` ;
+- un bilan `CREDITS SUMMARY` à la fin de la mission, et dès que plus personne n'est dans un slot : ce que chacun a gagné depuis le bilan précédent, et le total du camp ;
+- le cumul de chaque pilote sur toute la campagne, dans la sauvegarde (`parts.economy.pilots`), pour le débriefing.
+
 ## Contrôler une mission en jeu {#self-check}
 
 F10 → Autres → VEAF → Campagne → **Auto-contrôle (admin)** affiche une ligne `OK` ou `KO` par mécanisme : zones placées, sauvegarde relue et écrite, issue, dormance, captures, usines, territoire, ressources des deux camps, réseau (livraisons et zones coupées), spawns payants, sapeurs, entrepôts, hélicoptères, aviation, bombardiers, crédits, tâches, renseignement.

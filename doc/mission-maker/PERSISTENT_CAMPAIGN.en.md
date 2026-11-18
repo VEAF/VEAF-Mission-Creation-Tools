@@ -233,7 +233,7 @@ Asleep for less than `wake_rest_seconds` (300 s), it wakes for the front, a sort
 At most `max_awake_zones` (12) zones of the rear are awake at once; the front and the targets of sorties do not count.
 When the cap is reached, a zone wanted by a player takes the place of a zone only AI wants, or of a zone wanted by a player farther away; between zones wanted by AI, the first keeps its place, so that passing aircraft do not make zones appear and disappear in a loop.
 Only one zone wakes per 10-second beat, so the whole front does not appear in one go.
-Its garrison comes `wake_units_per_beat` (10) units per beat, its long-range battery last: Hama's 42 units in one go froze the server; the garrison of a zone just taken comes the same way.
+Its garrison comes group by group, about `wake_units_per_beat` (10) units per beat, its long-range battery last, a group never split (a launcher apart from its radar does not fire): Hama's 42 units in one go froze the server; the garrison of a zone just taken comes the same way.
 
 ## A front that moves on its own {#front}
 
@@ -582,7 +582,7 @@ A `KO` line is enough to know where to look.
 | `sleep_seconds` | 600 | a zone with no player near it for this long goes back to sleep |
 | `sleep_margin` | 20000 | metres added to an awake zone's wake distances before it goes back to sleep |
 | `wake_rest_seconds` | 300 | a zone asleep for less than this does not wake for an AI aircraft |
-| `wake_units_per_beat` | 10 | the units of a garrison that appear per beat, at a wake or after a capture |
+| `wake_units_per_beat` | 10 | the units of a garrison that appear per beat, at a wake or after a capture; a group is never split |
 | `max_awake_zones` | 12 | zones of the rear awake at once (the front and the targets of sorties do not count) |
 | `attacks` | `[red]` | the sides that counter-attack on their own |
 | `attack_seconds` | 900 | interval between two counter-attacks of a side |

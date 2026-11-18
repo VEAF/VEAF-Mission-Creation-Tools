@@ -226,7 +226,6 @@ local function uniqueGroupName(base)
   return name
 end
 
---- Whether a group still flies: it exists and has a live unit.
 --- The campaign groups a death was seen in: a crash, a death or a kill of one of their units (ticket 09).
 veafCampaignOps.deaths = {}
 
@@ -239,6 +238,7 @@ function veafCampaignOps.endOf(groupName)
   return veafCampaignOps.deaths[groupName] and "destroyed" or "gone"
 end
 
+--- Whether a group still flies: it exists and has a live unit.
 local function liveUnit(groupName)
   local group = Group.getByName(groupName)
   if not (group and group:isExist()) then
@@ -267,7 +267,6 @@ end
 -- Supply helicopters (ticket 04)
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- Whether a helicopter of that side is already flying to that zone.
 --- Remember how a supply helicopter ended, for the side's memory of what fails (ticket 04): landed in its zone is a
 --- success, the zone taken by the other side meanwhile nothing, anything else a failure.
 --- @param record table
@@ -279,6 +278,7 @@ function veafCampaignOps.rememberHelicopter(record)
   end
 end
 
+--- Whether a helicopter of that side is already flying to that zone.
 local function helicopterUnderway(side, zoneName)
   for _, record in ipairs(veafCampaignOps.helicopters) do
     if record.side == side and record.to == zoneName and not record.done then
@@ -364,13 +364,6 @@ function veafCampaignOps.coveringEnemy(side, zone)
   return nil
 end
 
---- Whether a side's aircraft may take off from an airfield zone: it has an airbase and no enemy air defence
---- covers it. A SEAD flight takes off all the same: putting that defence out is its job, and what it destroys
---- frees the field for the strikes (David, 2026-11-16). A field refused is logged with the defence covering it.
---- @param side string
---- @param zone table
---- @param role string|nil the flight's role: "sead" ignores the defence
---- @return boolean
 --- The fields that kept a flight on the ground, by zone name: the time until which they send no aeroplane.
 veafCampaignOps.groundedFields = {}
 
@@ -398,7 +391,12 @@ end
 
 --- Whether the side's aeroplanes may take off from an airfield zone: a runway long enough
 --- (`min_runway_length`), no flight kept on the ground there lately (`grounded_seconds`), and no enemy air defence
---- covering it (a SEAD excepted).
+--- covering it. A SEAD flight takes off all the same: putting that defence out is its job, and what it destroys
+--- frees the field for the strikes (David, 2026-11-16). A field refused is logged with its reason.
+--- @param side string
+--- @param zone table
+--- @param role string|nil the flight's role: "sead" ignores the defence
+--- @return boolean
 function veafCampaignOps.canTakeOffFrom(side, zone, role)
   if not zone.entry.airbase then
     return false
@@ -757,7 +755,8 @@ end
 --- @param now number the mission time
 function veafCampaignOps.followFlights(now)
   for _, flight in ipairs(veafCampaignOps.flights) do
-    if flight.onGround and not flight.airborne and not flight.done then
+    -- the AI's flights only: a flight the players bought is theirs to wait for, paid in credits
+    if flight.onGround and not flight.airborne and not flight.done and flight.side ~= veafCampaign.playerSide() then
       local unit = liveUnit(flight.name)
       if unit and unit:inAir() then
         flight.airborne = true
@@ -766,7 +765,7 @@ function veafCampaignOps.followFlights(now)
         destroyGroup(flight.name)
         veafCampaignOps.groundedFields[flight.origin] = now + veafCampaign.setting("grounded_seconds")
         local refund = 0
-        if flight.side ~= veafCampaign.playerSide() and veafCampaignLogistics and veafCampaignLogistics.active then
+        if veafCampaignLogistics and veafCampaignLogistics.active then
           refund = flight.price or 0
           veafCampaignLogistics.credit(flight.side, refund)
         end
@@ -1151,7 +1150,15 @@ function veafCampaignOps.spawnFlight(side, aircraftRole, origin, roleName, param
     -- one runway start at a time: every flight sent from Taftanaz on 2026-11-17 spawned onto the ones before it
     if takeoff.action == "From Runway" then
       for _, flight in ipairs(veafCampaignOps.flights) do
-        if flight.origin == origin.name and flight.runway and not flight.done and not flight.airborne and liveUnit(flight.name) then
+        local samePackage = params.package ~= nil and flight.package == params.package
+        if
+          flight.origin == origin.name
+          and flight.runway
+          and not samePackage
+          and not flight.done
+          and not flight.airborne
+          and liveUnit(flight.name)
+        then
           logger():info("no %s %s flight from [%s]: [%s] still stands on its runway", side, aircraftRole, origin.name, flight.name)
           return nil
         end
@@ -1189,6 +1196,7 @@ function veafCampaignOps.spawnFlight(side, aircraftRole, origin, roleName, param
       spawnedAt = timer.getTime(),
       typeName = aircraft.type,
       onGround = takeoff ~= nil,
+      package = params.package,
       runway = takeoff ~= nil and takeoff.action == "From Runway",
       price = veafCampaignOps.flightPrice(side, aircraftRole),
     })
@@ -1605,7 +1613,7 @@ veafAircraftSpawn.roles.campaign_escort = {
   afterSpawn = function() end,
 }
 
---- What a raid on a side's zones would hit: its factories with a building standing first, by how many stand;
+--- What a raid on a side's zones would hit: its factories and depots with a building standing first, by how many stand;
 --- else its zone with the most garrison units alive. Only a zone some airfield of the side can reach counts
 --- (`raidOrigin`): a target with no field far enough would send nothing, raid after raid.
 --- @param side string the side that sends the raid
@@ -1718,10 +1726,19 @@ function veafCampaignOps.sendRaid(side, target, purchased)
     purchased = purchased or nil,
     startedAt = now,
     airdromeId = airbase and airbase:getID(),
+    -- its flights leave one field together: the one-runway-start rule of spawnFlight does not hold them apart
+    package = string.format("raid %s %s %d", side, target.name, math.floor(now)),
   }
   local station = veafCampaignOps.barcapStation(side, target)
   if station and veafCampaignOps.aircraft(side, "cap") then
-    record.barcap = veafCampaignOps.spawnFlight(side, "cap", origin, "zone_defense", { zone = station }, veafCampaignOps.CAP_ALTITUDE)
+    record.barcap = veafCampaignOps.spawnFlight(
+      side,
+      "cap",
+      origin,
+      "zone_defense",
+      { zone = station, package = record.package },
+      veafCampaignOps.CAP_ALTITUDE
+    )
   end
   if defence then
     veafCampaignOps.raidSerial = veafCampaignOps.raidSerial + 1
@@ -1737,6 +1754,7 @@ function veafCampaignOps.sendRaid(side, target, purchased)
       home = origin:getCenter(),
       task = "SEAD",
       hold = { x = hold.x, z = hold.z, flag = record.seadFlag },
+      package = record.package,
     }
     record.sead = veafCampaignOps.spawnFlight(side, "sead", origin, "campaign_strike", seadParams, veafCampaignOps.STRIKE_ALTITUDE)
     record.seadAltitude = seadParams.altitude
@@ -1802,8 +1820,8 @@ function veafCampaignOps.spawnRaidBomber(record)
   if not (origin and target) then
     return false
   end
-  local aim = target:isFactory() and target:structuresCenter() or target:getCenter()
-  local params = { target = aim, airdromeId = record.airdromeId, home = origin:getCenter() }
+  local aim = target:hasStructures() and target:structuresCenter() or target:getCenter()
+  local params = { target = aim, airdromeId = record.airdromeId, home = origin:getCenter(), package = record.package }
   if record.hold then
     -- in a package it flies at the SEAD's speed, so that it stays behind it
     params.hold = { x = record.hold.x, z = record.hold.z, flag = record.bomberFlag }
@@ -1822,6 +1840,7 @@ function veafCampaignOps.spawnRaidBomber(record)
       home = params.home,
       -- beside and above its bomber, not inside it, when a field DCS does not know starts both in the air
       startOffset = veafCampaignOps.ESCORT_START_OFFSET,
+      package = record.package,
     }, veafCampaignOps.BOMBER_ALTITUDE)
   end
   veafCampaign.debug(

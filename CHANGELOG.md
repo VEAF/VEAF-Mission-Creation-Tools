@@ -125,7 +125,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - a network delivery brings back only what it paid for, cheapest first, spawned as its own group instead of respawning the whole garrison, and waits while the zone is under fire (`network.under_fire_seconds`); a delivery with nothing to repair goes back to the stock;
   - supply helicopters land on a clear spot of a town zone, and the AI gives a zone up for `route_failure_seconds` after `route_failures` failed helicopters or convoys;
   - an assault convoy drives at `assault_speed`, is given the time its road takes, logs its progress, drives on under air attack, and ends its assault when it falls back;
-  - a waking or captured garrison comes `wake_units_per_beat` units per beat, its long-range battery last, and a zone sleeps only `sleep_margin` farther than it wakes;
+  - a waking or captured garrison comes group by group, about `wake_units_per_beat` units per beat, its long-range battery last, and a zone sleeps only `sleep_margin` farther than it wakes;
   - a drawn garrison unit never stands on a building; a helicopter capture leaves `helicopter_garrison` soldiers and no vehicle;
   - the default air defence goes up: an airfield draws two groups of SA-8, SA-15 and Tunguska (defence 5), an outpost Strela-1 and Strela-10 (defence 3);
   - every credit gain is logged with its pilot, a session summary is written, and each pilot's total is kept in the save;

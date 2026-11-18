@@ -728,7 +728,7 @@ local function largeGarrison(name, count, battery)
 end
 
 -- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 06: Hama's 42 units, its SA-5 battery included, in one go froze the server
-function TestCampaignDormancy:test_a_waking_garrison_comes_a_few_units_per_beat_its_battery_last()
+function TestCampaignDormancy:test_a_waking_garrison_comes_group_by_group_its_battery_last_never_split()
   local data = persistentData({ wake_units_per_beat = 10 })
   data.zones[3].garrison = largeGarrison("Poti", 25, 6)
   veafCampaign.data = data
@@ -736,45 +736,48 @@ function TestCampaignDormancy:test_a_waking_garrison_comes_a_few_units_per_beat_
   local poti = veafCampaign.zones["Poti"]
   dcs_mocks.groupsAdded = {}
   poti:wake()
-  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1)
-  luaunit.assertEquals(dcs_mocks.groupsAdded[1].group.name, "Poti garrison", "the first part under the group's own name")
-  luaunit.assertEquals(#dcs_mocks.groupsAdded[1].group.units, 10)
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1, "the battery waits for the next beat")
+  luaunit.assertEquals(dcs_mocks.groupsAdded[1].group.name, "Poti garrison")
+  luaunit.assertEquals(#dcs_mocks.groupsAdded[1].group.units, 25, "a group is never split")
   poti:continueSpawning()
-  luaunit.assertEquals(#dcs_mocks.groupsAdded[2].group.units, 10)
-  poti:continueSpawning() -- the last 5 of the garrison, then 5 of the battery
-  luaunit.assertEquals(#dcs_mocks.groupsAdded[3].group.units, 5)
-  luaunit.assertEquals(dcs_mocks.groupsAdded[4].group.name, "Poti long-range SAM")
-  poti:continueSpawning()
-  luaunit.assertEquals(#dcs_mocks.groupsAdded[5].group.units, 1)
+  luaunit.assertEquals(dcs_mocks.groupsAdded[2].group.name, "Poti long-range SAM")
+  luaunit.assertEquals(#dcs_mocks.groupsAdded[2].group.units, 6, "its radar and its launchers in one DCS group")
   luaunit.assertNil(poti.wakeQueue)
-  local total = 0
-  for _, added in ipairs(dcs_mocks.groupsAdded) do
-    total = total + #added.group.units
-  end
-  luaunit.assertEquals(total, 31)
 end
 
 function TestCampaignDormancy:test_a_unit_brought_back_while_its_zone_wakes_is_spawned_once()
-  local data = persistentData({ wake_units_per_beat = 10 })
-  data.zones[3].garrison = largeGarrison("Poti", 25, 0)
+  local data = persistentData({ wake_units_per_beat = 4 })
+  data.zones[3].garrison = largeGarrison("Poti", 5, 4)
   data.zones[3].garrison[1].units[3].alive = false
-  data.zones[3].garrison[1].units[20].alive = false
+  data.zones[3].garrison[2].units[2].alive = false
   veafCampaign.data = data
   veafCampaign.initialize()
   local poti = veafCampaign.zones["Poti"]
-  poti:wake()
+  poti:wake() -- the garrison now, the battery at the next beat
   dcs_mocks.groupsAdded = {}
-  poti:reinforce()
-  -- #3 was passed by the wake: spawned now; #20 is still to come with the rest
+  poti:reinforce() -- the garrison's BMP: its group is in the world, it joins it
+  poti:reinforce() -- the battery's launcher: its group is still to come, it comes with it
   luaunit.assertEquals(#dcs_mocks.groupsAdded, 1)
   luaunit.assertEquals(#dcs_mocks.groupsAdded[1].group.units, 1)
   poti:continueSpawning()
-  poti:continueSpawning()
-  local total = 0
-  for _, added in ipairs(dcs_mocks.groupsAdded) do
-    total = total + #added.group.units
-  end
-  luaunit.assertEquals(total, 1 + 14, "every unit once: #3 now, then #12 to #25 with the rest of the wake")
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 2)
+  luaunit.assertEquals(#dcs_mocks.groupsAdded[2].group.units, 4, "the battery whole, its launcher included")
+end
+
+-- review of #1310: a radar brought back alone in a group of its own would leave its launchers blind
+function TestCampaignDormancy:test_an_air_defence_unit_brought_back_respawns_its_whole_group()
+  local data = persistentData()
+  data.zones[3].garrison = largeGarrison("Poti", 0, 4)
+  data.zones[3].garrison[1] = { name = "Poti garrison", units = { { type = "BMP-2", x = 1, z = 0, heading = 0, alive = true } } }
+  data.zones[3].garrison[2].units[2].alive = false
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  local poti = veafCampaign.zones["Poti"]
+  poti:spawnGarrison()
+  dcs_mocks.groupsAdded = {}
+  luaunit.assertTrue(poti:reinforce())
+  luaunit.assertEquals(dcs_mocks.groupsAdded[1].group.name, "Poti long-range SAM")
+  luaunit.assertEquals(#dcs_mocks.groupsAdded[1].group.units, 4)
 end
 
 function TestCampaignDormancy:test_an_awake_zone_keeps_its_garrison_a_margin_farther_than_it_wakes()

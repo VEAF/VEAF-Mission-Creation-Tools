@@ -467,6 +467,32 @@ function TestCampaignResources:test_a_flight_that_never_takes_off_is_taken_away_
   luaunit.assertFalse(veafCampaignOps.canTakeOffFrom("red", veafCampaign.zones[flight.origin]))
 end
 
+-- review of #1310: the flights of one raid leave one field together; a flight the players bought is theirs
+function TestCampaignResources:test_a_raid_s_flights_leave_together_and_a_players_flight_is_never_taken_away()
+  start({ takeoff_timeout = 600 })
+  airfieldsWithRunway(2400)
+  local this = self
+  veafAircraftSpawn.spawnAirplaneGroup = function(groupData, role, params)
+    table.insert(this.flights, { group = groupData, role = role, params = params })
+    dcs_mocks.addGroup(groupData.name, {
+      getUnits = function()
+        return { unitAt({ x = 0 }, { inAir = false }) }
+      end,
+    })
+    return groupData.name
+  end
+  local senaki = veafCampaign.zones["Senaki"]
+  local first = veafCampaignOps.spawnFlight("red", "cap", senaki, "zone_defense", { zone = { x = 0, y = 0 }, package = "raid 1" }, 6000)
+  local second = veafCampaignOps.spawnFlight("red", "cap", senaki, "zone_defense", { zone = { x = 0, y = 0 }, package = "raid 1" }, 6000)
+  luaunit.assertNotNil(first)
+  luaunit.assertNotNil(second, "one package")
+  local kobuleti = veafCampaign.zones["Kobuleti"]
+  veafCampaignOps.spawnFlight("blue", "cap", kobuleti, "zone_defense", { zone = { x = 0, y = 0 } }, 6000)
+  local bought = veafCampaignOps.flights[#veafCampaignOps.flights]
+  veafCampaignOps.followFlights(bought.spawnedAt + 5000)
+  luaunit.assertNil(bought.outcome)
+end
+
 function TestCampaignResources:test_a_flight_in_the_air_is_never_taken_away()
   start({ takeoff_timeout = 600 })
   airfieldsWithRunway(2400)
@@ -533,6 +559,22 @@ function TestCampaignResources:test_a_helicopter_capture_leaves_a_few_soldiers_w
       end
       luaunit.assertTrue(known, name .. ": no vehicle, " .. tostring(unit.type))
     end
+  end
+end
+
+-- review of #1310: a side that could not pay its soldiers fell back on the smallest size class, vehicles included
+function TestCampaignResources:test_a_helicopter_capture_the_side_cannot_pay_still_leaves_soldiers_only()
+  start()
+  veafCampaignLogistics.stocks.red = 0
+  local poti = veafCampaign.zones["Poti"]
+  poti:becomeNeutral()
+  poti:capturedBy("red", "helicopter")
+  for _, unit in ipairs(poti.entry.garrison[1].units) do
+    local known = false
+    for _, infantry in ipairs(veafCasMission.INFANTRY_TYPES[coalition.side.RED][veaf.config.era]) do
+      known = known or unit.type == infantry
+    end
+    luaunit.assertTrue(known, "no vehicle: " .. tostring(unit.type))
   end
 end
 
@@ -643,6 +685,14 @@ function TestCampaignNetwork:test_a_depot_with_its_buildings_down_is_an_ordinary
   luaunit.assertEquals(delays["Senaki"].delay, 1200, "no shorter hop")
   luaunit.assertEquals(veafCampaignLogistics.depotStores["Zugdidi"], 0, "a factory reaching it does not refill it")
   luaunit.assertFalse(zugdidi:repairStructure(), "a delivery rebuilds no depot building")
+end
+
+-- review of #1310: a depot at 2/3 read as damaged for ever, and the shop sold a resupply nothing could do
+function TestCampaignNetwork:test_a_depot_s_lost_building_is_no_damage_a_delivery_repairs()
+  network(nil, true)
+  local zugdidi = veafCampaign.zones["Zugdidi"]
+  zugdidi:onStructureLost(1)
+  luaunit.assertFalse(zugdidi:isDamaged())
 end
 
 function TestCampaignNetwork:test_a_depot_is_rebuilt_only_after_its_long_delay()

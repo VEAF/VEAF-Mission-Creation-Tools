@@ -233,7 +233,7 @@ Endormie depuis moins de `wake_rest_seconds` (300 s), elle ne se réveille que p
 Au plus `max_awake_zones` (12) zones de l'arrière sont éveillées à la fois ; le front et les cibles de sorties ne comptent pas.
 Quand la limite est atteinte, une zone voulue par un joueur prend la place d'une zone voulue seulement par une IA, ou d'une zone voulue par un joueur plus lointain ; entre zones voulues par des IA, la première garde sa place, pour que des avions qui passent ne fassent pas apparaître et disparaître les zones en boucle.
 Une seule zone se réveille à chaque battement de 10 s, pour ne pas faire apparaître tout le front d'un coup.
-Sa garnison arrive par paquets de `wake_units_per_beat` (10) unités à chaque battement, la batterie longue portée en dernier : les 42 unités de Hama d'un coup gelaient le serveur ; la garnison d'une zone prise arrive de la même façon.
+Sa garnison arrive groupe par groupe, environ `wake_units_per_beat` (10) unités à chaque battement, la batterie longue portée en dernier, sans jamais couper un groupe (un lanceur séparé de son radar ne tire pas) : les 42 unités de Hama d'un coup gelaient le serveur ; la garnison d'une zone prise arrive de la même façon.
 
 ## Un front qui bouge tout seul {#front}
 
@@ -582,7 +582,7 @@ Une ligne `KO` suffit à dire où regarder.
 | `sleep_seconds` | 600 | une zone sans joueur près d'elle depuis ce temps se rendort |
 | `sleep_margin` | 20000 | mètres ajoutés aux distances de réveil d'une zone éveillée, avant qu'elle se rendorme |
 | `wake_rest_seconds` | 300 | une zone endormie depuis moins longtemps ne se réveille pas pour un avion IA |
-| `wake_units_per_beat` | 10 | unités d'une garnison qui apparaissent à chaque battement, au réveil ou après une prise |
+| `wake_units_per_beat` | 10 | unités d'une garnison qui apparaissent à chaque battement, au réveil ou après une prise ; un groupe n'est jamais coupé |
 | `max_awake_zones` | 12 | zones de l'arrière éveillées à la fois (le front et les cibles de sorties ne comptent pas) |
 | `attacks` | `[red]` | les camps qui contre-attaquent seuls |
 | `attack_seconds` | 900 | intervalle entre deux contre-attaques d'un camp |

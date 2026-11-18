@@ -28,6 +28,7 @@ Tests show a 2-point delivery bringing back at most 2 points of units, and no re
 
 - `VeafCampaignZone:reinforce(points)`: a delivery brings back dead units of the first damaged group **cheapest first, up to the points it paid** at the order (reco a); a unit killed since the order stays dead. What it does not spend goes back to the side's stock.
 - The units brought back spawn as **a group of their own** (`<group> +N`), under their recorded unit names: the living units are no longer destroyed and spawned again. These groups leave with the zone's sleep and before a full respawn of its garrison.
+  An air defence unit brought back respawns its whole group instead (review of #1310: a radar alone in a group of its own leaves its launchers blind), and a group whose cheapest dead unit costs more than the delivery leaves the points to the next damaged group.
 - `network.under_fire_seconds` (600 s, reco b): a zone that lost a unit less than that ago is not reinforced; the delivery waits (logged once) instead of being lost.
 - Reco c (longer hops) not applied, as written: to revisit after an evening with a and b.
 - The players' own crates, troops and helicopters still bring the whole first damaged group back at once (unchanged, no price attached).

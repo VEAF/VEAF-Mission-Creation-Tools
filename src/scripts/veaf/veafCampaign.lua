@@ -77,8 +77,8 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   sleep_margin = 20000,
   -- a zone asleep for less than this wakes for the front, a sortie or a player, not for an AI aircraft passing by
   wake_rest_seconds = 300,
-  -- the units of a waking garrison spawned per beat, its long-range battery last: Hama's 42 in one go froze the
-  -- server on 2026-11-17
+  -- about the units of a waking garrison spawned per beat, group by group, its long-range battery last: Hama's 42 in one go
+  -- froze the server on 2026-11-17 (FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 06)
   wake_units_per_beat = 10,
   max_awake_zones = 12, -- zones whose garrison is in the world at once, nearest the players first
   attacks = { "red" }, -- the sides that counter-attack an enemy zone on their own
@@ -824,9 +824,8 @@ end
 --- (dcs-runtime-traps).
 --- @param groupIndex number the group, in the zone's garrison
 --- @param only table|nil the units to spawn, by index in the group, as their own DCS group: a delivery's (ticket 03)
---- @param asItself boolean|nil with `only`, spawn them under the group's own name: the first part of a waking group
 --- @return number the number of units submitted to DCS
-function VeafCampaignZone:spawnGroup(groupIndex, only, asItself)
+function VeafCampaignZone:spawnGroup(groupIndex, only)
   local group = self.entry.garrison and self.entry.garrison[groupIndex]
   local side = veafCampaign.SIDES[self.entry.owner]
   if not group or not side then
@@ -873,12 +872,12 @@ function VeafCampaignZone:spawnGroup(groupIndex, only, asItself)
     return 0
   end
   local groupName = group.name
-  if only and not asItself then
+  if only then
     -- the units a delivery brings back join the zone as a group of their own: respawning the whole group under
     -- its name recreated its 18 living units at every delivery to Saraqib (Tacview, 2026-11-17)
     self.reinforcementGroups = self.reinforcementGroups or {}
     groupName = string.format("%s +%d", group.name, #self.reinforcementGroups + 1)
-    table.insert(self.reinforcementGroups, groupName)
+    table.insert(self.reinforcementGroups, { name = groupName, group = groupIndex })
   end
   veaf.addGroup({
     country = veaf.getCountryForCoalition(side),
@@ -893,14 +892,20 @@ end
 
 --- Take the groups the deliveries added out of the world: the garrison's own groups, spawned again, carry
 --- their units.
-function VeafCampaignZone:removeReinforcementGroups()
-  for _, name in ipairs(self.reinforcementGroups or {}) do
-    local dcsGroup = Group.getByName(name)
-    if dcsGroup then
-      pcall(dcsGroup.destroy, dcsGroup)
+--- @param groupIndex number|nil only those of this garrison group; nil for all of them
+function VeafCampaignZone:removeReinforcementGroups(groupIndex)
+  local kept = {}
+  for _, added in ipairs(self.reinforcementGroups or {}) do
+    if groupIndex == nil or added.group == groupIndex then
+      local dcsGroup = Group.getByName(added.name)
+      if dcsGroup then
+        pcall(dcsGroup.destroy, dcsGroup)
+      end
+    else
+      table.insert(kept, added)
     end
   end
-  self.reinforcementGroups = nil
+  self.reinforcementGroups = #kept > 0 and kept or nil
 end
 
 --- Spawn the zone's recorded garrison, without the units it has lost.
@@ -948,18 +953,18 @@ function VeafCampaignZone:wake(why)
   self:startSpawning()
 end
 
---- Put the zone's garrison in the world `wake_units_per_beat` units at a time, one part now and the rest at the
---- next beats, its long-range battery last (ticket 06): Hama's 42 units in one go froze the server.
+--- Put the zone's garrison in the world group by group, about `wake_units_per_beat` units per beat, its long-range
+--- battery last (ticket 06): Hama's 42 units in one go froze the server. A group is never split: a launcher in
+--- another DCS group than its radar never fires.
 --- @return number the units submitted now
 function VeafCampaignZone:startSpawning()
   self:removeReinforcementGroups()
   local queue, last = {}, {}
   for groupIndex, group in ipairs(self.entry.garrison or {}) do
-    local entry = { group = groupIndex, from = 1, parts = 0 }
-    table.insert(group.name:find("long%-range SAM") and last or queue, entry)
+    table.insert(group.name:find("long%-range SAM") and last or queue, groupIndex)
   end
-  for _, entry in ipairs(last) do
-    table.insert(queue, entry)
+  for _, groupIndex in ipairs(last) do
+    table.insert(queue, groupIndex)
   end
   self.wakeQueue = queue
   self.awake = true
@@ -967,7 +972,8 @@ function VeafCampaignZone:startSpawning()
   return self:continueSpawning()
 end
 
---- Spawn the next units of a garrison coming into the world (`startSpawning`); called at every beat.
+--- Spawn the next groups of a garrison coming into the world (`startSpawning`); called at every beat. At least one
+--- group, then more while they fit in `wake_units_per_beat`.
 --- @return number the units submitted
 function VeafCampaignZone:continueSpawning()
   local queue = self.wakeQueue
@@ -976,25 +982,18 @@ function VeafCampaignZone:continueSpawning()
   end
   local budget = veafCampaign.setting("wake_units_per_beat")
   local submitted = 0
-  while budget > 0 and #queue > 0 do
-    local entry = queue[1]
-    local group = self.entry.garrison and self.entry.garrison[entry.group]
-    local indices, index = {}, entry.from
-    while group and index <= #group.units and #indices < budget do
-      if group.units[index].alive then
-        table.insert(indices, index)
+  while #queue > 0 do
+    local group = self.entry.garrison and self.entry.garrison[queue[1]]
+    local alive = 0
+    for _, unit in ipairs(group and group.units or {}) do
+      if unit.alive then
+        alive = alive + 1
       end
-      index = index + 1
     end
-    entry.from = index
-    if #indices > 0 then
-      submitted = submitted + self:spawnGroup(entry.group, indices, entry.parts == 0)
-      entry.parts = entry.parts + 1
-      budget = budget - #indices
+    if submitted > 0 and submitted + alive > budget then
+      break
     end
-    if not group or index > #group.units then
-      table.remove(queue, 1)
-    end
+    submitted = submitted + self:spawnGroup(table.remove(queue, 1))
   end
   if #queue == 0 then
     self.wakeQueue = nil
@@ -1002,24 +1001,25 @@ function VeafCampaignZone:continueSpawning()
   return submitted
 end
 
---- Whether a garrison unit is in the world, or still to come with the rest of a waking garrison.
+--- Whether a garrison group is in the world, or still to come with the rest of a waking garrison.
 --- @return boolean
-function VeafCampaignZone:unitSpawned(groupIndex, unitIndex)
+function VeafCampaignZone:groupSpawned(groupIndex)
   if self.awake == false then
     return false
   end
-  for position, entry in ipairs(self.wakeQueue or {}) do
-    if entry.group == groupIndex then
-      return position == 1 and unitIndex < entry.from
+  for _, waiting in ipairs(self.wakeQueue or {}) do
+    if waiting == groupIndex then
+      return false
     end
   end
   return true
 end
 
---- Bring back dead units of the zone's first damaged group, in their places: what one supply delivery does
---- (ticket 03). With `points`, only what they pay for, cheapest first: on 2026-11-17 a delivery of 2 points brought
---- a Shilka and the lorries back to Saraqib. A sleeping zone gets them back in its record, an awake one in the
---- world, as a group of their own: the living units are not respawned.
+--- Bring back dead units of the zone's first damaged group it can pay for, in their places: what one supply delivery
+--- does (ticket 03). With `points`, only what they pay for, cheapest first: on 2026-11-17 a delivery of 2 points
+--- brought a Shilka and the lorries back to Saraqib. A sleeping zone gets them back in its record, an awake one in
+--- the world, as a group of their own: the living units are not respawned. An air defence unit brought back
+--- respawns its whole group instead, since a launcher in another DCS group than its radar never fires.
 --- @param points number|nil what the delivery carries, in resource points; nil brings the whole group back
 --- @return boolean true when units were brought back, false when nothing was missing or nothing could be paid
 --- @return number the points spent
@@ -1031,36 +1031,34 @@ function VeafCampaignZone:reinforce(points)
         table.insert(dead, { index = unitIndex, price = veafCampaign.unitPrice(unit.type) })
       end
     end
-    if #dead > 0 then
-      table.sort(dead, function(a, b)
-        if a.price ~= b.price then
-          return a.price < b.price
-        end
-        return a.index < b.index
-      end)
-      local revived, spent = {}, 0
-      for _, candidate in ipairs(dead) do
-        if points == nil or spent + candidate.price <= points then
-          local unit = group.units[candidate.index]
-          unit.alive = true
-          unit.missiles = nil
-          spent = spent + candidate.price
-          table.insert(revived, candidate.index)
-        end
+    table.sort(dead, function(a, b)
+      if a.price ~= b.price then
+        return a.price < b.price
       end
-      if #revived == 0 then
-        return false, 0
+      return a.index < b.index
+    end)
+    local revived, spent, airDefence = {}, 0, false
+    for _, candidate in ipairs(dead) do
+      if points == nil or spent + candidate.price <= points then
+        local unit = group.units[candidate.index]
+        unit.alive = true
+        unit.missiles = nil
+        spent = spent + candidate.price
+        table.insert(revived, candidate.index)
+        airDefence = airDefence or veafCampaign.reserveCategory(unit.type) == "air_defense"
       end
+    end
+    -- a group whose cheapest dead unit costs more than the delivery leaves the points to the next damaged group
+    if #revived > 0 then
       table.sort(revived)
-      -- a unit a waking garrison has not reached yet comes with it
-      local now = {}
-      for _, unitIndex in ipairs(revived) do
-        if self:unitSpawned(groupIndex, unitIndex) then
-          table.insert(now, unitIndex)
+      -- a group a waking garrison has not reached yet comes whole with it
+      if self:groupSpawned(groupIndex) then
+        if airDefence then
+          self:removeReinforcementGroups(groupIndex)
+          self:spawnGroup(groupIndex)
+        else
+          self:spawnGroup(groupIndex, revived)
         end
-      end
-      if #now > 0 then
-        self:spawnGroup(groupIndex, now)
       end
       veafCampaign.counters.reinforcements = veafCampaign.counters.reinforcements + 1
       veaf.loggers
@@ -1532,7 +1530,7 @@ function VeafCampaignZone:capturedBy(side, how)
     else
       self:drawGarrison(veafCampaign.reserveOf(side))
     end
-    veafCampaign.payGarrison(self, side)
+    veafCampaign.payGarrison(self, side, how == "helicopter" and veafCampaign.setting("helicopter_garrison") or nil)
     self:startSpawning() -- Afrin's 24 units at once on 2026-11-17: spread like a wake (ticket 06)
   end
   if self:hasStructures() then
@@ -1556,12 +1554,13 @@ end
 --- token garrison instead and pays what it has left — a zone without a garrison would be held for ever.
 --- @param zone table
 --- @param side string
-function veafCampaign.payGarrison(zone, side)
+--- @param soldiers number|nil a helicopter capture's garrison: the token one stays these soldiers (ticket 08)
+function veafCampaign.payGarrison(zone, side, soldiers)
   if not zone.entry.garrison or veafCampaign.pay(side, veafCampaign.garrisonPrice(zone.entry.garrison), "essential", "garrison") then
     return
   end
   veaf.loggers.get(veafCampaign.Id):info("zone [%s]: %s cannot pay its garrison, a token one is drawn", zone.name, side)
-  zone:drawGarrison({})
+  zone:drawGarrison({}, soldiers)
   veafCampaign.pay(side, veafCampaign.garrisonPrice(zone.entry.garrison), "partial", "garrison")
 end
 
@@ -2698,10 +2697,11 @@ function VeafCampaignZone:garrisonDamaged()
   return total > 0 and alive < total
 end
 
---- Whether a zone has lost anything a delivery brings back: a garrison unit, or a factory's building.
+--- Whether a zone has lost anything a delivery brings back: a garrison unit, or a factory's building. A depot's
+--- buildings come back only all together, after their delay (`followDepot`): no delivery repairs them.
 function VeafCampaignZone:isDamaged()
   local standing, buildings = self:structuresStanding()
-  return self:garrisonDamaged() or standing < buildings
+  return self:garrisonDamaged() or (self:isFactory() and standing < buildings)
 end
 
 --- The CTLD 2 crate of that name, as its manager keeps it, or nil.

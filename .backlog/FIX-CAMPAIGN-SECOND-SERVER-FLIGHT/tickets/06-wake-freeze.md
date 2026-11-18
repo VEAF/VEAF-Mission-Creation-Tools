@@ -27,9 +27,9 @@ The server log shows Hama's 42 units spread over several beats, a zone does not 
 
 ## Done
 
-- `VeafCampaignZone:startSpawning` / `continueSpawning`: a waking garrison comes `wake_units_per_beat` (10) units per 10-second beat, its long-range battery last; the first part of a group spawns under the group's name, the next parts as `<group> +N` (the groups ticket 03 introduced, taken away at the sleep and before a full respawn). Hama's 42 units: five beats instead of one `addGroup` of 27 and one of 15.
+- `VeafCampaignZone:startSpawning` / `continueSpawning`: a waking garrison comes group by group, at least one group per 10-second beat and more while they fit in `wake_units_per_beat` (10), its long-range battery last. A group is never split (review of #1310: a launcher in another DCS group than its radar never fires), so a garrison drawn as one large group still comes in one call: Hama, 27 units then its 15-unit battery on the next beat, instead of 42 at once.
 - The garrison drawn after a capture comes the same way.
-- A unit a delivery brings back while its zone wakes is spawned now if the wake has passed it, with the rest otherwise: never twice.
+- A unit a delivery brings back while its zone wakes is spawned now if its group is in the world, with its group otherwise: never twice. An air defence unit brought back respawns its whole group (ticket 03).
 - Hysteresis: an awake zone keeps its garrison `sleep_margin` (20 km) farther than it wakes, for players, AI aircraft and ground groups; a zone asleep for less than `wake_rest_seconds` (300 s) wakes for the front, a sortie or a player only.
 - The wake line says why: `zone [Hama] wakes for a player, 45 km: 42 unit(s)` (or `an AI`, or `always`), so the next evening tells what woke a zone.
 - Tests: the parts and their order; a unit brought back while waking spawned once; the margin; the rest.
@@ -37,5 +37,5 @@ The server log shows Hama's 42 units spread over several beats, a zone does not 
 
 ## In-game check
 
-`grep "wakes" dcs.log`: each wake line followed by its parts over the next beats, Hama's 42 units over about 50 s; no zone waking again within 5 minutes of `sleeps` for an AI; no freeze reported at a wake.
+`grep "wakes" dcs.log`: each wake line, then Hama's battery one beat after its garrison; no zone waking again within 5 minutes of `sleeps` for an AI; no freeze reported at a wake.
 To measure: the gap between two beats while a large zone wakes (the `[CAMPAIGN STATUS]` timestamps, or Tacview's object creations by second).

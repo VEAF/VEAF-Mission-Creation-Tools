@@ -313,27 +313,55 @@ def zone_units_lua(zone: str) -> str:
     Returns:
         Lua source returning ``kind side name type x z alt`` lines.
     """
-    return f"""
-local out = {{}}
-local function clean(s) return (tostring(s):gsub("[\\t\\n]", " ")) end
-local zone = veafCombatZone and veafCombatZone.GetZone({lua_quoted_string(zone)})
+    return _naming(zone, _ZONE_UNITS_LUA)
+
+
+def _naming(name: str, chunk: str) -> str:
+    """Prefix *chunk* with ``local wanted = <name>``, the name quoted for Lua."""
+    return "local wanted = " + lua_quoted_string(name) + "\n" + chunk
+
+
+_ZONE_UNITS_LUA = r"""
+local out = {}
+local function clean(s) return (tostring(s):gsub("[\t\n]", " ")) end
+local zone = veafCombatZone and veafCombatZone.GetZone(wanted)
 if not zone then return "" end
-for _, name in ipairs(zone:getSpawnedGroups() or {{}}) do
+for _, name in ipairs(zone:getSpawnedGroups() or {}) do
   local g = Group.getByName(name)
   if g and g:isExist() then
-    for _, u in ipairs(g:getUnits() or {{}}) do
+    for _, u in ipairs(g:getUnits() or {}) do
       local p = u:getPoint()
-      out[#out + 1] = string.format("unit\\t%d\\t%s\\t%s\\t%.1f\\t%.1f\\t%.1f", u:getCoalition(), clean(name), clean(u:getTypeName()), p.x, p.z, p.y)
+      out[#out + 1] = string.format("unit\t%d\t%s\t%s\t%.1f\t%.1f\t%.1f", u:getCoalition(), clean(name), clean(u:getTypeName()), p.x, p.z, p.y)
     end
   else
     local s = StaticObject.getByName(name)
     if s and s:isExist() then
       local p = s:getPoint()
-      out[#out + 1] = string.format("static\\t%d\\t%s\\t%s\\t%.1f\\t%.1f\\t%.1f", s:getCoalition(), clean(name), clean(s:getTypeName()), p.x, p.z, p.y)
+      out[#out + 1] = string.format("static\t%d\t%s\t%s\t%.1f\t%.1f\t%.1f", s:getCoalition(), clean(name), clean(s:getTypeName()), p.x, p.z, p.y)
     end
   end
 end
-return table.concat(out, "\\n")
+return table.concat(out, "\n")
+"""
+
+_ACTIVATE_ALONE_LUA = r"""
+if not veafCombatZone or not veafCombatZone.GetZone(wanted) then return "unknown" end
+for _, zone in ipairs(veafCombatZone.zonesList) do
+  if not zone.taskingOrderDict and zone:isActive() then
+    veafCombatZone.DesactivateZone(zone:getMissionEditorZoneName(), true)
+  end
+end
+veafCombatZone.ActivateZone(wanted, true)
+return "ok"
+"""
+
+_DEACTIVATE_LUA = "veafCombatZone.DesactivateZone(wanted, true) return 'ok'"
+
+_AIRBASE_LUA = r"""
+local a = Airbase.getByName(wanted)
+if not a then return "" end
+local p = a:getPoint()
+return string.format("%.1f\t%.1f", p.x, p.z)
 """
 
 
@@ -350,30 +378,17 @@ def activate_alone_lua(zone: str) -> str:
     Returns:
         Lua source returning ``ok``, or ``unknown`` when the mission has no such combat zone.
     """
-    return f"""
-local wanted = {lua_quoted_string(zone)}
-if not veafCombatZone or not veafCombatZone.GetZone(wanted) then return "unknown" end
-for _, zone in ipairs(veafCombatZone.zonesList) do
-  if not zone.taskingOrderDict and zone:isActive() then
-    veafCombatZone.DesactivateZone(zone:getMissionEditorZoneName(), true)
-  end
-end
-veafCombatZone.ActivateZone(wanted, true)
-return "ok"
-"""
+    return _naming(zone, _ACTIVATE_ALONE_LUA)
 
 
 def deactivate_lua(zone: str) -> str:
     """Return the chunk that deactivates *zone*, silently."""
-    return f"veafCombatZone.DesactivateZone({lua_quoted_string(zone)}, true) return 'ok'"
+    return _naming(zone, _DEACTIVATE_LUA)
 
 
 def airbase_lua(name: str) -> str:
     """Return the chunk giving an airbase's position as ``x z``, or an empty string when there is none."""
-    return (
-        f"local a = Airbase.getByName({lua_quoted_string(name)}) if not a then return '' end "
-        "local p = a:getPoint() return string.format('%.1f\\t%.1f', p.x, p.z)"
-    )
+    return _naming(name, _AIRBASE_LUA)
 
 
 def parse_point(text: str) -> tuple[float, float] | None:

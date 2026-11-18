@@ -1,6 +1,6 @@
 # 01 — recon-prepare: names shown last, spawn database checked, zones left alone
 
-Status: 🔄 in progress
+Status: ✅ done
 
 - `veaf.HideNamesFromSpawnedGroups = false` goes at the **end** of `veaf-config.lua`, after the mission's own settings.
 - The copy no longer activates every combat zone at start: `recon-shoot` activates them one at a time.

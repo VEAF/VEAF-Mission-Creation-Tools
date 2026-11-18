@@ -1131,6 +1131,34 @@ both.
 *What it cost:* The first reconnaissance shots of "Marteau du Golan" (Syria, 2026-10-28) left the camera where it was,
 then moved the F10 map, before the export route was found.
 
+### After a long F11 camera jump, the terrain stays blurred for several seconds {#terrain-blurred-after-a-long-camera-jump}
+
+Measured **2026-11-17**.
+
+Moved tens of kilometres by `LoSetCameraPosition`, the free camera shows the new place at once, but
+the terrain textures load over several seconds: a picture taken 2.5 s after the jump is blurred. On
+the Falklands Open Training, 4 photos out of 26 were blurred at 2.5 s, none at 10 s.
+
+**What to do:** Leave the camera on the place about ten seconds before taking the picture. `veaf-tools dcs
+recon-shoot` does it (`--warmup`, 10 s by default), then reads the units' positions again, so that
+the wait does not leave moving vehicles out of their rings.
+
+*What it cost:* Four Falklands recon photos taken again (2026-11-17).
+
+### DCS's screenshot command writes the picture even with its window in the background {#screenshot-command-works-in-the-background}
+
+Measured **2026-11-17**.
+
+`LoSetCommand(257)` (`iCommandScreenShot`) sent to the `export` state writes the rendered frame to
+`Saved Games\DCS\Screenshots`, whatever window is in front; a grab of the Windows screen needs the
+DCS window in front and uncovered, and returns it black on a capture of all screens.
+
+**What to do:** Ask DCS for its own screenshot and pick the file up. `veaf-tools dcs recon-shoot` does it by default
+(`--capture dcs`); the file is read, then deleted.
+
+*What it cost:* Before it, a recon run took the computer for its whole length: 203 Open Training photos were taken
+with the window in the background (2026-11-17).
+
 ## Weather and wind {#weather}
 
 ### The Mission Editor's ground wind is the 10 m wind only at the sea shore: inland, DCS flies up to 2.1 times it {#editor-ground-wind-is-not-the-surface-wind}

@@ -1852,6 +1852,49 @@ limitations:
     The first reconnaissance shots of "Marteau du Golan" (Syria, 2026-10-28) left the camera where it was,
     then moved the F10 map, before the export route was found.
 
+- id: terrain-blurred-after-a-long-camera-jump
+  kind: dcs
+  area: scripting
+  title: "After a long F11 camera jump, the terrain stays blurred for several seconds"
+  measured: "2026-11-17"
+  symptom: |
+    Moved tens of kilometres by `LoSetCameraPosition`, the free camera shows the new place at once, but
+    the terrain textures load over several seconds: a picture taken 2.5 s after the jump is blurred. On
+    the Falklands Open Training, 4 photos out of 26 were blurred at 2.5 s, none at 10 s.
+  workaround: |
+    Leave the camera on the place about ten seconds before taking the picture. `veaf-tools dcs
+    recon-shoot` does it (`--warmup`, 10 s by default), then reads the units' positions again, so that
+    the wait does not leave moving vehicles out of their rings.
+  cost: |
+    Four Falklands recon photos taken again (2026-11-17).
+
+- id: screenshot-command-works-in-the-background
+  kind: dcs
+  area: scripting
+  title: "DCS's screenshot command writes the picture even with its window in the background"
+  measured: "2026-11-17"
+  symptom: |
+    `LoSetCommand(257)` (`iCommandScreenShot`) sent to the `export` state writes the rendered frame to
+    `Saved Games\DCS\Screenshots`, whatever window is in front; a grab of the Windows screen needs the
+    DCS window in front and uncovered, and returns it black on a capture of all screens.
+  workaround: |
+    Ask DCS for its own screenshot and pick the file up. `veaf-tools dcs recon-shoot` does it by default
+    (`--capture dcs`); the file is read, then deleted.
+  cost: |
+    Before it, a recon run took the computer for its whole length: 203 Open Training photos were taken
+    with the window in the background (2026-11-17).
+
+- id: recon-small-fast-boats
+  kind: tool
+  area: runtime
+  title: "A recon photo of small fast boats shows an empty sea"
+  symptom: |
+    A speedboat is a few pixels wide at 2 km, and it runs hundreds of metres between the positions
+    read and the picture: on the Sinai (Tiran) and Persian Gulf (Abu Musa) Open Training missions, the
+    photo showed a ring on an empty sea at 4.5 then 2 km (2026-11-18).
+  workaround: |
+    Leave such an objective without a photo, or set a short `slant` by hand and check the picture.
+
 - id: operation-registers-its-zones-twice
   kind: tool
   area: runtime

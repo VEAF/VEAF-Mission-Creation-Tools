@@ -1,6 +1,6 @@
 # 03 — recon-shoot: one zone at a time, DCS's own screenshot, positions read at the grab
 
-Status: 🔄 in progress
+Status: ✅ done
 
 - For a shot on a combat zone: every active zone is deactivated, the shot's zone activated alone, its spawn awaited, and the zone deactivated after the shot.
 - The shot's units are the ones the zone reports (spawned groups and its elements' groups), not a name prefix; `groups` narrows them when given.

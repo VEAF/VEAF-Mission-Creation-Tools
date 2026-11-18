@@ -1079,35 +1079,54 @@ Four commands, one per step, because you act between each: they produce one reco
 
 The whole sequence:
 
-1. `.\veaf-tools.exe dcs recon-prepare MyMission.miz` writes `MyMission_RECON.miz` beside it: clear sky, chosen time, every combat zone active at start, readable group names, and the [VEAF bridge](#dcs-bridge) embedded, through which `recon-plan` and `recon-shoot` talk to the mission. The original mission is not touched.
-2. In DCS: open `MyMission_RECON.miz`, take a **spectator** slot, press **F11** (free camera). Keep the DCS window on the **primary screen**.
-3. `.\veaf-tools.exe dcs recon-plan --operation "Golan Hammer"` writes `shots.yaml`: one shot per zone, with the names of the groups found.
-4. Complete `shots.yaml`: for each shot, the engagement `heading` (the direction the attacker looks, in degrees on the mission's grid, as DCS turns its camera: the photo's banner and the briefing print it magnetic), and if needed `pitch` (degrees below the horizon), `slant` (distance in metres), `mark: units` to circle each vehicle, `labels` to name the targets.
-5. `.\veaf-tools.exe dcs recon-shoot`: the command puts the camera on each shot and grabs the window. Do not touch the mouse or the keyboard until it is done.
+1. `.\veaf-tools.exe dcs recon-prepare MyMission.miz` writes `MyMission_RECON.miz` beside it: clear sky, chosen time, readable group names, and the [VEAF bridge](#dcs-bridge) embedded, through which `recon-plan` and `recon-shoot` talk to the mission. The original mission is not touched. A mission that carries the spawn database with no trigger loading it is refused: its zones would spawn nothing.
+2. In DCS: open `MyMission_RECON.miz`, take a **spectator** slot, press **F11** (free camera). The DCS window may then go behind other windows.
+3. `.\veaf-tools.exe dcs recon-plan --operation "Golan Hammer" --from "Kutaisi"` writes `shots.yaml`: one shot per combat zone, the heading pointing from the `--from` airbase to the zone. With a `docs\kneeboard.json` (an Open Training's briefing words), the shots follow its objectives, in its order and with its titles.
+4. Check `shots.yaml`: the `heading` (the direction the camera looks, in degrees on the mission's grid, as DCS turns its camera: the photo's banner and the briefing print it magnetic), and if needed `pitch` (degrees below the horizon), `slant` (distance in metres, `auto` by default), `mark: units` to circle each vehicle, `labels` to name the targets.
+5. `.\veaf-tools.exe dcs recon-shoot`: for each shot, the command activates its combat zone **alone**, places the camera, lets the terrain load, reads the positions again and takes the picture with DCS's own screenshot. You keep your computer: the DCS window may stay behind the others.
 6. `.\veaf-tools.exe dcs recon-render` writes the photos into `docs\recon\`, where the briefing (`build_mission_briefing`) looks for them.
    A shot tied to a bare group prefix (`Sasa [r]`) joins its zone (`Sasa`) when `recon-render` is run again: no need to take it again.
 
 Run the commands from the mission folder: the raw shots go to `docs\build\recon\raw\`, the finished photos to `docs\recon\`.
 
-A completed `shots.yaml`:
+A checked `shots.yaml`:
 
 ```yaml
 operation: Golan Hammer
 coalition: red
 shots:
-  - name: 03-sa11
+  - name: 01-kiswah
+    title: Kiswah - SA-11
+    zone: combatZone_Kiswah
+    heading: 70
+    pitch: 30
+    slant: auto
+  - name: 02-sa11
     title: Kiswah SA-11 battery
     groups: [SA11Kiswah]
     heading: 70
-    pitch: 30
     slant: 1100
     mark: units
     labels: {"SA-11 Buk SR": "RADAR 9S18", "SA-11 Buk LN": "TEL"}
 ```
 
-The camera stands `slant` metres from the target, `pitch` degrees above the horizon, looking along `heading`. The marks are placed by projection with an 80° horizontal field, measured: the six vehicles of an SA-11 fall within a few pixels of their projection.
+A shot aims either at a **combat zone** (`zone`) or at groups by the start of their names (`groups`).
+For a combat zone, `recon-shoot` deactivates every active zone and activates the shot's zone **alone**: the easy, medium and hard levels of one site share one zone, and active together they were superimposed on the photo. The targets are then the groups the zone spawned, whatever their names; `groups` narrows the shot to some of them.
 
-**One shot per objective, two at most**: the briefing keeps two and skips the rest. **A group of vehicles that move about** — tanks, light armour, trucks, 4x4 — **is never ringed**, whatever `mark` says: the photo shows its zone, not where each vehicle stood, since they will have moved. A group holding a SAM, a radar or artillery is a site and is ringed. The banner gives the target's position in DDM and MGRS.
+The camera stands `slant` metres from the target, `pitch` degrees above the horizon, looking along `heading`. `slant: auto` frames the units: three times their spread, between 600 m and 6 km. The marks are placed by projection with an 80° horizontal field, measured: the six vehicles of an SA-11 fall within a few pixels of their projection.
+
+**One shot per objective, two at most**: the briefing keeps two and skips the rest.
+
+The marks, in `groups` mode (the default):
+
+- **One ring per group**, moving vehicles included: their positions are read again just before the picture.
+- **The label says the category**, in the plural: heavy armour, light armour, short-, medium- or long-range air defence, early-warning radars, surface-to-surface missiles, artillery, infantry, logistics, armed ships, ships, targets. A battery takes the category of its long- or medium-range search radar; otherwise a group takes its most frequent category.
+- **A zone made only of statics** (a range) gets a single ring, "Target area".
+- **Each ship gets its own ring**: the ships of one group sail kilometres apart.
+- **Close rings of one category merge**, so that their labels do not pile up.
+- `labels` given in the shot win over the category.
+
+The banner gives the target's position in DDM and MGRS.
 
 #### `veaf-tools dcs recon-prepare` {#recon-prepare}
 
@@ -1131,10 +1150,14 @@ The camera stands `slant` metres from the target, `pitch` degrees above the hori
 | `--out` | `Path` | `shots.yaml` | The shots file to write. |
 | `--coalition` | `str` | `red` | The side to photograph: `red` or `blue`. |
 | `--operation` | `str` | *(none)* | The operation's name, printed on every photo. |
+| `--from` | `str` | *(none)* | Airbase (DCS name) the shots look from: each heading points from it to its zone. Without it, the heading is 0, to set by hand. |
+| `--objectives` | `Path` | `docs\kneeboard.json` when it exists | The briefing's words (JSON with an `objectives` list of `zone` and `title`): the shots follow its objectives, in its order and with its titles. Without a file, one shot per combat zone. |
 | `--force` | `boolean` | `false` | Overwrite an existing shots file. |
 | `--verbose` | `boolean` | `false` | If enabled, prints detailed debug information. |
 
 Plus the [bridge options](#dcs-bridge).
+
+The command lists combat zones only: an AWACS, a tanker or a lone radar is no objective. An objective with no combat zone of that name in the mission is reported and left out. The folder of `--out` is created when it does not exist.
 
 *Flat alias : `veaf-tools recon-plan`*
 
@@ -1145,11 +1168,22 @@ Plus the [bridge options](#dcs-bridge).
 | `--shots` | `Path` | `shots.yaml` | The shots file. |
 | `--raw-dir` | `Path` | `docs\build\recon\raw` | Folder of the raw shots (PNG + JSON). |
 | `--only` | `str` | *(all)* | Shot name to take; repeat for several. |
+| `--capture` | `str` | `dcs` | How the picture is taken: `dcs` (DCS's own screenshot, the window free to stay in the background) or `window` (grab of the DCS window, which must stay in front). |
+| `--screenshots-dir` | `Path` | `Saved Games\DCS\Screenshots` | Folder DCS writes its screenshots to. |
+| `--warmup` | `float` | `10` | Seconds the camera stays on a shot so that the terrain loads. |
 | `--verbose` | `boolean` | `false` | If enabled, prints detailed debug information. |
 
 Plus the [bridge options](#dcs-bridge).
 
-The F11 camera is moved from DCS's `export` state, which the bridge reaches through `net.dostring_in`; the window is grabbed on this computer. The DCS window must be on the primary screen and visible: a grab of all screens returns the DirectX window black, and a black grab is retried up to eight times.
+The F11 camera is moved from DCS's `export` state, which the bridge reaches through `net.dostring_in`. For each shot:
+
+1. A shot on a combat zone activates that zone alone and waits for it to spawn (10 s).
+2. The camera goes to the shot and stays `--warmup` seconds: after a long jump, 2.5 s left photos blurred.
+3. The positions are read again and the camera placed on them.
+4. The positions are read one last time just before the picture, so that the rings land on moving vehicles.
+5. The zone is deactivated.
+
+With `--capture dcs`, the picture comes from DCS's screenshot command (`LoSetCommand(257)`), sent through the bridge: DCS writes the image to its `Screenshots` folder, and the command reads it then deletes it. With `--capture window`, the DCS window must be on the primary screen and visible: a grab of all screens returns the DirectX window black, and a black grab is retried up to eight times.
 
 *Flat alias : `veaf-tools recon-shoot`*
 

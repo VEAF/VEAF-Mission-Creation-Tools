@@ -1,10 +1,10 @@
 """Reconnaissance photos of a mission's objectives, taken in a running DCS.
 
 Four steps, four commands, because a person sits between each: ``recon-prepare`` writes the shooting
-copy of the mission, which the mission maker launches in DCS; ``recon-plan`` lists what is on the map
-into a shots file they edit (the engagement heading is theirs to give); ``recon-shoot`` moves the F11
-camera and grabs the window; ``recon-render`` makes the photos. Nothing here launches DCS or touches
-a session the user did not start.
+copy of the mission, which the mission maker launches in DCS; ``recon-plan`` lists the combat zones
+into a shots file they check (the engagement heading is theirs to confirm); ``recon-shoot`` activates
+each shot's zone alone, moves the F11 camera and takes DCS's screenshot; ``recon-render`` makes the
+photos. Nothing here launches DCS or touches a session the user did not start.
 
 ``recon-plan`` and ``recon-shoot`` talk to the mission through the VEAF bridge that ``recon-prepare``
 embeds in the shooting copy (REFACTOR-BRIDGE-ONLY): ``dcs-serve`` is started when none runs.
@@ -94,7 +94,7 @@ def recon_plan(
     wait: int = typer.Option(DEFAULT_WAIT_SECONDS, "--wait", min=0, help=t("cmd.bridge.opt.wait")),
     verbose: bool = typer.Option(False, help=VERBOSE_HELP),
 ) -> None:
-    """List what is on the map into a shots file to edit."""
+    """List the combat zones of the running mission into a shots file to check."""
     logger.set_verbose(verbose)
     console.print(t("cmd.recon_plan.title", version=VERSION))
     if coalition not in COALITIONS:

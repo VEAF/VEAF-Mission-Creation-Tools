@@ -279,6 +279,38 @@ def inject_bridge_in_memory(mission: Any, bridge_lua: Path) -> dict[str, bytes]:
     return files
 
 
+#: The map key the spawn database is loaded under (``spawn_data_injector``, ADR 0005).
+SPAWN_DATA_MAP_KEY = "VEAF_MapKey_SpawnData"
+
+
+def check_spawn_data_loaded(mission: Any, members: list[str]) -> None:
+    """Refuse a mission that carries the spawn database but never loads it.
+
+    A ``_RECON`` copy of the Caucasus Open Training (2026-11-17) had no trigger loading
+    ``VEAF_MapKey_SpawnData``: ``veafUnits.GroupsDatabase`` was empty in game, every ``#command`` zone
+    spawned nothing, and its photos showed empty ground. The cause was not found; the copy is refused.
+
+    Args:
+        mission: The mission, as ``read_miz`` returned it.
+        members: The archive's member names.
+
+    Raises:
+        ValueError: ``veaf-spawn-data.lua`` is in the archive and no trigger action loads it.
+    """
+    from mission_tools.mission_constants import SPAWN_DATA_ARTIFACT  # noqa: PLC0415
+
+    if not any(member.endswith("/" + SPAWN_DATA_ARTIFACT) for member in members):
+        return
+    actions = ((mission.mission_content or {}).get("trig") or {}).get("actions") or {}
+    calls = actions.values() if isinstance(actions, dict) else actions
+    if any(f'"{SPAWN_DATA_MAP_KEY}"' in str(call) for call in calls):
+        return
+    raise ValueError(
+        f"the mission carries {SPAWN_DATA_ARTIFACT} but no trigger loads {SPAWN_DATA_MAP_KEY}: every combat "
+        "zone would spawn nothing. Build the mission again."
+    )
+
+
 def _parse_capture(result: str) -> tuple[str, list[dict[str, Any]]]:
     """Parse the capture snippet's raw result into ``(theatre, airbases)``."""
     if not result or result.startswith("Error:"):

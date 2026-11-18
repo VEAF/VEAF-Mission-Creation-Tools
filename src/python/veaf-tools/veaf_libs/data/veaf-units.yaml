@@ -279,7 +279,7 @@ groups:
 - aliases: [insurgent_manpad_squad, ins_manpad]
   disposition: {h: 3, w: 3}
   units:
-  - {type: MANPADS SA-18 Igla "Grouse" C2, random: true}
+  - {type: SA-18 Igla comm, random: true}
   - {type: Igla manpad INS, random: true}
   - {type: Infantry AK Ins, number: {max: 3, min: 2}, random: true}
   - {type: HL_DSHK, random: true}
@@ -288,7 +288,7 @@ groups:
 - aliases: [sa18_squad]
   disposition: {h: 3, w: 3}
   units:
-  - {type: MANPADS SA-18 Igla "Grouse" C2, random: true}
+  - {type: SA-18 Igla comm, random: true}
   - {type: SA-18 Igla manpad, number: {max: 2, min: 1}, random: true}
   - {type: Infantry AK, number: {max: 4, min: 2}, random: true}
   - {type: UAZ-469, random: true}
@@ -297,7 +297,7 @@ groups:
 - aliases: [sa18s_squad]
   disposition: {h: 4, w: 4}
   units:
-  - {type: MANPADS SA-18 Igla-S "Grouse" C2, random: true}
+  - {type: SA-18 Igla-S comm, random: true}
   - {type: SA-18 Igla-S manpad, number: {max: 2, min: 1}, random: true}
   - {type: Infantry AK ver2, number: {max: 6, min: 2}, random: true}
   - {type: Tigr_233036, random: true}
@@ -314,7 +314,7 @@ groups:
   disposition: {h: 7, w: 7}
   units:
   - {type: 55G6 EWR, cell: 25}
-  - {type: MANPADS SA-18 Igla "Grouse" C2, random: true}
+  - {type: SA-18 Igla comm, random: true}
   - {type: SA-18 Igla manpad, random: true}
   - {type: Ural-375 PBU, random: true}
   description: Red EWR
@@ -464,9 +464,9 @@ groups:
 - aliases: [infantry section, infsec]
   disposition: {h: 10, w: 4}
   units:
-  - {type: IFV BTR-80, cell: 38, random: true}
-  - {type: IFV BTR-80, cell: 39, random: true}
-  - {type: INF Soldier AK, number: {max: 30, min: 12}, random: true}
+  - {type: BTR-80, cell: 38, random: true}
+  - {type: BTR-80, cell: 39, random: true}
+  - {type: Infantry AK, number: {max: 30, min: 12}, random: true}
   - {type: SA-18 Igla manpad, number: {max: 2, min: 0}, random: true}
   description: Mechanized infantry section with APCs
   groupName: Mechanized infantry section
@@ -585,10 +585,10 @@ groups:
   disposition: {h: 20, w: 20}
   units:
   - {type: Hummer, number: {max: 4, min: 2}, random: true}
-  - {type: Truck M 818, number: {max: 6, min: 3}, random: true}
-  - {type: Truck M978 HEMTT Tanker, number: {max: 3, min: 0}, random: true}
-  - {type: Truck Predator GCS, number: {max: 2, min: 0}, random: true}
-  - {type: Truck Predator TrojanSpirit, number: {max: 2, min: 0}, random: true}
+  - {type: M 818, number: {max: 6, min: 3}, random: true}
+  - {type: M978 HEMTT Tanker, number: {max: 3, min: 0}, random: true}
+  - {type: Predator GCS, number: {max: 2, min: 0}, random: true}
+  - {type: Predator TrojanSpirit, number: {max: 2, min: 0}, random: true}
   description: US supply convoy
   groupName: US supply convoy
 - aliases: [RU supply convoy with defense, redconvoy-def]
@@ -602,14 +602,14 @@ groups:
   - {type: S-60_Type59_Artillery, number: {max: 1, min: 0}, random: true}
   - {type: Ural-375 ZU-23, number: {max: 2, min: 0}, random: true}
   - {type: UAZ-469, number: {max: 4, min: 2}, random: true}
-  - {type: Truck SKP-11, number: {max: 3, min: 1}, random: true}
+  - {type: SKP-11, number: {max: 3, min: 1}, random: true}
   - {type: Ural-375 PBU, number: {max: 3, min: 1}, random: true}
-  - {type: Truck Ural-375, number: {max: 3, min: 1}, random: true}
-  - {type: Truck Ural-4320 APA-5D, number: {max: 3, min: 1}, random: true}
-  - {type: Truck Ural-4320-31, number: {max: 3, min: 1}, random: true}
+  - {type: Ural-375, number: {max: 3, min: 1}, random: true}
+  - {type: Ural-4320 APA-5D, number: {max: 3, min: 1}, random: true}
+  - {type: Ural-4320-31, number: {max: 3, min: 1}, random: true}
   - {type: Truck Ural-4320T, number: {max: 3, min: 1}, random: true}
-  - {type: Truck ZiL-131 APA-80, number: {max: 3, min: 1}, random: true}
-  - {type: Truck ZIL-131 KUNG, number: {max: 3, min: 1}, random: true}
+  - {type: ZiL-131 APA-80, number: {max: 3, min: 1}, random: true}
+  - {type: ZIL-131 KUNG, number: {max: 3, min: 1}, random: true}
   description: RU supply convoy with defense
   groupName: RU supply convoy with defense
 - aliases: [RU supply convoy with light defense, redconvoy-lightdef]
@@ -620,28 +620,28 @@ groups:
   - {type: S-60_Type59_Artillery, number: {max: 1, min: 0}, random: true}
   - {type: Ural-375 ZU-23, number: {max: 2, min: 0}, random: true}
   - {type: UAZ-469, number: {max: 4, min: 2}, random: true}
-  - {type: Truck SKP-11, number: {max: 3, min: 1}, random: true}
+  - {type: SKP-11, number: {max: 3, min: 1}, random: true}
   - {type: Ural-375 PBU, number: {max: 3, min: 1}, random: true}
-  - {type: Truck Ural-375, number: {max: 3, min: 1}, random: true}
-  - {type: Truck Ural-4320 APA-5D, number: {max: 3, min: 1}, random: true}
-  - {type: Truck Ural-4320-31, number: {max: 3, min: 1}, random: true}
+  - {type: Ural-375, number: {max: 3, min: 1}, random: true}
+  - {type: Ural-4320 APA-5D, number: {max: 3, min: 1}, random: true}
+  - {type: Ural-4320-31, number: {max: 3, min: 1}, random: true}
   - {type: Truck Ural-4320T, number: {max: 3, min: 1}, random: true}
-  - {type: Truck ZiL-131 APA-80, number: {max: 3, min: 1}, random: true}
-  - {type: Truck ZIL-131 KUNG, number: {max: 3, min: 1}, random: true}
+  - {type: ZiL-131 APA-80, number: {max: 3, min: 1}, random: true}
+  - {type: ZIL-131 KUNG, number: {max: 3, min: 1}, random: true}
   description: RU supply convoy with light defense
   groupName: RU supply convoy with light defense
 - aliases: [RU supply convoy with no defense, redconvoy-nodef]
   disposition: {h: 20, w: 20}
   units:
   - {type: UAZ-469, number: {max: 4, min: 2}, random: true}
-  - {type: Truck SKP-11, number: {max: 3, min: 1}, random: true}
+  - {type: SKP-11, number: {max: 3, min: 1}, random: true}
   - {type: Ural-375 PBU, number: {max: 3, min: 1}, random: true}
-  - {type: Truck Ural-375, number: {max: 3, min: 1}, random: true}
-  - {type: Truck Ural-4320 APA-5D, number: {max: 3, min: 1}, random: true}
-  - {type: Truck Ural-4320-31, number: {max: 3, min: 1}, random: true}
+  - {type: Ural-375, number: {max: 3, min: 1}, random: true}
+  - {type: Ural-4320 APA-5D, number: {max: 3, min: 1}, random: true}
+  - {type: Ural-4320-31, number: {max: 3, min: 1}, random: true}
   - {type: Truck Ural-4320T, number: {max: 3, min: 1}, random: true}
-  - {type: Truck ZiL-131 APA-80, number: {max: 3, min: 1}, random: true}
-  - {type: Truck ZIL-131 KUNG, number: {max: 3, min: 1}, random: true}
+  - {type: ZiL-131 APA-80, number: {max: 3, min: 1}, random: true}
+  - {type: ZIL-131 KUNG, number: {max: 3, min: 1}, random: true}
   description: RU supply convoy with no defense
   groupName: RU supply convoy with no defense
 - aliases: [RU small supply convoy with defense, redsmallconvoy-def]
@@ -655,14 +655,14 @@ groups:
   - {type: S-60_Type59_Artillery, number: {max: 1, min: 0}, random: true}
   - {type: Ural-375 ZU-23, number: {max: 2, min: 0}, random: true}
   - {type: UAZ-469, number: {max: 2, min: 1}, random: true}
-  - {type: Truck SKP-11, number: {max: 2, min: 1}, random: true}
+  - {type: SKP-11, number: {max: 2, min: 1}, random: true}
   - {type: Ural-375 PBU, number: {max: 2, min: 0}, random: true}
-  - {type: Truck Ural-375, number: {max: 2, min: 0}, random: true}
-  - {type: Truck Ural-4320 APA-5D, number: {max: 2, min: 0}, random: true}
-  - {type: Truck Ural-4320-31, number: {max: 2, min: 0}, random: true}
+  - {type: Ural-375, number: {max: 2, min: 0}, random: true}
+  - {type: Ural-4320 APA-5D, number: {max: 2, min: 0}, random: true}
+  - {type: Ural-4320-31, number: {max: 2, min: 0}, random: true}
   - {type: Truck Ural-4320T, number: {max: 2, min: 0}, random: true}
-  - {type: Truck ZiL-131 APA-80, number: {max: 2, min: 0}, random: true}
-  - {type: Truck ZIL-131 KUNG, number: {max: 2, min: 0}, random: true}
+  - {type: ZiL-131 APA-80, number: {max: 2, min: 0}, random: true}
+  - {type: ZIL-131 KUNG, number: {max: 2, min: 0}, random: true}
   description: RU small supply convoy with defense
   groupName: RU small supply convoy with defense
 - aliases: [RU small supply convoy with light defense, redsmallconvoy-lightdef]
@@ -673,28 +673,28 @@ groups:
   - {type: S-60_Type59_Artillery, number: {max: 1, min: 0}, random: true}
   - {type: Ural-375 ZU-23, number: {max: 2, min: 0}, random: true}
   - {type: UAZ-469, number: {max: 2, min: 1}, random: true}
-  - {type: Truck SKP-11, number: {max: 2, min: 1}, random: true}
+  - {type: SKP-11, number: {max: 2, min: 1}, random: true}
   - {type: Ural-375 PBU, number: {max: 2, min: 0}, random: true}
-  - {type: Truck Ural-375, number: {max: 2, min: 0}, random: true}
-  - {type: Truck Ural-4320 APA-5D, number: {max: 2, min: 0}, random: true}
-  - {type: Truck Ural-4320-31, number: {max: 2, min: 0}, random: true}
+  - {type: Ural-375, number: {max: 2, min: 0}, random: true}
+  - {type: Ural-4320 APA-5D, number: {max: 2, min: 0}, random: true}
+  - {type: Ural-4320-31, number: {max: 2, min: 0}, random: true}
   - {type: Truck Ural-4320T, number: {max: 2, min: 0}, random: true}
-  - {type: Truck ZiL-131 APA-80, number: {max: 2, min: 0}, random: true}
-  - {type: Truck ZIL-131 KUNG, number: {max: 2, min: 0}, random: true}
+  - {type: ZiL-131 APA-80, number: {max: 2, min: 0}, random: true}
+  - {type: ZIL-131 KUNG, number: {max: 2, min: 0}, random: true}
   description: RU small supply convoy with light defense
   groupName: RU small supply convoy with light defense
 - aliases: [RU small supply convoy with no defense, redsmallconvoy-nodef, redconvoy, convoy]
   disposition: {h: 20, w: 20}
   units:
   - {type: UAZ-469, number: {max: 2, min: 1}, random: true}
-  - {type: Truck SKP-11, number: {max: 2, min: 1}, random: true}
+  - {type: SKP-11, number: {max: 2, min: 1}, random: true}
   - {type: Ural-375 PBU, number: {max: 2, min: 0}, random: true}
-  - {type: Truck Ural-375, number: {max: 2, min: 0}, random: true}
-  - {type: Truck Ural-4320 APA-5D, number: {max: 2, min: 0}, random: true}
-  - {type: Truck Ural-4320-31, number: {max: 2, min: 0}, random: true}
+  - {type: Ural-375, number: {max: 2, min: 0}, random: true}
+  - {type: Ural-4320 APA-5D, number: {max: 2, min: 0}, random: true}
+  - {type: Ural-4320-31, number: {max: 2, min: 0}, random: true}
   - {type: Truck Ural-4320T, number: {max: 2, min: 0}, random: true}
-  - {type: Truck ZiL-131 APA-80, number: {max: 2, min: 0}, random: true}
-  - {type: Truck ZIL-131 KUNG, number: {max: 2, min: 0}, random: true}
+  - {type: ZiL-131 APA-80, number: {max: 2, min: 0}, random: true}
+  - {type: ZIL-131 KUNG, number: {max: 2, min: 0}, random: true}
   description: RU small supply convoy with no defense
   groupName: RU small supply convoy with no defense
 - aliases: [hv_convoy_red]

@@ -55,16 +55,19 @@ def derive_check_mission(miz: Path, out: Path, bridge_lua: Path) -> None:
         bridge_lua: The ``dcs-bridge.lua`` to embed.
 
     Raises:
-        ValueError: *out* is *miz*, or *miz* is not a mission.
+        ValueError: *out* is *miz*, *miz* is not a mission, or it carries the spawn database without
+            loading it.
     """
-    from mission_tools.miz_tools import read_miz, write_miz  # noqa: PLC0415
+    from mission_tools.miz_tools import list_members, read_miz, write_miz  # noqa: PLC0415
 
-    from veaf_libs.dcs_bridge_capture import inject_bridge_in_memory  # noqa: PLC0415
+    from veaf_libs.dcs_bridge_capture import check_spawn_data_loaded, inject_bridge_in_memory  # noqa: PLC0415
 
     if out.resolve() == miz.resolve():
         raise ValueError("the test copy must not overwrite the mission it is made from")
-    if read_miz(miz).mission_content is None:
+    source = read_miz(miz)
+    if source.mission_content is None:
         raise ValueError(f"{miz.name} is not a DCS mission (no 'mission' member)")
+    check_spawn_data_loaded(source, list_members(miz))
     shutil.copyfile(miz, out)
     mission = read_miz(out)
     write_miz(mission, out, additional_files=inject_bridge_in_memory(mission, bridge_lua))

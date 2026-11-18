@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import math
 import random
+from collections import Counter
 from collections.abc import Callable
 from datetime import date
 from pathlib import Path
@@ -23,7 +24,7 @@ from typing import Any
 from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 from veaf_libs.dcs_recon import LiveUnit, camera_of, dominant_type, project
-from veaf_libs.dcs_units_data import is_mobile_vehicle_group
+from veaf_libs.dcs_units_data import get_unit_attributes
 from veaf_libs.i18n import t
 from veaf_libs.magnetic import grid_heading_to_magnetic, grid_heading_to_true
 from veaf_libs.mgrs import target_coordinates
@@ -155,13 +156,107 @@ def _label(labels: dict[str, str], key: str, fallback: str) -> str:
     return fallback
 
 
+#: The categories a group is labelled with, highest priority first: ``(i18n key, test on the DCS attributes)``.
+#: David's choice for the Open Training photos (2026-11-17): plural categories a pilot reads at a glance.
+CATEGORIES: tuple[tuple[str, Callable[[frozenset[str]], bool]], ...] = (
+    ("long_range_sam", lambda a: "LR SAM" in a),
+    ("medium_range_sam", lambda a: "MR SAM" in a),
+    ("short_range_sam", lambda a: bool(a & {"SR SAM", "IR Guided SAM", "MANPADS", "AAA", "SAM", "SAM LL", "SAM TR"})),
+    ("ewr", lambda a: "EWR" in a),
+    ("ss_missile", lambda a: "SS_missile" in a),
+    ("artillery", lambda a: bool(a & {"Artillery", "Indirect fire", "MLRS"})),
+    ("heavy_armor", lambda a: bool(a & {"HeavyArmoredUnits", "Tanks"}) and "Ground Units" in a),
+    ("light_armor", lambda a: bool(a & {"LightArmoredUnits", "IFV", "APC"}) and "Ground Units" in a),
+    ("infantry", lambda a: "Infantry" in a),
+    ("logistics", lambda a: bool(a & {"Trucks", "Unarmed vehicles", "Cars"})),
+    ("armed_ships", lambda a: bool(a & {"Armed ships", "Armed Ship"})),
+    ("ships", lambda a: "Ships" in a),
+)
+#: Categories that name a site by its best element: a SA-6 battery is one radar and more launchers, and
+#: its launchers alone read short-range.
+_SITE_CATEGORIES = frozenset({"long_range_sam", "medium_range_sam"})
+#: Pixels between two rings of the same label below which they are drawn as one, and the largest radius
+#: such a merged ring may reach (Open Training, 2026-11-17).
+MERGE_PX = 260.0
+MAX_MERGED_RADIUS_PX = 330.0
+
+
+def category_of(unit_type: str) -> tuple[int, str | None]:
+    """Return a unit type's category: ``(rank, key)``, rank 0 first, ``key`` ``None`` when none fits."""
+    attributes = get_unit_attributes(unit_type)
+    for rank, (key, test) in enumerate(CATEGORIES):
+        if test(attributes):
+            return rank, key
+    return len(CATEGORIES), None
+
+
+def group_label(units: list[LiveUnit]) -> str:
+    """Label a group by its category, in the plural.
+
+    A long- or medium-range air defence element names the site; otherwise the most frequent category, a
+    tie going to the higher priority. A static no category fits is a target; a vehicle none fits keeps
+    the dominant type's name.
+
+    Args:
+        units: The group's units, at least one.
+
+    Returns:
+        The label, in the current language.
+    """
+    counts: Counter[tuple[int, str | None]] = Counter(category_of(u.type) for u in units)
+    sites = sorted(c for c in counts if c[1] in _SITE_CATEGORIES)
+    _, key = sites[0] if sites else max(counts.items(), key=lambda kv: (kv[1], -kv[0][0]))[0]
+    if key is None:
+        return t("recon.category.targets") if all(u.kind == "static" for u in units) else dominant_type(units)
+    return t(f"recon.category.{key}")
+
+
+def _ring(points: list[tuple[float, float]], margin: float) -> tuple[float, float, float]:
+    """The centre and radius of a ring around *points*, *margin* pixels clear of them."""
+    xs, ys = [p[0] for p in points], [p[1] for p in points]
+    return (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2, max(max(xs) - min(xs), max(ys) - min(ys)) / 2 + margin
+
+
+def merge_marks(marks: list[tuple[float, float, float, str]]) -> list[tuple[float, float, float, str]]:
+    """Draw rings of the same label close to one another as one, so that their labels do not pile up.
+
+    A ring joins a cluster when it comes within :data:`MERGE_PX` of one of its rings and the cluster's
+    ring stays within :data:`MAX_MERGED_RADIUS_PX`.
+
+    Args:
+        marks: ``(x, y, radius, label)``.
+
+    Returns:
+        The merged marks, top of the frame first.
+    """
+    clusters: list[tuple[str, list[tuple[float, float, float]]]] = []
+
+    def bounds(rings: list[tuple[float, float, float]]) -> tuple[float, float, float]:
+        x0, x1 = min(x - r for x, _, r in rings), max(x + r for x, _, r in rings)
+        y0, y1 = min(y - r for _, y, r in rings), max(y + r for _, y, r in rings)
+        return (x0 + x1) / 2, (y0 + y1) / 2, max(x1 - x0, y1 - y0) / 2
+
+    for x, y, radius, label in marks:
+        for name, rings in clusters:
+            near = any(math.hypot(x - a, y - b) < MERGE_PX + radius + r for a, b, r in rings)
+            if name == label and near and bounds([*rings, (x, y, radius)])[2] <= MAX_MERGED_RADIUS_PX:
+                rings.append((x, y, radius))
+                break
+        else:
+            clusters.append((label, [(x, y, radius)]))
+    merged = [(*bounds(rings), label) if len(rings) > 1 else (*rings[0], label) for label, rings in clusters]
+    return sorted(merged, key=lambda m: m[1])
+
+
 def marks_of(meta: dict[str, Any], size: tuple[int, int]) -> list[tuple[float, float, float, str]]:
     """Work out where the rings go: ``(x, y, radius, label)`` in the cropped shot's pixels.
 
-    In ``groups`` mode one ring covers each group's projected vehicles; in ``units`` mode one ring
-    per vehicle. What projects outside the frame, or behind the camera, is not marked, and neither is a
-    group of vehicles that move about — tanks, armour, trucks: the photo shows their zone, not where
-    each one stood (David, FIX-MARTEAU-PLAY-FINDINGS 07).
+    In ``groups`` mode one ring covers each group's projected units, moving vehicles included — their
+    positions are read just before the grab (David, 2026-11-17, over FIX-MARTEAU-PLAY-FINDINGS 07) — and
+    is labelled by the group's category; a ship gets a ring of its own, the ships of one group sailing
+    kilometres apart; a shot of statics only gets a single ring, the target area; and close rings of the
+    same label are merged. In ``units`` mode one ring per unit, labelled by type. What projects outside
+    the frame, or behind the camera, is not marked. ``labels`` given in the shot win.
 
     Args:
         meta: The shot's metadata.
@@ -179,29 +274,31 @@ def marks_of(meta: dict[str, Any], size: tuple[int, int]) -> list[tuple[float, f
         return point is not None and 0 <= point[0] < width and 0 <= point[1] < height
 
     units = _units_of(meta)
-    types: dict[str, list[str]] = {}
+    projected: list[tuple[LiveUnit, tuple[float, float]]] = []
     for unit in units:
-        types.setdefault(unit.group, []).append(unit.type)
-    projected: dict[str, list[tuple[LiveUnit, tuple[float, float]]]] = {}
-    for unit in units:
-        # a vehicle placed as a static does not move: it is ringed like any target
-        if unit.kind == "unit" and is_mobile_vehicle_group(types[unit.group]):
-            continue
         point = project(camera, unit.x, unit.z, unit.alt, window["width"], window["height"])
         if point is not None and inside(point):
-            projected.setdefault(unit.group, []).append((unit, point))
+            projected.append((unit, point))
 
-    marks: list[tuple[float, float, float, str]] = []
-    for group, members in projected.items():
-        if meta.get("mark") == "units":
-            for unit, (px, py) in members:
-                marks.append((px, py, 30.0, _label(labels, unit.type, unit.type)))
-            continue
-        xs, ys = [p[0] for _, p in members], [p[1] for _, p in members]
-        radius = max(max(xs) - min(xs), max(ys) - min(ys)) / 2 + 36
-        label = _label(labels, group, dominant_type([u for u, _ in members]))
-        marks.append(((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2, radius, label))
-    return sorted(marks, key=lambda m: m[1])
+    if meta.get("mark") == "units":
+        marks = [(px, py, 30.0, _label(labels, u.type, u.type)) for u, (px, py) in projected]
+        return sorted(marks, key=lambda m: m[1])
+
+    if units and all(u.kind == "static" for u in units):
+        if not projected:
+            return []
+        return [(*_ring([p for _, p in projected], 36), t("recon.category.target_area"))]
+
+    groups: dict[str, list[tuple[LiveUnit, tuple[float, float]]]] = {}
+    for index, (unit, point) in enumerate(projected):
+        is_ship = category_of(unit.type)[1] in ("armed_ships", "ships")
+        groups.setdefault(f"{unit.group}\t{index}" if is_ship else unit.group, []).append((unit, point))
+    marks = []
+    for key, members in groups.items():
+        group = key.split("\t")[0]
+        label = _label(labels, group, group_label([u for u in units if u.group == group]))
+        marks.append((*_ring([p for _, p in members], 36), label))
+    return merge_marks(marks)
 
 
 def annotate(image: Image.Image, meta: dict[str, Any]) -> int:
@@ -218,15 +315,19 @@ def annotate(image: Image.Image, meta: dict[str, Any]) -> int:
     width = image.size[0]
     rng = random.Random(meta["title"])
     hand = _font(_HAND, 50)
-    placed: list[tuple[float, float]] = []
+    # the labels already written: their left and right edges and their baseline
+    placed: list[tuple[float, float, float]] = []
     marks = marks_of(meta, image.size)
     for px, py, radius, text in marks:
         rx, ry = felt_ring(draw, px, py, radius, rng)
         side = 1 if px < width * 0.7 else -1
         lx, ly = px + side * (rx + 90), py - ry - 60
-        while any(abs(ly - q) < 60 and abs(lx - p) < 420 for p, q in placed):
+        # the label's own width, as felt_label lays it out (a guess of 420 px stacked long labels)
+        text_width = draw.textlength(text, font=hand)
+        left = lx + 8 if side > 0 else lx - text_width - 8
+        while any(abs(ly - q) < 60 and left < b + 20 and a < left + text_width + 20 for a, b, q in placed):
             ly -= 64
-        placed.append((lx, ly))
+        placed.append((left, left + text_width, ly))
         felt_label(draw, (px + side * rx * 0.7, py - ry * 0.7), (lx, ly), text, rng, hand)
     return len(marks)
 

@@ -16,7 +16,16 @@ from veaf_libs.dcs_recon import INFO_BAR_PX, LiveUnit, MissionInfo, Shot, camera
 from veaf_libs.dcs_window_capture import client_box, is_black
 from veaf_libs.i18n import language
 from veaf_libs.magnetic import declination
-from veaf_libs.recon_render import RED, felt_ring, marks_of, recce_look, render_shot, shot_headings
+from veaf_libs.recon_render import (
+    RED,
+    felt_ring,
+    group_label,
+    marks_of,
+    merge_marks,
+    recce_look,
+    render_shot,
+    shot_headings,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -55,7 +64,8 @@ class TestMarks:
         marks = marks_of(meta, (WIDTH, HEIGHT - INFO_BAR_PX))
         assert len(marks) == 1  # the far-off unit projects outside the frame
         x, y, radius, label = marks[0]
-        assert label == "Kub 2P25 ln"  # the dominant type, nothing given
+        # its category, nothing given: the search radar names the battery, two launchers or not
+        assert label == "Medium-range air defence"
         camera = camera_for(1040, 1000, 800, 0, 30, 900)
         for u in meta["units"][:3]:
             px, py = project(camera, u["x"], u["z"], u["alt"], WIDTH, HEIGHT) or (0.0, 0.0)
@@ -65,39 +75,68 @@ class TestMarks:
         marks = marks_of(_meta("units", {"Kub 1S91": "RADAR 1S91"}), (WIDTH, HEIGHT - INFO_BAR_PX))
         assert sorted(m[3] for m in marks) == ["Kub 2P25 ln", "Kub 2P25 ln", "RADAR 1S91"]
 
-    def test_vehicles_that_move_are_not_ringed(self) -> None:
-        """FIX-MARTEAU-PLAY-FINDINGS 07: a photo of tanks shows their zone, not where each one stood."""
+    @staticmethod
+    def _shot(units: list[LiveUnit], mark: str = "groups") -> dict[str, Any]:
+        """A shot looking north at (1040, 1000) from 900 m, of *units*."""
+        return shot_metadata(
+            Shot("05-khan", "Khan", ["Khan"], 0, 30, 900, mark, {}),
+            camera_for(1040, 1000, 800, heading=0, pitch=30, slant=900),
+            units,
+            (1040, 1000, 800),
+            MissionInfo("Caucasus", "2011-04-16", 41460),
+            (WIDTH, HEIGHT),
+            (42.0, 41.0),
+        )
+
+    def test_vehicles_that_move_are_ringed_by_category(self) -> None:
+        """Their positions are read at the grab: on a battle there is something to ring (David, 2026-11-17)."""
         units = [
             LiveUnit("unit", 1, "Khan [r] Armor#1", "T-72B", 1000, 1000, 800),
             LiveUnit("unit", 1, "Khan [r] Armor#1", "BMP-2", 1040, 1030, 800),
             LiveUnit("unit", 1, "Khan [r] SA13#2", "Strela-10M3", 1080, 960, 800),
         ]
-        camera = camera_for(1040, 1000, 800, heading=0, pitch=30, slant=900)
-        meta = shot_metadata(
-            Shot("05-khan", "Khan", ["Khan"], 0, 30, 900, "units", {}),
-            camera,
-            units,
-            (1040, 1000, 800),
-            MissionInfo("Caucasus", "2011-04-16", 41460),
-            (WIDTH, HEIGHT),
-            (42.0, 41.0),
-        )
-        assert [m[3] for m in marks_of(meta, (WIDTH, HEIGHT - INFO_BAR_PX))] == ["Strela-10M3"]
+        labels = sorted(m[3] for m in marks_of(self._shot(units), (WIDTH, HEIGHT - INFO_BAR_PX)))
+        # a tank and an IFV: a tie, the higher priority wins
+        assert labels == ["Heavy armour", "Short-range air defence"]
 
-    def test_a_vehicle_placed_as_a_static_is_ringed(self) -> None:
-        """A static T-72 does not move: it stays a pinpointed target."""
-        units = [LiveUnit("static", 1, "Khan T-72 wreck", "T-72B", 1040, 1000, 800)]
-        camera = camera_for(1040, 1000, 800, heading=0, pitch=30, slant=900)
-        meta = shot_metadata(
-            Shot("05-khan", "Khan", ["Khan"], 0, 30, 900, "units", {}),
-            camera,
-            units,
-            (1040, 1000, 800),
-            MissionInfo("Caucasus", "2011-04-16", 41460),
-            (WIDTH, HEIGHT),
-            (42.0, 41.0),
-        )
-        assert [m[3] for m in marks_of(meta, (WIDTH, HEIGHT - INFO_BAR_PX))] == ["T-72B"]
+    def test_a_shot_of_statics_only_is_one_target_area(self) -> None:
+        """A range of statics got a ring and a label per static, stacked in a column (Open Training)."""
+        units = [
+            LiveUnit("static", 1, "Range target 1", "T-72B", 1040, 1000, 800),
+            LiveUnit("static", 1, "Range target 2", ".Command Center", 1060, 1010, 800),
+            LiveUnit("static", 1, "Range target 3", "Ural-375", 1020, 990, 800),
+        ]
+        marks = marks_of(self._shot(units), (WIDTH, HEIGHT - INFO_BAR_PX))
+        assert [m[3] for m in marks] == ["Target area"]
+
+    def test_each_ship_gets_its_own_ring(self) -> None:
+        units = [
+            LiveUnit("unit", 1, "Gulf [r] boats#1", "speedboat", 1040, 650, 800),
+            LiveUnit("unit", 1, "Gulf [r] boats#1", "speedboat", 1040, 1350, 800),
+        ]
+        marks = marks_of(self._shot(units), (WIDTH, HEIGHT - INFO_BAR_PX))
+        assert [m[3] for m in marks] == ["Armed ships", "Armed ships"]
+
+    def test_close_rings_of_one_label_merge(self) -> None:
+        marks = merge_marks([(100, 100, 40, "Infantry"), (300, 120, 40, "Infantry"), (320, 140, 40, "Artillery")])
+        assert sorted(m[3] for m in marks) == ["Artillery", "Infantry"]
+        x, y, radius, _ = next(m for m in marks if m[3] == "Infantry")
+        assert (x, y) == (200, 110) and radius == 140
+
+    def test_a_merge_stops_at_the_largest_ring(self) -> None:
+        marks = merge_marks([(100, 100, 40, "Infantry"), (800, 100, 40, "Infantry")])
+        assert len(marks) == 2
+
+    def test_a_group_label_by_category(self) -> None:
+        def label(*types: str, kind: str = "unit") -> str:
+            return group_label([LiveUnit(kind, 1, "g", t, 0, 0, 0) for t in types])
+
+        assert label("S-300PS 64H6E sr", "Ural-375", "Ural-375") == "Long-range air defence"
+        assert label("Grad-URAL", "Grad-URAL", "Ural-375") == "Artillery"
+        assert label("Infantry AK", "Infantry AK", "SA-18 Igla manpad") == "Infantry"
+        assert label("Ural-375", "Hummer", "Ural-375") == "Logistics"
+        assert label(".Command Center", kind="static") == "Targets"
+        assert label("Unknown thing") == "Unknown thing"
 
     def test_a_group_label_by_prefix(self) -> None:
         marks = marks_of(_meta("groups", {"SA6Sasa": "SA-6"}), (WIDTH, HEIGHT - INFO_BAR_PX))

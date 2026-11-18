@@ -10,26 +10,38 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from mission_tools.miz_tools import create_miz, read_member, read_miz
+from mission_tools.miz_tools import create_miz, read_member, read_miz, write_miz
 from PIL import Image
 from veaf_libs import dcs_recon
 from veaf_libs.blank_mission import generate_blank_mission
+from veaf_libs.dcs_mission_check import derive_check_mission
 from veaf_libs.dcs_recon import (
     INFO_BAR_PX,
+    MAX_SLANT,
+    MIN_SLANT,
+    ZONES_LUA,
+    CombatZone,
     LiveUnit,
     MissionInfo,
     Shot,
     ShotPlan,
+    activate_alone_lua,
+    airbase_lua,
+    auto_slant,
     briefing_sidecar,
     camera_for,
     camera_lua,
     camera_of,
     clear_sky,
+    deactivate_lua,
     derive_recon_mission,
+    load_objectives,
     load_plan,
     parse_info,
+    parse_point,
     parse_units,
-    plan_from_units,
+    parse_zones,
+    plan_from_zones,
     project,
     recon_mission_path,
     seconds_of_day,
@@ -38,6 +50,7 @@ from veaf_libs.dcs_recon import (
     shot_metadata,
     target_of,
     zone_of,
+    zone_units_lua,
 )
 from veaf_libs.i18n import language
 from veaf_libs.lua_syntax import check_lua_syntax
@@ -175,13 +188,62 @@ class TestShots:
         assert zone_of("Kiswah [r]#12") == "Kiswah"
         assert zone_of("Kiswah [b]") == "Kiswah"
 
-    def test_a_starter_plan_has_one_shot_per_zone(self) -> None:
-        plan = plan_from_units(UNITS, 1, "Marteau du Golan")
-        assert plan["operation"] == "Marteau du Golan"
-        assert plan["coalition"] == "red"
-        assert [s["groups"] for s in plan["shots"]] == [["Bunker 2"], ["Kiswah"], ["SA6Sasa"]]
-        assert [s["name"] for s in plan["shots"]] == ["01-bunker-2", "02-kiswah", "03-sa6sasa"]
-        assert all(s["slant"] >= 600 and s["heading"] == 0 for s in plan["shots"])
+    def test_a_starter_plan_has_one_shot_per_combat_zone(self) -> None:
+        zones = [CombatZone("combatZone_Beslan", 1000, 0, 2000), CombatZone("Kiswah", 0, 1000, 500)]
+        plan, missing = plan_from_zones(zones, "red", "Marteau du Golan")
+        assert missing == []
+        assert plan["operation"] == "Marteau du Golan" and plan["coalition"] == "red"
+        assert [s["zone"] for s in plan["shots"]] == ["combatZone_Beslan", "Kiswah"]
+        assert [s["name"] for s in plan["shots"]] == ["01-beslan", "02-kiswah"]
+        assert all(s["heading"] == 0 and s["slant"] == "auto" and "groups" not in s for s in plan["shots"])
+
+    def test_a_plan_follows_the_objectives_and_looks_from_the_airbase(self) -> None:
+        zones = [CombatZone("A", 1000, 0, 0), CombatZone("B", 0, 1000, 0), CombatZone("C", 0, 0, 0)]
+        plan, missing = plan_from_zones(zones, "red", "", [("B", "Bravo"), ("Z", "Zulu"), ("A", "Alpha")], (0, 0))
+        assert missing == ["Z"]
+        assert [(s["zone"], s["title"], s["heading"]) for s in plan["shots"]] == [("B", "Bravo", 90), ("A", "Alpha", 0)]
+        assert [s["name"] for s in plan["shots"]] == ["01-b", "02-a"]
+
+    def test_objectives_are_read_from_the_briefing_words(self, tmp_path: Path) -> None:
+        path = tmp_path / "kneeboard.json"
+        path.write_text(
+            json.dumps(
+                {"title": "OT", "objectives": [{"zone": "z1", "title": "Un"}, {"title": "no zone"}, {"zone": "z2"}]}
+            ),
+            encoding="utf-8",
+        )
+        assert load_objectives(path) == [("z1", "Un"), ("z2", "z2")]
+        path.write_text("{}", encoding="utf-8")
+        with pytest.raises(ValueError, match="objectives"):
+            load_objectives(path)
+
+    def test_the_automatic_slant_fits_the_spread_within_bounds(self) -> None:
+        def at(*points: tuple[float, float]) -> list[LiveUnit]:
+            return [LiveUnit("unit", 1, "g", "T-72B", x, z, 0) for x, z in points]
+
+        assert auto_slant(at((0, 0))) == MIN_SLANT
+        assert auto_slant(at((0, 0), (0, 1000))) == 1500
+        assert auto_slant(at((0, 0), (0, 12000))) == MAX_SLANT  # Beslan: 18.3 km proposed, nothing visible
+
+    def test_zones_and_points_are_read(self) -> None:
+        assert parse_zones("A\t1.0\t2.0\t300.0\n\n") == [CombatZone("A", 1.0, 2.0, 300.0)]
+        with pytest.raises(ValueError):
+            parse_zones("A\t1.0")
+        assert parse_point("10.5\t-3.0") == (10.5, -3.0)
+        assert parse_point("") is None
+
+    @pytest.mark.parametrize(
+        "code",
+        [
+            ZONES_LUA,
+            zone_units_lua('Zone "x"'),
+            activate_alone_lua("Zone"),
+            deactivate_lua("Zone"),
+            airbase_lua("Batumi"),
+        ],
+    )
+    def test_the_zone_requests_parse_as_lua(self, code: str) -> None:
+        check_lua_syntax(code)
 
     def test_a_shots_file_is_loaded(self, tmp_path: Path) -> None:
         path = tmp_path / "shots.yaml"
@@ -194,7 +256,7 @@ class TestShots:
         plan = load_plan(path)
         assert plan.operation == "Marteau du Golan"
         assert plan.shots == [
-            Shot("02-sa6", "Batterie SA-6", ["SA6Sasa"], 47.0, 30.0, 1000.0, "units", {"Kub 1S91": "RADAR"}, "SA6Sasa")
+            Shot("02-sa6", "Batterie SA-6", ["SA6Sasa"], 47.0, 30.0, None, "units", {"Kub 1S91": "RADAR"}, "SA6Sasa")
         ]
 
     @pytest.mark.parametrize(
@@ -202,7 +264,8 @@ class TestShots:
         [
             ("shots: []\n", "no shots"),
             ("coalition: green\nshots: [{name: a, groups: [x]}]\n", "red or blue"),
-            ("shots: [{name: a}]\n", "needs a name and groups"),
+            ("shots: [{name: a}]\n", "groups or a zone"),
+            ("shots: [{name: a, zone: z, slant: far}]\n", "metres or auto"),
             ("shots: [{name: a, groups: [x], mark: arrows}]\n", "groups or units"),
         ],
     )
@@ -272,25 +335,53 @@ class TestShots:
         assert briefing_sidecar({**meta, "zone": "Sasa [r]"}, 1)["zone"] == "Sasa"
 
 
-class TestShootPlan:
-    def test_each_shot_places_the_camera_twice_grabs_and_writes(self, tmp_path: Path) -> None:
-        exported: list[str] = []
-        waits: list[float] = []
-        lines: list[str] = []
+def _lines(units: list[LiveUnit]) -> str:
+    return "\n".join(f"{u.kind}\t{u.side}\t{u.group}\t{u.type}\t{u.x}\t{u.z}\t{u.alt}" for u in units)
 
-        def run_server(code: str) -> str:
-            if "getStaticObjects" in code:
-                return "\n".join(f"{u.kind}\t{u.side}\t{u.group}\t{u.type}\t{u.x}\t{u.z}\t{u.alt}" for u in UNITS)
+
+class FakeMission:
+    """The scripting state of a mission with one combat zone, ``Beslan``, whose boat moves at each read."""
+
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+        self.reads = 0
+
+    def run(self, code: str) -> str:
+        if code == dcs_recon.ZONES_LUA:
+            self.calls.append("zones")
+            return "Beslan\t5000.0\t5000.0\t2000.0"
+        if code == dcs_recon.INFO_LUA:
             return "Syria\t2011-04-16\t41460"
+        if code == dcs_recon.UNITS_LUA:
+            self.calls.append("units")
+            return _lines(UNITS)
+        if code == activate_alone_lua("Beslan"):
+            self.calls.append("activate Beslan")
+            return "ok"
+        if code == deactivate_lua("Beslan"):
+            self.calls.append("deactivate Beslan")
+            return "ok"
+        if code == zone_units_lua("Beslan"):
+            self.calls.append("zone units")
+            self.reads += 1
+            boat = LiveUnit("unit", 1, "Beslan [r] boat#1", "speedboat", 5000 + 100 * self.reads, 5000, 0)
+            blue = LiveUnit("unit", 2, "Beslan [b] crew#2", "Hummer", 5000, 5000, 0)
+            return _lines([boat, blue])
+        raise AssertionError(f"unexpected chunk: {code[:60]}")
 
-        def grab(retry: Any) -> tuple[Image.Image, tuple[int, int]]:
-            return Image.new("RGB", (640, 360), (90, 90, 90)), (640, 360)
 
+class TestShootPlan:
+    @staticmethod
+    def _grab(retry: Any) -> tuple[Image.Image, tuple[int, int]]:
+        return Image.new("RGB", (640, 360), (90, 90, 90)), (640, 360)
+
+    def test_a_shot_by_name_prefix_places_the_camera_twice_grabs_and_writes(self, tmp_path: Path) -> None:
+        mission, exported, waits, lines = FakeMission(), [], [], []
         plan = ShotPlan(
             "Golan",
             "red",
             [
-                Shot("01-sa6", "SA-6", ["SA6Sasa"], 47),
+                Shot("01-sa6", "SA-6", ["SA6Sasa"], 47, slant=1000),
                 Shot("02-none", "Nothing", ["Absent"]),
                 Shot("03-k", "K", ["Kiswah"]),
             ],
@@ -298,29 +389,89 @@ class TestShootPlan:
         taken = shoot_plan(
             plan,
             tmp_path,
-            run_server=run_server,
+            run_server=mission.run,
             run_export=exported.append,
-            grab=grab,
+            grab=self._grab,
             latlon_of=lambda theatre, x, z: (33.0, 36.0),
             sleep=waits.append,
             progress=lines.append,
             only=["01-sa6", "02-none"],
+            warmup=0,
         )
         assert [m["name"] for m in taken] == ["01-sa6"]
         assert len(exported) == 2 and exported[0] == exported[1]
         assert waits == [dcs_recon.SCENERY_PAUSE, dcs_recon.SETTLE_PAUSE]
+        assert "activate Beslan" not in mission.calls
         assert Image.open(tmp_path / "01-sa6.png").size == (640, 360 - INFO_BAR_PX)
         meta = json.loads((tmp_path / "01-sa6.json").read_text(encoding="utf-8"))
-        assert meta["window"]["height"] == 360 and meta["target"]["lat"] == 33.0
+        assert meta["window"]["height"] == 360 and meta["target"]["lat"] == 33.0 and meta["slant_m"] == 1000
         assert any("nothing matches" in line for line in lines)
         assert not (tmp_path / "03-k.png").exists()
+
+    def test_a_combat_zone_is_shot_alone_warmed_up_and_read_at_the_grab(self, tmp_path: Path) -> None:
+        mission, exported, waits = FakeMission(), [], []
+        plan = ShotPlan("OT", "red", [Shot("01-beslan", "Beslan", [], 90, zone="Beslan")])
+        taken = shoot_plan(
+            plan,
+            tmp_path,
+            run_server=mission.run,
+            run_export=exported.append,
+            grab=self._grab,
+            latlon_of=lambda theatre, x, z: None,
+            sleep=waits.append,
+            progress=lambda line: None,
+            warmup=10,
+        )
+        assert mission.calls == [
+            "zones",
+            "activate Beslan",
+            "zone units",
+            "zone units",
+            "zone units",
+            "deactivate Beslan",
+        ]
+        assert waits == [
+            dcs_recon.SPAWN_WAIT,
+            10,
+            dcs_recon.SCENERY_PAUSE,
+            dcs_recon.SETTLE_PAUSE,
+            dcs_recon.DESPAWN_WAIT,
+        ]
+        # the warm-up order, then the shot's order twice, aimed where the boat stood after the warm-up
+        assert len(exported) == 3 and exported[0] != exported[1] == exported[2]
+        meta = taken[0]
+        assert meta["target"]["x"] == 5200
+        # the rings are drawn where the boat was just before the grab, the blue crew left out
+        assert [(u["group"], u["x"]) for u in meta["units"]] == [("Beslan [r] boat#1", 5300)]
+        assert meta["slant_m"] == dcs_recon.MIN_SLANT
+
+    def test_a_zone_is_deactivated_even_when_the_shot_fails(self, tmp_path: Path) -> None:
+        mission = FakeMission()
+
+        def broken(retry: Any) -> tuple[Image.Image, tuple[int, int]]:
+            raise RuntimeError("no picture")
+
+        with pytest.raises(RuntimeError, match="no picture"):
+            shoot_plan(
+                ShotPlan("OT", "red", [Shot("01-beslan", "Beslan", [], zone="Beslan")]),
+                tmp_path,
+                run_server=mission.run,
+                run_export=lambda code: None,
+                grab=broken,
+                latlon_of=lambda theatre, x, z: None,
+                sleep=lambda seconds: None,
+                progress=lambda line: None,
+            )
+        assert mission.calls[-1] == "deactivate Beslan"
 
 
 class TestShootingMission:
     @pytest.fixture
     def miz(self, tmp_path: Path) -> Path:
         files = generate_blank_mission("caucasus")
-        files["l10n/DEFAULT/veaf-config.lua"] = b"veaf.silenceAtcOnAllAirbases()\nveafCombatZone.initialize()\n"
+        files["l10n/DEFAULT/veaf-config.lua"] = (
+            b"veaf.HideNamesFromSpawnedGroups = true\nveaf.silenceAtcOnAllAirbases()\nveafCombatZone.initialize()\n"
+        )
         path = tmp_path / "Golan.miz"
         create_miz(path, files)
         return path
@@ -366,17 +517,18 @@ class TestShootingMission:
         out = recon_mission_path(miz)
         changes = derive_recon_mission(miz, out, "09:15", self._bridge(miz))
         assert miz.read_bytes() == before
-        assert len(changes) == 5
+        assert len(changes) == 4
         content = read_miz(out).mission_content or {}
         assert content["start_time"] == 9 * 3600 + 15 * 60
         assert content["weather"]["visibility"] == {"distance": 80000}
         config = read_member(out, "l10n/DEFAULT/veaf-config.lua").decode("utf-8")
         check_lua_syntax(config)
-        assert config.index("HideNamesFromSpawnedGroups = false") < config.index("veafCombatZone.initialize()")
-        assert config.index("veafCombatZone.initialize()") < config.index("ActivateZone(")
-        assert "taskingOrderDict" in config  # operations are left alone
-        # later, once per name, never a zone already active: an immediate loop spawned every zone twice or thrice
-        assert "timer.scheduleFunction" in config and "done[name]" in config and "zone:isActive()" in config
+        # after the mission's own settings, which set it back to true when it came first (Open Training, 2026-11-17)
+        assert config.index("veaf.HideNamesFromSpawnedGroups = true") < config.index(
+            "HideNamesFromSpawnedGroups = false"
+        )
+        # recon-shoot activates the zones one at a time: the copy leaves them as the mission has them
+        assert "ActivateZone(" not in config
         with zipfile.ZipFile(out) as archive:
             assert archive.namelist().count("l10n/DEFAULT/veaf-config.lua") == 1
             # recon-plan and recon-shoot talk to the mission through the bridge
@@ -392,3 +544,30 @@ class TestShootingMission:
     def test_the_copy_never_overwrites_the_original(self, miz: Path) -> None:
         with pytest.raises(ValueError, match="must not overwrite"):
             derive_recon_mission(miz, miz, "11:30", self._bridge(miz))
+
+    @staticmethod
+    def _with_spawn_data(miz: Path, loaded: bool) -> Path:
+        """*miz* carrying ``veaf-spawn-data.lua``, loaded by a trigger or not."""
+        mission = read_miz(miz)
+        if loaded:
+            content = mission.mission_content or {}
+            content.setdefault("trig", {}).setdefault("actions", {})[1] = (
+                'a_do_script_file(getValueResourceByKey("VEAF_MapKey_SpawnData"));'
+            )
+        write_miz(
+            mission, miz, additional_files={"l10n/DEFAULT/veaf-spawn-data.lua": b"veafUnits.GroupsDatabase = {}\n"}
+        )
+        return miz
+
+    def test_a_spawn_database_no_trigger_loads_is_refused(self, miz: Path, tmp_path: Path) -> None:
+        # the Caucasus _RECON copy of 2026-11-17: every #command zone spawned nothing
+        self._with_spawn_data(miz, loaded=False)
+        with pytest.raises(ValueError, match="VEAF_MapKey_SpawnData"):
+            derive_recon_mission(miz, tmp_path / "out.miz", "11:30", self._bridge(miz))
+        with pytest.raises(ValueError, match="VEAF_MapKey_SpawnData"):
+            derive_check_mission(miz, tmp_path / "check.miz", self._bridge(miz))
+
+    def test_a_spawn_database_a_trigger_loads_is_accepted(self, miz: Path, tmp_path: Path) -> None:
+        self._with_spawn_data(miz, loaded=True)
+        derive_recon_mission(miz, tmp_path / "out.miz", "11:30", self._bridge(miz))
+        derive_check_mission(miz, tmp_path / "check.miz", self._bridge(miz))

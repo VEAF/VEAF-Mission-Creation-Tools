@@ -715,6 +715,99 @@ function TestCampaignDormancy:test_a_sleep_is_not_a_loss_and_losses_survive_it()
   luaunit.assertEquals(#dcs_mocks.groupsAdded[1].group.units, 2)
 end
 
+--- A garrison of `count` units in one group, and a long-range battery of `battery` units after it.
+local function largeGarrison(name, count, battery)
+  local main, sam = { name = name .. " garrison", units = {} }, { name = name .. " long-range SAM", units = {} }
+  for index = 1, count do
+    table.insert(main.units, { type = "BMP-2", x = index, z = 0, heading = 0, alive = true })
+  end
+  for index = 1, battery do
+    table.insert(sam.units, { type = "S-200_Launcher", x = index, z = 10, heading = 0, alive = true })
+  end
+  return { main, sam }
+end
+
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 06: Hama's 42 units, its SA-5 battery included, in one go froze the server
+function TestCampaignDormancy:test_a_waking_garrison_comes_a_few_units_per_beat_its_battery_last()
+  local data = persistentData({ wake_units_per_beat = 10 })
+  data.zones[3].garrison = largeGarrison("Poti", 25, 6)
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  local poti = veafCampaign.zones["Poti"]
+  dcs_mocks.groupsAdded = {}
+  poti:wake()
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1)
+  luaunit.assertEquals(dcs_mocks.groupsAdded[1].group.name, "Poti garrison", "the first part under the group's own name")
+  luaunit.assertEquals(#dcs_mocks.groupsAdded[1].group.units, 10)
+  poti:continueSpawning()
+  luaunit.assertEquals(#dcs_mocks.groupsAdded[2].group.units, 10)
+  poti:continueSpawning() -- the last 5 of the garrison, then 5 of the battery
+  luaunit.assertEquals(#dcs_mocks.groupsAdded[3].group.units, 5)
+  luaunit.assertEquals(dcs_mocks.groupsAdded[4].group.name, "Poti long-range SAM")
+  poti:continueSpawning()
+  luaunit.assertEquals(#dcs_mocks.groupsAdded[5].group.units, 1)
+  luaunit.assertNil(poti.wakeQueue)
+  local total = 0
+  for _, added in ipairs(dcs_mocks.groupsAdded) do
+    total = total + #added.group.units
+  end
+  luaunit.assertEquals(total, 31)
+end
+
+function TestCampaignDormancy:test_a_unit_brought_back_while_its_zone_wakes_is_spawned_once()
+  local data = persistentData({ wake_units_per_beat = 10 })
+  data.zones[3].garrison = largeGarrison("Poti", 25, 0)
+  data.zones[3].garrison[1].units[3].alive = false
+  data.zones[3].garrison[1].units[20].alive = false
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  local poti = veafCampaign.zones["Poti"]
+  poti:wake()
+  dcs_mocks.groupsAdded = {}
+  poti:reinforce()
+  -- #3 was passed by the wake: spawned now; #20 is still to come with the rest
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1)
+  luaunit.assertEquals(#dcs_mocks.groupsAdded[1].group.units, 1)
+  poti:continueSpawning()
+  poti:continueSpawning()
+  local total = 0
+  for _, added in ipairs(dcs_mocks.groupsAdded) do
+    total = total + #added.group.units
+  end
+  luaunit.assertEquals(total, 1 + 14, "every unit once: #3 now, then #12 to #25 with the rest of the wake")
+end
+
+function TestCampaignDormancy:test_an_awake_zone_keeps_its_garrison_a_margin_farther_than_it_wakes()
+  veafCampaign.data = persistentData({ wake_radius = 60000, sleep_margin = 20000, sleep_seconds = 600 })
+  veafCampaign.initialize()
+  local poti = veafCampaign.zones["Poti"]
+  playersAt({ { x = 170000 } }) -- 70 km: beyond the wake radius
+  passes(3)
+  luaunit.assertFalse(poti.awake)
+  playersAt({ { x = 150000 } }) -- 50 km
+  passes(1, 200)
+  luaunit.assertTrue(poti.awake)
+  playersAt({ { x = 170000 } }) -- back to 70 km, within the margin, for longer than the sleep delay
+  passes(1, 900)
+  luaunit.assertTrue(poti.awake)
+  playersAt({ { x = 190000 } }) -- 90 km
+  passes(1, 1000)
+  passes(1, 1700)
+  luaunit.assertFalse(poti.awake)
+end
+
+function TestCampaignDormancy:test_a_zone_just_asleep_does_not_wake_for_an_ai_aircraft()
+  veafCampaign.data = persistentData({ wake_rest_seconds = 300 })
+  veafCampaign.initialize()
+  local poti = veafCampaign.zones["Poti"]
+  poti.sleptAt = 100
+  worldGroups({ { name = "cap", category = Group.Category.AIRPLANE, x = 115000, inAir = true } }) -- 15 km
+  passes(4, 200) -- the front wakes first, one zone per pass
+  luaunit.assertFalse(poti.awake)
+  passes(1, 401)
+  luaunit.assertTrue(poti.awake)
+end
+
 function TestCampaignDormancy:test_the_target_of_a_sortie_wakes_even_when_the_rear_is_full()
   veafCampaign.data = persistentData({ max_awake_zones = 1 })
   veafCampaign.initialize()

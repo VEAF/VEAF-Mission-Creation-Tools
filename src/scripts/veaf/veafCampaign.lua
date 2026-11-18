@@ -68,6 +68,14 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   takeoff_threat_range = 40000, -- metres: no take-off (but a SEAD's) this close to an enemy air defence measured
   front_depth = 40000, -- metres: a zone this close to the front line drawn on the map is always awake
   sleep_seconds = 600, -- a zone nobody has come near for this long goes back to sleep
+  -- metres added to every wake distance while a zone is awake: Hama slept at 21:15 on 2026-11-17 and woke again
+  -- 80 s later, its 42 units removed and spawned again (FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 06)
+  sleep_margin = 20000,
+  -- a zone asleep for less than this wakes for the front, a sortie or a player, not for an AI aircraft passing by
+  wake_rest_seconds = 300,
+  -- the units of a waking garrison spawned per beat, its long-range battery last: Hama's 42 in one go froze the
+  -- server on 2026-11-17
+  wake_units_per_beat = 10,
   max_awake_zones = 12, -- zones whose garrison is in the world at once, nearest the players first
   attacks = { "red" }, -- the sides that counter-attack an enemy zone on their own
   attack_seconds = 900, -- seconds between two counter-attacks of a side
@@ -790,8 +798,9 @@ end
 --- (dcs-runtime-traps).
 --- @param groupIndex number the group, in the zone's garrison
 --- @param only table|nil the units to spawn, by index in the group, as their own DCS group: a delivery's (ticket 03)
+--- @param asItself boolean|nil with `only`, spawn them under the group's own name: the first part of a waking group
 --- @return number the number of units submitted to DCS
-function VeafCampaignZone:spawnGroup(groupIndex, only)
+function VeafCampaignZone:spawnGroup(groupIndex, only, asItself)
   local group = self.entry.garrison and self.entry.garrison[groupIndex]
   local side = veafCampaign.SIDES[self.entry.owner]
   if not group or not side then
@@ -838,7 +847,7 @@ function VeafCampaignZone:spawnGroup(groupIndex, only)
     return 0
   end
   local groupName = group.name
-  if only then
+  if only and not asItself then
     -- the units a delivery brings back join the zone as a group of their own: respawning the whole group under
     -- its name recreated its 18 living units at every delivery to Saraqib (Tacview, 2026-11-17)
     self.reinforcementGroups = self.reinforcementGroups or {}
@@ -871,6 +880,7 @@ end
 --- Spawn the zone's recorded garrison, without the units it has lost.
 --- @return number the number of units submitted to DCS
 function VeafCampaignZone:spawnGarrison()
+  self.wakeQueue = nil
   self:removeReinforcementGroups()
   local submitted = 0
   for groupIndex in ipairs(self.entry.garrison or {}) do
@@ -895,16 +905,89 @@ function VeafCampaignZone:sleep(reason)
     end
   end
   self:removeReinforcementGroups()
+  self.wakeQueue = nil
   self.awake = false
+  self.sleptAt = timer.getTime()
   veafCampaign.counters.sleeps = veafCampaign.counters.sleeps + 1
   veaf.loggers.get(veafCampaign.Id):info("zone [%s] sleeps: %s", self.name, reason or "put to sleep")
 end
 
---- Bring a sleeping zone's garrison back into the world, as its record left it.
-function VeafCampaignZone:wake()
-  local submitted = self:spawnGarrison()
+--- Bring a sleeping zone's garrison back into the world, as its record left it, a few units per beat
+--- (`startSpawning`).
+--- @param why string|nil what woke it, for the log
+function VeafCampaignZone:wake(why)
+  local alive = self:countUnits()
   veafCampaign.counters.wakes = veafCampaign.counters.wakes + 1
-  veaf.loggers.get(veafCampaign.Id):info("zone [%s] wakes: %d unit(s)", self.name, submitted)
+  veaf.loggers.get(veafCampaign.Id):info("zone [%s] wakes%s: %d unit(s)", self.name, why and (" for " .. why) or "", alive)
+  self:startSpawning()
+end
+
+--- Put the zone's garrison in the world `wake_units_per_beat` units at a time, one part now and the rest at the
+--- next beats, its long-range battery last (ticket 06): Hama's 42 units in one go froze the server.
+--- @return number the units submitted now
+function VeafCampaignZone:startSpawning()
+  self:removeReinforcementGroups()
+  local queue, last = {}, {}
+  for groupIndex, group in ipairs(self.entry.garrison or {}) do
+    local entry = { group = groupIndex, from = 1, parts = 0 }
+    table.insert(group.name:find("long%-range SAM") and last or queue, entry)
+  end
+  for _, entry in ipairs(last) do
+    table.insert(queue, entry)
+  end
+  self.wakeQueue = queue
+  self.awake = true
+  self.awakeSince = timer.getTime()
+  return self:continueSpawning()
+end
+
+--- Spawn the next units of a garrison coming into the world (`startSpawning`); called at every beat.
+--- @return number the units submitted
+function VeafCampaignZone:continueSpawning()
+  local queue = self.wakeQueue
+  if not queue then
+    return 0
+  end
+  local budget = veafCampaign.setting("wake_units_per_beat")
+  local submitted = 0
+  while budget > 0 and #queue > 0 do
+    local entry = queue[1]
+    local group = self.entry.garrison and self.entry.garrison[entry.group]
+    local indices, index = {}, entry.from
+    while group and index <= #group.units and #indices < budget do
+      if group.units[index].alive then
+        table.insert(indices, index)
+      end
+      index = index + 1
+    end
+    entry.from = index
+    if #indices > 0 then
+      submitted = submitted + self:spawnGroup(entry.group, indices, entry.parts == 0)
+      entry.parts = entry.parts + 1
+      budget = budget - #indices
+    end
+    if not group or index > #group.units then
+      table.remove(queue, 1)
+    end
+  end
+  if #queue == 0 then
+    self.wakeQueue = nil
+  end
+  return submitted
+end
+
+--- Whether a garrison unit is in the world, or still to come with the rest of a waking garrison.
+--- @return boolean
+function VeafCampaignZone:unitSpawned(groupIndex, unitIndex)
+  if self.awake == false then
+    return false
+  end
+  for position, entry in ipairs(self.wakeQueue or {}) do
+    if entry.group == groupIndex then
+      return position == 1 and unitIndex < entry.from
+    end
+  end
+  return true
 end
 
 --- Bring back dead units of the zone's first damaged group, in their places: what one supply delivery does
@@ -943,8 +1026,15 @@ function VeafCampaignZone:reinforce(points)
         return false, 0
       end
       table.sort(revived)
-      if self.awake ~= false then
-        self:spawnGroup(groupIndex, revived)
+      -- a unit a waking garrison has not reached yet comes with it
+      local now = {}
+      for _, unitIndex in ipairs(revived) do
+        if self:unitSpawned(groupIndex, unitIndex) then
+          table.insert(now, unitIndex)
+        end
+      end
+      if #now > 0 then
+        self:spawnGroup(groupIndex, now)
       end
       veafCampaign.counters.reinforcements = veafCampaign.counters.reinforcements + 1
       veaf.loggers
@@ -1348,7 +1438,7 @@ function VeafCampaignZone:capturedBy(side, how)
       self:drawGarrison(veafCampaign.reserveOf(side))
     end
     veafCampaign.payGarrison(self, side)
-    self:spawnGarrison()
+    self:startSpawning() -- Afrin's 24 units at once on 2026-11-17: spread like a wake (ticket 06)
   end
   if self:isFactory() then
     self:spawnStructures() -- what stands of it now works for its new owner
@@ -3268,22 +3358,26 @@ function veafCampaign.updateDormancy(now)
   local wakers = veafCampaign.wakerPoints()
   local radius, delay = veafCampaign.setting("wake_radius"), veafCampaign.setting("sleep_seconds")
   local groundRadius, margin = veafCampaign.setting("ground_wake_radius"), veafCampaign.setting("reach_wake_margin")
+  local sleepMargin, rest = veafCampaign.setting("sleep_margin"), veafCampaign.setting("wake_rest_seconds")
   local players = {}
   local awake, waking = {}, {}
   for _, zone in ipairs(veafCampaign.zoneList) do
     if zone.placed and veafCampaign.SIDES[zone.entry.owner] and zone.entry.garrison then
       local enemy = veafCampaign.enemyOf(zone.entry.owner)
       players[enemy] = players[enemy] or veafCampaign.playerPoints(enemy)
-      local reach = veafCampaign.zoneReach(zone) + margin
+      -- awake, a zone keeps its garrison a margin farther than it wakes: no sleep and wake again for a few km
+      local extra = zone.awake and sleepMargin or 0
+      local reach = veafCampaign.zoneReach(zone) + margin + extra
       zone.playerDistance = nearestDistance(zone, players[enemy]) or math.huge
       local airDistance = nearestDistance(zone, wakers[enemy].air) or math.huge
       local groundDistance = nearestDistance(zone, wakers[enemy].ground) or math.huge
       zone.wakeDistance = math.min(zone.playerDistance, airDistance, groundDistance)
+      local resting = not zone.awake and zone.sleptAt and now - zone.sleptAt < rest
       if (zone.keepAwakeUntil or 0) > now or veafCampaign.isFront(zone) then
         zone.wakeReason = "always"
-      elseif zone.playerDistance <= math.max(radius, reach) then
+      elseif zone.playerDistance <= math.max(radius + extra, reach) then
         zone.wakeReason = "player"
-      elseif airDistance <= reach or groundDistance <= groundRadius then
+      elseif not resting and (airDistance <= reach or groundDistance <= groundRadius + extra) then
         zone.wakeReason = "ai"
       else
         zone.wakeReason = nil
@@ -3333,7 +3427,11 @@ function veafCampaign.updateDormancy(now)
     end
     victim:sleep(string.format("it gives its place to [%s]", candidate.name))
   end
-  candidate:wake()
+  local why = candidate.wakeReason
+  if why ~= "always" then
+    why = string.format("%s, %d km", why == "player" and "a player" or "an AI", math.floor(candidate.wakeDistance / 1000))
+  end
+  candidate:wake(why)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -3361,6 +3459,7 @@ function veafCampaign.beat()
   for _, zone in ipairs(veafCampaign.zoneList) do
     if zone.placed then
       veafCampaign.counters.zonesProcessed = veafCampaign.counters.zonesProcessed + 1
+      zone:continueSpawning()
       zone:checkCapture(veafCampaign.BEAT_SECONDS)
       if veafCampaign.isPersistent() and not veafCampaign.over then
         veafCampaign.collectDeliveries(zone)

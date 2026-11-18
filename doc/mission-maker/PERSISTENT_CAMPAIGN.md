@@ -198,10 +198,13 @@ Elle réapparaît exactement comme elle était :
 Seuls les ennemis d'une zone la réveillent ; les véhicules posés dans l'éditeur et les avions pas encore activés ne réveillent rien.
 La portée d'une défense est celle de ses missiles, lue dans DCS pendant que la zone est éveillée et retenue dans la sauvegarde ; une zone jamais vue éveillée a une portée supposée (75 km avec un SAM longue portée, 20 km sinon).
 Elle disparaît quand personne n'est venu depuis `sleep_seconds` (600 s), sauf près du front.
+Éveillée, une zone garde sa garnison `sleep_margin` (20 km) plus loin qu'elle ne se réveille : un joueur qui oscille autour de 60 km ne la fait pas disparaître et réapparaître.
+Endormie depuis moins de `wake_rest_seconds` (300 s), elle ne se réveille que pour le front, une sortie ou un joueur, pas pour un avion IA qui passe.
 
 Au plus `max_awake_zones` (12) zones de l'arrière sont éveillées à la fois ; le front et les cibles de sorties ne comptent pas.
 Quand la limite est atteinte, une zone voulue par un joueur prend la place d'une zone voulue seulement par une IA, ou d'une zone voulue par un joueur plus lointain ; entre zones voulues par des IA, la première garde sa place, pour que des avions qui passent ne fassent pas apparaître et disparaître les zones en boucle.
 Une seule zone se réveille à chaque battement de 10 s, pour ne pas faire apparaître tout le front d'un coup.
+Sa garnison arrive par paquets de `wake_units_per_beat` (10) unités à chaque battement, la batterie longue portée en dernier : les 42 unités de Hama d'un coup gelaient le serveur ; la garnison d'une zone prise arrive de la même façon.
 
 ## Un front qui bouge tout seul {#front}
 
@@ -532,6 +535,9 @@ Une ligne `KO` suffit à dire où regarder.
 | `takeoff_threat_range` | 40000 | mètres : rien d'autre qu'une SEAD ne décolle aussi près d'une défense ennemie mesurée |
 | `front_depth` | 40000 | mètres : une zone aussi près de la ligne de front tracée sur la carte est toujours éveillée |
 | `sleep_seconds` | 600 | une zone sans joueur près d'elle depuis ce temps se rendort |
+| `sleep_margin` | 20000 | mètres ajoutés aux distances de réveil d'une zone éveillée, avant qu'elle se rendorme |
+| `wake_rest_seconds` | 300 | une zone endormie depuis moins longtemps ne se réveille pas pour un avion IA |
+| `wake_units_per_beat` | 10 | unités d'une garnison qui apparaissent à chaque battement, au réveil ou après une prise |
 | `max_awake_zones` | 12 | zones de l'arrière éveillées à la fois (le front et les cibles de sorties ne comptent pas) |
 | `attacks` | `[red]` | les camps qui contre-attaquent seuls |
 | `attack_seconds` | 900 | intervalle entre deux contre-attaques d'un camp |

@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.38.0] — 2026-11-19
+
 ### Fixed
 
 - **The known limitation `tanker-move-aliases-skip-their-security-level` is marked fixed in 6.37.0** (FIX-ALIAS-SKIPS-HANDLER-LEVEL): the fix shipped in that release, but the entry kept telling agents that `-tankerlow` and `-tankerhigh` run for anyone.

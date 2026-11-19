@@ -704,7 +704,9 @@ function veafCampaign.composeGarrison(name, center, radius, size, side)
     end
   end
   if size.defense > 0 then
-    local groups = size.defense > 3 and 2 or 1
+    -- one group up to level 5: two of level 5 gave Aleppo 32 air defence units and 121 missiles on 2026-11-19
+    -- (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 08); no size class goes above 5 today
+    local groups = size.defense > 5 and 2 or 1
     for index = 1, groups do
       place(veafCasMission.generateAirDefenseGroup(name .. " - Air Defense Group " .. index, size.defense, side))
     end

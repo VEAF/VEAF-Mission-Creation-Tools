@@ -2748,15 +2748,44 @@ function veafCampaign.keepAwake(zone, seconds)
   zone.keepAwakeUntil = math.max(zone.keepAwakeUntil or 0, timer.getTime() + seconds)
 end
 
+--- Bring back the dead units a delivery can pay for, from the side's resource stock (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT
+--- 09): each at the price a spawn of it costs (`unitPrice`), cheapest first, what the stock cannot pay staying dead.
+--- On 2026-11-19 a red helicopter brought 7 units back to Aleppo, "56 point(s)", and the stock did not move. A side
+--- whose resources are not counted gets the whole group back, as before.
+--- @param zone table
+--- @param side string the side that delivered
+--- @param how string what delivered, for the log
+--- @return boolean true when units were brought back
+local function reinforceFromStock(zone, side, how)
+  local logistics = veafCampaignLogistics
+  if not (logistics and logistics.active and logistics.stock and logistics.pay) then
+    return zone:reinforce()
+  end
+  local reinforced, spent = zone:reinforce(math.max(0, logistics.stock(side)))
+  if reinforced and spent > 0 then
+    logistics.pay(side, spent, "essential", "the units a delivery brings back")
+    veaf.loggers.get(veafCampaign.Id):info(
+      "zone [%s]: %d point(s) paid from the %s stock for what the %s brought back, %d left",
+      zone.name,
+      spent,
+      side,
+      how,
+      logistics.stock(side)
+    )
+  end
+  return reinforced
+end
+
 --- A supply delivery reached a zone of its side: the zone is reinforced, and everyone who should hear of
---- it does. Nothing happens to a zone with nothing missing.
+--- it does. Nothing happens to a zone with nothing missing. The units brought back are paid from the side's stock
+--- (`reinforceFromStock`), whatever delivered them: a helicopter, a crate or troops.
 --- @param zone table
 --- @param side string the side that delivered
 --- @param how string "crate", "troops" or "helicopter"
 --- @return boolean true when the zone was reinforced
 function veafCampaign.deliver(zone, side, how)
   -- the garrison first; a factory whose garrison is whole gets a building back (ticket 11)
-  if zone.entry.owner ~= side or not (zone:reinforce() or zone:repairStructure()) then
+  if zone.entry.owner ~= side or not (reinforceFromStock(zone, side, how) or zone:repairStructure()) then
     return false
   end
   veafCampaign.announce(side, side, veaf.t("campaign.zone_reinforced", veafCampaign.zoneTitle(zone.name)), 15)

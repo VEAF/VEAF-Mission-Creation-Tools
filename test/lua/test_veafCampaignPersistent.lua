@@ -1470,4 +1470,75 @@ function TestCampaignConvoyGoal:test_a_convoy_waiting_to_leave_refunds_only_its_
   luaunit.assertEquals(veafCampaign.reserveOf("red")[veafCampaign.reserveCategory("T-72B")] or 0, 0)
 end
 
+-- FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 09: a red supply helicopter brought 7 of 7 dead units back to Aleppo on 2026-11-19,
+-- "56 point(s)", and the red stock did not move. David: they cost what they would cost if they were spawned.
+
+--- A logistics module with `stock` points for every side, recording what is paid.
+local function stockOf(points)
+  local paid = {}
+  local logistics = {
+    active = true,
+    stocks = { red = points, blue = points },
+    paid = paid,
+  }
+  logistics.stock = function(side)
+    return logistics.stocks[side]
+  end
+  logistics.pay = function(side, cost)
+    logistics.stocks[side] = logistics.stocks[side] - cost
+    table.insert(paid, { side = side, cost = cost })
+    return true
+  end
+  return logistics
+end
+
+function TestCampaignReinforce:test_a_helicopter_delivery_pays_the_units_it_brings_back_at_their_spawn_price()
+  local data = persistentData()
+  data.zones[2].garrison = garrison("Senaki", { 1, 2, 3 }) -- T-72B, BMP-2, Ural-375
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  local saved = veafCampaignLogistics
+  local prices = {
+    veafCampaign.unitPrice("T-72B"),
+    veafCampaign.unitPrice("BMP-2"),
+    veafCampaign.unitPrice("Ural-375"),
+  }
+  -- enough for the two cheapest, not for the third
+  veafCampaignLogistics = stockOf(prices[2] + prices[3] + prices[1] - 1)
+  local logistics = veafCampaignLogistics
+  luaunit.assertTrue(veafCampaign.deliver(veafCampaign.zones["Senaki"], "red", "helicopter"))
+  veafCampaignLogistics = saved
+  local units = veafCampaign.zones["Senaki"].entry.garrison[1].units
+  luaunit.assertEquals({ units[1].alive, units[2].alive, units[3].alive }, { false, true, true }, "cheapest first")
+  luaunit.assertEquals(logistics.paid, { { side = "red", cost = prices[2] + prices[3] } })
+  luaunit.assertEquals(logistics.stocks.red, prices[1] - 1)
+end
+
+function TestCampaignReinforce:test_a_delivery_brings_nothing_back_when_the_stock_cannot_pay_the_cheapest()
+  local data = persistentData()
+  data.zones[2].garrison = garrison("Senaki", { 1, 2, 3 })
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  local saved = veafCampaignLogistics
+  veafCampaignLogistics = stockOf(veafCampaign.unitPrice("Ural-375") - 1)
+  local logistics = veafCampaignLogistics
+  luaunit.assertFalse(veafCampaign.deliver(veafCampaign.zones["Senaki"], "red", "helicopter"))
+  luaunit.assertFalse(veafCampaign.deliver(veafCampaign.zones["Senaki"], "red", "crate"), "a crate as well")
+  veafCampaignLogistics = saved
+  luaunit.assertEquals(logistics.paid, {})
+  luaunit.assertEquals(veafCampaign.zones["Senaki"]:strengthPercent() < 100, true)
+end
+
+function TestCampaignReinforce:test_a_side_whose_resources_are_not_counted_gets_the_whole_group_back()
+  local data = persistentData()
+  data.zones[2].garrison = garrison("Senaki", { 1, 2, 3 })
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  local saved = veafCampaignLogistics
+  veafCampaignLogistics = nil
+  luaunit.assertTrue(veafCampaign.deliver(veafCampaign.zones["Senaki"], "red", "helicopter"))
+  veafCampaignLogistics = saved
+  luaunit.assertEquals(veafCampaign.zones["Senaki"]:strengthPercent(), 100)
+end
+
 os.exit(luaunit.LuaUnit.run())

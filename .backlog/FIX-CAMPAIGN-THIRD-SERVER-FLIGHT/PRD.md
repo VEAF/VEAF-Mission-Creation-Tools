@@ -13,6 +13,7 @@ The integration branch is `feature/dynamic-campaign`: one branch and one pull re
 | 04 | [The sitac shows the ejected pilots](tickets/04-sitac-ejected-pilots.md) | Foothold parity, helps the rescue |
 | 05 | [The sitac lists the task board](tickets/05-sitac-tasks.md) | Foothold parity |
 | 06 | [The sitac shows the AWACS and the tankers](tickets/06-sitac-support-assets.md) | Foothold parity, more than Foothold |
+| 07 | [An assault convoy vanishes in front of the players when it is attacked](tickets/07-assault-convoy-vanishes-under-fire.md) | added by David on 2026-11-19: the players lose their target |
 
 Decided by David on 2026-11-19, following the recos of the comparison below: tickets 02 to 06; the shop on the sitac later; the units zone by zone never (the intelligence rule). Each sitac ticket has a VMCT half (the `sitac` block) and a foothold-sitac half (the reader and the page): one PR per repository for the whole lot.
 

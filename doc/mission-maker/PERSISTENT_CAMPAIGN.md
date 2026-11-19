@@ -294,8 +294,9 @@ Sa garnison arrive groupe par groupe, environ `wake_units_per_beat` (10) unités
 - **Contre-attaques** : toutes les `attack_seconds` (900 s), un camp listé dans `attacks` (le rouge par défaut) envoie un convoi d'assaut contre la zone ennemie la plus faible qui le borde, `max_convoys` (2) sur la route au plus.
   Seuls ces camps envoient aussi d'eux-mêmes des convois vers une zone neutre ; le camp des joueurs achète les siens (F10 → Autres → VEAF → Campagne → Assauts), et aucun convoi automatique ne part vers une zone qu'un convoi du même camp vise déjà.
 - **Un convoi d'assaut roule à `assault_speed` (40 km/h)**, sans se disperser sous le feu ; à son départ, `dcs.log` donne la longueur de sa route, le temps qu'il lui faut et quand il sera retiré, puis toutes les `convoy_report_seconds` (300 s) sa distance à sa cible et s'il avance, s'arrête ou fait demi-tour.
-  Sous des avions il poursuit sa route ; s'il se replie devant plus fort que lui au sol, son assaut est fini : il est retiré.
+  Sous des avions il poursuit sa route ; s'il se replie devant plus fort que lui au sol pendant `fall_back_seconds` (120 s) sans reprendre sa route, son assaut est fini : il est retiré.
 - **Un convoi qui n'arrivera pas libère sa place** : dès que sa cible est à son camp (un hélicoptère l'a prise avant lui), quand il se replie, ou après le temps que demande sa route (une fois et demie le temps prévu, `convoy_timeout`, 2 700 s, au moins), il est retiré de la carte et le prix de ses survivants retourne à son camp ; le 17/11/2026, à 20 km/h sur des routes de 40 à 60 km, les 45 minutes retiraient chaque convoi avant son arrivée.
+  **Jamais sous les yeux des joueurs** : un convoi à retirer reste en jeu tant qu'un joueur est à moins de `wake_radius` de lui, ou qu'il a été touché dans les `retire_quiet_seconds` (300 s) ; ses pertes comptent, et seuls ses survivants au moment où il part sont rendus. Le 19/11/2026, l'assaut d'Alep sur Menagh disparaissait sous les tirs d'un joueur.
 - **L'autre camp est prévenu aussitôt** du départ d'un convoi, et voit son axe sur la carte.
 - **Ravitaillement** : une livraison dans une zone amie abîmée ramène au complet son premier groupe touché.
   Livrent : une caisse « Zone supplies » posée dans la zone, des troupes CTLD 2 déposées dans la zone (sauf l'équipe espion et les équipes JTAC), un hélicoptère de ravitaillement posé.
@@ -650,6 +651,8 @@ Une ligne `KO` suffit à dire où regarder.
 | `convoy_timeout` | 2700 | le moins de temps qu'a un convoi d'assaut avant d'être retiré de la carte, sa place libérée ; sinon une fois et demie le temps que demande sa route |
 | `assault_speed` | 40 | km/h : la vitesse d'un convoi d'assaut |
 | `convoy_report_seconds` | 300 | intervalle entre deux lignes de `dcs.log` sur l'avancée d'un convoi d'assaut |
+| `fall_back_seconds` | 120 | combien de temps un convoi d'assaut doit se replier sans reprendre sa route pour que son assaut soit fini |
+| `retire_quiet_seconds` | 300 | un convoi à retirer ne part qu'après ce temps sans contact, et sans joueur à moins de `wake_radius` |
 | `route_failures` | 2 | hélicoptères ou convois ratés de suite vers une zone avant que le camp y renonce |
 | `route_failure_seconds` | 3600 | combien de temps il y renonce |
 | `helicopter` | `{red: Mi-8MT, blue: UH-1H}` | le type de l'hélicoptère de chaque camp |

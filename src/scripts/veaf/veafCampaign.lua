@@ -104,6 +104,12 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   -- where it stands is logged every `convoy_report_seconds`
   assault_speed = 40,
   convoy_report_seconds = 300,
+  -- FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 07: the assault on Menagh vanished under a player's guns on 2026-11-19, retired as
+  -- "fell back" on one sample of the convoy watch's state. A fall-back counts once it has lasted `fall_back_seconds`,
+  -- and a retired convoy leaves only once no player is within `wake_radius` and nothing has touched it for
+  -- `retire_quiet_seconds`
+  fall_back_seconds = 120,
+  retire_quiet_seconds = 300,
   -- red remembers what fails (FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 04): after `route_failures` failed helicopters or
   -- convoys to the same zone, it sends no more there for `route_failure_seconds` — four Mi-8 for Afrin turned back
   -- in a row on 2026-11-17, one every 10 minutes
@@ -2114,32 +2120,97 @@ function veafCampaign.retireConvoy(record, reason)
   veafCampaign.debug("DECISION", "%s convoy [%s] to [%s] retired: %s", record.side, record.name, record.to, reason)
 end
 
+--- The convoy watch's handler of a convoy (`veafGroundAI`), or nil.
+local function convoyHandler(record)
+  return veafGroundAI and veafGroundAI.convoysByGroupName and veafGroundAI.convoysByGroupName[record.name]
+end
+
+--- Whether a convoy to retire may leave the world now (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 07): no player within
+--- `wake_radius` of any of its vehicles, and no contact for `retire_quiet_seconds`. Until then it stays in play.
+--- @param record table the convoy's record
+--- @param now number the mission time
+--- @return boolean
+--- @return string|nil what keeps it, when it may not
+function veafCampaign.convoyMayLeave(record, now)
+  local units = veafCampaign.convoyUnits(record)
+  if #units == 0 then
+    return true
+  end
+  local handler = convoyHandler(record)
+  local touched = handler and math.max(handler.lastContact or -math.huge, handler.lastFireExchanged or -math.huge)
+  if touched and now - touched < veafCampaign.setting("retire_quiet_seconds") then
+    return false, "in contact"
+  end
+  local radius = veafCampaign.setting("wake_radius")
+  for _, player in ipairs(veafCampaign.playerPoints()) do
+    for _, unit in ipairs(units) do
+      local point = unit:getPoint()
+      local dx, dz = point.x - player.x, point.z - player.z
+      if dx * dx + dz * dz <= radius * radius then
+        return false, "a player near"
+      end
+    end
+  end
+  return true
+end
+
 --- A convoy of a persistent campaign that will not arrive frees its place: its target is its side's already (a
---- helicopter took it first), or it has been on the road `convoy_timeout`. On 2026-11-16 two red convoys held both
---- places of `max_convoys` for more than an hour, and red sent no counter-attack all that time.
+--- helicopter took it first), it has been on the road `convoy_timeout`, or it fell back for `fall_back_seconds`.
+--- On 2026-11-16 two red convoys held both places of `max_convoys` for more than an hour, and red sent no
+--- counter-attack all that time. Decided once; the convoy leaves when `convoyMayLeave` says so, never in front of a
+--- player (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 07).
 --- @param record table the convoy's record
 --- @param now number the mission time
 function veafCampaign.checkConvoyGoal(record, now)
   if record.ended or not veafCampaign.isPersistent() then
     return
   end
-  local target = veafCampaign.zones[record.to]
-  if target and target.entry.owner == record.side then
-    veafCampaign.retireConvoy(record, "its target is its side's already")
-  elseif record.sentAt and now - record.sentAt >= (record.timeout or veafCampaign.setting("convoy_timeout")) then
-    veafCampaign.retireConvoy(record, string.format("not arrived after %d min", math.floor((now - record.sentAt) / 60)))
-    veafCampaign.recordFailure("convoy", record.side, record.from, record.to, "not arrived")
-  elseif veafCampaign.convoyFellBack(record) then
-    -- an assault that falls back ends: it drove the Hatay assault back home under a player's fire (2026-11-17)
-    veafCampaign.retireConvoy(record, "it fell back under fire")
-    veafCampaign.recordFailure("convoy", record.side, record.from, record.to, "fell back")
+  if not record.retiring then
+    if veafCampaign.convoyFellBack(record) then
+      record.fallingBackSince = record.fallingBackSince or now
+    else
+      record.fallingBackSince = nil
+    end
+    local target = veafCampaign.zones[record.to]
+    local failure = nil
+    if target and target.entry.owner == record.side then
+      record.retiring = "its target is its side's already"
+    elseif record.sentAt and now - record.sentAt >= (record.timeout or veafCampaign.setting("convoy_timeout")) then
+      record.retiring = string.format("not arrived after %d min", math.floor((now - record.sentAt) / 60))
+      failure = "not arrived"
+    elseif record.fallingBackSince and now - record.fallingBackSince >= veafCampaign.setting("fall_back_seconds") then
+      -- an assault that falls back ends: it drove the Hatay assault back home under a player's fire (2026-11-17)
+      record.retiring = "it fell back under fire"
+      failure = "fell back"
+    end
+    if not record.retiring then
+      return
+    end
+    if failure then
+      veafCampaign.recordFailure("convoy", record.side, record.from, record.to, failure)
+    end
+  end
+  local leaves, keeper = veafCampaign.convoyMayLeave(record, now)
+  if leaves then
+    veafCampaign.retireConvoy(record, record.retiring)
+  elseif record.keptBy ~= keeper then
+    record.keptBy = keeper
+    veafCampaign.debug(
+      "DECISION",
+      "%s convoy [%s] to [%s] to retire (%s) stays: %s",
+      record.side,
+      record.name,
+      record.to,
+      record.retiring,
+      keeper
+    )
   end
 end
 
 --- Whether the convoy watch (`veafGroundAI`) made an assault convoy fall back.
 --- @return boolean
 function veafCampaign.convoyFellBack(record)
-  local handler = veafGroundAI and veafGroundAI.convoysByGroupName and veafGroundAI.convoysByGroupName[record.name]
+  local handler = convoyHandler(record)
   return handler ~= nil and ConvoyUnitHandler ~= nil and handler.state == ConvoyUnitHandler.STATE_FALLING_BACK
 end
 

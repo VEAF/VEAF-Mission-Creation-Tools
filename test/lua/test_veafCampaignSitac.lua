@@ -147,6 +147,10 @@ function TestCampaignSitac:setUp()
     mission = env.mission,
     economy = veafCampaignEconomy,
     logistics = veafCampaignLogistics,
+    support = veafSupport,
+    csar = csar,
+    getPlayers = coalition.getPlayers,
+    getTankerData = veaf.getTankerData,
   }
   veafEventHandler.callbacks = {}
   land.getSurfaceType = function()
@@ -158,6 +162,7 @@ function TestCampaignSitac:setUp()
   end
   env.mission = { theatre = "Syria" }
   veafCampaignEconomy, veafCampaignLogistics = nil, nil
+  veafSupport, csar = nil, nil
   memoryFileSystem(self)
   veafCampaign.listeners = {}
   veafCampaign.saveParts = {}
@@ -172,6 +177,8 @@ function TestCampaignSitac:tearDown()
   coord.LOtoLL = self.saved.LOtoLL
   env.mission = self.saved.mission
   veafCampaignEconomy, veafCampaignLogistics = self.saved.economy, self.saved.logistics
+  veafSupport, csar = self.saved.support, self.saved.csar
+  coalition.getPlayers, veaf.getTankerData = self.saved.getPlayers, self.saved.getTankerData
   veafCampaign.data = nil
   veafCampaign.listeners = {}
   veafCampaign.saveParts = {}
@@ -297,6 +304,168 @@ function TestCampaignSitac:test_the_reload_ignores_the_block()
   luaunit.assertEquals(veafCampaign.zones["Kafr Naya"].entry.owner, "neutral")
   luaunit.assertNil(veafCampaign.data.sitac)
   luaunit.assertNil(veafCampaign.zones["Kafr Naya"].entry.sitac)
+end
+
+-- ---------------------------------------------------------------------------
+-- What Foothold's sitac shows (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 02 to 06)
+-- ---------------------------------------------------------------------------
+
+--- A unit in the air at `x` metres north, `y` metres high, as coalition.getPlayers and Group:getUnit hand it.
+local function flying(typeName, x, y, options)
+  options = options or {}
+  return {
+    getPlayerName = function()
+      return options.player
+    end,
+    getTypeName = function()
+      return typeName
+    end,
+    getPoint = function()
+      return { x = x, y = y, z = 0 }
+    end,
+    getCoalition = function()
+      return options.side or coalition.side.BLUE
+    end,
+    isExist = function()
+      return true
+    end,
+    hasAttribute = function(_, attribute)
+      return (options.attributes or {})[attribute] == true
+    end,
+  }
+end
+
+--- A group whose first unit is `unit`.
+local function groupOf(name, unit)
+  dcs_mocks.addGroup(name, {
+    getUnit = function()
+      return unit
+    end,
+    getCoalition = function()
+      return unit:getCoalition()
+    end,
+  })
+end
+
+function TestCampaignSitac:test_with_nothing_to_show_the_lists_are_empty()
+  local sitac = veafCampaign.stateTable().sitac
+  luaunit.assertEquals(sitac.players, {})
+  luaunit.assertEquals(sitac.playerStats, {})
+  luaunit.assertEquals(sitac.ejectedPilots, {})
+  luaunit.assertEquals(sitac.missions, {})
+  luaunit.assertEquals(sitac.support, {})
+end
+
+function TestCampaignSitac:test_each_player_in_a_slot_is_placed_with_his_side_and_aircraft()
+  coalition.getPlayers = function(side)
+    if side == coalition.side.BLUE then
+      return { flying("A-10C_2", 50000, 3000, { player = "Zip" }) }
+    end
+    return { flying("MiG-29A", 100000, 6000, { player = "Paluche", side = coalition.side.RED }) }
+  end
+  local players = veafCampaign.stateTable().sitac.players
+  luaunit.assertEquals(#players, 2)
+  luaunit.assertEquals(players[1].coalition, "blue")
+  luaunit.assertEquals(players[1].unitType, "A-10C_2")
+  luaunit.assertEquals(players[1].playerName, "Zip")
+  luaunit.assertAlmostEquals(players[1].latitude, 36.5, 1e-9)
+  luaunit.assertAlmostEquals(players[1].longitude, 37, 1e-9)
+  luaunit.assertEquals(players[1].altitude, 3000)
+  luaunit.assertEquals({ players[2].coalition, players[2].playerName }, { "red", "Paluche" })
+end
+
+function TestCampaignSitac:test_a_unit_that_cannot_be_read_is_left_out()
+  coalition.getPlayers = function(side)
+    if side == coalition.side.BLUE then
+      local gone = flying("A-10C_2", 0, 0, { player = "Zip" })
+      gone.getPoint = function()
+        error("the unit no longer exists")
+      end
+      return { gone, flying("F-16C_50", 0, 0, {}) } -- the second: an AI, with no player name
+    end
+    return {}
+  end
+  luaunit.assertEquals(veafCampaign.stateTable().sitac.players, {})
+end
+
+function TestCampaignSitac:test_the_ranking_and_the_board_come_from_the_economy()
+  veafCampaignEconomy = {
+    credits = 10,
+    sitacStats = function()
+      return { Zip = { Points = 120, Air = 2 } }
+    end,
+    sitacTasks = function()
+      return { { title = "Capture Poti (300 cr.)", description = "", isRunning = true, isEscortMission = false } }
+    end,
+  }
+  local sitac = veafCampaign.stateTable().sitac
+  luaunit.assertEquals(sitac.playerStats, { Zip = { Points = 120, Air = 2 } })
+  luaunit.assertEquals(sitac.missions[1].title, "Capture Poti (300 cr.)")
+end
+
+function TestCampaignSitac:test_a_pilot_on_the_ground_of_the_players_side_is_placed_with_his_lost_credits()
+  csar = {
+    woundedGroups = {
+      ["Downed Pilot #2"] = { side = coalition.side.BLUE, originalUnit = "Zip's Hog", player = "Zip" },
+      ["Downed Pilot #1"] = { side = coalition.side.BLUE, originalUnit = "Viper 1-1", desc = "AI Pilot of Viper 1-1 - F-16C_50" },
+      ["Downed Pilot #3"] = { side = coalition.side.RED, originalUnit = "MiG", player = "Paluche" },
+    },
+  }
+  groupOf("Downed Pilot #2", flying("Soldier M4", 50000, 120, {}))
+  groupOf("Downed Pilot #1", flying("Soldier M4", 0, 80, {}))
+  groupOf("Downed Pilot #3", flying("Soldier M4", 100000, 80, { side = coalition.side.RED }))
+  veafCampaignEconomy = { credits = 10, lostAtEjection = { ["Zip's Hog"] = 15 } }
+  local pilots = veafCampaign.stateTable().sitac.ejectedPilots
+  -- the enemy's pilots are not ours to rescue; in the order of the CSAR groups' names
+  luaunit.assertEquals(#pilots, 2)
+  luaunit.assertEquals(pilots[1].playerName, "AI Pilot of Viper 1-1 - F-16C_50")
+  luaunit.assertEquals(pilots[1].lostCredits, 0)
+  luaunit.assertEquals(pilots[2].playerName, "Zip")
+  luaunit.assertAlmostEquals(pilots[2].latitude, 36.5, 1e-9)
+  luaunit.assertEquals(pilots[2].altitude, 120)
+  luaunit.assertEquals(pilots[2].lostCredits, 15)
+end
+
+function TestCampaignSitac:test_a_rescued_pilot_leaves_the_list()
+  csar = { woundedGroups = { ["Downed Pilot #1"] = { side = coalition.side.BLUE, originalUnit = "Zip's Hog", player = "Zip" } } }
+  groupOf("Downed Pilot #1", flying("Soldier M4", 0, 0, {}))
+  luaunit.assertEquals(#veafCampaign.stateTable().sitac.ejectedPilots, 1)
+  -- picked up: CSAR forgets the group
+  csar.woundedGroups = {}
+  luaunit.assertEquals(veafCampaign.stateTable().sitac.ejectedPilots, {})
+end
+
+function TestCampaignSitac:test_the_support_aircraft_are_placed_with_their_kind_and_frequency()
+  veafSupport = {
+    setting = function(key)
+      return key == "assets" and { "Overlord", "Arco", "Texaco", "Shell", "Magic" } or nil
+    end,
+  }
+  veafCampaignEconomy = { credits = 10, BOOM_TANKERS = { ["KC-135"] = true }, BASKET_TANKERS = { ["KC135MPRS"] = true } }
+  groupOf("Overlord", flying("E-3A", 50000, 9000, { attributes = { AWACS = true } }))
+  groupOf("Arco", flying("KC-135", 0, 7000, { attributes = { Tankers = true } }))
+  groupOf("Texaco", flying("KC135MPRS", 0, 6000, { attributes = { Tankers = true } }))
+  groupOf("Magic", flying("A-50", 0, 9000, { side = coalition.side.RED, attributes = { AWACS = true } }))
+  veaf.getTankerData = function(name)
+    return ({
+      Overlord = { tankerFrequency = 251 },
+      Arco = { tankerFrequency = 252.5, tankerTacanChannel = 51, tankerTacanMode = "Y" },
+    })[name] or {}
+  end
+  local support = veafCampaign.stateTable().sitac.support
+  -- Shell is dead, and the enemy's AWACS is no business of the players' map
+  luaunit.assertEquals(#support, 4)
+  luaunit.assertEquals(support[1].name, "Overlord")
+  luaunit.assertEquals(support[1].kind, "awacs")
+  luaunit.assertEquals(support[1].side, "blue")
+  luaunit.assertAlmostEquals(support[1].latitude, 36.5, 1e-9)
+  luaunit.assertEquals(support[1].altitude, 9000)
+  luaunit.assertEquals(support[1].frequency, 251)
+  luaunit.assertNil(support[1].tacan)
+  luaunit.assertTrue(support[1].alive)
+  luaunit.assertEquals({ support[2].name, support[2].kind, support[2].tacan }, { "Arco", "tanker_boom", "51Y" })
+  luaunit.assertEquals({ support[3].name, support[3].kind }, { "Texaco", "tanker_basket" })
+  luaunit.assertEquals(support[4], { name = "Shell", alive = false })
 end
 
 os.exit(luaunit.LuaUnit.run())

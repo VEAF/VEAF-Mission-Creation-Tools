@@ -3098,6 +3098,148 @@ function VeafCampaignZone:readWarehouse()
   return nil
 end
 
+--- A DCS object's point, or nil when it cannot be read (gone, or not a unit).
+local function pointOf(object)
+  if not (object and object.getPoint) then
+    return nil
+  end
+  local ok, point = pcall(object.getPoint, object)
+  return ok and type(point) == "table" and point or nil
+end
+
+--- A position in the sitac's Foothold shape: `latitude`, `longitude`, `altitude` (metres above sea level).
+local function placed(entry, point)
+  local latitude, longitude = coord.LOtoLL(point)
+  entry.latitude, entry.longitude, entry.altitude = latitude, longitude, point.y
+  return entry
+end
+
+--- The players in a slot, both sides, in Foothold's `players` shape (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 02). As fresh
+--- as the state write: the block is written with it.
+--- @return table a list
+function veafCampaign.sitacPlayers()
+  local players = {}
+  for _, side in ipairs({ "blue", "red" }) do
+    local ok, units = pcall(coalition.getPlayers, veafCampaign.SIDES[side])
+    for _, unit in ipairs(ok and type(units) == "table" and units or {}) do
+      local okName, name = pcall(unit.getPlayerName, unit)
+      local okType, typeName = pcall(unit.getTypeName, unit)
+      local point = pointOf(unit)
+      if okName and name and okType and point then
+        table.insert(players, placed({ coalition = side, unitType = typeName, playerName = name }, point))
+      end
+    end
+  end
+  return players
+end
+
+--- The first unit of a group, or nil when the group is gone.
+local function firstUnit(groupName)
+  local group = Group.getByName(groupName)
+  if not (group and group.getUnit) then
+    return nil
+  end
+  local ok, unit = pcall(group.getUnit, group, 1)
+  return ok and unit or nil
+end
+
+--- The players' side's pilots on the ground that the CSAR module waits to rescue, AI included, in Foothold's
+--- `ejectedPilots` shape (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 04): `lostCredits` the credits held at the ejection,
+--- lost then. A pilot picked up leaves the CSAR registry, and the list.
+--- @return table a list, in the order of the CSAR groups' names
+function veafCampaign.sitacEjectedPilots()
+  local pilots = {}
+  if not (csar and type(csar.woundedGroups) == "table") then
+    return pilots
+  end
+  local own = veafCampaign.SIDES[veafCampaign.playerSide()]
+  local lost = veafCampaignEconomy and veafCampaignEconomy.lostAtEjection or {}
+  local names = {}
+  for groupName in pairs(csar.woundedGroups) do
+    table.insert(names, groupName)
+  end
+  table.sort(names)
+  for _, groupName in ipairs(names) do
+    local wounded = csar.woundedGroups[groupName]
+    local point = wounded.side == own and pointOf(firstUnit(groupName))
+    if point then
+      table.insert(
+        pilots,
+        placed({
+          playerName = wounded.player or wounded.desc or groupName,
+          lostCredits = lost[wounded.originalUnit] or 0,
+        }, point)
+      )
+    end
+  end
+  return pilots
+end
+
+--- What a support aircraft is: `awacs`, `tanker_boom`, `tanker_basket`, `tanker_both`, or `tanker` when how it
+--- refuels is not known here; nil for anything else.
+local function supportKind(unit)
+  local function has(attribute)
+    local ok, value = pcall(unit.hasAttribute, unit, attribute)
+    return ok and value == true
+  end
+  if has("AWACS") then
+    return "awacs"
+  end
+  local okType, typeName = pcall(unit.getTypeName, unit)
+  local boom = veafCampaignEconomy and veafCampaignEconomy.BOOM_TANKERS and veafCampaignEconomy.BOOM_TANKERS[typeName]
+  local basket = veafCampaignEconomy and veafCampaignEconomy.BASKET_TANKERS and veafCampaignEconomy.BASKET_TANKERS[typeName]
+  if okType and boom and basket then
+    return "tanker_both"
+  elseif okType and boom then
+    return "tanker_boom"
+  elseif okType and basket then
+    return "tanker_basket"
+  elseif has("Tankers") then
+    return "tanker"
+  end
+  return nil
+end
+
+--- The players' side's AWACS and tankers the SUPPORT module holds (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 06): where each
+--- flies now, its kind, frequency (MHz) and TACAN; one that is gone is listed by its name, `alive = false`.
+--- @return table a list, in the module's order
+function veafCampaign.sitacSupport()
+  local list = {}
+  if not (veafSupport and veafSupport.setting) then
+    return list
+  end
+  local own = veafCampaign.playerSide()
+  for _, name in ipairs(veafSupport.setting("assets") or {}) do
+    local unit = firstUnit(name)
+    local okAlive, alive = false, false
+    if unit and unit.isExist then
+      okAlive, alive = pcall(unit.isExist, unit)
+    end
+    local point = okAlive and alive and pointOf(unit)
+    if not point then
+      table.insert(list, { name = name, alive = false })
+    else
+      local okSide, side = pcall(unit.getCoalition, unit)
+      if okSide and side == veafCampaign.SIDES[own] then
+        local radio = veaf.getTankerData and veaf.getTankerData(name) or {}
+        local tacan = radio.tankerTacanChannel and (tostring(radio.tankerTacanChannel) .. (radio.tankerTacanMode or "")) or nil
+        table.insert(
+          list,
+          placed({
+            name = name,
+            kind = supportKind(unit),
+            side = own,
+            frequency = radio.tankerFrequency,
+            tacan = tacan,
+            alive = true,
+          }, point)
+        )
+      end
+    end
+  end
+  return list
+end
+
 --- What a web map outside DCS needs to draw the campaign (FEAT-CAMPAIGN-SITAC-STATE): positions in lat/lon,
 --- kinds, links, and counts only. The garrison's composition stays out: the intelligence rule hides it until
 --- the zone is reconnoitred, and the map is public. Rebuilt at every save; the reload never reads it.
@@ -3169,6 +3311,12 @@ function veafCampaign.sitacTable()
     connections = connections,
     convoys = convoys,
     sides = sides,
+    -- what Foothold's save gives its sitac, by its names (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 02 to 06)
+    players = veafCampaign.sitacPlayers(),
+    playerStats = veafCampaignEconomy and veafCampaignEconomy.sitacStats and veafCampaignEconomy.sitacStats() or {},
+    ejectedPilots = veafCampaign.sitacEjectedPilots(),
+    missions = veafCampaignEconomy and veafCampaignEconomy.sitacTasks and veafCampaignEconomy.sitacTasks() or {},
+    support = veafCampaign.sitacSupport(),
   }
 end
 

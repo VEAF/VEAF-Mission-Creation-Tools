@@ -1,6 +1,6 @@
 # FIX-CAMPAIGN-THIRD-SERVER-FLIGHT — what the third evening on the server taught
 
-Status: ⬜ ready — scope decided by David on 2026-11-19 ("on suit tes recommandations")
+Status: 🔄 in-progress — scope decided by David on 2026-11-19 ("on suit tes recommandations")
 
 The persistent campaign "Bouclier de l'Oronte" (Northern Syria), restarted from scratch on 2026-11-18 with FIX-CAMPAIGN-SECOND-SERVER-FLIGHT, the sitac block (FEAT-CAMPAIGN-SITAC-STATE) and the fixed file name `Campagne_Oronte.miz` (FEAT-CAMPAIGN-MISSION-FILE), flown on the Campagne server (`foothold2`) on 2026-11-19.
 The integration branch is `feature/dynamic-campaign`: one branch and one pull request into it for the whole lot.

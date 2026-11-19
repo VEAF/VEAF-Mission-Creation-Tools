@@ -1,6 +1,6 @@
 # 05 — The sitac lists the task board
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — implemented, waits for the in-game check
 Type: feature
 
 ## Decided
@@ -15,3 +15,11 @@ David, 2026-11-19, following the reco of the Foothold comparison (PRD): the sita
 ## Done when
 
 The sitac lists the tasks the F10 menu offers at that moment, with tests on both sides.
+
+## Implemented (2026-11-19)
+
+`veafCampaignEconomy.sitacTasks()` lists the open tasks in Foothold's `missions` shape, the title as the F10 menu gives it, the air task's progress as `description`, plus `kind`, `zone` and `reward`. Tests: `TestCampaignRanking`.
+
+## To check in game
+
+The sitac lists the tasks the F10 menu offers.

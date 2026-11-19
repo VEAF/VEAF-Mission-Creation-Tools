@@ -1,6 +1,6 @@
 # 01 — A captured airfield offers no slot
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — implemented, waits for the in-game check
 Type: fix
 
 ## Found
@@ -18,3 +18,14 @@ Every red airfield of the campaign is in the same case for blue: Taftanaz, Alepp
 ## Done when
 
 An airfield captured by blue in flight offers blue dynamic slots in the next evening's check, and a test shows `campaign next` writing every airfield zone in the list.
+
+## Implemented (2026-11-19)
+
+`prepare_next_mission` calls `open_every_campaign_airfield` (`campaign_manager/next_mission.py`) for a persistent campaign: every airfield zone goes under the player side's `airports:` in the mission's `src/warehouses.yaml`, an entry already there keeps its settings, a side the file does not declare is left without slots. `NextMissionReport.slot_airbases` lists them. Tests: `TestEveryAirfieldOffersSlots` in `test_campaign_persistent.py`.
+The enemy side's list is left as it is: it has no players. Its block, when declared with no list, restocks the airfields it holds after the player side, and links a type both sides have a template for to its own: written in `known-limitations.yaml` (`campaign-enemy-side-restocks-listed-airfields`).
+
+## To check in game
+
+1. Rebuild the Oronte mission with `campaign next`, and check `src\warehouses.yaml` lists the seven airfields under `blue.airports`.
+2. Capture a neutral or red airfield in flight (or set it blue from the admin menu).
+3. Open the blue slot list: the airfield offers dynamic slots. If it does not, write the measurement in `known-limitations.yaml` (`kind: dcs`).

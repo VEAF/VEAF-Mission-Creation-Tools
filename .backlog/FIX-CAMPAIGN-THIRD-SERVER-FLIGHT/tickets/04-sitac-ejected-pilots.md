@@ -1,6 +1,6 @@
 # 04 — The sitac shows the ejected pilots
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — implemented, waits for the in-game check
 Type: feature
 
 ## Decided
@@ -16,3 +16,11 @@ David, 2026-11-19, following the reco of the Foothold comparison (PRD): ejected 
 ## Done when
 
 An ejected player appears on the sitac where he landed and leaves it once rescued, with tests on both sides.
+
+## Implemented (2026-11-19)
+
+`veafCampaign.sitacEjectedPilots()` reads `csar.woundedGroups`, players' side only, AI pilots included (CSAR rescues them too); `lostCredits` is what the economy recorded at the ejection (`veafCampaignEconomy.lostAtEjection`). The credits held are lost at the ejection in our economy: a rescue does not give them back, unlike Foothold. Tests: both Lua suites.
+
+## To check in game
+
+An ejected player appears on the sitac where he landed, and leaves it once picked up.

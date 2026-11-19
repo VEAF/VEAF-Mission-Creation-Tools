@@ -1,6 +1,6 @@
 # 02 — The sitac shows the players, as Foothold's does
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — implemented, waits for the in-game check
 Type: feature
 
 ## Found
@@ -17,3 +17,11 @@ Foothold writes a `players` list in its save (side, aircraft type, player name, 
 ## Done when
 
 On the next evening the sitac shows each connected player on the map, as it did under Foothold, with tests on both sides.
+
+## Implemented (2026-11-19)
+
+`veafCampaign.sitacPlayers()` writes `players` from `coalition.getPlayers`, both sides, in Foothold's shape, at every state write (60 s of simulation). `net.get_player_list` was not needed. Tests: `test_veafCampaignSitac.lua`.
+
+## To check in game
+
+The sitac draws each connected player within a minute of his move.

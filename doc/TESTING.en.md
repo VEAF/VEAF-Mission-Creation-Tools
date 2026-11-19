@@ -199,9 +199,9 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafMissileGuardian.lua` | Missile intercept logic |
 | `test_veafCampaign.lua` | Multi-mission campaign: garrisons drawn, recorded, and their losses |
 | `test_veafCampaignPersistent.lua` | Persistent campaign: save read back, victory, defeat, reset, sleeping zones, reinforcement, counter-attacks, CTLD 2 deliveries, self-check |
-| `test_veafCampaignLive.lua` | Persistent campaign: supply helicopters, enemy air, Hunter, credits, shop, tasks, intelligence, spy team |
+| `test_veafCampaignLive.lua` | Persistent campaign: supply helicopters, enemy air, Hunter, credits, shop, tasks, intelligence, spy team, ranking figures |
 | `test_veafCampaignV15.lua` | Persistent campaign V1.5: factories and depots, resources and production, supply network, paid spawns, sappers, weapon stocks, bombers, territory |
-| `test_veafCampaignSitac.lua` | Persistent campaign: the state file's `sitac` block for the web map (positions, kinds, counts, connections, convoys, sides), ignored by the reload |
+| `test_veafCampaignSitac.lua` | Persistent campaign: the state file's `sitac` block for the web map (positions, kinds, counts, connections, convoys, sides; players, ranking, ejected pilots, tasks, AWACS and tankers), ignored by the reload |
 | `test_veafCasMission.lua` | CAS threat package generation |
 | `test_veafCasMission_menu.lua` | Fixed CAS MISSION menu: no entry added or removed during a mission, answers with no mission running |
 | `test_veafTransportMission.lua` | Transport mission setup |

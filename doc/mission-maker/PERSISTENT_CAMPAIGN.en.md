@@ -14,6 +14,7 @@
   The new garrison appears at once.
 - **A pilot on the ground after an ejection is nobody's enemy**: the survivor the CSAR module puts down neither holds nor contests a zone, wakes no zone and stops no convoy, in every VEAF script.
 - **Slots follow the bases**: an airfield taken goes to the side that took it, with its dynamic slots.
+  Every airfield of the campaign has its slots ready from the build, even those the players' side does not hold yet (see [Building the mission](#build)).
   The campaign alone decides who owns an airfield: DCS's own capture of an airbase by the units around it is turned off on every airfield of the map.
 - **The front moves on its own**: the enemy [counter-attacks](#front), reinforces its zones by helicopter, and sends CAP, strikes and [bombers](#bombers).
 - **The enemy pays for what it sends** with the [resources](#resources) its factories make: destroying its [factories](#zone-kinds) or cutting its [supply network](#network) grounds its CAP in the end.
@@ -65,6 +66,10 @@ With a reserve, it empties as in a multi-mission campaign, and a side with nothi
 
 Then the mission of the `missions\mission-01\mission` folder is built like any mission, and put on the server.
 `campaign next` run again on the same folder updates it without touching the rest of the work done in it.
+
+**Slots on every airfield of the campaign.** `campaign next` writes, in the mission's `src\warehouses.yaml`, the players' side's `airports:` list with **every airfield of the campaign**, whatever its side at the start.
+Without that list, the build opens dynamic slots only on the airfields the side holds when the mission is built: an airfield captured in flight had no slot to offer (Minakh, 2026-11-19).
+An airfield already in the list keeps its settings; a side the file does not declare stays without slots.
 `campaign apply` has no use here: there is no "between two missions".
 
 **Weather and time come from the server.** A persistent campaign runs for weeks: `campaign next` fixes neither date, start time nor weather, and the mission's name carries no `_NoMizedit` (`Campaign_<campaign>_Mission_01_<title>`), so the server's MizEdit preset (with RealWeather) sets them at each load. A [multi-mission campaign](CAMPAIGN.en.md#squadron-settings) keeps its fixed conditions and its `_NoMizedit`.
@@ -222,6 +227,25 @@ sitac = {
   connections = { { "Minakh", "Tal Rifaat" }, { "Tal Rifaat", "Kafr Naya" } },
   convoys = { { side = "blue", from = "Minakh", to = "Tal Rifaat", units = 4 } },
   sides = { blue = { credits = 1915, resources = 600 }, red = { resources = 250 } },
+  players = {
+    { coalition = "blue", unitType = "A-10C_2", playerName = "Zip", latitude = 36.50, longitude = 37.01, altitude = 3048 },
+  },
+  playerStats = {
+    Zip = { Points = 420, Air = 1, SAM = 2, ["Ground Units"] = 7, Infantry = 3, Helo = 0, Structure = 1, Deaths = 1,
+      ["Warehouse delivery"] = 2 },
+  },
+  ejectedPilots = { { playerName = "Paluche", latitude = 36.45, longitude = 37.08, altitude = 412, lostCredits = 15 } },
+  missions = {
+    { title = "Capture Tal Rifaat (300 cr.)", description = "", isRunning = true, isEscortMission = false,
+      kind = "capture", zone = "Tal Rifaat", reward = 300 },
+    { title = "Air superiority (200 cr.)", description = "1/3", isRunning = true, isEscortMission = false,
+      kind = "air", reward = 200 },
+  },
+  support = {
+    { name = "Arco", kind = "tanker_boom", side = "blue", latitude = 36.20, longitude = 36.60, altitude = 7620,
+      frequency = 252.5, tacan = "51Y", alive = true },
+    { name = "Overlord", alive = false },
+  },
 }
 ```
 
@@ -231,6 +255,18 @@ sitac = {
 - `awake` is false for a sleeping zone.
 - `convoys` keeps only the assault convoys still on the road; `units` counts their vehicles alive.
 - `sides` gives the players' side's credits and each side's resources, when they are counted.
+
+The next five lists use the **field names of Foothold's save**, so that the sitac shows them as it shows Foothold's.
+They are as fresh as the save: one every `state_write_seconds` (60 s) of simulation, and none while the server is paused.
+
+- `players`: each player in a slot, both sides, with his side, aircraft and position (`altitude` in metres).
+- `playerStats`: the ranking, by pilot name. `Points` is the total of the credits he earned; `Air`, `Helo`, `SAM` (all the ground-based air defence), `Ground Units`, `Infantry` and `Structure` count what he destroyed; `Deaths` his deaths, `Warehouse delivery` his weapon deliveries.
+  These figures are kept in the save and start from zero with the campaign. A capture is credited to no pilot: it does not show in the ranking.
+- `ejectedPilots`: the players' side's pilots on the ground the CSAR waits to rescue, AI included; `lostCredits` gives the credits he carried, lost at the ejection (a rescue does not give them back). A pilot picked up leaves the list.
+- `missions`: the [task board](#tasks), with the title the F10 menu gives; `description` gives an air superiority task's progress; `kind`, `zone` and `reward` on top of Foothold's.
+- `support`: the players' side's [AWACS and tankers](#support), where they fly, with their kind (`awacs`, `tanker_boom`, `tanker_basket`, `tanker_both`, `tanker`), their frequency in MHz and their TACAN; one destroyed has only its name and `alive = false`.
+
+The enemy's units, zone by zone, are never there: that is the [intelligence](#intel) rule.
 
 ## Sleeping zones {#dormancy}
 
@@ -651,6 +687,8 @@ These are written and tested outside DCS, not yet measured in game:
 - the territory tint, made of triangles, on the F10 map;
 - an AWACS or a tanker moved out of reach, and its leg across the axis;
 - a supply helicopter told not to abort its task under a threat (twice on 2026-11-16 a Mi-8 sent from Aleppo to Afrin landed back at Aleppo three minutes after leaving: a probable cause, not a measured one);
-- the waypoint numbers, as each module shows them.
+- the waypoint numbers, as each module shows them;
+- an airfield neutral or enemy at the start, captured in flight, offering its dynamic slots to the side that took it (Foothold relies on it; not measured on ours yet);
+- a building destroyed counted in the ranking: DCS has to send an `S_EVENT_KILL` for a static object.
 
 See also the [`veafCampaign` module reference](scripts/veafCampaign.en.md).

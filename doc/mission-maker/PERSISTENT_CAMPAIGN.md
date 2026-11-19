@@ -14,6 +14,7 @@
   La nouvelle garnison apparaît aussitôt.
 - **Un pilote au sol après une éjection n'est l'ennemi de personne** : le rescapé que pose le module CSAR ne tient ni ne conteste une zone, ne réveille aucune zone et n'arrête aucun convoi, dans tous les scripts VEAF.
 - **Les slots suivent les bases** : un aérodrome pris passe dans le camp du preneur, avec ses slots dynamiques.
+  Tous les aérodromes de la campagne ont leurs slots prêts dès la construction, même ceux que le camp des joueurs ne tient pas encore (voir [Construire la mission](#build)).
   La campagne décide seule du camp d'un aérodrome : la prise native de DCS, par les unités qui l'entourent, est coupée sur tous les aérodromes de la carte.
 - **Le front bouge tout seul** : l'ennemi [contre-attaque](#front), renforce ses zones par hélicoptère, et envoie CAP, frappes et [bombardiers](#bombers).
 - **L'ennemi paie ce qu'il envoie** avec les [ressources](#resources) que font ses usines : détruire ses [usines](#zone-kinds) ou couper son [réseau d'approvisionnement](#network) finit par clouer sa CAP au sol.
@@ -65,6 +66,10 @@ Avec une réserve, elle se vide comme en campagne multi-missions, et un camp à 
 
 Puis on construit la mission du dossier `missions\mission-01\mission` comme n'importe quelle mission, et on la met sur le serveur.
 `campaign next` relancé sur le même dossier la met à jour sans toucher au reste du travail fait dedans.
+
+**Des slots sur chaque aérodrome de la campagne.** `campaign next` écrit, dans le `src\warehouses.yaml` de la mission, la liste `airports:` du camp des joueurs avec **chaque aérodrome de la campagne**, quel que soit son camp au départ.
+Sans cette liste, la construction n'ouvre les slots dynamiques que sur les aérodromes que le camp tient au moment de construire : un aérodrome pris en vol n'avait aucun slot à offrir (Minakh, le 19/11/2026).
+Un aérodrome déjà présent dans la liste garde ses réglages ; un camp que le fichier ne déclare pas reste sans slots.
 `campaign apply` n'a pas d'usage ici : il n'y a pas de « entre deux missions ».
 
 **La météo et l'heure viennent du serveur.** Une campagne persistante tourne des semaines : `campaign next` ne fixe ni date, ni heure de départ, ni météo, et le nom de la mission ne porte pas `_NoMizedit` (`Campaign_<campagne>_Mission_01_<titre>`), si bien que le preset MizEdit du serveur (avec RealWeather) les règle à chaque chargement. Une [campagne multi-missions](CAMPAIGN.md#squadron-settings) garde ses conditions fixées et son `_NoMizedit`.
@@ -222,6 +227,25 @@ sitac = {
   connections = { { "Minakh", "Tal Rifaat" }, { "Tal Rifaat", "Kafr Naya" } },
   convoys = { { side = "blue", from = "Minakh", to = "Tal Rifaat", units = 4 } },
   sides = { blue = { credits = 1915, resources = 600 }, red = { resources = 250 } },
+  players = {
+    { coalition = "blue", unitType = "A-10C_2", playerName = "Zip", latitude = 36.50, longitude = 37.01, altitude = 3048 },
+  },
+  playerStats = {
+    Zip = { Points = 420, Air = 1, SAM = 2, ["Ground Units"] = 7, Infantry = 3, Helo = 0, Structure = 1, Deaths = 1,
+      ["Warehouse delivery"] = 2 },
+  },
+  ejectedPilots = { { playerName = "Paluche", latitude = 36.45, longitude = 37.08, altitude = 412, lostCredits = 15 } },
+  missions = {
+    { title = "Prendre Tal Rifaat (300 cr.)", description = "", isRunning = true, isEscortMission = false,
+      kind = "capture", zone = "Tal Rifaat", reward = 300 },
+    { title = "Supériorité aérienne (200 cr.)", description = "1/3", isRunning = true, isEscortMission = false,
+      kind = "air", reward = 200 },
+  },
+  support = {
+    { name = "Arco", kind = "tanker_boom", side = "blue", latitude = 36.20, longitude = 36.60, altitude = 7620,
+      frequency = 252.5, tacan = "51Y", alive = true },
+    { name = "Overlord", alive = false },
+  },
 }
 ```
 
@@ -231,6 +255,18 @@ sitac = {
 - `awake` est faux pour une zone en sommeil.
 - `convoys` ne garde que les convois d'assaut encore en route ; `units` compte leurs véhicules vivants.
 - `sides` donne les crédits du camp des joueurs et les ressources de chaque camp, quand elles sont comptées.
+
+Les cinq listes suivantes reprennent les **noms de champs de la sauvegarde Foothold**, pour que la sitac les affiche comme elle affiche Foothold.
+Elles sont aussi fraîches que la sauvegarde : une toutes les `state_write_seconds` (60 s) de simulation, et rien pendant une pause du serveur.
+
+- `players` : chaque joueur dans un slot, des deux camps, avec son camp, son appareil et sa position (`altitude` en mètres).
+- `playerStats` : le classement, par nom de pilote. `Points` est le total des crédits qu'il a gagnés ; `Air`, `Helo`, `SAM` (toute la défense sol-air), `Ground Units`, `Infantry` et `Structure` comptent ses destructions ; `Deaths` ses morts, `Warehouse delivery` ses livraisons d'armement.
+  Ces chiffres sont gardés dans la sauvegarde et repartent de zéro avec la campagne. Une capture n'est attribuée à aucun pilote : elle n'apparaît pas au classement.
+- `ejectedPilots` : les pilotes du camp des joueurs au sol qu'attend le CSAR, IA comprise ; `lostCredits` donne les crédits qu'il transportait, perdus à l'éjection (un sauvetage ne les rend pas). Un pilote récupéré quitte la liste.
+- `missions` : le [tableau des tâches](#tasks), avec le titre que donne le menu F10 ; `description` donne l'avancement d'une tâche de supériorité aérienne ; `kind`, `zone` et `reward` en plus de Foothold.
+- `support` : les [AWACS et ravitailleurs](#support) du camp des joueurs, là où ils volent, avec leur sorte (`awacs`, `tanker_boom`, `tanker_basket`, `tanker_both`, `tanker`), leur fréquence en MHz et leur TACAN ; un appareil détruit n'a que son nom et `alive = false`.
+
+Les unités ennemies, zone par zone, n'y sont jamais : c'est la règle du [renseignement](#intel).
 
 ## Les zones en sommeil {#dormancy}
 
@@ -651,6 +687,8 @@ Ces points sont écrits et testés hors de DCS, pas encore mesurés en jeu :
 - la teinte du territoire, faite de triangles, sur la carte F10 ;
 - un AWACS ou un ravitailleur déplacé hors de portée, et sa branche en travers de l'axe ;
 - un hélicoptère de ravitaillement à qui il est dit de ne pas abandonner sa tâche sous une menace (deux fois le 16/11/2026, un Mi-8 envoyé d'Alep vers Afrin s'est reposé à Alep trois minutes après son départ : une cause probable, pas mesurée) ;
-- les numéros des waypoints, tels que chaque module les montre.
+- les numéros des waypoints, tels que chaque module les montre ;
+- un aérodrome neutre ou ennemi au départ, pris en vol, qui offre ses slots dynamiques au preneur (Foothold compte dessus ; pas encore mesuré sur la nôtre) ;
+- un bâtiment détruit compté au classement : il faut que DCS envoie un `S_EVENT_KILL` pour un objet statique.
 
 Voir aussi la [référence du module `veafCampaign`](scripts/veafCampaign.md).

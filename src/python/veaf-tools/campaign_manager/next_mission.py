@@ -315,11 +315,11 @@ def open_every_campaign_airfield(campaign: CampaignDefinition, mission_folder: P
     if not names or not path.is_file():
         return []
     data = load_yaml(path)
-    side = data.get(campaign.player_side) if hasattr(data, "get") else None
-    if not hasattr(side, "get"):
+    side = data.get(campaign.player_side) if isinstance(data, dict) else None
+    if not isinstance(side, dict):
         return []
     airports = side.get("airports")
-    if not hasattr(airports, "get"):
+    if not isinstance(airports, dict):
         airports = side["airports"] = {}
     for name in names:
         if name not in airports:

@@ -173,9 +173,11 @@ veafCampaign.UNIT_PRICES = {
   apc = 4,
   tank = 6,
   artillery = 5,
-  aaa = 4,
-  sam_short = 8,
-  sam_long = 15,
+  -- FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 10 (David, 2026-11-19): a lost Tor was worth about a BMP, and one SEAD sortie
+  -- 25 of them; an estimate, to tune after an evening
+  aaa = 8,
+  sam_short = 25,
+  sam_long = 40,
   helicopter = 15,
   plane = 30,
   bomber = 100,

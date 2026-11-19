@@ -452,15 +452,16 @@ These three values were raised after the first evening flown: with 500, 30 and 1
 | APC, IFV | 4 |
 | tank | 6 |
 | artillery | 5 |
-| AAA, short-range air defence | 4 |
-| short-range SAM | 8 |
-| medium- or long-range SAM element | 15 |
+| AAA, short-range air defence | 8 |
+| short-range SAM | 25 |
+| medium- or long-range SAM element | 40 |
 | helicopter | 15 |
 | aeroplane | 30 |
 | bomber | 100 |
 | anything else | 5 |
 
 `resources.prices` changes a type's price: `{ "T-72B": 7 }`.
+Air defence was made dearer on 2026-11-19 (from 4, 8 and 15): a lost Tor was worth about a BMP, and one SEAD sortie 25 Tor. A randomly drawn airfield garrison now costs 190 points on average (370 at most), an outpost's 130 (210 at most), against 100 and 75 before; a garrison the side cannot pay for is replaced by a token one.
 These are starting values, to be tuned on a server: one factory pays for about one counter-attack and one CAP an hour.
 
 Credits stay the players': what they buy does not come out of the resources, and what survives of a purchase is added to them at the next load.
@@ -477,7 +478,7 @@ A side's factories feed its zones hop by hop, along the connections, and only th
   The units brought back appear in their places; the living ones do not move.
   **A zone under fire** — a unit lost less than `network.under_fire_seconds` (600 s) ago — is not reinforced: the delivery waits.
   A zone lost meanwhile receives nothing; a delivery with nothing left to repair, or what it did not spend, goes back to the stock.
-  Players who fly logistics go faster: a crate, troops or a helicopter reinforce at once, without waiting for the network or paying for it.
+  Players who fly logistics go faster: a crate, troops or a helicopter reinforce at once, without waiting for the network; the units brought back are paid from the stock, at their spawn price (see **Resupply** in [A front that moves on its own](#front)).
 - **A zone cut off** from every factory and depot is still served, from the background production, after `network.isolated_seconds` (3,600 s).
 
 F10 → Other → VEAF → Campaign → **Supply network** gives the players their stock, their production, and for each of their zones its delay or "cut off".
@@ -489,7 +490,7 @@ In a persistent campaign, every VEAF spawn command a person drops as a marker �
 - **in credits** when it spawns units for the players' side;
 - **from the resources** of the other side otherwise;
 - at the price of **the units it made**, one by one, on the [resources' scale](#resources): a random armoured platoon costs what it drew, two tanks and an IFV are 6 + 6 + 4 = 16 points;
-- the players' side pays `economy.credits_per_point` (6) credits a point: those 16 points are 96 credits;
+- the players' side pays `economy.credits_per_point` (6) credits a point: those 16 points are 96 credits; a `-sam` costs more since 2026-11-19, a short-range SAM being worth 25 points (150 credits) instead of 8;
 - the price is known only once the units are drawn: the spawn therefore always goes through **whole** — multiplier included — and is paid its exact price, into **debt** if need be;
 - a side at zero or in debt spawns nothing more: the command is refused before the spawn, with the balance, until the balance is above zero again; a gain pays the debt off first.
 

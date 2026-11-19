@@ -452,15 +452,16 @@ Ces trois valeurs ont été relevées après le premier soir joué : avec 500, 3
 | blindé de transport, véhicule de combat d'infanterie | 4 |
 | char | 6 |
 | artillerie | 5 |
-| AAA, défense courte portée | 4 |
-| SAM courte portée | 8 |
-| élément de SAM moyenne ou longue portée | 15 |
+| AAA, défense courte portée | 8 |
+| SAM courte portée | 25 |
+| élément de SAM moyenne ou longue portée | 40 |
 | hélicoptère | 15 |
 | avion | 30 |
 | bombardier | 100 |
 | tout le reste | 5 |
 
 `resources.prices` change le prix d'un type : `{ "T-72B": 7 }`.
+La défense sol-air a été renchérie le 19/11/2026 (de 4, 8 et 15) : un Tor perdu valait à peu près un BMP, et une sortie SEAD 25 Tor. Une garnison d'aérodrome tirée au hasard coûte désormais 190 points en moyenne (370 au plus), une d'avant-poste 130 (210 au plus), contre 100 et 75 avant ; une garnison que le camp ne peut pas payer est remplacée par une garnison symbolique.
 Ce sont des valeurs de départ, qui se régleront sur un serveur : une usine paie à peu près une contre-attaque et une CAP par heure.
 
 Les crédits restent ceux des joueurs : ce qu'ils achètent ne sort pas des ressources, et ce qui survit d'un achat s'y ajoute au chargement suivant.
@@ -477,7 +478,7 @@ Les usines d'un camp nourrissent ses zones de proche en proche, le long des liai
   Les unités ramenées apparaissent à leur place, les vivantes ne bougent pas.
   **Une zone sous le feu** — une unité perdue il y a moins de `network.under_fire_seconds` (600 s) — n'est pas renforcée : la livraison attend.
   Une zone perdue entre-temps ne reçoit rien ; une livraison qui n'a plus rien à réparer, ou ce qu'elle n'a pas dépensé, retourne au stock.
-  Les joueurs qui font de la logistique vont plus vite : une caisse, des troupes ou un hélicoptère renforcent sur-le-champ, sans attendre le réseau ni le payer.
+  Les joueurs qui font de la logistique vont plus vite : une caisse, des troupes ou un hélicoptère renforcent sur-le-champ, sans attendre le réseau ; les unités ramenées se paient sur le stock, au prix de leur spawn (voir **Ravitaillement** dans [Un front qui bouge tout seul](#front)).
 - **Une zone coupée** de toute usine et de tout dépôt est encore servie, sur la production de fond, au bout de `network.isolated_seconds` (3 600 s).
 
 F10 → Autres → VEAF → Campagne → **Réseau d'approvisionnement** donne aux joueurs leur stock, leur production, et pour chacune de leurs zones son délai ou « coupée du réseau ».
@@ -489,7 +490,7 @@ Dans une campagne persistante, toute commande de spawn VEAF qu'une personne pose
 - **en crédits** quand elle fait apparaître des unités pour le camp des joueurs ;
 - **sur les ressources** de l'autre camp sinon ;
 - au prix **des unités qu'elle a fait apparaître**, une par une, au [barème des ressources](#resources) : une section blindée tirée au hasard coûte ce qu'elle a tiré, deux chars et un VCI font 6 + 6 + 4 = 16 points ;
-- le camp des joueurs paie `economy.credits_per_point` (6) crédits par point : ces 16 points font 96 crédits ;
+- le camp des joueurs paie `economy.credits_per_point` (6) crédits par point : ces 16 points font 96 crédits ; un `-sam` coûte plus cher depuis le 19/11/2026, un SAM courte portée valant 25 points (150 crédits) au lieu de 8 ;
 - le prix n'est connu qu'une fois les unités tirées : le spawn passe donc toujours **en entier** — multiplicateur compris — et se paie au prix exact, quitte à faire passer le camp **dans le rouge** ;
 - un camp à zéro ou dans le rouge ne fait plus apparaître rien : la commande est refusée avant le spawn, avec son solde, jusqu'à ce que le solde repasse au-dessus de zéro ; un gain rembourse d'abord la dette.
 

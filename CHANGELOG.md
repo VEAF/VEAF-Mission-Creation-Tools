@@ -138,6 +138,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   An assault convoy is no longer removed in front of the players: a fall-back counts once it has lasted `fall_back_seconds` (120 s), not on one sample of the ground AI's state, and a convoy to retire (fall-back, timeout, target taken) stays in play while a player is within `wake_radius` or it was hit in the last `retire_quiet_seconds` (300 s); "drives on" under air attack is logged once per engagement, not once per hit.
   A garrison draws a single air defence group up to defence level 5, two only above: an airfield keeps its SA-8, SA-15 and Tunguska, but Aleppo's two groups of level 5 made 32 air defence units and 121 missiles. A garrison already in a save keeps its groups until it is drawn again.
   The units a supply delivery brings back — a helicopter, a crate, troops — are paid from the side's resource stock at the price a spawn of them costs, cheapest first; what the stock cannot pay stays dead, and the payment is logged. A red helicopter brought 7 units back to Aleppo for nothing on 2026-11-19.
+  Air defence costs more resource points: AAA 8 (was 4), a short-range SAM 25 (was 8), each element of a medium- or long-range SAM 40 (was 15). The same table prices garrisons, reinforcements, the enemy's spawns and the players' VEAF spawns: **a `-sam` now costs the players about three times as many credits**. A drawn airfield garrison averages 190 points (was 100).
 
 ## [6.36.0] — 2026-11-05
 

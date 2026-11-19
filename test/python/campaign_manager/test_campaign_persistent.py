@@ -27,8 +27,10 @@ from campaign_manager.next_mission import (
     prepare_next_mission,
     strategic_situation,
 )
+from veaf_libs.dcs_airdromes import airdrome_id_for_name
 from veaf_libs.i18n import language, t
 from veaf_libs.mission_validator import ERROR, ValidationIssue
+from veaf_mission_mcp.airbase import set_airbase_coalition
 
 
 def _parse(**changes: Any) -> tuple[CampaignDefinition | None, list[ValidationIssue]]:
@@ -433,6 +435,15 @@ class TestEveryAirfieldOffersSlots:
         written = (tmp_path / "m1" / "src" / "warehouses.yaml").read_text(encoding="utf-8")
         assert "# the maker's comment" in written
         assert yaml.safe_load(written)["blue"]["airports"] == {"Kobuleti": {"hot_start": False}, "Senaki-Kolkhi": {}}
+
+    def test_a_base_of_the_side_outside_the_campaign_keeps_its_slots(self, tmp_path: Path) -> None:
+        # an explicit list replaces "every base of the side": a rear base set in the template must be in it too
+        template = mission_template(tmp_path)
+        set_airbase_coalition(template, name="Batumi", coalition="blue")
+        campaign = _persistent()
+        prepare_next_mission(campaign, initial_state(campaign), tmp_path, tmp_path / "m1")
+        airports = self._warehouses(tmp_path / "m1")["blue"]["airports"]
+        assert airports == {"Kobuleti": {}, "Senaki-Kolkhi": {}, airdrome_id_for_name("Caucasus", "Batumi"): {}}
 
     def test_a_side_the_file_does_not_declare_is_left_closed(self, tmp_path: Path) -> None:
         template = mission_template(tmp_path)

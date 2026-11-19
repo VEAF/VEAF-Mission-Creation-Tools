@@ -21,7 +21,7 @@ An airfield captured by blue in flight offers blue dynamic slots in the next eve
 
 ## Implemented (2026-11-19)
 
-`prepare_next_mission` calls `open_every_campaign_airfield` (`campaign_manager/next_mission.py`) for a persistent campaign: every airfield zone goes under the player side's `airports:` in the mission's `src/warehouses.yaml`, an entry already there keeps its settings, a side the file does not declare is left without slots. `NextMissionReport.slot_airbases` lists them. Tests: `TestEveryAirfieldOffersSlots` in `test_campaign_persistent.py`.
+`prepare_next_mission` calls `open_every_campaign_airfield` (`campaign_manager/next_mission.py`) for a persistent campaign: every airfield zone goes under the player side's `airports:` in the mission's `src/warehouses.yaml`, an entry already there keeps its settings, a side the file does not declare is left without slots; a base the mission gives the side outside the campaign's zones is listed by its id, since an explicit list replaces "every base of the side" (found by the review). `NextMissionReport.slot_airbases` lists them. Tests: `TestEveryAirfieldOffersSlots` in `test_campaign_persistent.py`.
 The enemy side's list is left as it is: it has no players. Its block, when declared with no list, restocks the airfields it holds after the player side, and links a type both sides have a template for to its own: written in `known-limitations.yaml` (`campaign-enemy-side-restocks-listed-airfields`).
 
 ## To check in game

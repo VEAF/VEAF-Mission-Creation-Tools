@@ -69,7 +69,7 @@ Then the mission of the `missions\mission-01\mission` folder is built like any m
 
 **Slots on every airfield of the campaign.** `campaign next` writes, in the mission's `src\warehouses.yaml`, the players' side's `airports:` list with **every airfield of the campaign**, whatever its side at the start.
 Without that list, the build opens dynamic slots only on the airfields the side holds when the mission is built: an airfield captured in flight had no slot to offer (Minakh, 2026-11-19).
-An airfield already in the list keeps its settings; a side the file does not declare stays without slots.
+An airfield already in the list keeps its settings; a base the mission gives the side outside the campaign's zones (a rear base set in the template) is added by its id, to keep its slots; a side the file does not declare stays without slots.
 `campaign apply` has no use here: there is no "between two missions".
 
 **Weather and time come from the server.** A persistent campaign runs for weeks: `campaign next` fixes neither date, start time nor weather, and the mission's name carries no `_NoMizedit` (`Campaign_<campaign>_Mission_01_<title>`), so the server's MizEdit preset (with RealWeather) sets them at each load. A [multi-mission campaign](CAMPAIGN.en.md#squadron-settings) keeps its fixed conditions and its `_NoMizedit`.

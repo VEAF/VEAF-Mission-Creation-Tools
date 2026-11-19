@@ -19,8 +19,10 @@ from typing import Any
 import yaml
 from mission_tools.mission_yaml_editor import load_yaml, save_yaml
 from veaf_libs.ctld_config import CTLD_CONFIG_FILENAME
+from veaf_libs.dcs_airdromes import airdrome_id_for_name
 from veaf_libs.i18n import language, t
 from veaf_mission_mcp.airbase import set_airbase_coalition
+from veaf_mission_mcp.mission_folder import load_folder_mission
 from veaf_mission_mcp.mission_settings import set_briefing
 
 from campaign_manager.briefing_prose import BriefingProse, MissionPage
@@ -324,6 +326,14 @@ def open_every_campaign_airfield(campaign: CampaignDefinition, mission_folder: P
     for name in names:
         if name not in airports:
             airports[name] = {}
+    # the list replaces "every base of the side": a base the mission gives the side outside the campaign's zones
+    # (a rear base set in the template) is listed by its id, or it would lose its slots
+    zones = {airdrome_id_for_name(campaign.theatre, name) for name in names}
+    table = load_folder_mission(mission_folder).warehouses_content or {}
+    for airport_id, entry in (table.get("airports") or {}).items():
+        own = isinstance(entry, dict) and str(entry.get("coalition", "")).lower() == campaign.player_side
+        if own and airport_id not in zones and airport_id not in airports:
+            airports[airport_id] = {}
     save_yaml(path, data)
     return names
 

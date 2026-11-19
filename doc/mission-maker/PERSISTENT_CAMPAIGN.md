@@ -69,7 +69,7 @@ Puis on construit la mission du dossier `missions\mission-01\mission` comme n'im
 
 **Des slots sur chaque aérodrome de la campagne.** `campaign next` écrit, dans le `src\warehouses.yaml` de la mission, la liste `airports:` du camp des joueurs avec **chaque aérodrome de la campagne**, quel que soit son camp au départ.
 Sans cette liste, la construction n'ouvre les slots dynamiques que sur les aérodromes que le camp tient au moment de construire : un aérodrome pris en vol n'avait aucun slot à offrir (Minakh, le 19/11/2026).
-Un aérodrome déjà présent dans la liste garde ses réglages ; un camp que le fichier ne déclare pas reste sans slots.
+Un aérodrome déjà présent dans la liste garde ses réglages ; une base que la mission donne au camp hors des zones de la campagne (une base arrière posée dans le modèle) y est ajoutée par son numéro, pour garder ses slots ; un camp que le fichier ne déclare pas reste sans slots.
 `campaign apply` n'a pas d'usage ici : il n'y a pas de « entre deux missions ».
 
 **La météo et l'heure viennent du serveur.** Une campagne persistante tourne des semaines : `campaign next` ne fixe ni date, ni heure de départ, ni météo, et le nom de la mission ne porte pas `_NoMizedit` (`Campaign_<campagne>_Mission_01_<titre>`), si bien que le preset MizEdit du serveur (avec RealWeather) les règle à chaque chargement. Une [campagne multi-missions](CAMPAIGN.md#squadron-settings) garde ses conditions fixées et son `_NoMizedit`.

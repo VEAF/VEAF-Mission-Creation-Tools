@@ -3842,7 +3842,7 @@ end
 --- What a kill event says, for the campaign: a player of the players' side destroyed an enemy unit.
 --- @param event table the S_EVENT_KILL as veafEventHandler hands it over: `dcsInitiator` the killer's
 ---   DCS unit, `target` a data table (`unitCoalition`, `unitCategory`)
---- @return table|nil `{ unit, player, air }`, nil for any other kill
+--- @return table|nil `{ unit, player, air, category }`, `category` the target's `Unit.Category`; nil for any other kill
 function veafCampaign.readPlayerKill(event)
   local unit, player = veafCampaign.playerUnitOf(event)
   local target = event and event.target
@@ -3861,7 +3861,12 @@ function veafCampaign.readPlayerKill(event)
   if category == nil and target.getDesc then
     category = target:getDesc().category
   end
-  return { unit = unit, player = player, air = category == Unit.Category.AIRPLANE or category == Unit.Category.HELICOPTER }
+  return {
+    unit = unit,
+    player = player,
+    air = category == Unit.Category.AIRPLANE or category == Unit.Category.HELICOPTER,
+    category = category,
+  }
 end
 
 --- A unit died or was lost: if it is a garrison unit, record it.

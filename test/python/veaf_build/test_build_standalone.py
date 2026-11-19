@@ -9,10 +9,13 @@ they assert orchestration only, never invoking PyInstaller.
 from __future__ import annotations
 
 import ast
+import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
+import typer
 
 from veaf_build import worker as worker_module
 from veaf_build.worker import BuildAndReleaseWorker
@@ -358,3 +361,92 @@ def test_every_runtime_data_file_ships_in_the_executable(tmp_path: Path) -> None
         if not any(resolved == src or src in resolved.parents for src in bundled):
             missing.append(rel)
     assert missing == []
+
+
+def _pyinstaller_worker(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    exe_result: subprocess.CompletedProcess[str] | BaseException,
+) -> tuple[BuildAndReleaseWorker, list[tuple[list[str], dict[str, object]]], Path]:
+    """Return a worker whose PyInstaller call succeeds and whose built executable answers ``exe_result``.
+
+    Every `subprocess.run` call is recorded with its keyword arguments. A call that is not PyInstaller
+    is the smoke run of the built executable: it returns ``exe_result``, or raises it.
+    """
+    worker = BuildAndReleaseWorker(version=_TEST_VERSION, output_path=tmp_path)
+    monkeypatch.setattr(worker, "_write_exe_version_file", lambda name: None)
+    recorded: list[tuple[list[str], dict[str, object]]] = []
+
+    def _fake_run(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        recorded.append((cmd, kwargs))
+        if cmd[0] == "pyinstaller":
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+        if isinstance(exe_result, BaseException):
+            raise exe_result
+        return exe_result
+
+    monkeypatch.setattr(worker_module.subprocess, "run", _fake_run)
+    entry_point = tmp_path / "entry.py"
+    entry_point.write_text("", encoding="utf-8")
+    return worker, recorded, entry_point
+
+
+def test_pyinstaller_sees_the_source_tree_whatever_interpreter_runs_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`--collect-submodules` must find `mission_builder` outside Poetry's venv too (FIX-BUILD-EXE-SMOKE).
+
+    PyInstaller evaluates it in a child interpreter whose path is the build interpreter's plus
+    `PYTHONPATH`. Run outside Poetry, the package is not installed: it collected nothing, exited 0, and
+    the executable died on `ModuleNotFoundError: mission_builder.mission_builder_README` (2026-11-18).
+    A `PYTHONPATH` the caller already set is kept, after the source tree.
+    """
+    monkeypatch.setenv("PYTHONPATH", "already-there")
+    ok = subprocess.CompletedProcess(["exe"], 0, "", "")
+    worker, recorded, entry_point = _pyinstaller_worker(tmp_path, monkeypatch, ok)
+    worker._build_pyinstaller_executable("veaf-tools", entry_point, collect_submodules=["mission_builder"])
+
+    pyinstaller_env = recorded[0][1]["env"]
+    assert isinstance(pyinstaller_env, dict)
+    source_tree = str(worker.src_dir / "python" / "veaf-tools")
+    assert pyinstaller_env["PYTHONPATH"].split(os.pathsep) == [source_tree, "already-there"]
+
+
+def test_every_built_executable_is_started_once(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The build starts what it built with `--help`: an import PyInstaller missed surfaces here, not on a PC."""
+    ok = subprocess.CompletedProcess(["exe"], 0, "", "")
+    worker, recorded, entry_point = _pyinstaller_worker(tmp_path, monkeypatch, ok)
+    worker._build_pyinstaller_executable("veaf-tools", entry_point)
+
+    smoke_cmd, smoke_kwargs = recorded[1]
+    exe_name = "veaf-tools.exe" if sys.platform == "win32" else "veaf-tools"
+    assert smoke_cmd == [str(worker.dist_dir / exe_name), "--help"]
+    assert smoke_kwargs["stdin"] == subprocess.DEVNULL
+    assert smoke_kwargs["timeout"]
+
+
+@pytest.mark.parametrize(
+    ("exe_result", "expected_in_message"),
+    [
+        (
+            subprocess.CompletedProcess(
+                ["exe"], 1, "", "ModuleNotFoundError: No module named 'mission_builder.mission_builder_README'"
+            ),
+            "mission_builder.mission_builder_README",
+        ),
+        (subprocess.TimeoutExpired(["exe"], 120), "did not exit"),
+        (FileNotFoundError("no such file"), "not found"),
+    ],
+    ids=["exits-non-zero", "hangs", "missing"],
+)
+def test_a_built_executable_that_does_not_start_fails_the_build(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    exe_result: subprocess.CompletedProcess[str] | BaseException,
+    expected_in_message: str,
+) -> None:
+    """A dead executable must abort the build with the reason, never hand back exit 0 (FIX-BUILD-EXE-SMOKE)."""
+    worker, _recorded, entry_point = _pyinstaller_worker(tmp_path, monkeypatch, exe_result)
+    with pytest.raises(typer.Abort) as aborted:
+        worker._build_pyinstaller_executable("veaf-tools", entry_point)
+    assert expected_in_message in str(aborted.value)

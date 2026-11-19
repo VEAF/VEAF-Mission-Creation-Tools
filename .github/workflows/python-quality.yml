@@ -155,8 +155,10 @@ jobs:
       - name: Install dependencies (including PyInstaller)
         run: poetry install --with build --all-extras
 
-      - name: Build the standalone executable
-        run: poetry run veaf-build build-standalone --version 0.0.0
+      # `--with-updater` as the Linux/macOS release jobs build it: the build starts every executable it
+      # produces once (FIX-BUILD-EXE-SMOKE), so a Unix updater that cannot start fails here, not on a tag.
+      - name: Build the standalone executables
+        run: poetry run veaf-build build-standalone --with-updater --version 0.0.0
 
       # `--help` walks the whole command tree, so it imports every command module — which is
       # exactly what the 6.15.0 defect broke. `generate-config` then runs real code and

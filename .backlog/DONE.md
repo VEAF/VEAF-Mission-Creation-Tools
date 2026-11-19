@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-BUILD-EXE-SMOKE](FIX-BUILD-EXE-SMOKE/PRD.md) · ✅
+
+A build that produces a `veaf-tools` executable which cannot start now fails: `--collect-submodules` sees the source tree whatever interpreter runs PyInstaller, and every built executable is started once before the build hands back. Found preparing 6.38.0, where a build run outside Poetry exited 0 with a dead executable (#1314).
+
 ### [FIX-OPEN-TRAINING-PILOT-FEEDBACK](FIX-OPEN-TRAINING-PILOT-FEEDBACK/PRD.md) · ✅
 
 David's notes after flying the Open Trainings. QNH in hPa and inHg everywhere (#1280); a real helicopter hard tier (Tor, Tunguska, Osa) in the six Open Trainings; the radio menu order was already done by FEAT-RADIO-MENU-ORDER. The training ranges stand out of the forests: Ceyhan moved and checked in game on Syria, then `forest-check` run on the six Open Trainings (2026-11-16) — Akamas and Karpas on Syria, three groups on Caucasus, the three jungle ranges of Marianas (44 groups into clearings) moved; Falklands, Persian Gulf and Sinai had nothing to move. Reaches the players with the next VMCT release and `Publish-OT`.

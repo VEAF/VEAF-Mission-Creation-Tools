@@ -492,7 +492,7 @@ poetry run veaf-build build --version <version>
 What it does:
 1. Validates prerequisites (Git, Python, PyInstaller)
 2. Concatenates Lua modules → `published/veaf-scripts.lua`
-3. Builds `veaf-tools.exe` and `veaf-tools-updater.exe` via PyInstaller
+3. Builds `veaf-tools.exe` and `veaf-tools-updater.exe` via PyInstaller, then starts each once with `--help`: an executable that does not start fails the build, with its error
 4. Creates `published.zip` with all artifacts + SHA256 checksum
 
 ### Publishing a Release

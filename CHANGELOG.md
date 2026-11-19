@@ -27,6 +27,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - `recon-shoot` activates each shot's zone alone, leaves the camera `--warmup` seconds for the terrain to load, reads the positions again before aiming and before the picture, and takes it with DCS's screenshot command, the window free to stay in the background (`--capture window` keeps the old grab).
   - `recon-render` rings every group, moving vehicles included, labels it by plural category (heavy armour, short-range air defence…), gives a range of statics one "target area" ring and each ship its own, and merges close rings of one category.
   - The shipped spawn database called fourteen unit types by their editor display names, which `veafUnits` cannot find: the SA-18 command post of `Red Manpad Squad` and `Red EWR`, and the supply convoys' trucks, were dropped from their groups.
+- **A build whose executable cannot start fails** (FIX-BUILD-EXE-SMOKE): run outside Poetry, `veaf-build build` exited 0 with a `veaf-tools.exe` that died on start on `ModuleNotFoundError: mission_builder.mission_builder_README`, because PyInstaller's `--collect-submodules` could not see the source tree. PyInstaller now gets the source tree on its `PYTHONPATH`, and every executable the build produces is started once with `--help`: a missing, failing or hanging one aborts the build with its error.
 
 ## [6.37.0] — 2026-11-16
 

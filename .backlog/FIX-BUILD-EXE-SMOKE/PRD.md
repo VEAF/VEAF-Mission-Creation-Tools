@@ -1,6 +1,6 @@
 # FIX-BUILD-EXE-SMOKE — a build that produces a dead executable fails
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Origin: 2026-11-18, measured by another session while preparing 6.38.0.
 Run outside Poetry, `python build-and-release.py build` exited 0, and the `veaf-tools.exe` it produced died on start with `ModuleNotFoundError: mission_builder.mission_builder_README`.

@@ -6,10 +6,6 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [FIX-BUILD-EXE-SMOKE](FIX-BUILD-EXE-SMOKE/PRD.md) · 🔄
-
-A build that produces a `veaf-tools` executable which cannot start now fails: `--collect-submodules` sees the source tree whatever interpreter runs PyInstaller, and every built executable is started once before the build hands back. Found preparing 6.38.0, where a build run outside Poetry exited 0 with a dead executable.
-
 ### [FIX-OT-KNEEBOARD-LAYOUT](FIX-OT-KNEEBOARD-LAYOUT/PRD.md) · 🔄
 
 The kneeboard pages of an Open Training, as the eight OTs regenerated with 6.37.0 showed them: a long title wrapped instead of running off the page, the "Commandes" sheet on one page, a zone's one recon photo under its zoom rather than on a half-empty page, the caption in DDM, and a zone entry never cut between two pages.

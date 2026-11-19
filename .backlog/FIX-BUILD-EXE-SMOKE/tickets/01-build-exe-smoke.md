@@ -1,6 +1,6 @@
 # 01 — collect-submodules sees the source tree, and every built executable is started once
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 ## Done when
 

@@ -402,3 +402,50 @@ class TestTheMissionFile:
         mission = yaml.safe_load((tmp_path / "m1" / "mission.yaml").read_text(encoding="utf-8"))["mission"]
         assert mission["name"] == report.name != "Campagne_Oronte"
         assert "date_suffix" not in mission
+
+
+class TestEveryAirfieldOffersSlots:
+    """FIX-CAMPAIGN-THIRD-SERVER-FLIGHT ticket 01: Minakh, neutral at build, captured by blue in flight, offered no
+    slot — the build had opened Dynamic Slots on the airbases each side owned at build time only."""
+
+    @staticmethod
+    def _warehouses(folder: Path) -> dict[str, Any]:
+        return yaml.safe_load((folder / "src" / "warehouses.yaml").read_text(encoding="utf-8"))
+
+    def test_the_player_side_lists_every_airfield_zone_whatever_its_owner(self, tmp_path: Path) -> None:
+        mission_template(tmp_path)
+        campaign = _persistent()
+        report = prepare_next_mission(campaign, initial_state(campaign), tmp_path, tmp_path / "m1")
+        data = self._warehouses(tmp_path / "m1")
+        # Senaki-Kolkhi is red at start: blue gets its slots there the moment it is captured
+        assert data["blue"]["airports"] == {"Kobuleti": {}, "Senaki-Kolkhi": {}}
+        assert report.slot_airbases == ["Kobuleti", "Senaki-Kolkhi"]
+        assert "airports" not in data["red"]
+
+    def test_an_airfield_set_up_by_hand_keeps_its_settings(self, tmp_path: Path) -> None:
+        template = mission_template(tmp_path)
+        path = template / "src" / "warehouses.yaml"
+        path.write_text(
+            "# the maker's comment\nblue:\n  airports:\n    Kobuleti: { hot_start: false }\n", encoding="utf-8"
+        )
+        campaign = _persistent()
+        prepare_next_mission(campaign, initial_state(campaign), tmp_path, tmp_path / "m1")
+        written = (tmp_path / "m1" / "src" / "warehouses.yaml").read_text(encoding="utf-8")
+        assert "# the maker's comment" in written
+        assert yaml.safe_load(written)["blue"]["airports"] == {"Kobuleti": {"hot_start": False}, "Senaki-Kolkhi": {}}
+
+    def test_a_side_the_file_does_not_declare_is_left_closed(self, tmp_path: Path) -> None:
+        template = mission_template(tmp_path)
+        (template / "src" / "warehouses.yaml").write_text("red:\n  defaults: {}\n", encoding="utf-8")
+        campaign = _persistent()
+        report = prepare_next_mission(campaign, initial_state(campaign), tmp_path, tmp_path / "m1")
+        assert self._warehouses(tmp_path / "m1") == {"red": {"defaults": {}}}
+        assert report.slot_airbases == []
+
+    def test_an_episodic_campaign_keeps_the_owners_at_build(self, tmp_path: Path) -> None:
+        mission_template(tmp_path)
+        episodic, _ = _parse()
+        assert episodic is not None
+        report = prepare_next_mission(episodic, initial_state(episodic), tmp_path, tmp_path / "m1")
+        assert "airports" not in self._warehouses(tmp_path / "m1")["blue"]
+        assert report.slot_airbases == []

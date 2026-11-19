@@ -494,7 +494,7 @@ poetry run veaf-build build --version <version>
 Ce que cela fait :
 1. Valide les prérequis (Git, Python, PyInstaller)
 2. Concatène les modules Lua → `published/veaf-scripts.lua`
-3. Construit `veaf-tools.exe` et `veaf-tools-updater.exe` via PyInstaller
+3. Construit `veaf-tools.exe` et `veaf-tools-updater.exe` via PyInstaller, puis lance chacun une fois avec `--help` : un exe qui ne démarre pas fait échouer le build, avec son erreur
 4. Crée `published.zip` avec tous les artefacts + somme SHA256
 
 ### Publier une version

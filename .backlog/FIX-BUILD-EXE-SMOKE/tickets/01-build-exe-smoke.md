@@ -4,6 +4,7 @@ Status: 🔄 in-progress
 
 ## Done when
 
-- A build run outside Poetry produces a `veaf-tools` executable that starts (measured before and after).
+- PyInstaller's `--collect-submodules mission_builder` finds the package whatever interpreter runs the build (measured: 0 → 19 modules outside Poetry).
 - A build whose executable does not start exits non-zero, with the executable's error in the message (measured on the reproduced case).
+- A build through `poetry run veaf-build` still exits 0, both executables starting.
 - Unit tests cover the `PYTHONPATH` wiring and the smoke run: a failing, a timing-out and a missing executable each abort the build.

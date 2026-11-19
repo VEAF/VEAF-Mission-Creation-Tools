@@ -820,7 +820,9 @@ class BuildAndReleaseWorker:
             # The traceback's last lines name the missing module: in the message, so a failed release shows why.
             output = (result.stderr or result.stdout or "").strip()
             logger.error(
-                f"{exe_path.name} does not start (exit code {result.returncode}): the build is unusable.\n{output}"
+                f"{exe_path.name} does not start (exit code {result.returncode}): the build is unusable.\n{output}\n"
+                "PyInstaller bundles what the interpreter running it can import: build with "
+                "`poetry run veaf-build`, whose environment holds every dependency."
             )
 
     def _git_short_sha(self) -> str:

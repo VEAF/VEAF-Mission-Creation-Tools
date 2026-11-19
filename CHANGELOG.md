@@ -17,6 +17,20 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.38.0] — 2026-11-19
+
+### Fixed
+
+- **The known limitation `tanker-move-aliases-skip-their-security-level` is marked fixed in 6.37.0** (FIX-ALIAS-SKIPS-HANDLER-LEVEL): the fix shipped in that release, but the entry kept telling agents that `-tankerlow` and `-tankerhigh` run for anyone.
+- **An Open Training's kneeboard pages fit their page** (FIX-OT-KNEEBOARD-LAYOUT): a long page title is wrapped instead of running off the right edge; the "Commandes" sheet holds on one page again (half a line between two blocks of a text page instead of a blank line); a zone entry of the zone list is never cut between two pages; a zone's one recon photo goes under its zoom rather than on a half-empty page of its own (Falklands 67 → 40 pages, Caucasus 62 → 36); and a photo's caption gives the camera's position in degrees and decimal minutes, like the rest of the kneeboard, its altitude no longer split across two lines.
+- **Recon photos one combat zone at a time, with DCS's own screenshot** (FIX-RECON-OT-FINDINGS), from the eight Open Training photo shoots:
+  - `recon-prepare` writes `HideNamesFromSpawnedGroups = false` after the mission's own settings (227 shots out of 236 carried a random name), no longer activates every zone at start, and, like `mission-check-prepare`, refuses a mission carrying the spawn database that no trigger loads.
+  - `recon-plan` lists the combat zones only, follows the objectives of `docs\kneeboard.json` when it is there, aims each shot from `--from <airbase>`, sets `slant: auto` (at most 6 km), and creates the folder of `--out`.
+  - `recon-shoot` activates each shot's zone alone, leaves the camera `--warmup` seconds for the terrain to load, reads the positions again before aiming and before the picture, and takes it with DCS's screenshot command, the window free to stay in the background (`--capture window` keeps the old grab).
+  - `recon-render` rings every group, moving vehicles included, labels it by plural category (heavy armour, short-range air defence…), gives a range of statics one "target area" ring and each ship its own, and merges close rings of one category.
+  - The shipped spawn database called fourteen unit types by their editor display names, which `veafUnits` cannot find: the SA-18 command post of `Red Manpad Squad` and `Red EWR`, and the supply convoys' trucks, were dropped from their groups.
+- **A build whose executable cannot start fails** (FIX-BUILD-EXE-SMOKE): run outside Poetry, `veaf-build build` exited 0 with a `veaf-tools.exe` that died on start on `ModuleNotFoundError: mission_builder.mission_builder_README`, because PyInstaller's `--collect-submodules` could not see the source tree. PyInstaller now gets the source tree on its `PYTHONPATH`, and every executable the build produces is started once with `--help`: a missing, failing or hanging one aborts the build with its error.
+
 ## [6.37.0] — 2026-11-16
 
 ### Changed

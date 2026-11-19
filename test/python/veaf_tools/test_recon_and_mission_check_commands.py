@@ -17,7 +17,7 @@ from mission_tools.miz_tools import create_miz, list_members, read_miz
 from PIL import Image
 from typer.testing import CliRunner
 from veaf_libs.blank_mission import generate_blank_mission
-from veaf_libs.dcs_recon import INFO_BAR_PX, UNITS_LUA
+from veaf_libs.dcs_recon import INFO_BAR_PX, UNITS_LUA, ZONES_LUA
 from veaf_libs.i18n import language
 
 
@@ -27,6 +27,8 @@ def _english() -> Iterator[None]:
     with language("en"):
         yield
 
+
+ZONES_REPLY = "combatZone_Sasa\t-190000.0\t9000.0\t1500.0\nKiswah\t-180000.0\t9000.0\t800.0"
 
 UNITS_REPLY = (
     "unit\t1\tSA6Sasa [r] battery#2\tKub 1S91 str\t-190000.0\t9000.0\t800.0\n"
@@ -60,6 +62,10 @@ class FakeBridge:
     def _shooting_mission(_state: str, code: str) -> str:
         if code == UNITS_LUA:
             return UNITS_REPLY
+        if code == ZONES_LUA:
+            return ZONES_REPLY
+        if "Airbase.getByName" in code:
+            return "" if "Nowhere" in code else "-200000.0\t9000.0"
         if "getAbsTime" in code:
             return "Syria\t2011-04-16\t41460"
         return "ok"
@@ -120,16 +126,39 @@ def test_prepare_refuses_a_bad_time(app: Any, tmp_path: Path) -> None:
     assert result.exit_code == 2
 
 
-def test_plan_writes_a_starter_file_from_the_live_units(app: Any, tmp_path: Path, fake_bridge: FakeBridge) -> None:
-    out = tmp_path / "shots.yaml"
-    result = CliRunner().invoke(app, ["recon-plan", "--out", str(out), "--operation", "Golan"])
+def test_plan_writes_one_shot_per_combat_zone(app: Any, tmp_path: Path, fake_bridge: FakeBridge) -> None:
+    out = tmp_path / "build" / "recon" / "shots.yaml"  # a folder that does not exist yet
+    result = CliRunner().invoke(app, ["recon-plan", "--out", str(out), "--operation", "Golan", "--from", "Kutaisi"])
     assert result.exit_code == 0, result.output
     plan = yaml.safe_load(out.read_text(encoding="utf-8"))
-    assert [s["groups"] for s in plan["shots"]] == [["SA6Sasa"]]
-    assert fake_bridge.calls[0] == ("mission", UNITS_LUA)
+    assert [(s["zone"], s["heading"], s["slant"]) for s in plan["shots"]] == [
+        ("combatZone_Sasa", 0, "auto"),
+        ("Kiswah", 0, "auto"),
+    ]
+    assert fake_bridge.calls[0] == ("mission", ZONES_LUA)
     assert fake_bridge.closed
     again = CliRunner().invoke(app, ["recon-plan", "--out", str(out)])
     assert again.exit_code == 2  # no silent overwrite
+
+
+def test_plan_follows_the_objectives_of_the_briefing_words(app: Any, tmp_path: Path, fake_bridge: FakeBridge) -> None:
+    words = tmp_path / "kneeboard.json"
+    words.write_text(
+        json.dumps({"objectives": [{"zone": "Kiswah", "title": "Kiswah - facile"}, {"zone": "Gone", "title": "x"}]}),
+        encoding="utf-8",
+    )
+    out = tmp_path / "shots.yaml"
+    result = CliRunner().invoke(app, ["recon-plan", "--out", str(out), "--objectives", str(words)])
+    assert result.exit_code == 0, result.output
+    assert "Gone" in result.output  # an objective with no combat zone is said, not silently dropped
+    plan = yaml.safe_load(out.read_text(encoding="utf-8"))
+    assert [(s["zone"], s["title"]) for s in plan["shots"]] == [("Kiswah", "Kiswah - facile")]
+
+
+def test_plan_refuses_an_unknown_airbase(app: Any, tmp_path: Path, fake_bridge: FakeBridge) -> None:
+    result = CliRunner().invoke(app, ["recon-plan", "--out", str(tmp_path / "s.yaml"), "--from", "Nowhere"])
+    assert result.exit_code == 2
+    assert "Nowhere" in result.output
 
 
 def test_plan_refuses_an_unknown_coalition(app: Any, tmp_path: Path) -> None:
@@ -181,12 +210,50 @@ def test_shoot_moves_the_camera_from_export_and_writes_the_raw_shot(
     )
     monkeypatch.setattr("time.sleep", lambda seconds: None)
     raw = tmp_path / "raw"
-    result = CliRunner().invoke(app, ["recon-shoot", "--shots", str(_shots(tmp_path)), "--raw-dir", str(raw)])
+    result = CliRunner().invoke(
+        app, ["recon-shoot", "--shots", str(_shots(tmp_path)), "--raw-dir", str(raw), "--capture", "window"]
+    )
     assert result.exit_code == 0, result.output
-    assert [state for state, code in fake_bridge.calls if "LoSetCameraPosition" in code] == ["export", "export"]
+    # the warm-up order, then the shot's order twice
+    assert [state for state, code in fake_bridge.calls if "LoSetCameraPosition" in code] == ["export"] * 3
     assert Image.open(raw / "02-sa6.png").size == (640, 360 - INFO_BAR_PX)
     meta = json.loads((raw / "02-sa6.json").read_text(encoding="utf-8"))
     assert meta["theatre"] == "Syria" and meta["target"]["lat"] is not None
+
+
+def test_shoot_takes_dcs_own_screenshot_by_default(
+    app: Any, tmp_path: Path, fake_bridge: FakeBridge, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    folders: list[Path] = []
+
+    def screenshot(run_export: Any, folder: Path, sleep: Any) -> Any:
+        folders.append(folder)
+        run_export("LoSetCommand(257) return 'ok'")
+        return Image.new("RGB", (640, 360), (80, 80, 80)), (640, 360)
+
+    monkeypatch.setattr("veaf_libs.dcs_screenshot.grab_dcs_screenshot", screenshot)
+    monkeypatch.setattr("time.sleep", lambda seconds: None)
+    shots_dir = tmp_path / "Screenshots"
+    result = CliRunner().invoke(
+        app,
+        [
+            "recon-shoot",
+            "--shots",
+            str(_shots(tmp_path)),
+            "--raw-dir",
+            str(tmp_path / "raw"),
+            "--screenshots-dir",
+            str(shots_dir),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert folders == [shots_dir]
+    assert ("export", "LoSetCommand(257) return 'ok'") in fake_bridge.calls
+
+
+def test_shoot_refuses_an_unknown_capture(app: Any, tmp_path: Path) -> None:
+    result = CliRunner().invoke(app, ["recon-shoot", "--shots", str(_shots(tmp_path)), "--capture", "camera"])
+    assert result.exit_code == 2
 
 
 def test_shoot_refuses_a_bad_plan(app: Any, tmp_path: Path) -> None:
@@ -205,7 +272,7 @@ def test_render_makes_the_photos_and_the_index(
     )
     monkeypatch.setattr("time.sleep", lambda seconds: None)
     shots, raw, out = _shots(tmp_path), tmp_path / "raw", tmp_path / "recon"
-    CliRunner().invoke(app, ["recon-shoot", "--shots", str(shots), "--raw-dir", str(raw)])
+    CliRunner().invoke(app, ["recon-shoot", "--shots", str(shots), "--raw-dir", str(raw), "--capture", "window"])
     result = CliRunner().invoke(
         app, ["recon-render", "--shots", str(shots), "--raw-dir", str(raw), "--out-dir", str(out)]
     )

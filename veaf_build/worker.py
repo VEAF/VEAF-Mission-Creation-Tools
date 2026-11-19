@@ -762,7 +762,13 @@ class BuildAndReleaseWorker:
 
             logger.debug(f"Running PyInstaller: {' '.join(cmd)}")
 
-            result = subprocess.run(cmd, cwd=str(self.script_root), capture_output=True, text=True)
+            # PyInstaller evaluates `--collect-submodules` in a child interpreter whose path is the
+            # build interpreter's plus PYTHONPATH. Outside Poetry's venv our packages are not
+            # installed, so it collected nothing and exited 0 (FIX-BUILD-EXE-SMOKE).
+            source_tree = str(self.src_dir / "python" / "veaf-tools")
+            pythonpath = os.pathsep.join(p for p in (source_tree, os.environ.get("PYTHONPATH")) if p)
+            env = {**os.environ, "PYTHONPATH": pythonpath}
+            result = subprocess.run(cmd, cwd=str(self.script_root), env=env, capture_output=True, text=True)
 
             if result.stdout:
                 logger.debug(f"PyInstaller stdout:\n{result.stdout}")
@@ -778,6 +784,46 @@ class BuildAndReleaseWorker:
         finally:
             if exe_version_file and exe_version_file.exists():
                 exe_version_file.unlink()
+
+        self._smoke_test_executable(name)
+
+    def _smoke_test_executable(self, name: str) -> None:
+        """Start a freshly built executable once with ``--help``, and fail the build if it does not run.
+
+        PyInstaller exits 0 when it misses an import: the executable then dies on start, on the
+        mission maker's PC. ``--help`` imports the whole command tree, which is what every such defect
+        broke — 6.15.0's lazy ``mission_builder``, and a build run outside Poetry (FIX-BUILD-EXE-SMOKE).
+        PyInstaller does not cross-compile, so the executable always runs where it was built.
+
+        Args:
+            name: Executable name, as passed to PyInstaller.
+
+        Raises:
+            typer.Abort: the executable is missing, exits non-zero or does not exit.
+        """
+        exe_path = self.dist_dir / (f"{name}.exe" if sys.platform == "win32" else name)
+        timeout_s = 120
+        try:
+            with spinner_context(f"Starting {exe_path.name} once..."):
+                result = subprocess.run(
+                    [str(exe_path), "--help"],
+                    stdin=subprocess.DEVNULL,
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout_s,
+                )
+        except FileNotFoundError:
+            logger.error(f"Built executable not found: {exe_path}")
+        except subprocess.TimeoutExpired:
+            logger.error(f"{exe_path.name} --help did not exit within {timeout_s} s: the build is unusable")
+        if result.returncode != 0:
+            # The traceback's last lines name the missing module: in the message, so a failed release shows why.
+            output = (result.stderr or result.stdout or "").strip()
+            logger.error(
+                f"{exe_path.name} does not start (exit code {result.returncode}): the build is unusable.\n{output}\n"
+                "PyInstaller bundles what the interpreter running it can import: build with "
+                "`poetry run veaf-build`, whose environment holds every dependency."
+            )
 
     def _git_short_sha(self) -> str:
         """Return the short git commit SHA of the build tree, or ``""`` if unavailable.

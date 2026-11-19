@@ -1085,35 +1085,54 @@ Quatre commandes, une par étape, parce que vous intervenez entre chacune : elle
 
 Le déroulé complet :
 
-1. `.\veaf-tools.exe dcs recon-prepare MaMission.miz` écrit `MaMission_RECON.miz` à côté : ciel dégagé, heure choisie, toutes les zones de combat actives au démarrage, noms de groupes lisibles, et le [bridge VEAF](#dcs-bridge) embarqué, par lequel `recon-plan` et `recon-shoot` parlent à la mission. La mission d'origine n'est pas touchée.
-2. Dans DCS : ouvrez `MaMission_RECON.miz`, prenez un slot **spectateur**, appuyez sur **F11** (caméra libre). Laissez la fenêtre DCS sur l'**écran principal**.
-3. `.\veaf-tools.exe dcs recon-plan --operation "Marteau du Golan"` écrit `shots.yaml` : une prise par zone, avec les noms des groupes présents.
-4. Complétez `shots.yaml` : pour chaque prise, le `heading` d'engagement (la direction dans laquelle regarde l'attaquant, en degrés sur la grille de la mission, comme DCS tourne sa caméra : le bandeau de la photo et le briefing l'impriment en magnétique), et si besoin `pitch` (degrés sous l'horizon), `slant` (distance en mètres), `mark: units` pour entourer chaque véhicule, `labels` pour nommer les cibles.
-5. `.\veaf-tools.exe dcs recon-shoot` : la commande place la caméra sur chaque prise et capture la fenêtre. Ne touchez ni la souris ni le clavier avant la fin.
+1. `.\veaf-tools.exe dcs recon-prepare MaMission.miz` écrit `MaMission_RECON.miz` à côté : ciel dégagé, heure choisie, noms de groupes lisibles, et le [bridge VEAF](#dcs-bridge) embarqué, par lequel `recon-plan` et `recon-shoot` parlent à la mission. La mission d'origine n'est pas touchée. Une mission qui contient la base de spawn sans qu'aucun déclencheur la charge est refusée : ses zones ne feraient rien apparaître.
+2. Dans DCS : ouvrez `MaMission_RECON.miz`, prenez un slot **spectateur**, appuyez sur **F11** (caméra libre). La fenêtre DCS peut ensuite passer en arrière-plan.
+3. `.\veaf-tools.exe dcs recon-plan --operation "Marteau du Golan" --from "Kutaisi"` écrit `shots.yaml` : une prise par zone de combat, le cap allant de la base `--from` vers la zone. Avec un `docs\kneeboard.json` (les mots du briefing d'une Open Training), les prises suivent ses objectifs, dans son ordre et avec ses titres.
+4. Relisez `shots.yaml` : le `heading` (la direction dans laquelle regarde la caméra, en degrés sur la grille de la mission, comme DCS tourne sa caméra : le bandeau de la photo et le briefing l'impriment en magnétique), et si besoin `pitch` (degrés sous l'horizon), `slant` (distance en mètres, `auto` par défaut), `mark: units` pour entourer chaque véhicule, `labels` pour nommer les cibles.
+5. `.\veaf-tools.exe dcs recon-shoot` : pour chaque prise, la commande active **seule** sa zone de combat, place la caméra, laisse le terrain charger, relit les positions et prend la photo par la capture d'écran de DCS. Vous gardez votre poste : la fenêtre DCS peut rester derrière les autres.
 6. `.\veaf-tools.exe dcs recon-render` écrit les photos dans `docs\recon\`, là où le briefing (`build_mission_briefing`) les cherche.
    Une prise rattachée à un préfixe de groupe nu (`Sasa [r]`) rejoint sa zone (`Sasa`) quand on relance `recon-render` : inutile de la refaire.
 
 Lancez les commandes depuis le dossier de la mission : les prises brutes vont dans `docs\build\recon\raw\`, les photos finies dans `docs\recon\`.
 
-Un `shots.yaml` complété :
+Un `shots.yaml` relu :
 
 ```yaml
 operation: Marteau du Golan
 coalition: red
 shots:
-  - name: 03-sa11
+  - name: 01-kiswah
+    title: Kiswah - SA-11
+    zone: combatZone_Kiswah
+    heading: 70
+    pitch: 30
+    slant: auto
+  - name: 02-sa11
     title: Batterie SA-11 de Kiswah
     groups: [SA11Kiswah]
     heading: 70
-    pitch: 30
     slant: 1100
     mark: units
     labels: {"SA-11 Buk SR": "RADAR 9S18", "SA-11 Buk LN": "TEL"}
 ```
 
-La caméra est placée à `slant` mètres de la cible, `pitch` degrés au-dessus de l'horizon, en regardant au cap `heading`. Les marques sont posées par projection avec un champ horizontal de 80°, mesuré : les six véhicules d'un SA-11 tombent à quelques pixels de leur projection.
+Une prise vise soit une **zone de combat** (`zone`), soit des groupes par le début de leur nom (`groups`).
+Pour une zone de combat, `recon-shoot` désactive toutes les zones actives et active celle de la prise **seule** : les niveaux facile, moyen et difficile d'un même site partagent la même zone, et actifs ensemble ils se superposaient sur la photo. Les cibles sont alors les groupes que la zone a fait apparaître, quel que soit leur nom ; `groups` restreint la prise à certains d'entre eux.
 
-**Une prise par objectif, deux au plus** : le briefing garde les deux premières et ignore les autres. **Un groupe de véhicules qui se déplacent** — chars, blindés légers, camions, 4x4 — **n'est jamais entouré**, quoi que dise `mark` : la photo montre sa zone, pas la place de chaque véhicule, qui aura bougé. Un groupe qui porte un SAM, un radar ou de l'artillerie est un site, et il est entouré. Le bandeau donne la position de la cible en DDM et en MGRS.
+La caméra est placée à `slant` mètres de la cible, `pitch` degrés au-dessus de l'horizon, en regardant au cap `heading`. `slant: auto` cadre les unités : trois fois leur dispersion, entre 600 m et 6 km. Les marques sont posées par projection avec un champ horizontal de 80°, mesuré : les six véhicules d'un SA-11 tombent à quelques pixels de leur projection.
+
+**Une prise par objectif, deux au plus** : le briefing garde les deux premières et ignore les autres.
+
+Les marques, en mode `groups` (par défaut) :
+
+- **Un cercle par groupe**, véhicules qui roulent compris : leurs positions sont relues juste avant la photo.
+- **L'étiquette dit la catégorie**, au pluriel : Blindés lourds, Blindés légers, DCA courte, moyenne ou longue portée, Radars d'alerte, Missiles sol-sol, Artillerie, Infanterie, Logistique, Navires armés, Navires, Cibles. Une batterie prend la catégorie de son radar de recherche longue ou moyenne portée ; sinon un groupe prend sa catégorie la plus fréquente.
+- **Une zone faite seulement de statiques** (un champ de tir) reçoit un seul cercle, « Zone cibles ».
+- **Chaque navire a son cercle** : les navires d'un groupe naviguent à des kilomètres les uns des autres.
+- **Les cercles proches de même catégorie fusionnent**, pour que les étiquettes ne s'empilent pas.
+- `labels` donné dans la prise l'emporte sur la catégorie.
+
+Le bandeau donne la position de la cible en DDM et en MGRS.
 
 #### `veaf-tools dcs recon-prepare` {#recon-prepare}
 
@@ -1137,10 +1156,14 @@ La caméra est placée à `slant` mètres de la cible, `pitch` degrés au-dessus
 | `--out` | `Path` | `shots.yaml` | Le fichier de prises à écrire. |
 | `--coalition` | `str` | `red` | Le camp à photographier : `red` ou `blue`. |
 | `--operation` | `str` | *(aucun)* | Le nom de l'opération, imprimé sur chaque photo. |
+| `--from` | `str` | *(aucune)* | Base (nom DCS) d'où regardent les prises : chaque cap va de la base vers sa zone. Sans elle, le cap vaut 0, à régler à la main. |
+| `--objectives` | `Path` | `docs\kneeboard.json` s'il existe | Les mots du briefing (JSON avec une liste `objectives` de `zone` et `title`) : les prises suivent ses objectifs, dans son ordre et avec ses titres. Sans fichier, une prise par zone de combat. |
 | `--force` | `boolean` | `false` | Écrase un fichier de prises existant. |
 | `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
 
 Plus les [options du bridge](#dcs-bridge).
+
+La commande ne liste que les zones de combat : un AWACS, un ravitailleur ou un radar isolé n'est pas un objectif. Un objectif sans zone de combat de ce nom dans la mission est signalé et laissé de côté. Le dossier de `--out` est créé s'il n'existe pas.
 
 *Alias plat : `veaf-tools recon-plan`*
 
@@ -1151,11 +1174,22 @@ Plus les [options du bridge](#dcs-bridge).
 | `--shots` | `Path` | `shots.yaml` | Le fichier de prises. |
 | `--raw-dir` | `Path` | `docs\build\recon\raw` | Dossier des prises brutes (PNG + JSON). |
 | `--only` | `str` | *(toutes)* | Nom d'une prise à faire ; répétez pour plusieurs. |
+| `--capture` | `str` | `dcs` | Comment la photo est prise : `dcs` (la capture d'écran de DCS, fenêtre libre d'être en arrière-plan) ou `window` (capture de la fenêtre DCS, qui doit rester devant). |
+| `--screenshots-dir` | `Path` | `Saved Games\DCS\Screenshots` | Dossier où DCS écrit ses captures d'écran. |
+| `--warmup` | `float` | `10` | Secondes pendant lesquelles la caméra reste sur une prise pour que le terrain charge. |
 | `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
 
 Plus les [options du bridge](#dcs-bridge).
 
-La caméra F11 est déplacée depuis l'état `export` de DCS, que le bridge atteint par `net.dostring_in` ; la capture de la fenêtre se fait sur cet ordinateur. La fenêtre DCS doit être sur l'écran principal et visible : une capture de tous les écrans rend la fenêtre DirectX noire, et une image noire est recommencée jusqu'à huit fois.
+La caméra F11 est déplacée depuis l'état `export` de DCS, que le bridge atteint par `net.dostring_in`. Pour chaque prise :
+
+1. Une prise sur une zone de combat active cette zone seule et attend qu'elle apparaisse (10 s).
+2. La caméra se pose sur la prise et y reste `--warmup` secondes : après un long saut, 2,5 s laissaient des photos floues.
+3. Les positions sont relues et la caméra replacée sur elles.
+4. Les positions sont relues une dernière fois juste avant la photo, pour que les cercles tombent sur les véhicules qui roulent.
+5. La zone est désactivée.
+
+Avec `--capture dcs`, la photo vient de la commande de capture d'écran de DCS (`LoSetCommand(257)`), envoyée par le bridge : DCS écrit l'image dans son dossier `Screenshots`, la commande la lit puis l'efface. Avec `--capture window`, la fenêtre DCS doit être sur l'écran principal et visible : une capture de tous les écrans rend la fenêtre DirectX noire, et une image noire est recommencée jusqu'à huit fois.
 
 *Alias plat : `veaf-tools recon-shoot`*
 

@@ -35,6 +35,7 @@ from typing import Any
 import yaml
 
 from veaf_libs.i18n import t
+from veaf_libs.lua_literals import lua_quoted_string
 
 #: The export state, the only one from which ``LoSetCameraPosition`` moves the F11 camera. The bridge
 #: runs in the mission scripting state and reaches it through ``net.dostring_in`` (measured 2026-10-28:
@@ -242,6 +243,160 @@ class MissionInfo:
         return f"{of_day // 3600:02d}:{of_day % 3600 // 60:02d}"
 
 
+#: Every combat zone of the running mission, once each, operations left out: ``name x z radius`` per line.
+#: Once per name: in a mission built with scripts older than 6.34.0, a zone an operation lists is in
+#: ``zonesList`` twice (measured on "Marteau du Golan", 2026-10-28).
+ZONES_LUA = r"""
+local out, done = {}, {}
+if not veafCombatZone then return "" end
+for _, zone in ipairs(veafCombatZone.zonesList) do
+  local name = zone:getMissionEditorZoneName()
+  local trig = trigger.misc.getZone(name)
+  if not zone.taskingOrderDict and not done[name] and trig then
+    done[name] = true
+    out[#out + 1] = string.format("%s\t%.1f\t%.1f\t%.1f", (tostring(name):gsub("[\t\n]", " ")), trig.point.x, trig.point.z, trig.radius or 0)
+  end
+end
+return table.concat(out, "\n")
+"""
+
+
+@dataclass(frozen=True)
+class CombatZone:
+    """A combat zone of the running mission.
+
+    Args:
+        name: Its mission-editor trigger zone name.
+        x: Centre northing, metres.
+        z: Centre easting, metres.
+        radius: Trigger zone radius, metres.
+    """
+
+    name: str
+    x: float
+    z: float
+    radius: float
+
+
+def parse_zones(text: str) -> list[CombatZone]:
+    """Read what :data:`ZONES_LUA` returned.
+
+    Args:
+        text: The chunk's reply.
+
+    Returns:
+        The combat zones, in the mission's order.
+
+    Raises:
+        ValueError: A line does not have the four fields the chunk writes.
+    """
+    zones: list[CombatZone] = []
+    for line in (text or "").splitlines():
+        if not line.strip():
+            continue
+        fields = line.split("\t")
+        if len(fields) != 4:
+            raise ValueError(f"unexpected zone line from DCS: {line!r}")
+        zones.append(CombatZone(fields[0], float(fields[1]), float(fields[2]), float(fields[3])))
+    return zones
+
+
+def zone_units_lua(zone: str) -> str:
+    """Return the chunk listing the units and statics a combat zone spawned, as :data:`UNITS_LUA` does.
+
+    The zone says which groups are its own (``getSpawnedGroups``): no name prefix to match, so a shot
+    finds them whether their names are hidden or not, and ``combatZone_X`` never takes ``combatZone_X2``'s.
+
+    Args:
+        zone: The zone's mission-editor name.
+
+    Returns:
+        Lua source returning ``kind side name type x z alt`` lines.
+    """
+    return _naming(zone, _ZONE_UNITS_LUA)
+
+
+def _naming(name: str, chunk: str) -> str:
+    """Prefix *chunk* with ``local wanted = <name>``, the name quoted for Lua."""
+    return "local wanted = " + lua_quoted_string(name) + "\n" + chunk
+
+
+_ZONE_UNITS_LUA = r"""
+local out = {}
+local function clean(s) return (tostring(s):gsub("[\t\n]", " ")) end
+local zone = veafCombatZone and veafCombatZone.GetZone(wanted)
+if not zone then return "" end
+for _, name in ipairs(zone:getSpawnedGroups() or {}) do
+  local g = Group.getByName(name)
+  if g and g:isExist() then
+    for _, u in ipairs(g:getUnits() or {}) do
+      local p = u:getPoint()
+      out[#out + 1] = string.format("unit\t%d\t%s\t%s\t%.1f\t%.1f\t%.1f", u:getCoalition(), clean(name), clean(u:getTypeName()), p.x, p.z, p.y)
+    end
+  else
+    local s = StaticObject.getByName(name)
+    if s and s:isExist() then
+      local p = s:getPoint()
+      out[#out + 1] = string.format("static\t%d\t%s\t%s\t%.1f\t%.1f\t%.1f", s:getCoalition(), clean(name), clean(s:getTypeName()), p.x, p.z, p.y)
+    end
+  end
+end
+return table.concat(out, "\n")
+"""
+
+_ACTIVATE_ALONE_LUA = r"""
+if not veafCombatZone or not veafCombatZone.GetZone(wanted) then return "unknown" end
+for _, zone in ipairs(veafCombatZone.zonesList) do
+  if not zone.taskingOrderDict and zone:isActive() then
+    veafCombatZone.DesactivateZone(zone:getMissionEditorZoneName(), true)
+  end
+end
+veafCombatZone.ActivateZone(wanted, true)
+return "ok"
+"""
+
+_DEACTIVATE_LUA = "veafCombatZone.DesactivateZone(wanted, true) return 'ok'"
+
+_AIRBASE_LUA = r"""
+local a = Airbase.getByName(wanted)
+if not a then return "" end
+local p = a:getPoint()
+return string.format("%.1f\t%.1f", p.x, p.z)
+"""
+
+
+def activate_alone_lua(zone: str) -> str:
+    """Return the chunk that deactivates every active combat zone, then activates *zone* alone.
+
+    The easy, medium and hard variants of an Open Training site share one trigger zone: all active at
+    once, a photo shows the three superimposed (2026-11-17). Operations are left alone. ``ActivateZone``
+    spawns a second later.
+
+    Args:
+        zone: The zone's mission-editor name.
+
+    Returns:
+        Lua source returning ``ok``, or ``unknown`` when the mission has no such combat zone.
+    """
+    return _naming(zone, _ACTIVATE_ALONE_LUA)
+
+
+def deactivate_lua(zone: str) -> str:
+    """Return the chunk that deactivates *zone*, silently."""
+    return _naming(zone, _DEACTIVATE_LUA)
+
+
+def airbase_lua(name: str) -> str:
+    """Return the chunk giving an airbase's position as ``x z``, or an empty string when there is none."""
+    return _naming(name, _AIRBASE_LUA)
+
+
+def parse_point(text: str) -> tuple[float, float] | None:
+    """Read what :func:`airbase_lua` returned: ``(x, z)``, or ``None`` for an unknown airbase."""
+    fields = (text or "").split("\t")
+    return (float(fields[0]), float(fields[1])) if len(fields) == 2 else None
+
+
 def parse_info(text: str) -> MissionInfo:
     """Read what :data:`INFO_LUA` returned.
 
@@ -272,14 +427,16 @@ class Shot:
     Args:
         name: File stem, e.g. ``01-tellhara``; also the order shots are rendered in.
         title: What the banner says the target is.
-        groups: Group or static name prefixes; the units whose name starts with one are the target.
+        groups: Group or static name prefixes; the units whose name starts with one are the target. On a
+            combat zone's shot, they narrow the zone's own units; empty, the zone's units are the target.
         heading: Engagement heading, degrees on the mission's grid — the direction the camera looks.
         pitch: Degrees below the horizon.
-        slant: Camera-to-target distance, metres.
+        slant: Camera-to-target distance, metres; ``None`` to work it out from the target's spread when
+            the shot is taken (:func:`auto_slant`).
         mark: ``groups`` for one ring per group, ``units`` for one per vehicle.
-        labels: Label per type name (``units``) or per group prefix (``groups``); otherwise the type.
+        labels: Label per type name (``units``) or per group prefix (``groups``); otherwise the category.
         zone: The combat zone the shot illustrates, as the briefing's objectives name it; by default the
-            zone the first prefix belongs to.
+            zone the first prefix belongs to. A combat zone of the mission is activated alone for its shot.
     """
 
     name: str
@@ -287,7 +444,7 @@ class Shot:
     groups: list[str]
     heading: float = 0.0
     pitch: float = 30.0
-    slant: float = 1000.0
+    slant: float | None = None
     mark: str = "groups"
     labels: dict[str, str] = field(default_factory=dict)
     zone: str = ""
@@ -323,8 +480,9 @@ def load_plan(path: Path) -> ShotPlan:
         The plan.
 
     Raises:
-        ValueError: The file lacks ``shots``, a shot lacks ``name`` or ``groups``, a ``mark`` is not
-            ``groups`` or ``units``, or the coalition is unknown.
+        ValueError: The file lacks ``shots``, a shot lacks ``name`` or both ``groups`` and ``zone``, a
+            ``mark`` is not ``groups`` or ``units``, a ``slant`` is neither a distance nor ``auto``, or
+            the coalition is unknown.
     """
     data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     coalition = str(data.get("coalition", "red")).lower()
@@ -332,19 +490,22 @@ def load_plan(path: Path) -> ShotPlan:
         raise ValueError(f"coalition must be red or blue, not {coalition!r}")
     shots: list[Shot] = []
     for entry in data.get("shots") or []:
-        if not entry.get("name") or not entry.get("groups"):
-            raise ValueError(f"a shot needs a name and groups: {entry!r}")
+        if not entry.get("name") or not (entry.get("groups") or entry.get("zone")):
+            raise ValueError(f"a shot needs a name, and groups or a zone: {entry!r}")
         mark = entry.get("mark", "groups")
         if mark not in ("groups", "units"):
             raise ValueError(f"{entry['name']}: mark must be groups or units, not {mark!r}")
+        slant = entry.get("slant", "auto")
+        if slant != "auto" and not isinstance(slant, int | float):
+            raise ValueError(f"{entry['name']}: slant must be a distance in metres or auto, not {slant!r}")
         shots.append(
             Shot(
                 name=str(entry["name"]),
                 title=str(entry.get("title") or entry["name"]),
-                groups=[str(g) for g in entry["groups"]],
+                groups=[str(g) for g in entry.get("groups") or []],
                 heading=float(entry.get("heading", 0.0)),
                 pitch=float(entry.get("pitch", 30.0)),
-                slant=float(entry.get("slant", 1000.0)),
+                slant=None if slant == "auto" else float(slant),
                 mark=mark,
                 labels={str(k): str(v) for k, v in (entry.get("labels") or {}).items()},
                 zone=str(entry.get("zone") or ""),
@@ -408,40 +569,98 @@ def zone_of(group: str) -> str:
     return found.group(1) if found else group
 
 
-def plan_from_units(units: list[LiveUnit], side: int, operation: str) -> dict[str, Any]:
-    """Write a starter shots plan: one shot per zone of *side*, to be edited before shooting.
+#: The closest and the farthest an automatic slant puts the camera, metres. Beyond 6 km nothing a
+#: zone holds can be seen: ``recon-plan`` proposed 18.3 km for Beslan (2026-11-17).
+MIN_SLANT = 600.0
+MAX_SLANT = 6000.0
 
-    The engagement heading cannot be guessed — it is the mission's plan of attack — so every shot
-    starts at heading 0 and the file says to set it. The slant range grows with the zone's spread, so
-    a battery and a brigade both fill the frame.
+
+def auto_slant(units: list[LiveUnit]) -> float:
+    """Return a slant range that fits the units in the frame: three times their spread, within bounds.
 
     Args:
-        units: Every live unit.
-        side: Coalition photographed.
-        operation: The operation's name, for the banner.
+        units: The shot's units, at least one.
 
     Returns:
-        The plan as a mapping ready to dump to YAML.
+        Metres, a multiple of 50 between :data:`MIN_SLANT` and :data:`MAX_SLANT`.
     """
-    zones: dict[str, list[LiveUnit]] = {}
-    for unit in units:
-        if unit.side == side:
-            zones.setdefault(zone_of(unit.group), []).append(unit)
+    cx, cz, _ = target_of(units)
+    spread = max(math.hypot(u.x - cx, u.z - cz) for u in units)
+    return min(MAX_SLANT, max(MIN_SLANT, round(spread * 3 / 50) * 50))
+
+
+def heading_from(origin: tuple[float, float], x: float, z: float) -> int:
+    """Return the grid heading from *origin* ``(x, z)`` to the point ``(x, z)``, whole degrees.
+
+    The Open Training photos looked from the main blue airbase towards each zone: the axis a player
+    flies in on.
+    """
+    return round(math.degrees(math.atan2(z - origin[1], x - origin[0]))) % 360
+
+
+def load_objectives(path: Path) -> list[tuple[str, str]]:
+    """Read the objectives of a briefing's words file: ``(zone, title)`` in their order.
+
+    The file is the one ``build_mission_briefing`` takes (an Open Training's ``docs/kneeboard.json``):
+    an ``objectives`` list of ``{zone, title}``.
+
+    Args:
+        path: The JSON file.
+
+    Returns:
+        The objectives; those without a zone are left out.
+
+    Raises:
+        ValueError: The file has no ``objectives`` list.
+    """
+    data = json.loads(path.read_text(encoding="utf-8"))
+    objectives = data.get("objectives") if isinstance(data, dict) else None
+    if not isinstance(objectives, list):
+        raise ValueError(f"{path}: no objectives list")
+    return [(str(o["zone"]), str(o.get("title") or o["zone"])) for o in objectives if o.get("zone")]
+
+
+def plan_from_zones(
+    zones: list[CombatZone],
+    coalition: str,
+    operation: str,
+    objectives: list[tuple[str, str]] | None = None,
+    origin: tuple[float, float] | None = None,
+) -> tuple[dict[str, Any], list[str]]:
+    """Write a starter shots plan: one shot per combat zone, to be checked before shooting.
+
+    Only combat zones: an AWACS, a tanker or a lone radar is no objective (the Open Training plans
+    listed 236 shots for 26 zones). With *objectives*, the shots follow them, in their order and with
+    their titles. The heading points from *origin* to the zone; without one it is 0, for the mission
+    maker to set. The slant is ``auto``, worked out when the shot is taken.
+
+    Args:
+        zones: The mission's combat zones.
+        coalition: ``red`` or ``blue``, the side photographed.
+        operation: The operation's name, for the banner.
+        objectives: ``(zone, title)`` to follow, or ``None`` for every zone in the mission's order.
+        origin: ``(x, z)`` the shots look from, or ``None``.
+
+    Returns:
+        The plan as a mapping ready to dump to YAML, and the objectives' zones the mission does not have.
+    """
+    by_name = {zone.name: zone for zone in zones}
+    wanted = objectives if objectives is not None else [(zone.name, zone.name) for zone in zones]
+    missing = [name for name, _ in wanted if name not in by_name]
     shots: list[dict[str, Any]] = []
-    for index, (zone, members) in enumerate(sorted(zones.items()), start=1):
-        cx, cz, _ = target_of(members)
-        spread = max(math.hypot(u.x - cx, u.z - cz) for u in members)
+    for index, (name, title) in enumerate([w for w in wanted if w[0] in by_name], start=1):
+        zone = by_name[name]
         shots.append(
             {
-                "name": f"{index:02d}-{_slug(zone)}",
-                "title": zone,
-                "groups": [zone],
-                "heading": 0,
+                "name": f"{index:02d}-{_slug(re.sub(r'^combatZone_', '', name, flags=re.IGNORECASE))}",
+                "title": title,
+                "zone": name,
+                "heading": heading_from(origin, zone.x, zone.z) if origin else 0,
                 "pitch": 30,
-                "slant": int(max(600.0, round(spread * 3 / 50) * 50)),
+                "slant": "auto",
             }
         )
-    return {"operation": operation, "coalition": {v: k for k, v in COALITIONS.items()}[side], "shots": shots}
+    return {"operation": operation, "coalition": coalition, "shots": shots}, missing
 
 
 def _slug(text: str) -> str:
@@ -564,32 +783,13 @@ def camera_of(meta: dict[str, Any]) -> Camera:
 
 VEAF_CONFIG_MEMBER = "l10n/DEFAULT/veaf-config.lua"
 
-#: Prepended to ``veaf-config.lua``: a spawned group keeps its zone and element in its name, so a
-#: shot's ``groups`` prefixes can find it. Before anything spawns, hence at the top.
-_SHOW_NAMES_LUA = "-- recon-prepare: spawned groups keep their zone's name, for the shots\nveaf.HideNamesFromSpawnedGroups = false\n\n"
-
-#: Appended to ``veaf-config.lua``, after the zones are initialised: every combat zone up. An operation
-#: is left alone — activating one activates its zones anyway, and it would start its watchdog.
-#:
-#: Five seconds later, once per name, and only a zone not already active. Measured on "Marteau du
-#: Golan" (2026-10-28) with an immediate loop: every zone on the map two or three times over.
-#: ``ActivateZone`` marks a zone active only when its scheduled activation runs a second later, so the
-#: zones started by ``active_at_start`` and by the operation still read inactive; and, in a mission
-#: built with scripts older than 6.34.0, a zone an operation lists is in ``zonesList`` twice.
-_ACTIVATE_ALL_LUA = """
--- recon-prepare: every combat zone active at start, for the reconnaissance photos
-if veafCombatZone then
-    timer.scheduleFunction(function()
-        local done = {}
-        for _, zone in ipairs(veafCombatZone.zonesList) do
-            local name = zone:getMissionEditorZoneName()
-            if not zone.taskingOrderDict and not done[name] and not zone:isActive() then
-                done[name] = true
-                veafCombatZone.ActivateZone(name, true)
-            end
-        end
-    end, nil, timer.getTime() + 5)
-end
+#: Appended to ``veaf-config.lua``: a spawned group keeps its zone and element in its name. At the end,
+#: after the mission's own settings: prepended, it was set back to ``true`` a few lines below by the
+#: mission's config, and 227 shots out of 236 of the Open Training missions carried a random name
+#: (2026-11-17). Nothing spawns before the config has run, so the end is early enough.
+_SHOW_NAMES_LUA = """
+-- recon-prepare: spawned groups keep their zone's name, for the shots
+veaf.HideNamesFromSpawnedGroups = false
 """
 
 
@@ -656,17 +856,20 @@ def derive_recon_mission(miz: Path, out: Path, start_time: str, bridge_lua: Path
         What was changed, one line each, for the command to print.
 
     Raises:
-        ValueError: *start_time* is malformed, *out* is *miz*, or the mission has no VEAF config.
+        ValueError: *start_time* is malformed, *out* is *miz*, the mission has no VEAF config, or it
+            carries the spawn database without loading it.
     """
     from mission_tools.miz_tools import list_members, read_member, read_miz, write_miz  # noqa: PLC0415
 
-    from veaf_libs.dcs_bridge_capture import inject_bridge_in_memory  # noqa: PLC0415
+    from veaf_libs.dcs_bridge_capture import check_spawn_data_loaded, inject_bridge_in_memory  # noqa: PLC0415
 
     seconds = seconds_of_day(start_time)
     if out.resolve() == miz.resolve():
         raise ValueError("the shooting mission must not overwrite the mission it is made from")
-    if VEAF_CONFIG_MEMBER not in list_members(miz):
+    members = list_members(miz)
+    if VEAF_CONFIG_MEMBER not in members:
         raise ValueError(f"{miz.name} has no {VEAF_CONFIG_MEMBER}: is it a mission built by veaf-tools?")
+    check_spawn_data_loaded(read_miz(miz), members)
     config = read_member(miz, VEAF_CONFIG_MEMBER).decode("utf-8")
 
     shutil.copyfile(miz, out)
@@ -674,14 +877,13 @@ def derive_recon_mission(miz: Path, out: Path, start_time: str, bridge_lua: Path
     content = mission.mission_content or {}
     content["weather"] = clear_sky(content.get("weather") or {})
     content["start_time"] = seconds
-    patched = _SHOW_NAMES_LUA + config.rstrip("\n") + "\n" + _ACTIVATE_ALL_LUA
+    patched = config.rstrip("\n") + "\n" + _SHOW_NAMES_LUA
     files = inject_bridge_in_memory(mission, bridge_lua)
     files[VEAF_CONFIG_MEMBER] = patched.encode("utf-8")
     write_miz(mission, out, additional_files=files)
     return [
         t("recon.prepare.weather"),
         t("recon.prepare.time", time=start_time),
-        t("recon.prepare.zones"),
         t("recon.prepare.names"),
         t("recon.prepare.bridge"),
     ]
@@ -695,6 +897,15 @@ def derive_recon_mission(miz: Path, out: Path, start_time: str, bridge_lua: Path
 SCENERY_PAUSE = 2.5
 #: Seconds after the repeated order, before the grab.
 SETTLE_PAUSE = 1.0
+#: Seconds the camera first stays on a shot so that DCS loads the terrain, before the positions are read
+#: again and the shot taken. After a long jump 2.5 s left 4 Falklands photos out of 26 blurred; 10 s left
+#: none (2026-11-17).
+WARMUP_PAUSE = 10.0
+#: Seconds a combat zone gets to spawn once activated (VEAF spawns it a second later; zone elements with
+#: a short ``#spawndelay`` come after).
+SPAWN_WAIT = 10.0
+#: Seconds for a deactivation to take a zone's units off the map.
+DESPAWN_WAIT = 3.0
 
 
 def shoot_plan(
@@ -707,55 +918,124 @@ def shoot_plan(
     sleep: Callable[[float], None],
     progress: Callable[[str], None],
     only: list[str] | None = None,
+    warmup: float = WARMUP_PAUSE,
 ) -> list[dict[str, Any]]:
     """Take every shot of *plan* and write ``<name>.png`` and ``<name>.json`` under *out_dir*.
+
+    A shot on a combat zone of the mission is taken with that zone active alone: every active zone is
+    deactivated, the shot's zone activated, its units are the ones it spawned, and it is deactivated
+    after. Any other shot takes the units whose name starts with one of its ``groups``.
+
+    The camera first stays *warmup* seconds on the shot, so that the terrain loads; the positions are
+    then read again and the camera placed on them, and they are read once more just before the grab,
+    for the rings: a boat runs hundreds of metres while the terrain loads (Open Training, 2026-11-17).
 
     Args:
         plan: The shots.
         out_dir: Where the raw shots go.
         run_server: Runs a chunk in the mission scripting state, returns its reply.
         run_export: Runs a chunk in the ``export`` state.
-        grab: Grabs the DCS window; takes the function that puts the camera back before a retry, and
-            returns the image (cropped to the client area) and the client area's size.
+        grab: Grabs the picture; takes the function that puts the camera back before a retry, and
+            returns the image of the whole client area and that area's size.
         latlon_of: ``(theatre, x, z)`` to latitude and longitude, or ``None`` for an unknown theatre.
         sleep: Waits, seconds.
         progress: Told one line per shot.
         only: Shot names to take; all of them when ``None``.
+        warmup: Seconds the camera stays on a shot before it is taken; 0 for none.
 
     Returns:
-        The metadata written, one per shot taken. A shot whose groups match nothing is skipped and
-        said so — the zone may simply not be active.
+        The metadata written, one per shot taken. A shot that finds nothing to aim at is skipped and
+        said so.
     """
     side = COALITIONS[plan.coalition]
-    units = parse_units(run_server(UNITS_LUA))
+    combat_zones = {zone.name for zone in parse_zones(run_server(ZONES_LUA))}
     info = parse_info(run_server(INFO_LUA))
     out_dir.mkdir(parents=True, exist_ok=True)
     taken: list[dict[str, Any]] = []
     for shot in plan.shots:
         if only and shot.name not in only:
             continue
-        selected = select_units(units, side, shot.groups)
-        if not selected:
-            progress(t("recon.shoot.skipped", name=shot.name, groups=shot.groups))
+        zoned = shot.zone in combat_zones
+        if zoned:
+            run_server(activate_alone_lua(shot.zone))
+            sleep(SPAWN_WAIT)
+        try:
+            meta = _take(shot, side, zoned, info, out_dir, run_server, run_export, grab, latlon_of, sleep, warmup)
+        finally:
+            if zoned:
+                run_server(deactivate_lua(shot.zone))
+                sleep(DESPAWN_WAIT)
+        if meta is None:
+            progress(t("recon.shoot.skipped", name=shot.name, groups=shot.groups or shot.zone))
             continue
-        target = target_of(selected)
-        camera = camera_for(target[0], target[1], target[2], shot.heading, shot.pitch, shot.slant)
-        order = camera_lua(camera)
-
-        def place(order: str = order) -> None:
-            run_export(order)
-
-        place()
-        sleep(SCENERY_PAUSE)
-        place()
-        sleep(SETTLE_PAUSE)
-        image, window = grab(place)
-        image = image.crop((0, 0, image.width, image.height - INFO_BAR_PX))
-        image.save(out_dir / f"{shot.name}.png")
-        meta = shot_metadata(
-            shot, camera, selected, target, info, window, latlon_of(info.theatre, target[0], target[1])
+        progress(
+            t(
+                "recon.shoot.taken",
+                name=shot.name,
+                count=len(meta["units"]),
+                width=meta["window"]["width"],
+                height=meta["window"]["height"] - INFO_BAR_PX,
+            )
         )
-        (out_dir / f"{shot.name}.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
-        progress(t("recon.shoot.taken", name=shot.name, count=len(selected), width=image.width, height=image.height))
         taken.append(meta)
     return taken
+
+
+def _take(
+    shot: Shot,
+    side: int,
+    zoned: bool,
+    info: MissionInfo,
+    out_dir: Path,
+    run_server: Callable[[str], Any],
+    run_export: Callable[[str], Any],
+    grab: Callable[[Callable[[], None]], tuple[Any, tuple[int, int]]],
+    latlon_of: Callable[[str, float, float], tuple[float, float] | None],
+    sleep: Callable[[float], None],
+    warmup: float,
+) -> dict[str, Any] | None:
+    """Take one shot, the zone already activated when *zoned*; ``None`` when there is nothing to aim at."""
+
+    def read() -> list[LiveUnit]:
+        units = parse_units(run_server(zone_units_lua(shot.zone) if zoned else UNITS_LUA))
+        if zoned:
+            units = [u for u in units if u.side == side]
+            return [u for u in units if any(u.group.startswith(p) for p in shot.groups)] if shot.groups else units
+        return select_units(units, side, shot.groups)
+
+    selected = read()
+    if not selected:
+        return None
+    slant = shot.slant if shot.slant is not None else auto_slant(selected)
+
+    def aim(units: list[LiveUnit]) -> tuple[tuple[float, float, float], Camera]:
+        target = target_of(units)
+        return target, camera_for(target[0], target[1], target[2], shot.heading, shot.pitch, slant)
+
+    target, camera = aim(selected)
+    if warmup > 0:
+        run_export(camera_lua(camera))
+        sleep(warmup)
+        selected = read() or selected
+        target, camera = aim(selected)
+    order = camera_lua(camera)
+
+    def place(order: str = order) -> None:
+        run_export(order)
+
+    place()
+    sleep(SCENERY_PAUSE)
+    place()
+    sleep(SETTLE_PAUSE)
+    selected = read() or selected
+    image, window = grab(place)
+    image = image.crop((0, 0, image.width, image.height - INFO_BAR_PX))
+    image.save(out_dir / f"{shot.name}.png")
+    taken_as = Shot(
+        shot.name, shot.title, shot.groups, shot.heading, shot.pitch, slant, shot.mark, shot.labels, shot.zone
+    )
+    meta = shot_metadata(
+        taken_as, camera, selected, target, info, window, latlon_of(info.theatre, target[0], target[1])
+    )
+    (out_dir / f"{shot.name}.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    return meta

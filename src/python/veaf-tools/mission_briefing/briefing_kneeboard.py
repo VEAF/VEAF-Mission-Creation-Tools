@@ -50,6 +50,13 @@ MAP_ASPECT = KNEEBOARD_PAGE[0] / KNEEBOARD_PAGE[1]
 _MARGIN = 72
 _TITLE_SIZE, _HEADING_SIZE, _TEXT_SIZE = 64, 48, 40
 
+#: From one line of a wrapped title to the next, pixels.
+_TITLE_STEP = int(_TITLE_SIZE * 1.2)
+
+#: The space between two blocks of a text page, pixels: half a line. A full blank line pushed the sixteen
+#: lines of an Open Training's "Commandes" sheet onto a second page by one line (6.37.0).
+_BLOCK_GAP = int(_TEXT_SIZE * 0.675)
+
 #: A page this tool writes: what it may replace or delete on a later run, and nothing else.
 _PAGE_NAME = re.compile(r"\d{2}-briefing-[a-z0-9-]+\.jpg")
 
@@ -91,12 +98,24 @@ def _jpeg(page: Image.Image) -> bytes:
     return buffer.getvalue()
 
 
+def _title_lines(title: str) -> list[str]:
+    """A page's title cut to the page's width: a long zone title ran off the right edge (OT kneeboards, 6.37.0)."""
+    return _wrap(title, _font(_TITLE_SIZE, bold=True), KNEEBOARD_PAGE[0] - 2 * _MARGIN)
+
+
+def _first_row(title: str) -> int:
+    """The first free row under a page's title, however many lines the title takes."""
+    return _MARGIN + _TITLE_SIZE + (len(_title_lines(title)) - 1) * _TITLE_STEP + 40
+
+
 def _blank(title: str) -> tuple[Image.Image, ImageDraw.ImageDraw, int]:
-    """A white page with its title; returns the page, its pen and the first free row."""
+    """A white page with its title, wrapped; returns the page, its pen and the first free row."""
     page = Image.new("RGB", KNEEBOARD_PAGE, (255, 255, 255))
     draw = ImageDraw.Draw(page)
-    draw.text((_MARGIN, _MARGIN), title, font=_font(_TITLE_SIZE, bold=True), fill=(0, 51, 153))
-    return page, draw, _MARGIN + _TITLE_SIZE + 40
+    font = _font(_TITLE_SIZE, bold=True)
+    for n, text in enumerate(_title_lines(title)):
+        draw.text((_MARGIN, _MARGIN + n * _TITLE_STEP), text, font=font, fill=(0, 51, 153))
+    return page, draw, _first_row(title)
 
 
 def map_page(title: str, png: Path) -> bytes:
@@ -147,6 +166,70 @@ def photo_page(title: str, photos: list[tuple[Path, str]]) -> bytes:
     return _jpeg(page)
 
 
+#: The share of the room under the title a photo sharing its page with a map may take, at most.
+_PHOTO_SHARE = 0.55
+
+
+def _map_and_photo_layout(title: str, photo: tuple[Path, str]) -> tuple[int, tuple[int, int], list[str]]:
+    """The map's height, the photo's size and the caption's lines of a page holding a map and its photo."""
+    usable = KNEEBOARD_PAGE[0] - 2 * _MARGIN
+    room = KNEEBOARD_PAGE[1] - _first_row(title) - _MARGIN
+    lines = _wrap(photo[1], _font(_TEXT_SIZE), usable)
+    under = 16 + len(lines) * int(_TEXT_SIZE * 1.35)
+    with Image.open(photo[0]) as opened:
+        width, height = opened.size
+    scale = min(usable / width, (room * _PHOTO_SHARE - under) / height)
+    size = (round(width * scale), round(height * scale))
+    return room - 32 - size[1] - under, size, lines
+
+
+def map_and_photo_aspect(title: str, photo: tuple[Path, str]) -> float:
+    """The width over height the map of :func:`map_and_photo_page` should be drawn at, to fill its part of the page.
+
+    Args:
+        title: The page's title.
+        photo: The photo and its caption.
+
+    Returns:
+        The aspect of the room left to the map.
+    """
+    map_height, _, _ = _map_and_photo_layout(title, photo)
+    return (KNEEBOARD_PAGE[0] - 2 * _MARGIN) / map_height
+
+
+def map_and_photo_page(title: str, png: Path, photo: tuple[Path, str]) -> bytes:
+    """A map under its title and, below it, the one photo of the place, with its caption.
+
+    An Open Training has one photo per zone: on a page of its own it filled the top half and left the
+    bottom empty (6.37.0); beside its map, the pilot sees both at once and the kneeboard is a page shorter
+    per zone. Draw the map at :func:`map_and_photo_aspect` for it to fill its part.
+
+    Args:
+        title: The page's title.
+        png: The rendered map.
+        photo: The photo and its caption.
+
+    Returns:
+        The page, JPEG.
+    """
+    page, draw, top = _blank(title)
+    usable = KNEEBOARD_PAGE[0] - 2 * _MARGIN
+    map_height, size, lines = _map_and_photo_layout(title, photo)
+    with Image.open(png) as opened:
+        scale = min(usable / opened.width, map_height / opened.height)
+        fitted = opened.convert("RGB").resize((round(opened.width * scale), round(opened.height * scale)))
+    page.paste(fitted, (_MARGIN + (usable - fitted.width) // 2, top + (map_height - fitted.height) // 2))
+    y = top + map_height + 32
+    with Image.open(photo[0]) as opened:
+        page.paste(opened.convert("RGB").resize(size), (_MARGIN + (usable - size[0]) // 2, y))
+    y += size[1] + 16
+    font = _font(_TEXT_SIZE)
+    for text_line in lines:
+        draw.text((_MARGIN, y), text_line, font=font, fill=(0, 0, 0))
+        y += int(_TEXT_SIZE * 1.35)
+    return _jpeg(page)
+
+
 def text_pages(title: str, blocks: list[TextBlock]) -> list[bytes]:
     """Blocks of text on as many pages as they need, the title repeated on each.
 
@@ -158,25 +241,52 @@ def text_pages(title: str, blocks: list[TextBlock]) -> list[bytes]:
         The pages, JPEG, at least one.
     """
     heading_font, text_font = _font(_HEADING_SIZE, bold=True), _font(_TEXT_SIZE)
-    usable = KNEEBOARD_PAGE[0] - 2 * _MARGIN
-    rows: list[tuple[str, bool]] = []
-    for heading, lines in blocks:
-        if heading:
-            rows += [(part, True) for part in _wrap(heading, heading_font, usable)]
-        rows += [(part, False) for text in lines for part in _wrap(text, text_font, usable)]
-        rows.append(("", False))
     pages: list[bytes] = []
-    page, draw, y = _blank(title)
-    for text, is_heading in rows:
-        size = _HEADING_SIZE if is_heading else _TEXT_SIZE
-        if y + size > KNEEBOARD_PAGE[1] - _MARGIN:
-            pages.append(_jpeg(page))
-            page, draw, y = _blank(title)
-            if not text:
-                continue
-        draw.text((_MARGIN, y), text, font=heading_font if is_heading else text_font, fill=(0, 0, 0))
-        y += int(size * 1.35)
-    pages.append(_jpeg(page))
+    for rows in text_layout(title, blocks):
+        page, draw, _ = _blank(title)
+        for y, text, is_heading in rows:
+            draw.text((_MARGIN, y), text, font=heading_font if is_heading else text_font, fill=(0, 0, 0))
+        pages.append(_jpeg(page))
+    return pages
+
+
+#: A row of a text page as laid out: where it is drawn, its text, whether it is a heading.
+LaidRow = tuple[int, str, bool]
+
+
+def text_layout(title: str, blocks: list[TextBlock]) -> list[list[LaidRow]]:
+    """Where each line of a text page goes: a block that fits on a page is never cut between two.
+
+    A zone's MGRS and bullseye ran at the top of the next page, away from its title (OT kneeboards,
+    6.37.0); a block taller than a page still runs on.
+
+    Args:
+        title: The pages' title, which may take several lines.
+        blocks: Each block's heading and lines; a line too long for the page is wrapped.
+
+    Returns:
+        Each page's rows, at least one page.
+    """
+    heading_font, text_font = _font(_HEADING_SIZE, bold=True), _font(_TEXT_SIZE)
+    usable = KNEEBOARD_PAGE[0] - 2 * _MARGIN
+    top, bottom = _first_row(title), KNEEBOARD_PAGE[1] - _MARGIN
+    pages: list[list[LaidRow]] = [[]]
+    y = top
+    for heading, lines in blocks:
+        rows = [(part, True) for part in _wrap(heading, heading_font, usable)] if heading else []
+        rows += [(part, False) for text in lines for part in _wrap(text, text_font, usable)]
+        sizes = [_HEADING_SIZE if is_heading else _TEXT_SIZE for _, is_heading in rows]
+        height = sum(int(size * 1.35) for size in sizes[:-1]) + (sizes[-1] if sizes else 0)
+        if y > top and y + height > bottom and top + height <= bottom:
+            pages.append([])
+            y = top
+        for (text, is_heading), size in zip(rows, sizes, strict=True):
+            if y > top and y + size > bottom:
+                pages.append([])
+                y = top
+            pages[-1].append((y, text, is_heading))
+            y += int(size * 1.35)
+        y += _BLOCK_GAP
     return pages
 
 

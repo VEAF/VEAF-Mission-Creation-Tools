@@ -1,6 +1,6 @@
 # FIX-CAMPAIGN-THIRD-SERVER-FLIGHT — what the third evening on the server taught
 
-Status: ⬜ ready — to discuss with David before it is taken (2026-11-19)
+Status: ⬜ ready — scope decided by David on 2026-11-19 ("on suit tes recommandations")
 
 The persistent campaign "Bouclier de l'Oronte" (Northern Syria), restarted from scratch on 2026-11-18 with FIX-CAMPAIGN-SECOND-SERVER-FLIGHT, the sitac block (FEAT-CAMPAIGN-SITAC-STATE) and the fixed file name `Campagne_Oronte.miz` (FEAT-CAMPAIGN-MISSION-FILE), flown on the Campagne server (`foothold2`) on 2026-11-19.
 The integration branch is `feature/dynamic-campaign`: one branch and one pull request into it for the whole lot.
@@ -9,6 +9,12 @@ The integration branch is `feature/dynamic-campaign`: one branch and one pull re
 |---|---|---|
 | 01 | [A captured airfield offers no slot](tickets/01-captured-airfield-has-no-slot.md) | blocking: capturing an airfield gains nothing for the players |
 | 02 | [The sitac shows the players, as Foothold's does](tickets/02-sitac-players.md) | asked by David |
+| 03 | [The sitac ranks the pilots, as Foothold's does](tickets/03-sitac-player-stats.md) | Foothold parity |
+| 04 | [The sitac shows the ejected pilots](tickets/04-sitac-ejected-pilots.md) | Foothold parity, helps the rescue |
+| 05 | [The sitac lists the task board](tickets/05-sitac-tasks.md) | Foothold parity |
+| 06 | [The sitac shows the AWACS and the tankers](tickets/06-sitac-support-assets.md) | Foothold parity, more than Foothold |
+
+Decided by David on 2026-11-19, following the recos of the comparison below: tickets 02 to 06; the shop on the sitac later; the units zone by zone never (the intelligence rule). Each sitac ticket has a VMCT half (the `sitac` block) and a foothold-sitac half (the reader and the page): one PR per repository for the whole lot.
 
 ## What Foothold's save gives its sitac that ours does not
 

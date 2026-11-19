@@ -35,5 +35,5 @@ A convoy to retire keeps its place among `max_convoys` while it waits: with a pl
 ## To check in game
 
 1. Attack a red assault convoy from the air until it falls back or stops.
-2. It stays on the map while you are within 60 km, and `dcs.log` writes `to retire (...) stays: a player near` once.
+2. It stays on the map while you are within 60 km, and, with the campaign's `debug: true`, `dcs.log` writes `to retire (...) stays: a player near` once.
 3. Fly away: about 5 minutes after the last hit, it is retired.

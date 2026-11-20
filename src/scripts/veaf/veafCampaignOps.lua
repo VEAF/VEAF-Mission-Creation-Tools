@@ -678,7 +678,7 @@ function veafCampaignOps.dispatchHelicopters(now)
             local typeName = veafCampaign.setting("helicopter")[side] or veafCampaign.DYNAMIC_DEFAULTS.helicopter[side]
             veafCampaignOps.paidSortie(side, veafCampaign.unitPrice(typeName), "a supply helicopter", function()
               return veafCampaignOps.sendHelicopter(side, target, kind)
-            end)
+            end, "helicopter")
           end
         end
       end
@@ -708,8 +708,9 @@ end
 --- @param price number points
 --- @param what string for the log
 --- @param launch function returning what was sent, or nil
+--- @param kind string|nil what for, for the session's books: `flight` when nil, `helicopter`
 --- @return any what `launch` returned, or nil
-function veafCampaignOps.paidSortie(side, price, what, launch)
+function veafCampaignOps.paidSortie(side, price, what, launch, kind)
   local stock = veafCampaignLogistics and veafCampaignLogistics.active and veafCampaignLogistics.stock(side)
   local key = "unpaid " .. side .. " " .. what
   if not veafCampaign.canPay(side, price) then
@@ -733,7 +734,7 @@ function veafCampaignOps.paidSortie(side, price, what, launch)
   veafCampaign.forgetTold(key)
   local sent = launch()
   if sent then
-    veafCampaign.pay(side, price, "partial", what)
+    veafCampaign.pay(side, price, "partial", what, kind or "flight")
     veafCampaign.debug(
       "DECISION",
       "%s sends %s [%s] for %d points (stock was %s)",
@@ -767,7 +768,7 @@ function veafCampaignOps.followFlights(now)
         local refund = 0
         if veafCampaignLogistics and veafCampaignLogistics.active then
           refund = flight.price or 0
-          veafCampaignLogistics.credit(flight.side, refund)
+          veafCampaignLogistics.credit(flight.side, refund, "refund")
         end
         veafCampaignOps.counters.grounded = veafCampaignOps.counters.grounded + 1
         logger():info(
@@ -1775,7 +1776,7 @@ function veafCampaignOps.sendRaid(side, target, purchased)
     return nil
   end
   if not purchased then
-    veafCampaign.pay(side, price, "partial", "a raid package")
+    veafCampaign.pay(side, price, "partial", "a raid package", "raid")
   end
   table.insert(veafCampaignOps.raids, record)
   veafCampaignOps.counters.raids = veafCampaignOps.counters.raids + 1

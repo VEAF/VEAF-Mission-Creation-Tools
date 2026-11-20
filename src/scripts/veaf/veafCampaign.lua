@@ -268,13 +268,15 @@ function veafCampaign.canPay(side, cost, mode)
 end
 
 --- Pay `cost` from a side's resources, when it can (see `canPay`); "partial" pays what is there.
+--- @param what string|nil what for, for the log
+--- @param kind string|nil what for, for the session's books (`veafCampaignEconomy.book`): `flight`, `convoy`...
 --- @return boolean whether it was paid
-function veafCampaign.pay(side, cost, mode, what)
+function veafCampaign.pay(side, cost, mode, what, kind)
   local logistics = veafCampaignLogistics
   if not (logistics and logistics.active) then
     return true
   end
-  return logistics.pay(side, cost, mode, what)
+  return logistics.pay(side, cost, mode, what, kind)
 end
 
 --- Tell a side a piece of campaign news, saying who speaks (David, 2026-11-16: "the announcements say nothing of
@@ -1626,12 +1628,14 @@ end
 --- @param side string
 --- @param soldiers number|nil a helicopter capture's garrison: the token one stays these soldiers (ticket 08)
 function veafCampaign.payGarrison(zone, side, soldiers)
-  if not zone.entry.garrison or veafCampaign.pay(side, veafCampaign.garrisonPrice(zone.entry.garrison), "essential", "garrison") then
+  if
+    not zone.entry.garrison or veafCampaign.pay(side, veafCampaign.garrisonPrice(zone.entry.garrison), "essential", "garrison", "garrison")
+  then
     return
   end
   veaf.loggers.get(veafCampaign.Id):info("zone [%s]: %s cannot pay its garrison, a token one is drawn", zone.name, side)
   zone:drawGarrison({}, soldiers)
-  veafCampaign.pay(side, veafCampaign.garrisonPrice(zone.entry.garrison), "partial", "garrison")
+  veafCampaign.pay(side, veafCampaign.garrisonPrice(zone.entry.garrison), "partial", "garrison", "garrison")
 end
 
 --- Make an airfield zone's airbase follow its owner. Both calls exist in the scripting API
@@ -2176,7 +2180,7 @@ function veafCampaign.retireConvoy(record, reason)
   end
   local refund = veafCampaign.unitsPrice(survivors)
   if refund > 0 and veafCampaignLogistics and veafCampaignLogistics.active then
-    veafCampaignLogistics.credit(record.side, refund)
+    veafCampaignLogistics.credit(record.side, refund, "refund")
   end
   veaf.loggers
     .get(veafCampaign.Id)
@@ -2416,7 +2420,7 @@ function veafCampaign.sendConvoy(side, from, to, purchased)
   record.sent = typesOf(veafCampaign.convoyUnits(record))
   record.alive = { unpack(record.sent) }
   if not purchased then
-    veafCampaign.pay(side, veafCampaign.unitsPrice(record.sent), "partial", "convoy")
+    veafCampaign.pay(side, veafCampaign.unitsPrice(record.sent), "partial", "convoy", "convoy")
   end
   if reserve then
     for _, unitType in ipairs(record.sent) do
@@ -2674,7 +2678,7 @@ function veafCampaign.orderAssault(parameters)
   -- in a persistent campaign the order is a purchase, paid in credits (ticket 14); refunded if no convoy leaves
   local economy = veafCampaign.isPersistent() and veafCampaignEconomy and veafCampaignEconomy.charge and veafCampaignEconomy
   local price = economy and veafCampaignEconomy.price("assault") or 0
-  if economy and not economy.charge(price, veaf.t("campaign.shop.item.assault")) then
+  if economy and not economy.charge(price, veaf.t("campaign.shop.item.assault"), "shop assault") then
     return
   end
   if not veafCampaign.sendConvoy("blue", from, to, economy and true or nil) then
@@ -2825,7 +2829,7 @@ local function reinforceFromStock(zone, side, how)
   end
   local reinforced, spent = zone:reinforce(math.max(0, logistics.stock(side)))
   if reinforced and spent > 0 then
-    logistics.pay(side, spent, "essential", "the units a delivery brings back")
+    logistics.pay(side, spent, "essential", "the units a delivery brings back", "reinforcement")
     veaf.loggers.get(veafCampaign.Id):info(
       "zone [%s]: %d point(s) paid from the %s stock for what the %s brought back, %d left",
       zone.name,

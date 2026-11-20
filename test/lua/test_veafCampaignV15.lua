@@ -1986,4 +1986,60 @@ function TestCampaignSecondRaid:test_no_cap_where_even_its_smallest_circle_is_un
   )
 end
 
+-- ---------------------------------------------------------------------------
+-- An evening's balance (FIX-CAMPAIGN-ECONOMY-BALANCE 03)
+-- ---------------------------------------------------------------------------
+TestCampaignEconomySummary = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+--- The dcs.log lines holding `text`.
+local function summaryLines(text)
+  local found = {}
+  for _, entry in ipairs(dcs_mocks.logs) do
+    if string.find(entry.text, text, 1, true) then
+      table.insert(found, entry.text)
+    end
+  end
+  return found
+end
+
+function TestCampaignEconomySummary:test_both_sides_resources_and_the_players_spawns_are_booked_by_kind()
+  start()
+  veafCampaignEconomy.credits = 500
+  veafCampaignLogistics.stocks.red, veafCampaignLogistics.stocks.blue = 1000, 300
+  veafCampaignEconomy.openLedger()
+  -- the players' paid spawn, in credits
+  spawned(self, "armor 9", { "T-72B", "T-72B", "BMP-2" })
+  veafCampaignLogistics.spawnPaid("armoredPlatoon", { side = BLUE }, "armor 9", BLUE)
+  -- the enemy: half an hour of production, a CAP, a convoy, a supply, a refund
+  veafCampaignLogistics.produce(1800)
+  veafCampaign.pay("red", 60, "partial", "a CAP", "flight")
+  veafCampaign.pay("red", 40, "partial", "convoy", "convoy")
+  veafCampaignLogistics.pay("red", 16, "essential", "the supply of Tkvarcheli", "reinforcement")
+  veafCampaignLogistics.credit("red", 10, "refund")
+  veafCampaignEconomy.summarizeSession("the mission ends")
+  luaunit.assertEquals(#summaryLines("ECONOMY SUMMARY blue credits: 500 at the start, 404 at the end"), 1)
+  luaunit.assertEquals(#summaryLines("ECONOMY SUMMARY blue credits spent 96: spawn 96 (x1)"), 1)
+  -- red makes 240 points an hour: 120 in half an hour
+  luaunit.assertEquals(#summaryLines("ECONOMY SUMMARY red resources: 1000 at the start, 1014 at the end"), 1)
+  luaunit.assertEquals(#summaryLines("ECONOMY SUMMARY red resources earned 130: production 120, refund 10 (x1)"), 1)
+  luaunit.assertEquals(#summaryLines("ECONOMY SUMMARY red resources spent 116: flight 60 (x1), convoy 40 (x1), reinforcement 16 (x1)"), 1)
+  -- the players' side's resources too: 60 points an hour
+  luaunit.assertEquals(#summaryLines("ECONOMY SUMMARY blue resources earned 30: production 30"), 1)
+end
+
+function TestCampaignEconomySummary:test_the_enemy_flights_and_helicopters_book_their_kind()
+  start()
+  veafCampaignEconomy.openLedger()
+  veafCampaignLogistics.stocks.red = 1000
+  veafCampaignOps.paidSortie("red", 60, "a CAP", function()
+    return "cap"
+  end)
+  veafCampaignOps.paidSortie("red", 15, "a supply helicopter", function()
+    return "helo"
+  end, "helicopter")
+  local spent = veafCampaignEconomy.ledger.red.spent
+  luaunit.assertEquals(spent.flight.amount, 60)
+  luaunit.assertEquals(spent.helicopter.amount, 15)
+end
+
 os.exit(luaunit.LuaUnit.run())

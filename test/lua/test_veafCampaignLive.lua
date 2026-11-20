@@ -864,6 +864,58 @@ function TestCampaignShop:test_no_csar_module_no_rescue_reward()
   csar = saved
 end
 
+-- FIX-CAMPAIGN-ECONOMY-BALANCE 03: what the players earn and spend in an evening, by kind, to tune the prices
+function TestCampaignShop:test_the_economy_summary_gives_what_was_earned_and_spent_by_kind()
+  local getPlayers, getAirbase = coalition.getPlayers, Airbase.getByName
+  coalition.getPlayers = function()
+    return { "someone" }
+  end
+  dcs_mocks.currentTime = 1000
+  veafCampaignEconomy.beat(1000) -- a player in a slot: the session's books open, at 100 credits
+  luaunit.assertNotNil(veafCampaignEconomy.ledger)
+  veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
+  Airbase.getByName = function()
+    return airbaseOf(BLUE)
+  end
+  veafCampaignEconomy.onPilotEvent({
+    type = { id = world.event.S_EVENT_LAND },
+    initiator = { unitName = "Zip's Hog" },
+    place = { unitName = "Kobuleti" },
+  })
+  Airbase.getByName = getAirbase
+  veafCampaignEconomy.buy({ "illumination", "Senaki" })
+  veafCampaignEconomy.buy({ "illumination", "Senaki" })
+  coalition.getPlayers = function()
+    return {}
+  end
+  dcs_mocks.currentTime = 1000 + 3 * 3600
+  veafCampaignEconomy.beat(dcs_mocks.currentTime)
+  coalition.getPlayers = getPlayers
+  luaunit.assertEquals(#loggedLines("ECONOMY SUMMARY (nobody left in a slot): 180 min"), 1)
+  luaunit.assertEquals(#loggedLines("ECONOMY SUMMARY blue credits: 100 at the start, 50 at the end"), 1)
+  -- the kill counts once, both its parts under its own kind
+  luaunit.assertEquals(#loggedLines("ECONOMY SUMMARY blue credits earned 50: kill_air 50 (x1)"), 1)
+  luaunit.assertEquals(#loggedLines("ECONOMY SUMMARY blue credits spent 100: shop illumination 100 (x2)"), 1)
+  -- closed until a player sits in a slot again
+  luaunit.assertNil(veafCampaignEconomy.ledger)
+  luaunit.assertFalse(veafCampaignEconomy.summarizeSession("again"))
+end
+
+function TestCampaignShop:test_no_economy_summary_when_nobody_played()
+  veafCampaignEconomy.earn(200, "campaign.credits.capture", "Poti")
+  veafCampaignEconomy.summarizeSession("the mission ends")
+  luaunit.assertEquals(#loggedLines("ECONOMY SUMMARY"), 0)
+  luaunit.assertEquals(#loggedLines("CREDITS SUMMARY (the mission ends): 200 earned"), 1)
+end
+
+function TestCampaignShop:test_the_mission_end_closes_the_books()
+  veafCampaignEconomy.openLedger()
+  luaunit.assertTrue(veafCampaignEconomy.charge(30, "Assault", "shop assault"))
+  luaunit.assertTrue(veafCampaignEconomy.summarizeSession("the mission ends"))
+  luaunit.assertEquals(#loggedLines("ECONOMY SUMMARY blue credits earned 0: nothing"), 1)
+  luaunit.assertEquals(#loggedLines("ECONOMY SUMMARY blue credits spent 30: shop assault 30 (x1)"), 1)
+end
+
 function TestCampaignShop:test_credits_never_go_below_zero()
   veafCampaignEconomy.earn(-1000)
   luaunit.assertEquals(veafCampaignEconomy.credits, 0)

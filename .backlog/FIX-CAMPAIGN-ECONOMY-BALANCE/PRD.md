@@ -1,6 +1,6 @@
 # FIX-CAMPAIGN-ECONOMY-BALANCE — what the players earn pays for what the shop sells
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 David, 2026-11-20, after the shop got zone upgrades (FEAT-CAMPAIGN-SHOP-UPGRADES): "il faut que les gains permettent d'acheter les trucs. Niveau équilibrage, tu t'es inspiré de Foothold ?"
 Only partly, and nothing was calibrated by measurement. Compared with Foothold's rewards (`../FEAT-DYNAMIC-CAMPAIGN/foothold-analysis/05-economy-shop-ranks-missions.md`, §3) and prices (§5):

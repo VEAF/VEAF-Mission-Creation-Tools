@@ -1,6 +1,6 @@
 # 06 — The sitac shows the AWACS and the tankers
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — implemented, waits for the in-game check
 Type: feature
 
 ## Decided
@@ -15,3 +15,11 @@ David, 2026-11-19, following the reco of the Foothold comparison (PRD): the supp
 ## Done when
 
 The sitac shows the AWACS and the two tankers at their current orbit, with their frequencies, with tests on both sides.
+
+## Implemented (2026-11-19)
+
+`veafCampaign.sitacSupport()` lists the players' side's assets of `modules.SUPPORT.assets`: position now, kind (`awacs`, `tanker_boom`, `tanker_basket`, `tanker_both`, `tanker`), frequency and TACAN from `veaf.getTankerData`; one destroyed is listed by name, `alive = false`. Tests: `test_veafCampaignSitac.lua`.
+
+## To check in game
+
+The sitac shows the AWACS and the two tankers on their orbit, with the frequencies of the Mission Editor.

@@ -1649,7 +1649,12 @@ function ConvoyUnitHandler:engage(now)
   if veafGroundAI.convoyObjectives[self.groupName] and #armed > 0 and unanswerable then
     veaf.goRoute(self.groupName, self:onwardRoute(group))
     self.state = ConvoyUnitHandler.STATE_DRIVING
-    veaf.loggers.get(veafGroundAI.Id):info("convoy %s: an assault under air attack drives on", veaf.p(self:getName()))
+    -- said once per engagement: every hit runs `engage` again, and it was written 15 times in a minute on 2026-11-19
+    -- (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 07)
+    if not self.drivingOnSince or now - self.drivingOnSince > ConvoyUnitHandler.QUIET_DELAY then
+      veaf.loggers.get(veafGroundAI.Id):info("convoy %s: an assault under air attack drives on", veaf.p(self:getName()))
+    end
+    self.drivingOnSince = now
     self:markDanger(now)
     return
   end

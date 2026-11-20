@@ -1323,4 +1323,29 @@ function TestConvoyWiring:test_the_mission_yaml_convoys_are_watched()
   luaunit.assertNotNil(veafGroundAI.convoysByGroupName["Supply"])
 end
 
+-- FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 07: "drives on" was written about 15 times in one minute, once per hit
+function TestConvoyContact:test_an_assault_under_air_attack_says_it_drives_on_once_per_engagement()
+  local _, units = self:_convoy(TANK)
+  veafGroundAI.setConvoyObjective("Convoy-1", POTI)
+  local jet = makeUnit("su25", { side = RED, categoryEx = Unit.Category.AIRPLANE, type = "Su-25T", point = { x = 1000, y = 500, z = 0 } })
+  local function drivesOn()
+    local count = 0
+    for _, entry in ipairs(dcs_mocks.logs) do
+      if string.find(entry.text, "under air attack drives on", 1, true) then
+        count = count + 1
+      end
+    end
+    return count
+  end
+  for _ = 1, 5 do
+    veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_HIT, initiator = jet, target = units[1] })
+    dcs_mocks.advanceTime(5)
+  end
+  luaunit.assertEquals(drivesOn(), 1)
+  -- a new engagement, once the last one has been quiet long enough
+  dcs_mocks.advanceTime(ConvoyUnitHandler.QUIET_DELAY + 1)
+  veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_HIT, initiator = jet, target = units[1] })
+  luaunit.assertEquals(drivesOn(), 2)
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -380,11 +380,23 @@ end
 
 function TestVeafCampaignCompose:test_the_same_groups_as_a_cas_target_but_no_transport_company()
   veafCampaign.composeGarrison("Z", { x = 1, y = 0, z = 2 }, 1500, { size = 2, defense = 4, armor = 1 }, coalition.side.RED)
-  -- the largest draw of a size 2: size + 1 sections and platoons; defense above 3: two air defence groups
+  -- the largest draw of a size 2: size + 1 sections and platoons; one air defence group
   luaunit.assertEquals(count(self.made, "infantry"), 3)
   luaunit.assertEquals(count(self.made, "armor"), 3)
-  luaunit.assertEquals(count(self.made, "air defense"), 2)
+  luaunit.assertEquals(count(self.made, "air defense"), 1)
   luaunit.assertEquals(count(self.made, "transport"), 0)
+end
+
+-- FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 08: two groups of level 5 gave Aleppo 32 air defence units and 121 missiles on
+-- 2026-11-19; David kept level 5 (Tor, Osa, Tunguska) but one group
+function TestVeafCampaignCompose:test_a_level_5_garrison_draws_one_air_defence_group()
+  veafCampaign.composeGarrison("Z", { x = 1, y = 0, z = 2 }, 1500, { size = 3, defense = 5, armor = 2 }, coalition.side.RED)
+  luaunit.assertEquals(count(self.made, "air defense"), 1)
+end
+
+function TestVeafCampaignCompose:test_only_a_level_above_5_draws_two()
+  veafCampaign.composeGarrison("Z", { x = 1, y = 0, z = 2 }, 1500, { size = 3, defense = 6, armor = 2 }, coalition.side.RED)
+  luaunit.assertEquals(count(self.made, "air defense"), 2)
 end
 
 function TestVeafCampaignCompose:test_no_armour_and_no_defence_mean_infantry_alone()

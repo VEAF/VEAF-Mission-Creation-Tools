@@ -107,6 +107,29 @@ veafCampaignEconomy.sessionGains = nil
 --- Who a gain nobody flew for is written against.
 veafCampaignEconomy.TEAM = "team"
 
+--- The ranking figure a gain of that reason counts one more of, by Foothold's name (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 03).
+veafCampaignEconomy.STAT_OF_REASON = { warehouse = "Warehouse delivery" }
+
+--- A pilot's books, made when it has none: `{ total, reasons, stats }`, `stats` the ranking's figures by Foothold's
+--- names (`Air`, `Deaths`…). A save written before them has none.
+local function booksOf(who)
+  local books = veafCampaignEconomy.pilots[who] or { total = 0, reasons = {} }
+  books.stats = books.stats or {}
+  veafCampaignEconomy.pilots[who] = books
+  return books
+end
+
+--- Count one more of a ranking figure for a pilot.
+--- @param pilot string|nil the player's name; nothing is counted without one
+--- @param stat string the figure, by Foothold's name
+function veafCampaignEconomy.count(pilot, stat)
+  if not pilot then
+    return
+  end
+  local stats = booksOf(pilot).stats
+  stats[stat] = (stats[stat] or 0) + 1
+end
+
 --- Add credits (or take them, with a negative amount; never below zero), and tell the side. A gain pays a debt
 --- off before it adds anything: a balance of -50 earning 10 is -40 (ticket 14).
 --- @param amount number
@@ -128,10 +151,12 @@ function veafCampaignEconomy.earnBy(pilot, amount, reasonKey, ...)
   if amount > 0 then
     local who = pilot or veafCampaignEconomy.TEAM
     local reason = reasonKey and (reasonKey:gsub("^campaign%.credits%.", "")) or "other"
-    local books = veafCampaignEconomy.pilots[who] or { total = 0, reasons = {} }
+    local books = booksOf(who)
     books.total = books.total + amount
     books.reasons[reason] = (books.reasons[reason] or 0) + amount
-    veafCampaignEconomy.pilots[who] = books
+    if pilot and veafCampaignEconomy.STAT_OF_REASON[reason] then
+      veafCampaignEconomy.count(pilot, veafCampaignEconomy.STAT_OF_REASON[reason])
+    end
     veafCampaignEconomy.sessionGains = veafCampaignEconomy.sessionGains or {}
     veafCampaignEconomy.sessionGains[who] = (veafCampaignEconomy.sessionGains[who] or 0) + amount
     logger():info("CREDITS %s +%d (%s): %d for the side", who, amount, reason, veafCampaignEconomy.credits)
@@ -195,13 +220,68 @@ local function initiatorName(event)
   return name
 end
 
+--- What the credits a pilot held were when he ejected, by unit name: the sitac shows them next to the pilot on the
+--- ground (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 04). Lost at the ejection: a rescue does not give them back. Not saved.
+veafCampaignEconomy.lostAtEjection = {}
+
+--- Whether a DCS unit has an attribute; false when it cannot be asked.
+local function hasAttribute(unit, attribute)
+  if not (unit and unit.hasAttribute) then
+    return false
+  end
+  local ok, value = pcall(unit.hasAttribute, unit, attribute)
+  return ok and value == true
+end
+
+--- The ranking figure a kill counts under, by Foothold's name: `Air`, `Helo`, `Infantry`, `SAM` or `Ground Units`.
+--- @param kill table what `veafCampaign.readPlayerKill` read
+--- @param target table the event's target, as veafEventHandler hands it
+--- @return string
+function veafCampaignEconomy.killStat(kill, target)
+  if kill.category == Unit.Category.AIRPLANE then
+    return "Air"
+  elseif kill.category == Unit.Category.HELICOPTER then
+    return "Helo"
+  end
+  local unit = target and target.unitName and Unit.getByName(target.unitName)
+  if hasAttribute(unit, "Infantry") then
+    return "Infantry"
+  elseif hasAttribute(unit, "SAM related") or hasAttribute(unit, "Air Defence") then
+    return "SAM"
+  end
+  return "Ground Units"
+end
+
+--- A building of a campaign zone the enemy holds, destroyed by a player of the players' side: one more `Structure`.
+--- veafEventHandler cannot read a static object's side, so `readPlayerKill` never sees it.
+local function countStructure(event)
+  local name = event and event.target and event.target.unitName
+  local building = name and veafCampaign.structureIndex and veafCampaign.structureIndex[name]
+  if not building then
+    return
+  end
+  local unit, player = veafCampaign.playerUnitOf(event)
+  if not player then
+    return
+  end
+  local own = veafCampaign.playerSide()
+  local ok, side = pcall(unit.getCoalition, unit)
+  if ok and side == veafCampaign.SIDES[own] and building.zone.entry.owner ~= own then
+    veafCampaignEconomy.count(player, "Structure")
+  end
+end
+
 --- A kill: a player of the players' side destroyed an enemy unit. `economy.landing_share` of its credits is held until
 --- the pilot lands at a friendly airfield, FARP or carrier (`onPilotEvent`); the rest is earned at once.
 function veafCampaignEconomy.onKill(event)
+  if not veafCampaign.over then
+    countStructure(event)
+  end
   local kill = veafCampaign.readPlayerKill(event)
   if veafCampaign.over or not kill then
     return
   end
+  veafCampaignEconomy.count(kill.player, veafCampaignEconomy.killStat(kill, event.target))
   local amount = veafCampaign.setting("economy", kill.air and "kill_air" or "kill_ground")
   local share = math.max(0, math.min(100, veafCampaign.setting("economy", "landing_share") or 0))
   local unitName = initiatorName(event)
@@ -244,12 +324,22 @@ end
 --- What happens to the credits a pilot's aircraft holds: earned when it lands at a friendly airfield, FARP or carrier,
 --- lost when the pilot ejects, dies, crashes or leaves the aircraft.
 function veafCampaignEconomy.onPilotEvent(event)
+  local id = event and (event.type and event.type.id or event.id)
+  if id == world.event.S_EVENT_PILOT_DEAD then
+    local unit, player = veafCampaign.playerUnitOf(event)
+    local ok, side = false, nil
+    if player then
+      ok, side = pcall(unit.getCoalition, unit)
+    end
+    if ok and side == veafCampaign.SIDES[veafCampaign.playerSide()] then
+      veafCampaignEconomy.count(player, "Deaths")
+    end
+  end
   local unitName = initiatorName(event)
   local books = unitName and veafCampaignEconomy.held[unitName]
   if not books then
     return
   end
-  local id = event.type and event.type.id or event.id
   if id == world.event.S_EVENT_LAND then
     if friendlyPlace(event) then
       veafCampaignEconomy.held[unitName] = nil
@@ -258,6 +348,9 @@ function veafCampaignEconomy.onPilotEvent(event)
     return
   end
   veafCampaignEconomy.held[unitName] = nil
+  if id == world.event.S_EVENT_EJECTION then
+    veafCampaignEconomy.lostAtEjection[unitName] = books.amount
+  end
   logger():info("%s loses the %d credits held in [%s]", tostring(books.player), books.amount, unitName)
   veafCampaign.announce(
     veafCampaign.playerSide(),
@@ -924,6 +1017,46 @@ function veafCampaignEconomy.checkTasks()
   veafCampaignEconomy.tasks = open
 end
 
+--- The sitac's ranking (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 03): each pilot's figures by Foothold's names, `Points` the
+--- credits he earned. The team, which earns what nobody flew for (a capture, a task), is no pilot and is left out.
+--- @return table by player name
+function veafCampaignEconomy.sitacStats()
+  local ranking = {}
+  for name, books in pairs(veafCampaignEconomy.pilots) do
+    if name ~= veafCampaignEconomy.TEAM then
+      local entry = { Points = books.total or 0 }
+      for stat, value in pairs(books.stats or {}) do
+        entry[stat] = value
+      end
+      ranking[name] = entry
+    end
+  end
+  return ranking
+end
+
+--- The sitac's task board (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 05), in Foothold's `missions` shape: each open task's
+--- title as the F10 menu gives it, an air task's progress as its description, and its kind, zone and reward.
+--- @return table a list
+function veafCampaignEconomy.sitacTasks()
+  local missions = {}
+  for _, task in ipairs(veafCampaignEconomy.tasks) do
+    local description = ""
+    if task.kind == "air" then
+      description = string.format("%d/%d", task.kills or 0, veafCampaign.setting("tasks", "air_kills"))
+    end
+    table.insert(missions, {
+      title = veaf.t("campaign.task." .. task.kind, task.zone and veafCampaign.zoneTitle(task.zone) or "-", task.reward),
+      description = description,
+      isRunning = true,
+      isEscortMission = false,
+      kind = task.kind,
+      zone = task.zone,
+      reward = task.reward,
+    })
+  end
+  return missions
+end
+
 --- Radio command: the board.
 function veafCampaignEconomy.reportTasks()
   local lines = { veaf.t("campaign.task.header") }
@@ -1108,7 +1241,7 @@ function veafCampaignEconomy.initialize()
   veafEventHandler.addCallback("veafCampaignEconomy.onMissionEnd", { "S_EVENT_MISSION_END" }, function()
     veafCampaignEconomy.summarizeSession("the mission ends")
   end)
-  veafCampaignEconomy.held = {}
+  veafCampaignEconomy.held, veafCampaignEconomy.lostAtEjection = {}, {}
   veafEventHandler.addCallback(
     "veafCampaignEconomy.onPilotEvent",
     { "S_EVENT_LAND", "S_EVENT_EJECTION", "S_EVENT_PILOT_DEAD", "S_EVENT_CRASH", "S_EVENT_DEAD", "S_EVENT_PLAYER_LEAVE_UNIT" },

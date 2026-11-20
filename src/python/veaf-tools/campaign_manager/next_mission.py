@@ -19,8 +19,10 @@ from typing import Any
 import yaml
 from mission_tools.mission_yaml_editor import load_yaml, save_yaml
 from veaf_libs.ctld_config import CTLD_CONFIG_FILENAME
+from veaf_libs.dcs_airdromes import airdrome_id_for_name
 from veaf_libs.i18n import language, t
 from veaf_mission_mcp.airbase import set_airbase_coalition
+from veaf_mission_mcp.mission_folder import load_folder_mission
 from veaf_mission_mcp.mission_settings import set_briefing
 
 from campaign_manager.briefing_prose import BriefingProse, MissionPage
@@ -77,6 +79,9 @@ class NextMissionReport:
     interpreter_commands: list[str] = field(default_factory=list)
     """The `#veafInterpreter` commands a persistent campaign's mission holds: they spawn afresh at every
     restart, outside the save."""
+    slot_airbases: list[str] = field(default_factory=list)
+    """The airfields a persistent campaign's `warehouses.yaml` lists for the player side: every airfield zone,
+    whatever its owner, so one captured in flight has its slots ready."""
 
 
 def mission_data(
@@ -289,6 +294,48 @@ def enable_support_module(mission_yaml: Path, dynamic: dict[str, Any]) -> bool:
     modules["SUPPORT"] = {"enabled": True, **support}
     save_yaml(mission_yaml, data)
     return True
+
+
+def open_every_campaign_airfield(campaign: CampaignDefinition, mission_folder: Path) -> list[str]:
+    """List every airfield zone of the campaign under the player side's `airports:` in `src/warehouses.yaml`.
+
+    With no `airports:` list, the build stocks the airbases a side owns at build time only, so an airfield
+    captured in flight had no slot to open (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT ticket 01, Minakh). Listed, an
+    airbase is stocked whatever its owner; DCS offers its slots to the side that holds it. An entry already
+    there keeps its settings, and nothing else of the file changes.
+
+    Args:
+        campaign: The validated campaign.
+        mission_folder: The mission folder.
+
+    Returns:
+        The airfields now listed; empty when the file is absent or does not declare the player side, which the
+        build then leaves without slots, as the mission maker chose.
+    """
+    path = mission_folder / "src" / "warehouses.yaml"
+    names = [zone.location.airfield for zone in campaign.zones if zone.location.airfield]
+    if not names or not path.is_file():
+        return []
+    data = load_yaml(path)
+    side = data.get(campaign.player_side) if isinstance(data, dict) else None
+    if not isinstance(side, dict):
+        return []
+    airports = side.get("airports")
+    if not isinstance(airports, dict):
+        airports = side["airports"] = {}
+    for name in names:
+        if name not in airports:
+            airports[name] = {}
+    # the list replaces "every base of the side": a base the mission gives the side outside the campaign's zones
+    # (a rear base set in the template) is listed by its id, or it would lose its slots
+    zones = {airdrome_id_for_name(campaign.theatre, name) for name in names}
+    table = load_folder_mission(mission_folder).warehouses_content or {}
+    for airport_id, entry in (table.get("airports") or {}).items():
+        own = isinstance(entry, dict) and str(entry.get("coalition", "")).lower() == campaign.player_side
+        if own and airport_id not in zones and airport_id not in airports:
+            airports[airport_id] = {}
+    save_yaml(path, data)
+    return names
 
 
 #: The F10 map view a persistent campaign's mission enforces when it sets none: the players see the enemy
@@ -661,6 +708,9 @@ def prepare_next_mission(
         add_campaign_cargo(mission_folder, campaign.dynamic)
         enable_support_module(mission_folder / "mission.yaml", campaign.dynamic)
         hide_enemies_on_the_map(mission_folder / "mission.yaml")
+        slot_airbases = open_every_campaign_airfield(campaign, mission_folder)
+    else:
+        slot_airbases = []
     # rewritten on every run: the title arrives with the design, and a test copy is the one that turns
     # security off, never the campaign
     persistent = campaign.mode == "persistent"
@@ -690,4 +740,5 @@ def prepare_next_mission(
         name=name,
         security_restored=security_restored,
         interpreter_commands=interpreter_commands(mission_folder) if campaign.mode == "persistent" else [],
+        slot_airbases=slot_airbases,
     )

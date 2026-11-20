@@ -1291,4 +1291,97 @@ function TestCampaignAdminMenus:test_the_admin_commands_come_last()
   luaunit.assertEquals(titles[#titles], veaf.t("menu.campaign.reset"))
 end
 
+-- ---------------------------------------------------------------------------
+-- The sitac's ranking, ejected pilots and task board (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 03 to 05)
+-- ---------------------------------------------------------------------------
+TestCampaignRanking = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+--- A kill of the unit `name` by Zip, the unit registered with its DCS attributes.
+local function killOf(name, attributes, category)
+  dcs_mocks.addUnit(name, { _attributes = attributes or {} })
+  local event = kill("Zip", category)
+  event.target.unitName = name
+  return event
+end
+
+function TestCampaignRanking:test_each_kill_counts_under_its_foothold_category()
+  start({ economy = { start_credits = 0 }, air = {} })
+  veafCampaignEconomy.onKill(killOf("T-72"))
+  veafCampaignEconomy.onKill(killOf("Soldier", { Infantry = true }))
+  veafCampaignEconomy.onKill(killOf("SA-11 launcher", { ["SAM related"] = true }))
+  veafCampaignEconomy.onKill(killOf("ZU-23", { ["Air Defence"] = true }))
+  veafCampaignEconomy.onKill(killOf("MiG-29", {}, Unit.Category.AIRPLANE))
+  veafCampaignEconomy.onKill(killOf("Mi-24", {}, Unit.Category.HELICOPTER))
+  local zip = veafCampaignEconomy.sitacStats()["Zip"]
+  luaunit.assertEquals(zip["Ground Units"], 1)
+  luaunit.assertEquals(zip.Infantry, 1)
+  luaunit.assertEquals(zip.SAM, 2)
+  luaunit.assertEquals(zip.Air, 1)
+  luaunit.assertEquals(zip.Helo, 1)
+  luaunit.assertEquals(zip.Points, veafCampaignEconomy.pilots["Zip"].total)
+end
+
+function TestCampaignRanking:test_a_building_of_the_enemy_counts_as_a_structure()
+  start({ economy = { start_credits = 0 }, air = {} })
+  veafCampaign.structureIndex["Workshop 1"] = { zone = veafCampaign.zones["Senaki"], index = 1 }
+  -- a static object: veafEventHandler cannot read its side, and calls it neutral
+  local event = kill("Zip")
+  event.target = { unitName = "Workshop 1", unitCoalition = coalition.side.NEUTRAL }
+  veafCampaignEconomy.onKill(event)
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"].Structure, 1)
+  -- one of ours, shot by mistake, is no score
+  veafCampaign.structureIndex["Workshop 2"] = { zone = veafCampaign.zones["Kobuleti"], index = 1 }
+  event.target = { unitName = "Workshop 2", unitCoalition = coalition.side.NEUTRAL }
+  veafCampaignEconomy.onKill(event)
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"].Structure, 1)
+end
+
+function TestCampaignRanking:test_a_death_and_a_delivery_are_counted()
+  start({ economy = { start_credits = 0 }, air = {} })
+  veafCampaignEconomy.onPilotEvent({
+    type = { id = world.event.S_EVENT_PILOT_DEAD },
+    initiator = { unitName = "Zip's Hog" },
+    dcsInitiator = unitAt({ x = 0 }, { player = "Zip" }),
+  })
+  veafCampaignEconomy.earnBy("Zip", 10, "campaign.credits.warehouse", "Kobuleti")
+  local zip = veafCampaignEconomy.sitacStats()["Zip"]
+  luaunit.assertEquals(zip.Deaths, 1)
+  luaunit.assertEquals(zip["Warehouse delivery"], 1)
+  luaunit.assertEquals(zip.Points, 10)
+end
+
+function TestCampaignRanking:test_the_team_is_no_pilot_and_the_figures_survive_a_restart()
+  start({ economy = { start_credits = 0 }, air = {} })
+  veafCampaignEconomy.onKill(killOf("T-72"))
+  veafCampaign.notify("captured", veafCampaign.zones["Poti"], "blue")
+  local before = veafCampaignEconomy.sitacStats()
+  luaunit.assertNil(before[veafCampaignEconomy.TEAM])
+  local saved = veafCampaign.serialize(veafCampaignEconomy.save())
+  veafCampaignEconomy.pilots = {}
+  veafCampaignEconomy.load(assert(loadstring("return " .. saved))())
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats(), before)
+end
+
+function TestCampaignRanking:test_the_credits_lost_at_an_ejection_are_remembered()
+  start({ economy = { start_credits = 100 }, air = {} })
+  veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
+  veafCampaignEconomy.onPilotEvent({ type = { id = world.event.S_EVENT_EJECTION }, initiator = { unitName = "Zip's Hog" } })
+  luaunit.assertEquals(veafCampaignEconomy.lostAtEjection["Zip's Hog"], 15)
+end
+
+function TestCampaignRanking:test_the_board_is_listed_as_the_f10_menu_gives_it()
+  start({ air = {}, tasks = { air_kills = 3 } })
+  veafCampaignEconomy.refreshTasks()
+  veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
+  local missions = veafCampaignEconomy.sitacTasks()
+  luaunit.assertEquals(#missions, 2)
+  luaunit.assertEquals(missions[1].title, veaf.t("campaign.task.capture", "Poti", 300))
+  luaunit.assertTrue(missions[1].isRunning)
+  luaunit.assertFalse(missions[1].isEscortMission)
+  luaunit.assertEquals({ missions[1].kind, missions[1].zone, missions[1].reward }, { "capture", "Poti", 300 })
+  luaunit.assertEquals(missions[2].kind, "air")
+  luaunit.assertNil(missions[2].zone)
+  luaunit.assertEquals(missions[2].description, "1/3")
+end
+
 os.exit(luaunit.LuaUnit.run())

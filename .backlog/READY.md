@@ -24,11 +24,6 @@ Broaden the shipped default radio presets, after phase 1 of the radio preset pro
 
 Claude acting in a running mission while the squadron flies — spawn, destroy, move convoys, radio messages — through the bridge, with an operator token and never raw Lua. Written up 2026-10-08 and decided by David: free by default, nothing shown when Claude plays red, text and SRS voice when it warns blue players; seven tickets, one of them in the bridge's repository.
 
-
-### [FIX-CAMPAIGN-THIRD-SERVER-FLIGHT](FIX-CAMPAIGN-THIRD-SERVER-FLIGHT/PRD.md) · ⬜
-
-What the third evening of "Bouclier de l'Oronte" taught (2026-11-19): a captured airfield offers no slot, since only the airbases owned at build time get Dynamic Slots; the sitac should show the players as Foothold's does. With a comparison of Foothold's save against our sitac block, to discuss with David before it is taken.
-
 ### [FEAT-CAMPAIGN-SHOP-UPGRADES](FEAT-CAMPAIGN-SHOP-UPGRADES/PRD.md) · ⬜
 
 Air defence and the CAS and SEAD flights in the campaign shop (David, 2026-11-19, after comparing with Foothold's catalogue): zone upgrades — Hawk, NASAMS, Patriot, Avenger, Gepard, infantry, armour — that join the zone's garrison, two per zone, priced at their spawn price; CAS and SEAD flights against an enemy zone. Two tickets; PR into `feature/dynamic-campaign`.

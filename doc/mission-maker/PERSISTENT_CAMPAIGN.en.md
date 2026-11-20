@@ -346,12 +346,16 @@ The players' coalition has an account, saved with the campaign: `economy.start_c
 | Gain | Setting | Default |
 |---|---|---|
 | a player destroys a ground unit | `economy.kill_ground` | 10 |
-| a player shoots down an aircraft | `economy.kill_air` | 30 |
+| a player destroys a SAM (a unit the ranking counts as `SAM`: DCS attribute `SAM related` or `Air Defence`) | `economy.kill_sam` | 30 |
+| a player shoots down an aeroplane or a helicopter | `economy.kill_air` | 50 |
+| a player destroys a building of an enemy zone (a [factory](#zone-kinds), a depot) | `economy.kill_building` | 100 |
+| a pilot brings downed pilots the CSAR module set down back to the MASH, per pilot, to that pilot | `economy.rescue` | 200 |
 | a zone taken | `economy.capture` | 200 |
 | a delivery to a friendly zone | `economy.delivery` | 100 |
 | a [task](#tasks) done | `tasks.rewards` | 200 to 300 |
 
-A player's kill pays in two parts: `economy.landing_share` (50 %) of it is held until the pilot lands at a friendly airfield, FARP or carrier, and lost on an ejection, a death or a crash; the rest is earned at once.
+These rewards are Foothold's, proven on its servers (2026-11-20).
+A player's kill — a unit, a SAM, an aircraft or a building — pays in two parts: `economy.landing_share` (50 %) of it is held until the pilot lands at a friendly airfield, FARP or carrier, and lost on an ejection, a death or a crash; the rest is earned at once.
 Both parts go to the coalition's account.
 The other gains, which no single pilot carries, are paid whole.
 
@@ -401,8 +405,10 @@ F10 → Other → VEAF → Campaign → Shop → **Zone upgrades** → one of ou
 - A zone holds `economy.upgrades_per_zone` (2) bought upgrades; the shop refuses the next one, and a second Patriot battery on the same zone, saying why. A refused purchase costs nothing.
 - An upgrade costs its units' [paid spawn](#paid-spawns) price, in credits (`economy.credits_per_point`, 6): a Hawk battery costs what spawning it costs.
   Its composition is drawn once a mission, so the menu's price is the group placed.
-  On 2026-11-20, with the default unit prices: Hawk about 2,250 credits, Patriot about 950, NASAMS about 700, Avenger 162, Gepard 156, infantry and armour a few tens to about 250.
-  A Patriot costs less than a Hawk because its launchers count as guns (8 points): only its radars have the SAM attribute; `economy.prices` sets a price by hand.
+  On 2026-11-20, with the default unit prices: Hawk about 2,250 credits, Avenger 162, Gepard 156, infantry and armour a few tens to about 250.
+- Except the NASAMS battery, at 2,000 credits, and the Patriot battery, at 5,000: Foothold's prices.
+  At their units' price they came to about 700 and 950 credits, less than a Hawk, because their launchers count as guns (8 points): only their radars have the SAM attribute.
+- `economy.prices` sets an upgrade's price by hand, the NASAMS and the Patriot included.
 - `dcs.log` tells each purchase (`bought the upgrade [hawk] for [Hatay]`, and `[CAMPAIGN SHOP]` with the [debugging log](#debug-log)).
 
 ## The task board {#tasks}
@@ -548,7 +554,7 @@ A mission with security off (a test copy) lets everything through, `-cas` except
 The CTLD 2 troop group **"Sappers"** (`demolition.troops`), dropped by the players' side, walks to the enemy factory whose buildings are within `demolition.range` (5 km) of where it was dropped.
 Within 200 m of the buildings, it plants its charges on every one standing, says so, and walks back to its drop point.
 The charges blow `demolition.fuse` (120 s) later, even if the team was killed meanwhile.
-Each building destroyed is worth `economy.demolition` (50) credits, and the factory makes that much less.
+Each building destroyed is worth `economy.demolition` (100) credits, as much as a pilot gets for one, and the factory makes that much less.
 With no enemy factory in range, the team says so and stays where it is.
 
 ## Weapon stocks {#warehouses}
@@ -641,8 +647,23 @@ While the campaign is being tuned, `dynamic.debug` (on by default) writes in `dc
 
 The credits earned are written whether `debug` is on or not:
 
-- one line `CREDITS <pilot> +<amount> (<reason>)` per gain — `kill`, `kill_held`, `landed`, `warehouse` for a pilot; `capture`, `delivery`, `task`, `demolition` under `team`;
+- one line `CREDITS <pilot> +<amount> (<reason>)` per gain — `kill`, `kill_held`, `landed`, `rescue`, `warehouse` for a pilot; `capture`, `delivery`, `task`, `demolition` under `team`;
 - a `CREDITS SUMMARY` at the mission's end, and as soon as nobody is left in a slot: what each earned since the previous summary, and the side's total;
+- at the same moment, an `ECONOMY SUMMARY` block covering the session, from the first beat a player sits in a slot to the summary, to tune the prices on what is really earned and spent:
+  the session's length; then, for the players' credits and each side's resources (when they are counted), the balance at the start and at the end, what was earned and what was spent, by kind, each with its amount and its count;
+  for the credits, the gains (`kill_ground`, `kill_sam`, `kill_air`, `kill_building`, `rescue`, `capture`, `delivery`, `task`…) and the spending (`shop <item>`, `upgrade <upgrade>`, `spawn`, `shop assault`);
+  for the resources, the production, the refunds (`refund`) and the spending (`flight`, `helicopter`, `convoy`, `garrison`, `reinforcement` at the units' price, `raid`, `spawn`);
+
+  ```text
+  ECONOMY SUMMARY (nobody left in a slot): 180 min of play
+  ECONOMY SUMMARY blue credits: 1200 at the start, 950 at the end
+  ECONOMY SUMMARY blue credits earned 2000: capture 1200 (x6), kill_air 500 (x10), kill_ground 300 (x30)
+  ECONOMY SUMMARY blue credits spent 2250: upgrade hawk 2250 (x1)
+  ECONOMY SUMMARY red resources: 900 at the start, 640 at the end
+  ECONOMY SUMMARY red resources earned 760: production 720, refund 40 (x2)
+  ECONOMY SUMMARY red resources spent 1020: flight 480 (x8), convoy 300 (x3), reinforcement 240 (x12)
+  ```
+
 - each pilot's total over the whole campaign, in the save (`parts.economy.pilots`), for the debrief.
 
 ## Checking a mission in game {#self-check}
@@ -688,7 +709,7 @@ A `KO` line is enough to know where to look.
 | `supply_crate` | `Zone supplies` | the name of the CTLD 2 crate that resupplies |
 | `hunter` | `{enabled: true, ground_kills: 8, air_kills: 4, chance: 10}` | the Hunter |
 | `air` | see [enemy air](#air) | `strike_seconds` (900), `max_flights` (4), `cap_per_players` (3), `cap_helicopter_chance` (25), and each side's aircraft |
-| `economy` | see [the shop](#shop) | `start_credits`, `kill_ground`, `kill_air`, `capture`, `delivery`, `prices`, `tanker`, `credits_per_point` (6), `demolition` (50), `warehouse_delivery` (50), `landing_share` (50), `upgrades_per_zone` (2) |
+| `economy` | see [the shop](#shop) | `start_credits`, `kill_ground`, `kill_sam` (30), `kill_air` (50), `kill_building` (100), `rescue` (200), `capture`, `delivery`, `prices`, `tanker`, `credits_per_point` (6), `demolition` (100), `warehouse_delivery` (50), `landing_share` (50), `upgrades_per_zone` (2) |
 | `tasks` | see [the tasks](#tasks) | `count`, `refresh_seconds`, `air_kills`, `rewards` (`attack`, `capture`, `resupply`, `air`, `intercept`) |
 | `intel` | see [intelligence](#intel) | `hidden`, `seconds`, `overflight_altitude`, `spy_troops`, `spy_range` |
 | `resources` | see [the resources](#resources) | `enabled` (true), `start` (1000), `background_per_hour` (60), `reserve` (100), `prices` |

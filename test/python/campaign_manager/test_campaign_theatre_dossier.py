@@ -11,7 +11,14 @@ from campaign_fixture import PROSE, VALID
 from campaign_manager.briefing_prose import parse_prose
 from campaign_manager.campaign_manager import initial_state, parse_campaign
 from campaign_manager.models import CampaignDefinition
-from campaign_manager.theatre_dossier import REWARDS, SHOP_PRICES, UPGRADE_PRICES, guide_blocks, shop_lines, theatre_dossier
+from campaign_manager.theatre_dossier import (
+    REWARDS,
+    SHOP_PRICES,
+    UPGRADE_PRICES,
+    guide_blocks,
+    shop_lines,
+    theatre_dossier,
+)
 from deck_pdf_check import assert_pdf_matches_deck
 from pptx import Presentation
 from veaf_libs.i18n import language

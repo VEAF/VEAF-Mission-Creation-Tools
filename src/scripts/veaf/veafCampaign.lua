@@ -120,13 +120,18 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   hunter = { enabled = true, ground_kills = 8, air_kills = 4, chance = 10 },
   economy = {
     start_credits = 500,
+    -- the rewards of Foothold, proven on its servers (FIX-CAMPAIGN-ECONOMY-BALANCE 01): a SAM 30, an aeroplane or
+    -- a helicopter 50, a building of an enemy zone 100, a pilot rescued 200
     kill_ground = 10,
-    kill_air = 30,
+    kill_sam = 30,
+    kill_air = 50,
+    kill_building = 100,
+    rescue = 200,
     capture = 200,
     delivery = 100,
     prices = {},
     credits_per_point = 6, -- what a resource point costs in credits: the players' spawns pay their units so (ticket 14)
-    demolition = 50, -- credits per building the sappers destroy (ticket 15)
+    demolition = 100, -- credits per building the sappers destroy (ticket 15), as much as a pilot gets for one
     warehouse_delivery = 50, -- credits per weapons cargo unloaded at another airfield (ticket 16)
     -- the share of a pilot's kill held until the pilot lands at a friendly airfield, FARP or carrier, lost on an
     -- ejection, a death or a crash (David, 2026-11-16: "a share at the action, a bonus at landing")

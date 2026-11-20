@@ -2140,6 +2140,7 @@ veaf.i18nCatalog = {
   ["campaign.credits.capture"] = { fr = "prise de %s", en = "%s captured" },
   ["campaign.credits.delivery"] = { fr = "ravitaillement de %s", en = "%s resupplied" },
   ["campaign.credits.task"] = { fr = "tâche accomplie : %s", en = "task done: %s" },
+  ["campaign.credits.rescue"] = { fr = "%s a ramené %d pilote(s) au MASH", en = "%s brought %d pilot(s) back to the MASH" },
   ["campaign.credits.balance"] = { fr = "Crédits de la coalition : %d", en = "Coalition credits: %d" },
   ["campaign.intel.revealed"] = {
     fr = "Renseignement : la garnison de %s est connue (%s). Détail : Campagne > Renseignement.",

@@ -1007,7 +1007,7 @@ function TestCampaignSappers:test_they_blow_up_the_factory_in_range()
   luaunit.assertEquals(dcs_mocks.effects[1].kind, "explosion")
   local credits = veafCampaignEconomy.credits
   veafCampaign.onUnitDead({ initiator = { unitName = "Tkvarcheli building #1" } })
-  luaunit.assertEquals(veafCampaignEconomy.credits, credits + 50)
+  luaunit.assertEquals(veafCampaignEconomy.credits, credits + 100)
   luaunit.assertEquals(veafCampaignLogistics.counters.demolished, 1)
 end
 

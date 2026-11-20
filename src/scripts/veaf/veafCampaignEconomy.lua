@@ -49,11 +49,13 @@ veafCampaignEconomy.PRICES = {
 --- which joins its garrison. Each is a group of veaf-units.yaml (`group`), or drawn as the garrison draws its own
 --- (`draw`), or a list of DCS types (`units`); `eras` the eras it is offered in, all of them when absent; `once` at
 --- most one per zone. Service dates as `veafCasMission.LONG_RANGE_AIR_DEFENSE_GROUPS` takes them, the 1980 reference
---- for the cold war: no Patriot (1984), NASAMS or Avenger then. Its price is its units' spawn price, in credits.
+--- for the cold war: no Patriot (1984), NASAMS or Avenger then. Its price is `price` when it has one, else its units'
+--- spawn price, in credits. The NASAMS and the Patriot take Foothold's prices (FIX-CAMPAIGN-ECONOMY-BALANCE 02): only
+--- their radars carry a SAM attribute, their launchers price as guns, and a Patriot battery came to about 950 credits.
 veafCampaignEconomy.UPGRADES = {
   { id = "hawk", group = "hawk", eras = { veaf.ERA.COLD_WAR, veaf.ERA.MODERN } },
-  { id = "nasams", group = "nasams", eras = { veaf.ERA.MODERN } },
-  { id = "patriot", group = "patriot", eras = { veaf.ERA.MODERN }, once = true },
+  { id = "nasams", group = "nasams", eras = { veaf.ERA.MODERN }, price = 2000 },
+  { id = "patriot", group = "patriot", eras = { veaf.ERA.MODERN }, once = true, price = 5000 },
   { id = "avenger", group = "avenger_squad", eras = { veaf.ERA.MODERN } },
   -- veaf-units.yaml has no group of its own for the Gepard: the platoon the blue air defence groups carry
   { id = "gepard", units = { "Gepard", "Gepard", "Gepard", "M 818" }, eras = { veaf.ERA.COLD_WAR, veaf.ERA.MODERN } },
@@ -277,48 +279,67 @@ function veafCampaignEconomy.killStat(kill, target)
   return "Ground Units"
 end
 
+--- The `economy` setting a kill pays, by its ranking figure (FIX-CAMPAIGN-ECONOMY-BALANCE 01, Foothold's rewards);
+--- `kill_ground` for any other.
+veafCampaignEconomy.REWARD_OF_STAT = { Air = "kill_air", Helo = "kill_air", SAM = "kill_sam", Structure = "kill_building" }
+
 --- A building of a campaign zone the enemy holds, destroyed by a player of the players' side: one more `Structure`.
 --- veafEventHandler cannot read a static object's side, so `readPlayerKill` never sees it.
+--- @return string|nil the player, when it is one
 local function countStructure(event)
   local name = event and event.target and event.target.unitName
   local building = name and veafCampaign.structureIndex and veafCampaign.structureIndex[name]
   if not building then
-    return
+    return nil
   end
   local unit, player = veafCampaign.playerUnitOf(event)
   if not player then
-    return
+    return nil
   end
   local own = veafCampaign.playerSide()
   local ok, side = pcall(unit.getCoalition, unit)
   if ok and side == veafCampaign.SIDES[own] and building.zone.entry.owner ~= own then
     veafCampaignEconomy.count(player, "Structure")
+    return player
+  end
+  return nil
+end
+
+--- Pay a pilot's kill: `economy.landing_share` of its credits is held until the pilot lands at a friendly airfield,
+--- FARP or carrier (`onPilotEvent`); the rest is earned at once.
+--- @param event table the S_EVENT_KILL
+--- @param player string
+--- @param stat string the kill's ranking figure, which says its reward (`REWARD_OF_STAT`)
+local function payKill(event, player, stat)
+  local amount = veafCampaign.setting("economy", veafCampaignEconomy.REWARD_OF_STAT[stat] or "kill_ground")
+  local share = math.max(0, math.min(100, veafCampaign.setting("economy", "landing_share") or 0))
+  local unitName = initiatorName(event)
+  local held = unitName and math.floor(amount * share / 100 + 0.5) or 0
+  if held > 0 then
+    local books = veafCampaignEconomy.held[unitName] or { player = player, amount = 0 }
+    books.amount = books.amount + held
+    veafCampaignEconomy.held[unitName] = books
+    veafCampaignEconomy.earnBy(player, amount - held, "campaign.credits.kill_held", player, books.amount)
+  else
+    veafCampaignEconomy.earnBy(player, amount, "campaign.credits.kill", player)
   end
 end
 
---- A kill: a player of the players' side destroyed an enemy unit. `economy.landing_share` of its credits is held until
---- the pilot lands at a friendly airfield, FARP or carrier (`onPilotEvent`); the rest is earned at once.
+--- A kill: a player of the players' side destroyed an enemy unit, or a building of a zone the enemy holds.
 function veafCampaignEconomy.onKill(event)
   if not veafCampaign.over then
-    countStructure(event)
+    local player = countStructure(event)
+    if player then
+      payKill(event, player, "Structure")
+    end
   end
   local kill = veafCampaign.readPlayerKill(event)
   if veafCampaign.over or not kill then
     return
   end
-  veafCampaignEconomy.count(kill.player, veafCampaignEconomy.killStat(kill, event.target))
-  local amount = veafCampaign.setting("economy", kill.air and "kill_air" or "kill_ground")
-  local share = math.max(0, math.min(100, veafCampaign.setting("economy", "landing_share") or 0))
-  local unitName = initiatorName(event)
-  local held = unitName and math.floor(amount * share / 100 + 0.5) or 0
-  if held > 0 then
-    local books = veafCampaignEconomy.held[unitName] or { player = kill.player, amount = 0 }
-    books.amount = books.amount + held
-    veafCampaignEconomy.held[unitName] = books
-    veafCampaignEconomy.earnBy(kill.player, amount - held, "campaign.credits.kill_held", kill.player, books.amount)
-  else
-    veafCampaignEconomy.earnBy(kill.player, amount, "campaign.credits.kill", kill.player)
-  end
+  local stat = veafCampaignEconomy.killStat(kill, event.target)
+  veafCampaignEconomy.count(kill.player, stat)
+  payKill(event, kill.player, stat)
   if kill.air then
     for _, task in ipairs(veafCampaignEconomy.tasks) do
       if task.kind == "air" then
@@ -382,6 +403,49 @@ function veafCampaignEconomy.onPilotEvent(event)
     veafCampaign.playerSide(),
     veaf.t("campaign.credits.held_lost", books.player, books.amount)
   )
+end
+
+--- Pay a pilot of the players' side for the downed pilots his helicopter has just delivered to a MASH: `economy.rescue`
+--- each, in full — he is on the ground already (FIX-CAMPAIGN-ECONOMY-BALANCE 01, Foothold's 200). The AI's rescues pay
+--- nothing.
+--- @param heli table the helicopter, as the CSAR module hands it to `csar.rescuePilots`
+--- @param pilots number the downed pilots it carried
+local function payRescue(heli, pilots)
+  if pilots == 0 or veafCampaign.over then
+    return
+  end
+  local okPlayer, player = pcall(heli.getPlayerName, heli)
+  local okSide, side = pcall(heli.getCoalition, heli)
+  if not (okPlayer and player and okSide and side == playerCoalition()) then
+    return
+  end
+  veafCampaignEconomy.earnBy(player, pilots * veafCampaign.setting("economy", "rescue"), "campaign.credits.rescue", player, pilots)
+end
+
+--- Pay the CSAR rescues: wrap the CSAR module's `csar.rescuePilots`, which delivers a helicopter's downed pilots once it
+--- has landed by a MASH, and empties `csar.inTransitGroups` for it. Wrapped once, however often it is called.
+--- @return boolean whether the CSAR module is there to watch
+function veafCampaignEconomy.watchRescues()
+  if not (csar and type(csar.rescuePilots) == "function") then
+    logger():info("no CSAR module: a rescue pays nothing")
+    return false
+  end
+  if csar.rescuePilots == veafCampaignEconomy.rescueWrapper then
+    return true
+  end
+  local deliver = csar.rescuePilots
+  veafCampaignEconomy.rescueWrapper = function(heli)
+    local okName, name = pcall(heli.getName, heli)
+    local carried = okName and type(csar.inTransitGroups) == "table" and csar.inTransitGroups[name]
+    local pilots = 0
+    for _ in pairs(type(carried) == "table" and carried or {}) do
+      pilots = pilots + 1
+    end
+    deliver(heli)
+    payRescue(heli, pilots)
+  end
+  csar.rescuePilots = veafCampaignEconomy.rescueWrapper
+  return true
 end
 
 --- Take a price from the credits for a purchase made outside the shop — the assault order: refused, and
@@ -975,8 +1039,8 @@ function veafCampaignEconomy.upgradeOffer(upgradeId)
   return offer
 end
 
---- What an upgrade costs: its `economy.prices` entry, else its units' spawn price in credits — a Hawk battery costs
---- what spawning one costs, and the two never drift apart.
+--- What an upgrade costs: its `economy.prices` entry, else its own `price`, else its units' spawn price in credits —
+--- a Hawk battery costs what spawning one costs, and the two never drift apart.
 --- @param upgradeId string
 --- @return number|nil credits; nil when the upgrade cannot be had
 function veafCampaignEconomy.upgradePrice(upgradeId)
@@ -987,6 +1051,10 @@ function veafCampaignEconomy.upgradePrice(upgradeId)
   local offer = veafCampaignEconomy.upgradeOffer(upgradeId)
   if not offer then
     return nil
+  end
+  local upgrade = upgradeOf(upgradeId)
+  if upgrade.price then
+    return upgrade.price
   end
   local types = {}
   for _, unit in ipairs(offer.units) do
@@ -1486,6 +1554,7 @@ function veafCampaignEconomy.initialize()
     { "S_EVENT_LAND", "S_EVENT_EJECTION", "S_EVENT_PILOT_DEAD", "S_EVENT_CRASH", "S_EVENT_DEAD", "S_EVENT_PLAYER_LEAVE_UNIT" },
     veafCampaignEconomy.onPilotEvent
   )
+  veafCampaignEconomy.watchRescues()
   veafCampaignEconomy.buildRadioMenu()
   return true
 end

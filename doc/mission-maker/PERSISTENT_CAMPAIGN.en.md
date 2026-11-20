@@ -14,6 +14,7 @@
   The new garrison appears at once.
 - **A pilot on the ground after an ejection is nobody's enemy**: the survivor the CSAR module puts down neither holds nor contests a zone, wakes no zone and stops no convoy, in every VEAF script.
 - **Slots follow the bases**: an airfield taken goes to the side that took it, with its dynamic slots.
+  Every airfield of the campaign has its slots ready from the build, even those the players' side does not hold yet (see [Building the mission](#build)).
   The campaign alone decides who owns an airfield: DCS's own capture of an airbase by the units around it is turned off on every airfield of the map.
 - **The front moves on its own**: the enemy [counter-attacks](#front), reinforces its zones by helicopter, and sends CAP, strikes and [bombers](#bombers).
 - **The enemy pays for what it sends** with the [resources](#resources) its factories make: destroying its [factories](#zone-kinds) or cutting its [supply network](#network) grounds its CAP in the end.
@@ -65,6 +66,10 @@ With a reserve, it empties as in a multi-mission campaign, and a side with nothi
 
 Then the mission of the `missions\mission-01\mission` folder is built like any mission, and put on the server.
 `campaign next` run again on the same folder updates it without touching the rest of the work done in it.
+
+**Slots on every airfield of the campaign.** `campaign next` writes, in the mission's `src\warehouses.yaml`, the players' side's `airports:` list with **every airfield of the campaign**, whatever its side at the start.
+Without that list, the build opens dynamic slots only on the airfields the side holds when the mission is built: an airfield captured in flight had no slot to offer (Minakh, 2026-11-19).
+An airfield already in the list keeps its settings; a base the mission gives the side outside the campaign's zones (a rear base set in the template) is added by its id, to keep its slots; a side the file does not declare stays without slots.
 `campaign apply` has no use here: there is no "between two missions".
 
 **Weather and time come from the server.** A persistent campaign runs for weeks: `campaign next` fixes neither date, start time nor weather, and the mission's name carries no `_NoMizedit` (`Campaign_<campaign>_Mission_01_<title>`), so the server's MizEdit preset (with RealWeather) sets them at each load. A [multi-mission campaign](CAMPAIGN.en.md#squadron-settings) keeps its fixed conditions and its `_NoMizedit`.
@@ -222,6 +227,25 @@ sitac = {
   connections = { { "Minakh", "Tal Rifaat" }, { "Tal Rifaat", "Kafr Naya" } },
   convoys = { { side = "blue", from = "Minakh", to = "Tal Rifaat", units = 4 } },
   sides = { blue = { credits = 1915, resources = 600 }, red = { resources = 250 } },
+  players = {
+    { coalition = "blue", unitType = "A-10C_2", playerName = "Zip", latitude = 36.50, longitude = 37.01, altitude = 3048 },
+  },
+  playerStats = {
+    Zip = { Points = 420, Air = 1, SAM = 2, ["Ground Units"] = 7, Infantry = 3, Helo = 0, Structure = 1, Deaths = 1,
+      ["Warehouse delivery"] = 2 },
+  },
+  ejectedPilots = { { playerName = "Paluche", latitude = 36.45, longitude = 37.08, altitude = 412, lostCredits = 15 } },
+  missions = {
+    { title = "Capture Tal Rifaat (300 cr.)", description = "", isRunning = true, isEscortMission = false,
+      kind = "capture", zone = "Tal Rifaat", reward = 300 },
+    { title = "Air superiority (200 cr.)", description = "1/3", isRunning = true, isEscortMission = false,
+      kind = "air", reward = 200 },
+  },
+  support = {
+    { name = "Arco", kind = "tanker_boom", side = "blue", latitude = 36.20, longitude = 36.60, altitude = 7620,
+      frequency = 252.5, tacan = "51Y", alive = true },
+    { name = "Overlord", alive = false },
+  },
 }
 ```
 
@@ -231,6 +255,18 @@ sitac = {
 - `awake` is false for a sleeping zone.
 - `convoys` keeps only the assault convoys still on the road; `units` counts their vehicles alive.
 - `sides` gives the players' side's credits and each side's resources, when they are counted.
+
+The next five lists use the **field names of Foothold's save**, so that the sitac shows them as it shows Foothold's.
+They are as fresh as the save: one every `state_write_seconds` (60 s) of simulation, and none while the server is paused.
+
+- `players`: each player in a slot, both sides, with his side, aircraft and position (`altitude` in metres).
+- `playerStats`: the ranking, by pilot name. `Points` is the total of the credits he earned; `Air`, `Helo`, `SAM` (all the ground-based air defence), `Ground Units`, `Infantry` and `Structure` count what he destroyed; `Deaths` his deaths, `Warehouse delivery` his weapon deliveries.
+  These figures are kept in the save and start from zero with the campaign. A capture is credited to no pilot: it does not show in the ranking.
+- `ejectedPilots`: the players' side's pilots on the ground the CSAR waits to rescue, AI included; `lostCredits` gives the credits he carried, lost at the ejection (a rescue does not give them back). A pilot picked up leaves the list.
+- `missions`: the [task board](#tasks), with the title the F10 menu gives; `description` gives an air superiority task's progress; `kind`, `zone` and `reward` on top of Foothold's.
+- `support`: the players' side's [AWACS and tankers](#support), where they fly, with their kind (`awacs`, `tanker_boom`, `tanker_basket`, `tanker_both`, `tanker`), their frequency in MHz and their TACAN; one destroyed has only its name and `alive = false`.
+
+The enemy's units, zone by zone, are never there: that is the [intelligence](#intel) rule.
 
 ## Sleeping zones {#dormancy}
 
@@ -258,10 +294,11 @@ Its garrison comes group by group, about `wake_units_per_beat` (10) units per be
 - **Counter-attacks**: every `attack_seconds` (900 s), a side listed in `attacks` (red by default) sends an assault convoy against the weakest enemy zone it borders, `max_convoys` (2) on the road at most.
   Only those sides send convoys on their own toward a neutral zone too; the players' side buys theirs (F10 → Other → VEAF → Campaign → Assaults), and no automatic convoy leaves for a zone a convoy of the same side already drives to.
 - **An assault convoy drives at `assault_speed` (40 km/h)**, without dispersing under fire; at its departure, `dcs.log` gives the length of its road, the time it needs and when it will be retired, then every `convoy_report_seconds` (300 s) its distance to its target and whether it moves on, stands still or turns back.
-  Under aircraft it drives on; if it falls back before a stronger ground force, its assault is over: it is retired.
+  Under aircraft it drives on; if it falls back before a stronger ground force for `fall_back_seconds` (120 s) without taking its road again, its assault is over: it is retired.
 - **A convoy that will not arrive frees its place**: once its target is its side's (a helicopter took it first), when it falls back, or after the time its road needs (half as long again as expected, `convoy_timeout`, 2,700 s, at least), it is taken off the map and the price of its survivors goes back to its side; on 2026-11-17, at 20 km/h on roads of 40 to 60 km, the 45 minutes retired every convoy before it arrived.
+  **Never in front of the players**: a convoy to retire stays in play while a player is within `wake_radius` of it, or it was hit in the last `retire_quiet_seconds` (300 s); its losses count, and only its survivors when it leaves are given back. On 2026-11-19, Aleppo's assault on Menagh vanished under a player's fire.
 - **The other side is told at once** of a convoy leaving, and sees its axis on the map.
-- **Resupply**: a delivery to a damaged friendly zone brings its first damaged group back to full strength.
+- **Resupply**: a delivery to a damaged friendly zone brings back the dead units of its first damaged group, **paid from the side's [resource](#resources) stock** at the price their spawn would cost, cheapest first; what the stock cannot pay stays dead (a side whose resources are not counted gets the whole group back).
   Deliveries are: a "Zone supplies" crate set down in the zone, CTLD 2 troops deployed in the zone (the spy team and the JTAC teams excepted), a supply helicopter landed in it.
 - **AI helicopters**: every `supply_seconds` (600 s), a side listed in `supply` (red by default) sends a helicopter (`helicopter`, a Mi-8MT for red, a UH-1H for blue) to a neutral zone it borders, which it takes by landing there, or else to its most damaged zone, which it resupplies; `max_helicopters` (2) in the air at most, and one that has not landed after `helicopter_timeout` (1,200 s) is removed.
   The other side is told when it leaves, to intercept it.
@@ -415,15 +452,16 @@ These three values were raised after the first evening flown: with 500, 30 and 1
 | APC, IFV | 4 |
 | tank | 6 |
 | artillery | 5 |
-| AAA, short-range air defence | 4 |
-| short-range SAM | 8 |
-| medium- or long-range SAM element | 15 |
+| AAA, short-range air defence | 8 |
+| short-range SAM | 25 |
+| medium- or long-range SAM element | 40 |
 | helicopter | 15 |
 | aeroplane | 30 |
 | bomber | 100 |
 | anything else | 5 |
 
 `resources.prices` changes a type's price: `{ "T-72B": 7 }`.
+Air defence was made dearer on 2026-11-19 (from 4, 8 and 15): a lost Tor was worth about a BMP, and one SEAD sortie 25 Tor. A randomly drawn airfield garrison now costs 190 points on average (370 at most), an outpost's 130 (210 at most), against 100 and 75 before; a garrison the side cannot pay for is replaced by a token one.
 These are starting values, to be tuned on a server: one factory pays for about one counter-attack and one CAP an hour.
 
 Credits stay the players': what they buy does not come out of the resources, and what survives of a purchase is added to them at the next load.
@@ -440,7 +478,7 @@ A side's factories feed its zones hop by hop, along the connections, and only th
   The units brought back appear in their places; the living ones do not move.
   **A zone under fire** — a unit lost less than `network.under_fire_seconds` (600 s) ago — is not reinforced: the delivery waits.
   A zone lost meanwhile receives nothing; a delivery with nothing left to repair, or what it did not spend, goes back to the stock.
-  Players who fly logistics go faster: a crate, troops or a helicopter reinforce at once, without waiting for the network or paying for it.
+  Players who fly logistics go faster: a crate, troops or a helicopter reinforce at once, without waiting for the network; the units brought back are paid from the stock, at their spawn price (see **Resupply** in [A front that moves on its own](#front)).
 - **A zone cut off** from every factory and depot is still served, from the background production, after `network.isolated_seconds` (3,600 s).
 
 F10 → Other → VEAF → Campaign → **Supply network** gives the players their stock, their production, and for each of their zones its delay or "cut off".
@@ -452,7 +490,7 @@ In a persistent campaign, every VEAF spawn command a person drops as a marker �
 - **in credits** when it spawns units for the players' side;
 - **from the resources** of the other side otherwise;
 - at the price of **the units it made**, one by one, on the [resources' scale](#resources): a random armoured platoon costs what it drew, two tanks and an IFV are 6 + 6 + 4 = 16 points;
-- the players' side pays `economy.credits_per_point` (6) credits a point: those 16 points are 96 credits;
+- the players' side pays `economy.credits_per_point` (6) credits a point: those 16 points are 96 credits; a `-sam` costs more since 2026-11-19, a short-range SAM being worth 25 points (150 credits) instead of 8;
 - the price is known only once the units are drawn: the spawn therefore always goes through **whole** — multiplier included — and is paid its exact price, into **debt** if need be;
 - a side at zero or in debt spawns nothing more: the command is refused before the spawn, with the balance, until the balance is above zero again; a gain pays the debt off first.
 
@@ -614,6 +652,8 @@ A `KO` line is enough to know where to look.
 | `convoy_timeout` | 2700 | the least time an assault convoy has before it is taken off the map, its place freed; else half as long again as its road needs |
 | `assault_speed` | 40 | km/h: an assault convoy's speed |
 | `convoy_report_seconds` | 300 | seconds between two `dcs.log` lines on an assault convoy's progress |
+| `fall_back_seconds` | 120 | how long an assault convoy must fall back, without taking its road again, for its assault to be over |
+| `retire_quiet_seconds` | 300 | a convoy to retire leaves only after this long without contact, and with no player within `wake_radius` |
 | `route_failures` | 2 | helicopters or convoys failed in a row to a zone before the side gives it up |
 | `route_failure_seconds` | 3600 | how long it gives it up |
 | `helicopter` | `{red: Mi-8MT, blue: UH-1H}` | each side's helicopter type |
@@ -651,6 +691,8 @@ These are written and tested outside DCS, not yet measured in game:
 - the territory tint, made of triangles, on the F10 map;
 - an AWACS or a tanker moved out of reach, and its leg across the axis;
 - a supply helicopter told not to abort its task under a threat (twice on 2026-11-16 a Mi-8 sent from Aleppo to Afrin landed back at Aleppo three minutes after leaving: a probable cause, not a measured one);
-- the waypoint numbers, as each module shows them.
+- the waypoint numbers, as each module shows them;
+- an airfield neutral or enemy at the start, captured in flight, offering its dynamic slots to the side that took it (Foothold relies on it; not measured on ours yet);
+- a building destroyed counted in the ranking: DCS has to send an `S_EVENT_KILL` for a static object.
 
 See also the [`veafCampaign` module reference](scripts/veafCampaign.en.md).

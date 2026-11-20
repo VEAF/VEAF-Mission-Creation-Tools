@@ -1,6 +1,6 @@
 # 03 — The sitac ranks the pilots, as Foothold's does
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — implemented, waits for the in-game check
 Type: feature
 
 ## Decided
@@ -16,3 +16,11 @@ David, 2026-11-19, following the reco of the Foothold comparison (PRD): the sita
 ## Done when
 
 After an evening, the sitac's ranking page lists each pilot of the campaign with his credits and kills, with tests on both sides.
+
+## Implemented (2026-11-19)
+
+Each pilot's books in `veafCampaignEconomy.pilots` (saved) carry `stats` by Foothold's names: `Air`, `Helo`, `SAM` (any `SAM related` or `Air Defence` unit), `Ground Units`, `Infantry`, `Structure` (a building of a zone the enemy holds), `Deaths` (`S_EVENT_PILOT_DEAD`), `Warehouse delivery`. `sitacStats()` adds `Points` (the credits earned) and leaves the team out. A capture is credited to the team, not to a pilot, so `Zone capture` is not written. Tests: `TestCampaignRanking` in `test_veafCampaignLive.lua`.
+
+## To check in game
+
+A building destroyed counts as a `Structure`: DCS has to send an `S_EVENT_KILL` for a static object.

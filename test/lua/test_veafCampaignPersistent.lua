@@ -1123,6 +1123,8 @@ function TestCampaignConvoyGoal:test_an_assault_that_falls_back_ends_and_counts_
   local record = { name = "Poti assault", side = "red", from = "Poti", to = "Kobuleti", sentAt = 0 }
   table.insert(veafCampaign.convoys, record)
   veafCampaign.checkConvoyGoal(record, 10)
+  -- FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 07: a fall-back counts once it lasts
+  veafCampaign.checkConvoyGoal(record, 10 + veafCampaign.setting("fall_back_seconds"))
   veafGroundAI.convoysByGroupName = savedHandlers
   ConvoyUnitHandler = savedClass
   luaunit.assertTrue(record.ended)
@@ -1335,6 +1337,208 @@ function TestCampaignSelfCheck:test_other_modules_add_their_lines()
   end)
   luaunit.assertStrContains(veafCampaign.selfCheckText(), "KO  outcome: economy")
   table.remove(veafCampaign.selfChecks)
+end
+
+-- ---------------------------------------------------------------------------
+-- FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 07: the red assault on Menagh vanished under a player's guns, retired as "fell back"
+-- at one sample of the convoy watch's state, between fifteen "drives on" in one minute (2026-11-19)
+-- ---------------------------------------------------------------------------
+
+--- A convoy record on the road, its watch's handler in `handler`, its one vehicle at `point`.
+local function convoyUnderWatch(handler, point)
+  veafGroundAI = veafGroundAI or {}
+  ConvoyUnitHandler = ConvoyUnitHandler or { STATE_FALLING_BACK = 4, STATE_DRIVING = 1 }
+  veafGroundAI.convoysByGroupName = { ["Poti assault"] = handler }
+  veafCampaign.convoyUnits = function()
+    return {
+      {
+        getTypeName = function()
+          return "T-72B"
+        end,
+        getPoint = function()
+          return point or { x = 50000, y = 0, z = 0 }
+        end,
+      },
+    }
+  end
+  local record = { name = "Poti assault", side = "red", from = "Poti", to = "Kobuleti", sentAt = 0 }
+  table.insert(veafCampaign.convoys, record)
+  return record
+end
+
+--- A player's aircraft at `x` metres north.
+local function playerAt(x)
+  return {
+    isExist = function()
+      return true
+    end,
+    getPoint = function()
+      return { x = x, y = 3000, z = 0 }
+    end,
+  }
+end
+
+function TestCampaignConvoyGoal:setUp()
+  setUpSuite(self)
+  self.kept = {
+    units = veafCampaign.convoyUnits,
+    handlers = veafGroundAI and veafGroundAI.convoysByGroupName,
+    class = ConvoyUnitHandler,
+    getPlayers = coalition.getPlayers,
+  }
+end
+
+function TestCampaignConvoyGoal:tearDown()
+  veafCampaign.convoyUnits = self.kept.units
+  if veafGroundAI then
+    veafGroundAI.convoysByGroupName = self.kept.handlers
+  end
+  ConvoyUnitHandler = self.kept.class
+  coalition.getPlayers = self.kept.getPlayers
+  tearDownSuite(self)
+end
+
+function TestCampaignConvoyGoal:test_a_fall_back_sampled_once_does_not_retire_a_convoy()
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  local handler = { state = 4 }
+  local record = convoyUnderWatch(handler)
+  local wait = veafCampaign.setting("fall_back_seconds")
+  veafCampaign.checkConvoyGoal(record, 10)
+  -- the next hit: "drives on" again
+  handler.state = 1
+  veafCampaign.checkConvoyGoal(record, 20)
+  handler.state = 4
+  veafCampaign.checkConvoyGoal(record, 30)
+  veafCampaign.checkConvoyGoal(record, 30 + wait - 1)
+  luaunit.assertNil(record.retiring)
+  luaunit.assertNil(record.ended)
+  veafCampaign.checkConvoyGoal(record, 30 + wait)
+  luaunit.assertTrue(record.ended)
+end
+
+function TestCampaignConvoyGoal:test_a_retirement_waits_while_a_player_is_near()
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  local record = convoyUnderWatch({ state = 1 }, { x = 50000, y = 0, z = 0 })
+  local players = { playerAt(50000 + veafCampaign.setting("wake_radius") - 1000) }
+  coalition.getPlayers = function(side)
+    return side == coalition.side.BLUE and players or {}
+  end
+  veafCampaign.zones["Kobuleti"].entry.owner = "red" -- its target taken by a helicopter meanwhile
+  veafCampaign.checkConvoyGoal(record, 10)
+  luaunit.assertEquals(record.retiring, "its target is its side's already")
+  luaunit.assertNil(record.ended, "in play while a player can see it")
+  players = { playerAt(50000 + veafCampaign.setting("wake_radius") + 1000) }
+  veafCampaign.checkConvoyGoal(record, 20)
+  luaunit.assertTrue(record.ended)
+end
+
+function TestCampaignConvoyGoal:test_a_retirement_waits_until_the_convoy_has_been_left_alone()
+  veafCampaign.data = persistentData({ convoy_timeout = 600 })
+  veafCampaign.initialize()
+  local handler = { state = 1, lastContact = 650 }
+  local record = convoyUnderWatch(handler)
+  local quiet = veafCampaign.setting("retire_quiet_seconds")
+  veafCampaign.checkConvoyGoal(record, 700)
+  luaunit.assertNotNil(record.retiring)
+  veafCampaign.checkConvoyGoal(record, 650 + quiet - 1)
+  luaunit.assertNil(record.ended, "hit lately: still in play")
+  veafCampaign.checkConvoyGoal(record, 650 + quiet)
+  luaunit.assertTrue(record.ended)
+  -- decided once: one failure for the route, however long it waited
+  luaunit.assertEquals(veafCampaign.failures["convoy red Kobuleti"].count, 1)
+end
+
+function TestCampaignConvoyGoal:test_a_convoy_waiting_to_leave_refunds_only_its_survivors()
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  veafCampaign.data.sides = { red = { reserve = {} } }
+  local players = { playerAt(50000) }
+  coalition.getPlayers = function(side)
+    return side == coalition.side.BLUE and players or {}
+  end
+  local record = convoyUnderWatch({ state = 1 })
+  veafCampaign.zones["Kobuleti"].entry.owner = "red"
+  veafCampaign.checkConvoyGoal(record, 10)
+  -- the player destroys it meanwhile: nothing left to give back
+  veafCampaign.convoyUnits = function()
+    return {}
+  end
+  veafCampaign.checkConvoyGoal(record, 20)
+  luaunit.assertTrue(record.ended)
+  luaunit.assertEquals(veafCampaign.reserveOf("red")[veafCampaign.reserveCategory("T-72B")] or 0, 0)
+end
+
+-- FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 09: a red supply helicopter brought 7 of 7 dead units back to Aleppo on 2026-11-19,
+-- "56 point(s)", and the red stock did not move. David: they cost what they would cost if they were spawned.
+
+--- A logistics module with `stock` points for every side, recording what is paid.
+local function stockOf(points)
+  local paid = {}
+  local logistics = {
+    active = true,
+    stocks = { red = points, blue = points },
+    paid = paid,
+  }
+  logistics.stock = function(side)
+    return logistics.stocks[side]
+  end
+  logistics.pay = function(side, cost)
+    logistics.stocks[side] = logistics.stocks[side] - cost
+    table.insert(paid, { side = side, cost = cost })
+    return true
+  end
+  return logistics
+end
+
+function TestCampaignReinforce:test_a_helicopter_delivery_pays_the_units_it_brings_back_at_their_spawn_price()
+  local data = persistentData()
+  data.zones[2].garrison = garrison("Senaki", { 1, 2, 3 }) -- T-72B, BMP-2, Ural-375
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  local saved = veafCampaignLogistics
+  local prices = {
+    veafCampaign.unitPrice("T-72B"),
+    veafCampaign.unitPrice("BMP-2"),
+    veafCampaign.unitPrice("Ural-375"),
+  }
+  -- enough for the two cheapest, not for the third
+  veafCampaignLogistics = stockOf(prices[2] + prices[3] + prices[1] - 1)
+  local logistics = veafCampaignLogistics
+  luaunit.assertTrue(veafCampaign.deliver(veafCampaign.zones["Senaki"], "red", "helicopter"))
+  veafCampaignLogistics = saved
+  local units = veafCampaign.zones["Senaki"].entry.garrison[1].units
+  luaunit.assertEquals({ units[1].alive, units[2].alive, units[3].alive }, { false, true, true }, "cheapest first")
+  luaunit.assertEquals(logistics.paid, { { side = "red", cost = prices[2] + prices[3] } })
+  luaunit.assertEquals(logistics.stocks.red, prices[1] - 1)
+end
+
+function TestCampaignReinforce:test_a_delivery_brings_nothing_back_when_the_stock_cannot_pay_the_cheapest()
+  local data = persistentData()
+  data.zones[2].garrison = garrison("Senaki", { 1, 2, 3 })
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  local saved = veafCampaignLogistics
+  veafCampaignLogistics = stockOf(veafCampaign.unitPrice("Ural-375") - 1)
+  local logistics = veafCampaignLogistics
+  luaunit.assertFalse(veafCampaign.deliver(veafCampaign.zones["Senaki"], "red", "helicopter"))
+  luaunit.assertFalse(veafCampaign.deliver(veafCampaign.zones["Senaki"], "red", "crate"), "a crate as well")
+  veafCampaignLogistics = saved
+  luaunit.assertEquals(logistics.paid, {})
+  luaunit.assertEquals(veafCampaign.zones["Senaki"]:strengthPercent() < 100, true)
+end
+
+function TestCampaignReinforce:test_a_side_whose_resources_are_not_counted_gets_the_whole_group_back()
+  local data = persistentData()
+  data.zones[2].garrison = garrison("Senaki", { 1, 2, 3 })
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  local saved = veafCampaignLogistics
+  veafCampaignLogistics = nil
+  luaunit.assertTrue(veafCampaign.deliver(veafCampaign.zones["Senaki"], "red", "helicopter"))
+  veafCampaignLogistics = saved
+  luaunit.assertEquals(veafCampaign.zones["Senaki"]:strengthPercent(), 100)
 end
 
 os.exit(luaunit.LuaUnit.run())

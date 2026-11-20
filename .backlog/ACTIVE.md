@@ -14,6 +14,10 @@ The persistent campaign's `persistent.state` gains a `sitac` block for VEAF's we
 
 A persistent campaign names its mission file in `campaign.yaml` (`campaign.mission_file`), and the build writes it with no date (`mission.date_suffix: false` in `mission.yaml`), so the DCS server browser shows a readable name and a redeploy just replaces the file. Decided by David on 2026-11-18 for "Bouclier de l'Oronte": `Campagne_Oronte.miz`. One ticket, one PR into `feature/dynamic-campaign`.
 
+### [FIX-CAMPAIGN-THIRD-SERVER-FLIGHT](FIX-CAMPAIGN-THIRD-SERVER-FLIGHT/PRD.md) · 🔄
+
+What the third evening of "Bouclier de l'Oronte" taught (2026-11-19): a captured airfield offers no slot, since only the airbases owned at build time get Dynamic Slots; the sitac should show what Foothold's does. Scope decided by David: slots on every campaign airfield; players, ranking, ejected pilots, task board and support aircraft in the sitac block. One PR into `feature/dynamic-campaign`, one in `VEAF/foothold-sitac`.
+
 ## 🧑 Waiting for a human
 
 ### [FIX-CAMPAIGN-SECOND-SERVER-FLIGHT](FIX-CAMPAIGN-SECOND-SERVER-FLIGHT/PRD.md) · 🧑

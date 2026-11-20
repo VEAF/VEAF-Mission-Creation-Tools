@@ -110,8 +110,8 @@ class SizeClass:
 #:
 #: The air defence went up on 2026-11-18 (FIX-CAMPAIGN-SECOND-SERVER-FLIGHT ticket 12): at defence 3 an airfield
 #: drew one group of short-range infrared SAMs (Strela-10, Strela-1) and an outpost a Shilka alone, "pas très
-#: réaliste" for a base like Aleppo. Defence 5 draws two groups of level 4 or 5 (SA-8, SA-15, Tunguska) in the
-#: modern era; defence 3 a Strela-10 or a Strela-1. Each era keeps its own table for a level.
+#: réaliste" for a base like Aleppo. Defence 5 draws one group of level 4 or 5 (SA-8, SA-15, Tunguska) in the
+#: modern era — two until FIX-CAMPAIGN-THIRD-SERVER-FLIGHT ticket 08, 32 air defence units at Aleppo; defence 3 a Strela-10 or a Strela-1. Each era keeps its own table for a level.
 DEFAULT_SIZE_CLASSES: dict[str, SizeClass] = {
     "outpost": SizeClass("outpost", size=1, defense=3, armor=1),
     "airfield": SizeClass("airfield", size=1, defense=5, armor=2),

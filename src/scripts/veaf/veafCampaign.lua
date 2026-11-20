@@ -104,6 +104,12 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   -- where it stands is logged every `convoy_report_seconds`
   assault_speed = 40,
   convoy_report_seconds = 300,
+  -- FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 07: the assault on Menagh vanished under a player's guns on 2026-11-19, retired as
+  -- "fell back" on one sample of the convoy watch's state. A fall-back counts once it has lasted `fall_back_seconds`,
+  -- and a retired convoy leaves only once no player is within `wake_radius` and nothing has touched it for
+  -- `retire_quiet_seconds`
+  fall_back_seconds = 120,
+  retire_quiet_seconds = 300,
   -- red remembers what fails (FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 04): after `route_failures` failed helicopters or
   -- convoys to the same zone, it sends no more there for `route_failure_seconds` — four Mi-8 for Afrin turned back
   -- in a row on 2026-11-17, one every 10 minutes
@@ -167,9 +173,11 @@ veafCampaign.UNIT_PRICES = {
   apc = 4,
   tank = 6,
   artillery = 5,
-  aaa = 4,
-  sam_short = 8,
-  sam_long = 15,
+  -- FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 10 (David, 2026-11-19): a lost Tor was worth about a BMP, and one SEAD sortie
+  -- 25 of them; an estimate, to tune after an evening
+  aaa = 8,
+  sam_short = 25,
+  sam_long = 40,
   helicopter = 15,
   plane = 30,
   bomber = 100,
@@ -698,7 +706,9 @@ function veafCampaign.composeGarrison(name, center, radius, size, side)
     end
   end
   if size.defense > 0 then
-    local groups = size.defense > 3 and 2 or 1
+    -- one group up to level 5: two of level 5 gave Aleppo 32 air defence units and 121 missiles on 2026-11-19
+    -- (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 08); no size class goes above 5 today
+    local groups = size.defense > 5 and 2 or 1
     for index = 1, groups do
       place(veafCasMission.generateAirDefenseGroup(name .. " - Air Defense Group " .. index, size.defense, side))
     end
@@ -2114,32 +2124,97 @@ function veafCampaign.retireConvoy(record, reason)
   veafCampaign.debug("DECISION", "%s convoy [%s] to [%s] retired: %s", record.side, record.name, record.to, reason)
 end
 
+--- The convoy watch's handler of a convoy (`veafGroundAI`), or nil.
+local function convoyHandler(record)
+  return veafGroundAI and veafGroundAI.convoysByGroupName and veafGroundAI.convoysByGroupName[record.name]
+end
+
+--- Whether a convoy to retire may leave the world now (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 07): no player within
+--- `wake_radius` of any of its vehicles, and no contact for `retire_quiet_seconds`. Until then it stays in play.
+--- @param record table the convoy's record
+--- @param now number the mission time
+--- @return boolean
+--- @return string|nil what keeps it, when it may not
+function veafCampaign.convoyMayLeave(record, now)
+  local units = veafCampaign.convoyUnits(record)
+  if #units == 0 then
+    return true
+  end
+  local handler = convoyHandler(record)
+  local touched = handler and math.max(handler.lastContact or -math.huge, handler.lastFireExchanged or -math.huge)
+  if touched and now - touched < veafCampaign.setting("retire_quiet_seconds") then
+    return false, "in contact"
+  end
+  local radius = veafCampaign.setting("wake_radius")
+  for _, player in ipairs(veafCampaign.playerPoints()) do
+    for _, unit in ipairs(units) do
+      local point = unit:getPoint()
+      local dx, dz = point.x - player.x, point.z - player.z
+      if dx * dx + dz * dz <= radius * radius then
+        return false, "a player near"
+      end
+    end
+  end
+  return true
+end
+
 --- A convoy of a persistent campaign that will not arrive frees its place: its target is its side's already (a
---- helicopter took it first), or it has been on the road `convoy_timeout`. On 2026-11-16 two red convoys held both
---- places of `max_convoys` for more than an hour, and red sent no counter-attack all that time.
+--- helicopter took it first), it has been on the road `convoy_timeout`, or it fell back for `fall_back_seconds`.
+--- On 2026-11-16 two red convoys held both places of `max_convoys` for more than an hour, and red sent no
+--- counter-attack all that time. Decided once; the convoy leaves when `convoyMayLeave` says so, never in front of a
+--- player (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 07).
 --- @param record table the convoy's record
 --- @param now number the mission time
 function veafCampaign.checkConvoyGoal(record, now)
   if record.ended or not veafCampaign.isPersistent() then
     return
   end
-  local target = veafCampaign.zones[record.to]
-  if target and target.entry.owner == record.side then
-    veafCampaign.retireConvoy(record, "its target is its side's already")
-  elseif record.sentAt and now - record.sentAt >= (record.timeout or veafCampaign.setting("convoy_timeout")) then
-    veafCampaign.retireConvoy(record, string.format("not arrived after %d min", math.floor((now - record.sentAt) / 60)))
-    veafCampaign.recordFailure("convoy", record.side, record.from, record.to, "not arrived")
-  elseif veafCampaign.convoyFellBack(record) then
-    -- an assault that falls back ends: it drove the Hatay assault back home under a player's fire (2026-11-17)
-    veafCampaign.retireConvoy(record, "it fell back under fire")
-    veafCampaign.recordFailure("convoy", record.side, record.from, record.to, "fell back")
+  if not record.retiring then
+    if veafCampaign.convoyFellBack(record) then
+      record.fallingBackSince = record.fallingBackSince or now
+    else
+      record.fallingBackSince = nil
+    end
+    local target = veafCampaign.zones[record.to]
+    local failure = nil
+    if target and target.entry.owner == record.side then
+      record.retiring = "its target is its side's already"
+    elseif record.sentAt and now - record.sentAt >= (record.timeout or veafCampaign.setting("convoy_timeout")) then
+      record.retiring = string.format("not arrived after %d min", math.floor((now - record.sentAt) / 60))
+      failure = "not arrived"
+    elseif record.fallingBackSince and now - record.fallingBackSince >= veafCampaign.setting("fall_back_seconds") then
+      -- an assault that falls back ends: it drove the Hatay assault back home under a player's fire (2026-11-17)
+      record.retiring = "it fell back under fire"
+      failure = "fell back"
+    end
+    if not record.retiring then
+      return
+    end
+    if failure then
+      veafCampaign.recordFailure("convoy", record.side, record.from, record.to, failure)
+    end
+  end
+  local leaves, keeper = veafCampaign.convoyMayLeave(record, now)
+  if leaves then
+    veafCampaign.retireConvoy(record, record.retiring)
+  elseif record.keptBy ~= keeper then
+    record.keptBy = keeper
+    veafCampaign.debug(
+      "DECISION",
+      "%s convoy [%s] to [%s] to retire (%s) stays: %s",
+      record.side,
+      record.name,
+      record.to,
+      record.retiring,
+      keeper
+    )
   end
 end
 
 --- Whether the convoy watch (`veafGroundAI`) made an assault convoy fall back.
 --- @return boolean
 function veafCampaign.convoyFellBack(record)
-  local handler = veafGroundAI and veafGroundAI.convoysByGroupName and veafGroundAI.convoysByGroupName[record.name]
+  local handler = convoyHandler(record)
   return handler ~= nil and ConvoyUnitHandler ~= nil and handler.state == ConvoyUnitHandler.STATE_FALLING_BACK
 end
 
@@ -2675,15 +2750,44 @@ function veafCampaign.keepAwake(zone, seconds)
   zone.keepAwakeUntil = math.max(zone.keepAwakeUntil or 0, timer.getTime() + seconds)
 end
 
+--- Bring back the dead units a delivery can pay for, from the side's resource stock (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT
+--- 09): each at the price a spawn of it costs (`unitPrice`), cheapest first, what the stock cannot pay staying dead.
+--- On 2026-11-19 a red helicopter brought 7 units back to Aleppo, "56 point(s)", and the stock did not move. A side
+--- whose resources are not counted gets the whole group back, as before.
+--- @param zone table
+--- @param side string the side that delivered
+--- @param how string what delivered, for the log
+--- @return boolean true when units were brought back
+local function reinforceFromStock(zone, side, how)
+  local logistics = veafCampaignLogistics
+  if not (logistics and logistics.active and logistics.stock and logistics.pay) then
+    return zone:reinforce()
+  end
+  local reinforced, spent = zone:reinforce(math.max(0, logistics.stock(side)))
+  if reinforced and spent > 0 then
+    logistics.pay(side, spent, "essential", "the units a delivery brings back")
+    veaf.loggers.get(veafCampaign.Id):info(
+      "zone [%s]: %d point(s) paid from the %s stock for what the %s brought back, %d left",
+      zone.name,
+      spent,
+      side,
+      how,
+      logistics.stock(side)
+    )
+  end
+  return reinforced
+end
+
 --- A supply delivery reached a zone of its side: the zone is reinforced, and everyone who should hear of
---- it does. Nothing happens to a zone with nothing missing.
+--- it does. Nothing happens to a zone with nothing missing. The units brought back are paid from the side's stock
+--- (`reinforceFromStock`), whatever delivered them: a helicopter, a crate or troops.
 --- @param zone table
 --- @param side string the side that delivered
 --- @param how string "crate", "troops" or "helicopter"
 --- @return boolean true when the zone was reinforced
 function veafCampaign.deliver(zone, side, how)
   -- the garrison first; a factory whose garrison is whole gets a building back (ticket 11)
-  if zone.entry.owner ~= side or not (zone:reinforce() or zone:repairStructure()) then
+  if zone.entry.owner ~= side or not (reinforceFromStock(zone, side, how) or zone:repairStructure()) then
     return false
   end
   veafCampaign.announce(side, side, veaf.t("campaign.zone_reinforced", veafCampaign.zoneTitle(zone.name)), 15)
@@ -3098,6 +3202,148 @@ function VeafCampaignZone:readWarehouse()
   return nil
 end
 
+--- A DCS object's point, or nil when it cannot be read (gone, or not a unit).
+local function pointOf(object)
+  if not (object and object.getPoint) then
+    return nil
+  end
+  local ok, point = pcall(object.getPoint, object)
+  return ok and type(point) == "table" and point or nil
+end
+
+--- A position in the sitac's Foothold shape: `latitude`, `longitude`, `altitude` (metres above sea level).
+local function placed(entry, point)
+  local latitude, longitude = coord.LOtoLL(point)
+  entry.latitude, entry.longitude, entry.altitude = latitude, longitude, point.y
+  return entry
+end
+
+--- The players in a slot, both sides, in Foothold's `players` shape (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 02). As fresh
+--- as the state write: the block is written with it.
+--- @return table a list
+function veafCampaign.sitacPlayers()
+  local players = {}
+  for _, side in ipairs({ "blue", "red" }) do
+    local ok, units = pcall(coalition.getPlayers, veafCampaign.SIDES[side])
+    for _, unit in ipairs(ok and type(units) == "table" and units or {}) do
+      local okName, name = pcall(unit.getPlayerName, unit)
+      local okType, typeName = pcall(unit.getTypeName, unit)
+      local point = pointOf(unit)
+      if okName and name and okType and point then
+        table.insert(players, placed({ coalition = side, unitType = typeName, playerName = name }, point))
+      end
+    end
+  end
+  return players
+end
+
+--- The first unit of a group, or nil when the group is gone.
+local function firstUnit(groupName)
+  local group = Group.getByName(groupName)
+  if not (group and group.getUnit) then
+    return nil
+  end
+  local ok, unit = pcall(group.getUnit, group, 1)
+  return ok and unit or nil
+end
+
+--- The players' side's pilots on the ground that the CSAR module waits to rescue, AI included, in Foothold's
+--- `ejectedPilots` shape (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 04): `lostCredits` the credits held at the ejection,
+--- lost then. A pilot picked up leaves the CSAR registry, and the list.
+--- @return table a list, in the order of the CSAR groups' names
+function veafCampaign.sitacEjectedPilots()
+  local pilots = {}
+  if not (csar and type(csar.woundedGroups) == "table") then
+    return pilots
+  end
+  local own = veafCampaign.SIDES[veafCampaign.playerSide()]
+  local lost = veafCampaignEconomy and veafCampaignEconomy.lostAtEjection or {}
+  local names = {}
+  for groupName in pairs(csar.woundedGroups) do
+    table.insert(names, groupName)
+  end
+  table.sort(names)
+  for _, groupName in ipairs(names) do
+    local wounded = csar.woundedGroups[groupName]
+    local point = wounded.side == own and pointOf(firstUnit(groupName))
+    if point then
+      table.insert(
+        pilots,
+        placed({
+          playerName = wounded.player or wounded.desc or groupName,
+          lostCredits = lost[wounded.originalUnit] or 0,
+        }, point)
+      )
+    end
+  end
+  return pilots
+end
+
+--- What a support aircraft is: `awacs`, `tanker_boom`, `tanker_basket`, `tanker_both`, or `tanker` when how it
+--- refuels is not known here; nil for anything else.
+local function supportKind(unit)
+  local function has(attribute)
+    local ok, value = pcall(unit.hasAttribute, unit, attribute)
+    return ok and value == true
+  end
+  if has("AWACS") then
+    return "awacs"
+  end
+  local okType, typeName = pcall(unit.getTypeName, unit)
+  local boom = veafCampaignEconomy and veafCampaignEconomy.BOOM_TANKERS and veafCampaignEconomy.BOOM_TANKERS[typeName]
+  local basket = veafCampaignEconomy and veafCampaignEconomy.BASKET_TANKERS and veafCampaignEconomy.BASKET_TANKERS[typeName]
+  if okType and boom and basket then
+    return "tanker_both"
+  elseif okType and boom then
+    return "tanker_boom"
+  elseif okType and basket then
+    return "tanker_basket"
+  elseif has("Tankers") then
+    return "tanker"
+  end
+  return nil
+end
+
+--- The players' side's AWACS and tankers the SUPPORT module holds (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 06): where each
+--- flies now, its kind, frequency (MHz) and TACAN; one that is gone is listed by its name, `alive = false`.
+--- @return table a list, in the module's order
+function veafCampaign.sitacSupport()
+  local list = {}
+  if not (veafSupport and veafSupport.setting) then
+    return list
+  end
+  local own = veafCampaign.playerSide()
+  for _, name in ipairs(veafSupport.setting("assets") or {}) do
+    local unit = firstUnit(name)
+    local okAlive, alive = false, false
+    if unit and unit.isExist then
+      okAlive, alive = pcall(unit.isExist, unit)
+    end
+    local point = okAlive and alive and pointOf(unit)
+    if not point then
+      table.insert(list, { name = name, alive = false })
+    else
+      local okSide, side = pcall(unit.getCoalition, unit)
+      if okSide and side == veafCampaign.SIDES[own] then
+        local radio = veaf.getTankerData and veaf.getTankerData(name) or {}
+        local tacan = radio.tankerTacanChannel and (tostring(radio.tankerTacanChannel) .. (radio.tankerTacanMode or "")) or nil
+        table.insert(
+          list,
+          placed({
+            name = name,
+            kind = supportKind(unit),
+            side = own,
+            frequency = radio.tankerFrequency,
+            tacan = tacan,
+            alive = true,
+          }, point)
+        )
+      end
+    end
+  end
+  return list
+end
+
 --- What a web map outside DCS needs to draw the campaign (FEAT-CAMPAIGN-SITAC-STATE): positions in lat/lon,
 --- kinds, links, and counts only. The garrison's composition stays out: the intelligence rule hides it until
 --- the zone is reconnoitred, and the map is public. Rebuilt at every save; the reload never reads it.
@@ -3169,6 +3415,12 @@ function veafCampaign.sitacTable()
     connections = connections,
     convoys = convoys,
     sides = sides,
+    -- what Foothold's save gives its sitac, by its names (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 02 to 06)
+    players = veafCampaign.sitacPlayers(),
+    playerStats = veafCampaignEconomy and veafCampaignEconomy.sitacStats and veafCampaignEconomy.sitacStats() or {},
+    ejectedPilots = veafCampaign.sitacEjectedPilots(),
+    missions = veafCampaignEconomy and veafCampaignEconomy.sitacTasks and veafCampaignEconomy.sitacTasks() or {},
+    support = veafCampaign.sitacSupport(),
   }
 end
 
@@ -3842,7 +4094,7 @@ end
 --- What a kill event says, for the campaign: a player of the players' side destroyed an enemy unit.
 --- @param event table the S_EVENT_KILL as veafEventHandler hands it over: `dcsInitiator` the killer's
 ---   DCS unit, `target` a data table (`unitCoalition`, `unitCategory`)
---- @return table|nil `{ unit, player, air }`, nil for any other kill
+--- @return table|nil `{ unit, player, air, category }`, `category` the target's `Unit.Category`; nil for any other kill
 function veafCampaign.readPlayerKill(event)
   local unit, player = veafCampaign.playerUnitOf(event)
   local target = event and event.target
@@ -3861,7 +4113,12 @@ function veafCampaign.readPlayerKill(event)
   if category == nil and target.getDesc then
     category = target:getDesc().category
   end
-  return { unit = unit, player = player, air = category == Unit.Category.AIRPLANE or category == Unit.Category.HELICOPTER }
+  return {
+    unit = unit,
+    player = player,
+    air = category == Unit.Category.AIRPLANE or category == Unit.Category.HELICOPTER,
+    category = category,
+  }
 end
 
 --- A unit died or was lost: if it is a garrison unit, record it.

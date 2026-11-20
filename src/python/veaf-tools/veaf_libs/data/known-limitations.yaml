@@ -2177,3 +2177,19 @@ limitations:
     ticket 09.
   cost: |
     A raid that never took off was logged "destroyed", and the evening's debrief counted it as shot down.
+
+- id: campaign-enemy-side-restocks-listed-airfields
+  kind: tool
+  area: pipeline
+  title: "In a persistent campaign, the enemy side's `warehouses.yaml` block restocks the airfields it holds after the player side"
+  symptom: |
+    `campaign next` lists every airfield zone under the player side's `airports:` in `src/warehouses.yaml`, so an
+    airfield captured in flight has its dynamic slots ready (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT ticket 01). The
+    build then applies the sides one after the other: when the enemy side is declared with no `airports:` list,
+    it stocks every airfield it holds at build time, the campaign's included, and an aircraft type both sides
+    have a dynamic-slot template for is linked to the enemy's template. Once captured, that slot spawns the
+    enemy's template. Read in the code on 2026-11-19; not seen in game: the Oronte campaign gives red no
+    dynamic-slot template.
+  workaround: |
+    Leave the enemy side out of `src/warehouses.yaml` when it has no players, or give it no dynamic-slot
+    template of a type the player side offers.

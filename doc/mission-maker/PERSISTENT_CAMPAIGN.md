@@ -14,6 +14,7 @@
   La nouvelle garnison apparaît aussitôt.
 - **Un pilote au sol après une éjection n'est l'ennemi de personne** : le rescapé que pose le module CSAR ne tient ni ne conteste une zone, ne réveille aucune zone et n'arrête aucun convoi, dans tous les scripts VEAF.
 - **Les slots suivent les bases** : un aérodrome pris passe dans le camp du preneur, avec ses slots dynamiques.
+  Tous les aérodromes de la campagne ont leurs slots prêts dès la construction, même ceux que le camp des joueurs ne tient pas encore (voir [Construire la mission](#build)).
   La campagne décide seule du camp d'un aérodrome : la prise native de DCS, par les unités qui l'entourent, est coupée sur tous les aérodromes de la carte.
 - **Le front bouge tout seul** : l'ennemi [contre-attaque](#front), renforce ses zones par hélicoptère, et envoie CAP, frappes et [bombardiers](#bombers).
 - **L'ennemi paie ce qu'il envoie** avec les [ressources](#resources) que font ses usines : détruire ses [usines](#zone-kinds) ou couper son [réseau d'approvisionnement](#network) finit par clouer sa CAP au sol.
@@ -65,6 +66,10 @@ Avec une réserve, elle se vide comme en campagne multi-missions, et un camp à 
 
 Puis on construit la mission du dossier `missions\mission-01\mission` comme n'importe quelle mission, et on la met sur le serveur.
 `campaign next` relancé sur le même dossier la met à jour sans toucher au reste du travail fait dedans.
+
+**Des slots sur chaque aérodrome de la campagne.** `campaign next` écrit, dans le `src\warehouses.yaml` de la mission, la liste `airports:` du camp des joueurs avec **chaque aérodrome de la campagne**, quel que soit son camp au départ.
+Sans cette liste, la construction n'ouvre les slots dynamiques que sur les aérodromes que le camp tient au moment de construire : un aérodrome pris en vol n'avait aucun slot à offrir (Minakh, le 19/11/2026).
+Un aérodrome déjà présent dans la liste garde ses réglages ; une base que la mission donne au camp hors des zones de la campagne (une base arrière posée dans le modèle) y est ajoutée par son numéro, pour garder ses slots ; un camp que le fichier ne déclare pas reste sans slots.
 `campaign apply` n'a pas d'usage ici : il n'y a pas de « entre deux missions ».
 
 **La météo et l'heure viennent du serveur.** Une campagne persistante tourne des semaines : `campaign next` ne fixe ni date, ni heure de départ, ni météo, et le nom de la mission ne porte pas `_NoMizedit` (`Campaign_<campagne>_Mission_01_<titre>`), si bien que le preset MizEdit du serveur (avec RealWeather) les règle à chaque chargement. Une [campagne multi-missions](CAMPAIGN.md#squadron-settings) garde ses conditions fixées et son `_NoMizedit`.
@@ -222,6 +227,25 @@ sitac = {
   connections = { { "Minakh", "Tal Rifaat" }, { "Tal Rifaat", "Kafr Naya" } },
   convoys = { { side = "blue", from = "Minakh", to = "Tal Rifaat", units = 4 } },
   sides = { blue = { credits = 1915, resources = 600 }, red = { resources = 250 } },
+  players = {
+    { coalition = "blue", unitType = "A-10C_2", playerName = "Zip", latitude = 36.50, longitude = 37.01, altitude = 3048 },
+  },
+  playerStats = {
+    Zip = { Points = 420, Air = 1, SAM = 2, ["Ground Units"] = 7, Infantry = 3, Helo = 0, Structure = 1, Deaths = 1,
+      ["Warehouse delivery"] = 2 },
+  },
+  ejectedPilots = { { playerName = "Paluche", latitude = 36.45, longitude = 37.08, altitude = 412, lostCredits = 15 } },
+  missions = {
+    { title = "Prendre Tal Rifaat (300 cr.)", description = "", isRunning = true, isEscortMission = false,
+      kind = "capture", zone = "Tal Rifaat", reward = 300 },
+    { title = "Supériorité aérienne (200 cr.)", description = "1/3", isRunning = true, isEscortMission = false,
+      kind = "air", reward = 200 },
+  },
+  support = {
+    { name = "Arco", kind = "tanker_boom", side = "blue", latitude = 36.20, longitude = 36.60, altitude = 7620,
+      frequency = 252.5, tacan = "51Y", alive = true },
+    { name = "Overlord", alive = false },
+  },
 }
 ```
 
@@ -231,6 +255,18 @@ sitac = {
 - `awake` est faux pour une zone en sommeil.
 - `convoys` ne garde que les convois d'assaut encore en route ; `units` compte leurs véhicules vivants.
 - `sides` donne les crédits du camp des joueurs et les ressources de chaque camp, quand elles sont comptées.
+
+Les cinq listes suivantes reprennent les **noms de champs de la sauvegarde Foothold**, pour que la sitac les affiche comme elle affiche Foothold.
+Elles sont aussi fraîches que la sauvegarde : une toutes les `state_write_seconds` (60 s) de simulation, et rien pendant une pause du serveur.
+
+- `players` : chaque joueur dans un slot, des deux camps, avec son camp, son appareil et sa position (`altitude` en mètres).
+- `playerStats` : le classement, par nom de pilote. `Points` est le total des crédits qu'il a gagnés ; `Air`, `Helo`, `SAM` (toute la défense sol-air), `Ground Units`, `Infantry` et `Structure` comptent ses destructions ; `Deaths` ses morts, `Warehouse delivery` ses livraisons d'armement.
+  Ces chiffres sont gardés dans la sauvegarde et repartent de zéro avec la campagne. Une capture n'est attribuée à aucun pilote : elle n'apparaît pas au classement.
+- `ejectedPilots` : les pilotes du camp des joueurs au sol qu'attend le CSAR, IA comprise ; `lostCredits` donne les crédits qu'il transportait, perdus à l'éjection (un sauvetage ne les rend pas). Un pilote récupéré quitte la liste.
+- `missions` : le [tableau des tâches](#tasks), avec le titre que donne le menu F10 ; `description` donne l'avancement d'une tâche de supériorité aérienne ; `kind`, `zone` et `reward` en plus de Foothold.
+- `support` : les [AWACS et ravitailleurs](#support) du camp des joueurs, là où ils volent, avec leur sorte (`awacs`, `tanker_boom`, `tanker_basket`, `tanker_both`, `tanker`), leur fréquence en MHz et leur TACAN ; un appareil détruit n'a que son nom et `alive = false`.
+
+Les unités ennemies, zone par zone, n'y sont jamais : c'est la règle du [renseignement](#intel).
 
 ## Les zones en sommeil {#dormancy}
 
@@ -258,10 +294,11 @@ Sa garnison arrive groupe par groupe, environ `wake_units_per_beat` (10) unités
 - **Contre-attaques** : toutes les `attack_seconds` (900 s), un camp listé dans `attacks` (le rouge par défaut) envoie un convoi d'assaut contre la zone ennemie la plus faible qui le borde, `max_convoys` (2) sur la route au plus.
   Seuls ces camps envoient aussi d'eux-mêmes des convois vers une zone neutre ; le camp des joueurs achète les siens (F10 → Autres → VEAF → Campagne → Assauts), et aucun convoi automatique ne part vers une zone qu'un convoi du même camp vise déjà.
 - **Un convoi d'assaut roule à `assault_speed` (40 km/h)**, sans se disperser sous le feu ; à son départ, `dcs.log` donne la longueur de sa route, le temps qu'il lui faut et quand il sera retiré, puis toutes les `convoy_report_seconds` (300 s) sa distance à sa cible et s'il avance, s'arrête ou fait demi-tour.
-  Sous des avions il poursuit sa route ; s'il se replie devant plus fort que lui au sol, son assaut est fini : il est retiré.
+  Sous des avions il poursuit sa route ; s'il se replie devant plus fort que lui au sol pendant `fall_back_seconds` (120 s) sans reprendre sa route, son assaut est fini : il est retiré.
 - **Un convoi qui n'arrivera pas libère sa place** : dès que sa cible est à son camp (un hélicoptère l'a prise avant lui), quand il se replie, ou après le temps que demande sa route (une fois et demie le temps prévu, `convoy_timeout`, 2 700 s, au moins), il est retiré de la carte et le prix de ses survivants retourne à son camp ; le 17/11/2026, à 20 km/h sur des routes de 40 à 60 km, les 45 minutes retiraient chaque convoi avant son arrivée.
+  **Jamais sous les yeux des joueurs** : un convoi à retirer reste en jeu tant qu'un joueur est à moins de `wake_radius` de lui, ou qu'il a été touché dans les `retire_quiet_seconds` (300 s) ; ses pertes comptent, et seuls ses survivants au moment où il part sont rendus. Le 19/11/2026, l'assaut d'Alep sur Menagh disparaissait sous les tirs d'un joueur.
 - **L'autre camp est prévenu aussitôt** du départ d'un convoi, et voit son axe sur la carte.
-- **Ravitaillement** : une livraison dans une zone amie abîmée ramène au complet son premier groupe touché.
+- **Ravitaillement** : une livraison dans une zone amie abîmée ramène les unités mortes de son premier groupe touché, **payées sur le stock de [ressources](#resources) du camp** au prix que coûterait leur spawn, les moins chères d'abord ; ce que le stock ne peut pas payer reste mort (un camp dont les ressources ne sont pas comptées récupère tout le groupe).
   Livrent : une caisse « Zone supplies » posée dans la zone, des troupes CTLD 2 déposées dans la zone (sauf l'équipe espion et les équipes JTAC), un hélicoptère de ravitaillement posé.
 - **Hélicoptères IA** : toutes les `supply_seconds` (600 s), un camp listé dans `supply` (le rouge par défaut) envoie un hélicoptère (`helicopter`, Mi-8MT rouge, UH-1H bleu) vers une zone neutre qui le borde, qu'il prend en s'y posant, ou à défaut vers sa zone la plus abîmée, qu'il ravitaille ; `max_helicopters` (2) en vol au plus, et un hélicoptère qui ne s'est pas posé au bout de `helicopter_timeout` (1 200 s) est retiré.
   L'autre camp est prévenu à son départ, pour l'intercepter.
@@ -415,15 +452,16 @@ Ces trois valeurs ont été relevées après le premier soir joué : avec 500, 3
 | blindé de transport, véhicule de combat d'infanterie | 4 |
 | char | 6 |
 | artillerie | 5 |
-| AAA, défense courte portée | 4 |
-| SAM courte portée | 8 |
-| élément de SAM moyenne ou longue portée | 15 |
+| AAA, défense courte portée | 8 |
+| SAM courte portée | 25 |
+| élément de SAM moyenne ou longue portée | 40 |
 | hélicoptère | 15 |
 | avion | 30 |
 | bombardier | 100 |
 | tout le reste | 5 |
 
 `resources.prices` change le prix d'un type : `{ "T-72B": 7 }`.
+La défense sol-air a été renchérie le 19/11/2026 (de 4, 8 et 15) : un Tor perdu valait à peu près un BMP, et une sortie SEAD 25 Tor. Une garnison d'aérodrome tirée au hasard coûte désormais 190 points en moyenne (370 au plus), une d'avant-poste 130 (210 au plus), contre 100 et 75 avant ; une garnison que le camp ne peut pas payer est remplacée par une garnison symbolique.
 Ce sont des valeurs de départ, qui se régleront sur un serveur : une usine paie à peu près une contre-attaque et une CAP par heure.
 
 Les crédits restent ceux des joueurs : ce qu'ils achètent ne sort pas des ressources, et ce qui survit d'un achat s'y ajoute au chargement suivant.
@@ -440,7 +478,7 @@ Les usines d'un camp nourrissent ses zones de proche en proche, le long des liai
   Les unités ramenées apparaissent à leur place, les vivantes ne bougent pas.
   **Une zone sous le feu** — une unité perdue il y a moins de `network.under_fire_seconds` (600 s) — n'est pas renforcée : la livraison attend.
   Une zone perdue entre-temps ne reçoit rien ; une livraison qui n'a plus rien à réparer, ou ce qu'elle n'a pas dépensé, retourne au stock.
-  Les joueurs qui font de la logistique vont plus vite : une caisse, des troupes ou un hélicoptère renforcent sur-le-champ, sans attendre le réseau ni le payer.
+  Les joueurs qui font de la logistique vont plus vite : une caisse, des troupes ou un hélicoptère renforcent sur-le-champ, sans attendre le réseau ; les unités ramenées se paient sur le stock, au prix de leur spawn (voir **Ravitaillement** dans [Un front qui bouge tout seul](#front)).
 - **Une zone coupée** de toute usine et de tout dépôt est encore servie, sur la production de fond, au bout de `network.isolated_seconds` (3 600 s).
 
 F10 → Autres → VEAF → Campagne → **Réseau d'approvisionnement** donne aux joueurs leur stock, leur production, et pour chacune de leurs zones son délai ou « coupée du réseau ».
@@ -452,7 +490,7 @@ Dans une campagne persistante, toute commande de spawn VEAF qu'une personne pose
 - **en crédits** quand elle fait apparaître des unités pour le camp des joueurs ;
 - **sur les ressources** de l'autre camp sinon ;
 - au prix **des unités qu'elle a fait apparaître**, une par une, au [barème des ressources](#resources) : une section blindée tirée au hasard coûte ce qu'elle a tiré, deux chars et un VCI font 6 + 6 + 4 = 16 points ;
-- le camp des joueurs paie `economy.credits_per_point` (6) crédits par point : ces 16 points font 96 crédits ;
+- le camp des joueurs paie `economy.credits_per_point` (6) crédits par point : ces 16 points font 96 crédits ; un `-sam` coûte plus cher depuis le 19/11/2026, un SAM courte portée valant 25 points (150 crédits) au lieu de 8 ;
 - le prix n'est connu qu'une fois les unités tirées : le spawn passe donc toujours **en entier** — multiplicateur compris — et se paie au prix exact, quitte à faire passer le camp **dans le rouge** ;
 - un camp à zéro ou dans le rouge ne fait plus apparaître rien : la commande est refusée avant le spawn, avec son solde, jusqu'à ce que le solde repasse au-dessus de zéro ; un gain rembourse d'abord la dette.
 
@@ -614,6 +652,8 @@ Une ligne `KO` suffit à dire où regarder.
 | `convoy_timeout` | 2700 | le moins de temps qu'a un convoi d'assaut avant d'être retiré de la carte, sa place libérée ; sinon une fois et demie le temps que demande sa route |
 | `assault_speed` | 40 | km/h : la vitesse d'un convoi d'assaut |
 | `convoy_report_seconds` | 300 | intervalle entre deux lignes de `dcs.log` sur l'avancée d'un convoi d'assaut |
+| `fall_back_seconds` | 120 | combien de temps un convoi d'assaut doit se replier sans reprendre sa route pour que son assaut soit fini |
+| `retire_quiet_seconds` | 300 | un convoi à retirer ne part qu'après ce temps sans contact, et sans joueur à moins de `wake_radius` |
 | `route_failures` | 2 | hélicoptères ou convois ratés de suite vers une zone avant que le camp y renonce |
 | `route_failure_seconds` | 3600 | combien de temps il y renonce |
 | `helicopter` | `{red: Mi-8MT, blue: UH-1H}` | le type de l'hélicoptère de chaque camp |
@@ -651,6 +691,8 @@ Ces points sont écrits et testés hors de DCS, pas encore mesurés en jeu :
 - la teinte du territoire, faite de triangles, sur la carte F10 ;
 - un AWACS ou un ravitailleur déplacé hors de portée, et sa branche en travers de l'axe ;
 - un hélicoptère de ravitaillement à qui il est dit de ne pas abandonner sa tâche sous une menace (deux fois le 16/11/2026, un Mi-8 envoyé d'Alep vers Afrin s'est reposé à Alep trois minutes après son départ : une cause probable, pas mesurée) ;
-- les numéros des waypoints, tels que chaque module les montre.
+- les numéros des waypoints, tels que chaque module les montre ;
+- un aérodrome neutre ou ennemi au départ, pris en vol, qui offre ses slots dynamiques au preneur (Foothold compte dessus ; pas encore mesuré sur la nôtre) ;
+- un bâtiment détruit compté au classement : il faut que DCS envoie un `S_EVENT_KILL` pour un objet statique.
 
 Voir aussi la [référence du module `veafCampaign`](scripts/veafCampaign.md).

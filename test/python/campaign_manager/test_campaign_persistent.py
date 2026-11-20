@@ -132,6 +132,7 @@ class TestTheDynamicBlock:
             ({"factory": {"types": []}}, "dynamic.factory.types"),
             ({"network": {"hop_seconds": 0}}, "dynamic.network.hop_seconds"),
             ({"economy": {"credits_per_point": 0}}, "dynamic.economy.credits_per_point"),
+            ({"economy": {"upgrades_per_zone": -1}}, "dynamic.economy.upgrades_per_zone"),
             ({"debug": "yes"}, "dynamic.debug"),
             ({"territory": {"enabled": "yes"}}, "dynamic.territory.enabled"),
         ],
@@ -140,6 +141,11 @@ class TestTheDynamicBlock:
         campaign, issues = _parse(head={"mode": "persistent"}, dynamic=block)
         assert campaign is None
         assert any(f"`{setting}`" in message for message in _errors(issues))
+
+    def test_the_upgrades_a_zone_holds_are_passed_on(self) -> None:
+        # FEAT-CAMPAIGN-SHOP-UPGRADES 01: the shop's limit of bought upgrades per zone
+        dynamic = _persistent(dynamic={"economy": {"upgrades_per_zone": 3}}).dynamic
+        assert dynamic["economy"]["upgrades_per_zone"] == 3
 
 
 class TestTheAircraft:

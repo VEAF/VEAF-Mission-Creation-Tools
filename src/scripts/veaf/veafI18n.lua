@@ -2239,6 +2239,34 @@ veaf.i18nCatalog = {
     fr = "pas de bombardier, ou aucun terrain à nous assez loin de la cible",
     en = "no bomber, or no airfield of ours far enough from the target",
   },
+  -- FEAT-CAMPAIGN-SHOP-UPGRADES
+  ["campaign.shop.item.cas"] = { fr = "Vol CAS", en = "CAS flight" },
+  ["campaign.shop.item.sead"] = { fr = "Vol SEAD", en = "SEAD flight" },
+  ["campaign.shop.strike"] = { fr = "%s : départ de %s vers %s.", en = "%s: leaving %s for %s." },
+  ["campaign.shop.refused_flight_up"] = {
+    fr = "un vol de ce type est déjà en l'air",
+    en = "a flight of that kind is already in the air",
+  },
+  ["menu.campaign.upgrades"] = { fr = "Renforcer une zone", en = "Zone upgrades" },
+  ["campaign.shop.upgrade.hawk"] = { fr = "Batterie Hawk", en = "Hawk battery" },
+  ["campaign.shop.upgrade.nasams"] = { fr = "Batterie NASAMS", en = "NASAMS battery" },
+  ["campaign.shop.upgrade.patriot"] = { fr = "Batterie Patriot", en = "Patriot battery" },
+  ["campaign.shop.upgrade.avenger"] = { fr = "Section Avenger", en = "Avenger section" },
+  ["campaign.shop.upgrade.gepard"] = { fr = "Section Gepard", en = "Gepard section" },
+  ["campaign.shop.upgrade.infantry"] = { fr = "Section d'infanterie", en = "Infantry section" },
+  ["campaign.shop.upgrade.armor"] = { fr = "Peloton blindé", en = "Armour platoon" },
+  ["campaign.shop.refused_upgrades_full"] = {
+    fr = "la zone a déjà ses %d renforts achetés",
+    en = "the zone already holds its %d bought upgrades",
+  },
+  ["campaign.shop.refused_upgrade_once"] = {
+    fr = "une seule par zone, et celle-ci en a déjà une",
+    en = "one per zone, and this zone has one already",
+  },
+  ["campaign.shop.refused_placed"] = {
+    fr = "aucune place pour l'installer dans la zone",
+    en = "no room for it in the zone",
+  },
   ["campaign.task.intercept"] = {
     fr = "Intercepter les bombardiers vers %s (%d cr.)",
     en = "Intercept the bombers heading for %s (%d cr.)",

@@ -786,6 +786,272 @@ function TestCampaignShop:test_credits_survive_a_restart()
 end
 
 -- ---------------------------------------------------------------------------
+-- Zone upgrades (FEAT-CAMPAIGN-SHOP-UPGRADES 01)
+-- ---------------------------------------------------------------------------
+TestCampaignUpgrades = {}
+
+--- The groups of veaf-units.yaml the upgrades are taken from, as `veafUnits.findGroup` hands them back.
+local UPGRADE_GROUPS = {
+  hawk = { "Hawk ln", "Hawk ln", "Hawk sr", "Hawk tr", "M 818" },
+  nasams = { "NASAMS_LN_C", "NASAMS_Radar_MPQ64F1" },
+  patriot = { "Patriot ln", "Patriot str" },
+  avenger_squad = { "M1097 Avenger", "M 818" },
+}
+
+local function processed(types, name)
+  local group = { units = {}, groupName = name }
+  for _, typeName in ipairs(types) do
+    table.insert(group.units, { typeName = typeName })
+  end
+  return group
+end
+
+function TestCampaignUpgrades:setUp()
+  setUpSuite(self)
+  self.savedUpgrades = {
+    findGroup = veafUnits.findGroup,
+    processGroup = veafUnits.processGroup,
+    infantry = veafCasMission.generateInfantryGroup,
+    armor = veafCasMission.generateArmorPlatoon,
+    placeGarrisonGroup = veafCampaign.placeGarrisonGroup,
+    era = veaf.config.era,
+  }
+  local this = self
+  self.found = {}
+  veafUnits.findGroup = function(alias)
+    table.insert(this.found, alias)
+    return UPGRADE_GROUPS[alias] and processed(UPGRADE_GROUPS[alias], alias)
+  end
+  veafUnits.processGroup = function(definition)
+    local types = {}
+    for _, unit in ipairs(definition.units) do
+      table.insert(types, unit.typeName or unit[1])
+    end
+    return processed(types, definition.groupName)
+  end
+  veafCasMission.generateInfantryGroup = function(name)
+    return { units = { { "Soldier M4" }, { "Soldier M4" }, { "M 818" } }, groupName = name }
+  end
+  veafCasMission.generateArmorPlatoon = function(name)
+    return { units = { { "M-1 Abrams" }, { "M-2 Bradley" } }, groupName = name }
+  end
+  veafCampaign.placeGarrisonGroup = function(definition, center, _, units)
+    for index, unit in ipairs(definition.units) do
+      table.insert(units, { typeName = unit.typeName, spawnPoint = { x = center.x + 30 * index, y = 0, z = center.z + 40 }, hdg = 0 })
+    end
+  end
+  start({ economy = { start_credits = 100000 }, air = {} })
+end
+
+function TestCampaignUpgrades:tearDown()
+  local s = self.savedUpgrades
+  veafUnits.findGroup, veafUnits.processGroup = s.findGroup, s.processGroup
+  veafCasMission.generateInfantryGroup, veafCasMission.generateArmorPlatoon = s.infantry, s.armor
+  veafCampaign.placeGarrisonGroup, veaf.config.era = s.placeGarrisonGroup, s.era
+  tearDownSuite(self)
+end
+
+local function upgradeGroupNamed(zone, name)
+  for _, group in ipairs(zone.entry.garrison) do
+    if group.name == name then
+      return group
+    end
+  end
+  return nil
+end
+
+function TestCampaignUpgrades:test_a_bought_battery_joins_the_zone_s_garrison_at_its_spawn_price()
+  local kobuleti = veafCampaign.zones["Kobuleti"]
+  local price = veafCampaign.unitsPrice(UPGRADE_GROUPS.hawk) * 6 -- economy.credits_per_point
+  luaunit.assertEquals(veafCampaignEconomy.upgradePrice("hawk"), price)
+  luaunit.assertTrue(veafCampaignEconomy.buyUpgrade({ "hawk", "Kobuleti" }))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 100000 - price)
+  local group = upgradeGroupNamed(kobuleti, "Kobuleti upgrade 1 hawk")
+  luaunit.assertNotNil(group)
+  luaunit.assertEquals(group.upgrade, "hawk")
+  luaunit.assertEquals(#group.units, 5)
+  luaunit.assertEquals(group.units[1].type, "Hawk ln")
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("Hawk battery"), 1)
+end
+
+function TestCampaignUpgrades:test_the_battery_is_in_the_world_at_once_when_its_zone_is_awake_in_its_record_when_asleep()
+  local kobuleti = veafCampaign.zones["Kobuleti"]
+  kobuleti:sleep("test")
+  dcs_mocks.groupsAdded = {}
+  veafCampaignEconomy.buyUpgrade({ "hawk", "Kobuleti" })
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 0, "asleep: recorded only")
+  kobuleti:wake()
+  while kobuleti.wakeQueue do
+    kobuleti:continueSpawning()
+  end
+  local names = {}
+  for _, call in ipairs(dcs_mocks.groupsAdded) do
+    table.insert(names, call.group.name)
+  end
+  luaunit.assertEquals(names, { "Kobuleti garrison", "Kobuleti upgrade 1 hawk" }, "it wakes with the zone")
+  dcs_mocks.groupsAdded = {}
+  veafCampaignEconomy.buyUpgrade({ "gepard", "Kobuleti" })
+  luaunit.assertEquals(#dcs_mocks.groupsAdded, 1, "awake: in the world at once")
+  luaunit.assertEquals(dcs_mocks.groupsAdded[1].group.name, "Kobuleti upgrade 2 gepard")
+  luaunit.assertEquals(#dcs_mocks.groupsAdded[1].group.units, 4)
+end
+
+function TestCampaignUpgrades:test_the_battery_is_saved_reinforced_and_lost_with_the_zone()
+  local kobuleti = veafCampaign.zones["Kobuleti"]
+  veafCampaignEconomy.buyUpgrade({ "nasams", "Kobuleti" })
+  local saved = veafCampaign.stateTable().zones["Kobuleti"].garrison
+  luaunit.assertEquals(saved[#saved].name, "Kobuleti upgrade 1 nasams")
+  -- reinforced at its spawn price, as the rest of the garrison
+  kobuleti.entry.garrison[1].units[1].alive = true
+  local group = upgradeGroupNamed(kobuleti, "Kobuleti upgrade 1 nasams")
+  group.units[1].alive = false
+  luaunit.assertTrue(kobuleti:reinforce())
+  luaunit.assertTrue(group.units[1].alive)
+  -- lost with the zone
+  kobuleti:becomeNeutral()
+  luaunit.assertEquals(#kobuleti:upgrades(), 0)
+end
+
+function TestCampaignUpgrades:test_a_third_upgrade_on_a_zone_is_refused_and_free()
+  luaunit.assertTrue(veafCampaignEconomy.buyUpgrade({ "infantry", "Kobuleti" }))
+  luaunit.assertTrue(veafCampaignEconomy.buyUpgrade({ "armor", "Kobuleti" }))
+  local credits = veafCampaignEconomy.credits
+  luaunit.assertFalse(veafCampaignEconomy.buyUpgrade({ "avenger", "Kobuleti" }))
+  luaunit.assertEquals(veafCampaignEconomy.credits, credits)
+  luaunit.assertEquals(#veafCampaign.zones["Kobuleti"]:upgrades(), 2)
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("already holds its 2 bought upgrades"), 1)
+end
+
+function TestCampaignUpgrades:test_the_limit_per_zone_is_a_setting()
+  veafCampaign.data.dynamic.economy.upgrades_per_zone = 1
+  luaunit.assertTrue(veafCampaignEconomy.buyUpgrade({ "infantry", "Kobuleti" }))
+  luaunit.assertFalse(veafCampaignEconomy.buyUpgrade({ "armor", "Kobuleti" }))
+end
+
+function TestCampaignUpgrades:test_a_second_patriot_on_a_zone_is_refused()
+  veafCampaign.data.dynamic.economy.upgrades_per_zone = 3
+  luaunit.assertTrue(veafCampaignEconomy.buyUpgrade({ "patriot", "Kobuleti" }))
+  local credits = veafCampaignEconomy.credits
+  luaunit.assertFalse(veafCampaignEconomy.buyUpgrade({ "patriot", "Kobuleti" }))
+  luaunit.assertEquals(veafCampaignEconomy.credits, credits)
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("one per zone"), 1)
+  luaunit.assertTrue(veafCampaignEconomy.buyUpgrade({ "hawk", "Kobuleti" }), "another upgrade still fits")
+end
+
+function TestCampaignUpgrades:test_an_upgrade_is_for_the_players_zones_only()
+  luaunit.assertFalse(veafCampaignEconomy.buyUpgrade({ "hawk", "Senaki" }))
+  luaunit.assertFalse(veafCampaignEconomy.buyUpgrade({ "hawk", "Poti" }))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 100000)
+end
+
+function TestCampaignUpgrades:test_too_expensive_is_refused_and_free()
+  veafCampaignEconomy.credits = 10
+  luaunit.assertFalse(veafCampaignEconomy.buyUpgrade({ "hawk", "Kobuleti" }))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 10)
+  luaunit.assertEquals(#veafCampaign.zones["Kobuleti"]:upgrades(), 0)
+end
+
+function TestCampaignUpgrades:test_a_group_that_cannot_be_placed_costs_nothing()
+  veafCampaign.placeGarrisonGroup = function() end
+  luaunit.assertFalse(veafCampaignEconomy.buyUpgrade({ "hawk", "Kobuleti" }))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 100000)
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("no room for it"), 1)
+end
+
+function TestCampaignUpgrades:test_the_price_shown_is_the_group_placed_and_economy_prices_wins()
+  -- drawn once: the menu's price and the purchase place the same units
+  veafCampaignEconomy.upgradePrice("hawk")
+  veafCampaignEconomy.buyUpgrade({ "hawk", "Kobuleti" })
+  local hawks = 0
+  for _, alias in ipairs(self.found) do
+    hawks = hawks + (alias == "hawk" and 1 or 0)
+  end
+  luaunit.assertEquals(hawks, 1)
+  veafCampaign.data.dynamic.economy.prices = { hawk = 2000 }
+  luaunit.assertEquals(veafCampaignEconomy.upgradePrice("hawk"), 2000)
+end
+
+function TestCampaignUpgrades:test_the_upgrades_offered_follow_the_era()
+  local function ids()
+    local list = {}
+    for _, upgrade in ipairs(veafCampaignEconomy.availableUpgrades()) do
+      table.insert(list, upgrade.id)
+    end
+    return list
+  end
+  veaf.config.era = veaf.ERA.MODERN
+  luaunit.assertEquals(ids(), { "hawk", "nasams", "patriot", "avenger", "gepard", "infantry", "armor" })
+  veaf.config.era = veaf.ERA.COLD_WAR
+  luaunit.assertEquals(ids(), { "hawk", "gepard", "infantry", "armor" })
+  veaf.config.era = veaf.ERA.WW2
+  luaunit.assertEquals(ids(), { "infantry", "armor" })
+end
+
+-- ---------------------------------------------------------------------------
+-- CAS and SEAD flights (FEAT-CAMPAIGN-SHOP-UPGRADES 02)
+-- ---------------------------------------------------------------------------
+TestCampaignShopFlights = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+local function startWithFlights()
+  start({
+    economy = { start_credits = 2000 },
+    air = { red = { cap = AIRCRAFT }, blue = { cap = AIRCRAFT, cas = AIRCRAFT, sead = AIRCRAFT } },
+  })
+end
+
+function TestCampaignShopFlights:test_a_cas_bought_takes_off_from_our_airfield_and_strikes_the_zone()
+  startWithFlights()
+  luaunit.assertTrue(veafCampaignEconomy.buy({ "cas", "Senaki" }))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 1500)
+  local flight = self.flights[1]
+  luaunit.assertEquals(flight.role, "campaign_strike")
+  luaunit.assertEquals(flight.params.task, "CAS")
+  luaunit.assertEquals(flight.params.target.x, 100000)
+  luaunit.assertEquals(flight.params.targetTypes, { "Ground Units" })
+  luaunit.assertEquals(flight.params.airdromeId, 24) -- Kobuleti
+  luaunit.assertStrContains(flight.group.name, "blue cas Kobuleti")
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("CAS flight: leaving Kobuleti for Senaki"), 1)
+end
+
+function TestCampaignShopFlights:test_a_sead_bought_engages_the_zone_s_air_defence()
+  startWithFlights()
+  luaunit.assertTrue(veafCampaignEconomy.buy({ "sead", "Senaki" }))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 1400)
+  luaunit.assertEquals(self.flights[1].params.task, "SEAD")
+  luaunit.assertEquals(self.flights[1].params.targetTypes, { "Air Defence" })
+end
+
+function TestCampaignShopFlights:test_one_flight_of_each_kind_in_the_air_at_a_time()
+  startWithFlights()
+  luaunit.assertTrue(veafCampaignEconomy.buy({ "sead", "Senaki" }))
+  luaunit.assertFalse(veafCampaignEconomy.buy({ "sead", "Zugdidi" }))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 1400, "refused, nothing charged")
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("already in the air"), 1)
+  luaunit.assertTrue(veafCampaignEconomy.buy({ "cas", "Zugdidi" }), "the other kind is free")
+  -- the SEAD down, another one may go (once past the grace a flight just spawned is given to appear)
+  dcs_mocks.removeGroup(self.flights[1].group.name)
+  dcs_mocks.advanceTime(veafCampaignOps.FLIGHT_GRACE)
+  luaunit.assertTrue(veafCampaignEconomy.buy({ "sead", "Zugdidi" }))
+end
+
+function TestCampaignShopFlights:test_no_airfield_to_leave_from_is_refused_and_free()
+  local campaignData = data({ economy = { start_credits = 2000 }, air = { blue = { cas = AIRCRAFT } } })
+  campaignData.zones[1].airbase = nil
+  veafCampaign.data = campaignData
+  veafCampaign.initialize()
+  luaunit.assertFalse(veafCampaignEconomy.buy({ "cas", "Senaki" }))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 2000)
+  luaunit.assertEquals(#self.flights, 0)
+end
+
+function TestCampaignShopFlights:test_a_flight_is_for_an_enemy_zone_only()
+  startWithFlights()
+  luaunit.assertFalse(veafCampaignEconomy.buy({ "cas", "Kobuleti" }))
+  luaunit.assertFalse(veafCampaignEconomy.buy({ "sead", "Poti" }))
+  luaunit.assertEquals(#self.flights, 0)
+end
+
+-- ---------------------------------------------------------------------------
 -- Task board
 -- ---------------------------------------------------------------------------
 TestCampaignTasks = { setUp = setUpSuite, tearDown = tearDownSuite }

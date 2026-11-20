@@ -1437,18 +1437,29 @@ function veafCampaignOps.launchStrike(side, now)
   end
   veafCampaign.forgetTold(key)
   veafCampaign.debug("DECISION", "%s %s strike on [%s] from [%s]", side, role, target.name, origin.name)
-  local airbase = Airbase.getByName(origin.entry.airbase)
   veafCampaignOps.paidSortie(side, veafCampaignOps.flightPrice(side, role), "a " .. role .. " strike", function()
-    veafCampaign.keepAwake(target, veafCampaignOps.STRIKE_ORBIT_SECONDS * 3)
-    return veafCampaignOps.spawnFlight(side, role, origin, "campaign_strike", {
-      target = target:getCenter(),
-      radius = target.entry.radius or 2000,
-      targetTypes = veafCampaignOps.STRIKE_TARGETS[role],
-      airdromeId = airbase and airbase:getID(),
-      home = origin:getCenter(),
-      task = role == "sead" and "SEAD" or "CAS",
-    }, veafCampaignOps.STRIKE_ALTITUDE)
+    return veafCampaignOps.spawnStrike(side, role, target, origin)
   end)
+end
+
+--- Spawn a CAS or SEAD strike of a side on a zone, from an airfield zone: the AI's strikes, and the ones the players
+--- buy in the shop (FEAT-CAMPAIGN-SHOP-UPGRADES 02). The target is kept awake while the strike flies.
+--- @param side string
+--- @param role string "cas" or "sead"
+--- @param target table the zone struck
+--- @param origin table the airfield zone the flight leaves from
+--- @return string|nil the flight's group name
+function veafCampaignOps.spawnStrike(side, role, target, origin)
+  local airbase = Airbase.getByName(origin.entry.airbase)
+  veafCampaign.keepAwake(target, veafCampaignOps.STRIKE_ORBIT_SECONDS * 3)
+  return veafCampaignOps.spawnFlight(side, role, origin, "campaign_strike", {
+    target = target:getCenter(),
+    radius = target.entry.radius or 2000,
+    targetTypes = veafCampaignOps.STRIKE_TARGETS[role],
+    airdromeId = airbase and airbase:getID(),
+    home = origin:getCenter(),
+    task = role == "sead" and "SEAD" or "CAS",
+  }, veafCampaignOps.STRIKE_ALTITUDE)
 end
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------

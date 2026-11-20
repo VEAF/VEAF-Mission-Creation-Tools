@@ -25,3 +25,4 @@ The integration branch is `feature/dynamic-campaign`: one branch and one pull re
 | 02 | [NASAMS and Patriot priced like Foothold's](tickets/02-nasams-and-patriot-prices.md) (b) |
 | 03 | [An evening's balance: earned and spent](tickets/03-earned-and-spent-balance.md) (c) |
 | 04 | [An economy simulator to test the balance](tickets/04-economy-simulator.md) (David, 2026-11-20, after Iron Gall's pacing report) |
+| 05 | [One price rule, fixed at its source](tickets/05-one-price-rule.md) (David, 2026-11-20, option a; replaces ticket 02's hand prices) |

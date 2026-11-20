@@ -405,10 +405,20 @@ F10 → Autres → VEAF → Campagne → Boutique → **Renforcer une zone** →
 - Une zone tient `economy.upgrades_per_zone` (2) renforts achetés ; la boutique refuse le suivant, et une deuxième batterie Patriot sur la même zone, en disant pourquoi. Un achat refusé ne coûte rien.
 - Un renfort coûte le prix de ses unités au [spawn payant](#paid-spawns), en crédits (`economy.credits_per_point`, 6) : une batterie Hawk coûte ce que coûte son spawn.
   Sa composition est tirée une fois par mission, si bien que le prix du menu est celui du groupe posé.
-  Au 20/11/2026, avec les prix des unités par défaut : Hawk vers 2 250 crédits, Avenger 162, Gepard 156, infanterie et blindés de quelques dizaines à 250 environ.
-- Sauf la batterie NASAMS, à 2 000 crédits, et la batterie Patriot, à 5 000 : les prix de Foothold.
-  Au prix de leurs unités, elles coûtaient vers 700 et 950 crédits, moins qu'un Hawk, parce que leurs lanceurs sont comptés comme des canons (8 points) : seuls leurs radars ont l'attribut SAM.
-- `economy.prices` fixe le prix d'un renfort à la main, NASAMS et Patriot compris.
+- Les [prix par type](#resources) des éléments de SAM mettent les renforts de défense aérienne près des prix de Foothold (20/11/2026, sur 8 tirages) :
+
+  | Renfort | Prix | Foothold |
+  |---|---|---|
+  | Batterie Hawk | 1 970 à 2 030 | 2 000 |
+  | Batterie NASAMS | 1 980, ou 2 970 quand son groupe tire un second Avenger | 2 000 |
+  | Batterie Patriot | 4 960 à 5 060 | 5 000 |
+  | Section Avenger | 1 000 | 1 000 |
+  | Section Gepard | 750 | 750 |
+  | Section d'infanterie | 40 à 60 | 500 |
+  | Peloton blindé | 70 à 145 | 1 000 |
+
+  L'infanterie et les blindés restent au prix de leurs unités : les amener aux prix de Foothold multiplierait par 7 à 10 le prix des fantassins et des blindés, donc celui des garnisons, des convois et des renforts du rouge.
+- `economy.prices` fixe le prix d'un renfort à la main.
 - `dcs.log` dit chaque achat (`bought the upgrade [hawk] for [Hatay]`, et `[CAMPAIGN SHOP]` avec le [journal de mise au point](#debug-log)).
 
 ### Tester l'équilibrage sans serveur {#economy-simulator}
@@ -506,13 +516,35 @@ Ces trois valeurs ont été relevées après le premier soir joué : avec 500, 3
 | artillerie | 5 |
 | AAA, défense courte portée | 8 |
 | SAM courte portée | 25 |
-| élément de SAM moyenne ou longue portée | 40 |
+| élément de SAM moyenne ou longue portée (attribut `MR SAM` ou `LR SAM`) | 40 |
+| lanceur de SAM (attribut `SAM LL`) | 15 |
+| poste de commande de SAM (attribut `SAM CC`) | 10 |
 | hélicoptère | 15 |
 | avion | 30 |
 | bombardier | 100 |
 | tout le reste | 5 |
 
-`resources.prices` change le prix d'un type : `{ "T-72B": 7 }`.
+Jusqu'au 20/11/2026, un lanceur et un poste de commande de SAM étaient comptés comme des canons (8 points) : une batterie Patriot coûtait moins qu'une batterie Hawk.
+Un lanceur ne porte pas la portée de son système : un lanceur Patriot et un lanceur Hawk ont le même attribut, `SAM LL`.
+Les éléments que les attributs ne distinguent pas ont donc un prix par type (`veafCampaign.TYPE_PRICES`), qui met les renforts de la boutique près des prix de Foothold :
+
+| Type | Points | Pourquoi |
+|---|---|---|
+| `M1097 Avenger` | 165 | la section Avenger, un Avenger et un camion : 1 000 crédits |
+| `Gepard` | 41 | la section Gepard, trois Gepard et un camion : 750 crédits |
+| `Hawk sr`, `Hawk cwar`, `Hawk tr` | 14 | le groupe `hawk`, six radars, neuf lanceurs, un poste, un Avenger, des Vulcan et des camions : 2 000 crédits, Avenger compris |
+| `Hawk ln` | 5 | idem |
+| `NASAMS_LN_B`, `NASAMS_LN_C` | 28 | le groupe `nasams`, un radar (40), un poste, quatre lanceurs, un Avenger et des camions : 2 000 crédits |
+| `Patriot str` | 93 | le groupe `patriot`, un radar, quatre postes, huit lanceurs, des Vulcan et des camions : 5 000 crédits |
+| `Patriot ln` | 85 | idem |
+| lanceurs S-300 (`S-300PS 5P85C ln`, `5P85D ln`) | 85 | le système longue portée rouge, comme le Patriot |
+| radars S-300 (`40B6M tr`, `5H63C 30H6_tr`, `64H6E sr`, `40B6MD sr`, `40B6MD sr_19J6`) | 93 | idem |
+
+Le SA-11 n'en a pas besoin : son lanceur et son radar portent `MR SAM` (40 points), son poste `SAM CC` (10).
+Les Strela, Tor, Osa, Tunguska et Shilka du rouge gardent leur prix (25 et 8).
+Ce prix vaut partout : la boutique, les spawns payants des joueurs (un `-sam` Patriot ou NASAMS coûte autant que le renfort), les garnisons et les renforts de l'IA.
+
+`resources.prices` change le prix d'un type : `{ "T-72B": 7 }`, et l'emporte sur ces deux tables.
 La défense sol-air a été renchérie le 19/11/2026 (de 4, 8 et 15) : un Tor perdu valait à peu près un BMP, et une sortie SEAD 25 Tor. Une garnison d'aérodrome tirée au hasard coûte désormais 190 points en moyenne (370 au plus), une d'avant-poste 130 (210 au plus), contre 100 et 75 avant ; une garnison que le camp ne peut pas payer est remplacée par une garnison symbolique.
 Ce sont des valeurs de départ, qui se régleront sur un serveur : une usine paie à peu près une contre-attaque et une CAP par heure.
 

@@ -3,6 +3,8 @@
 Status: ✅ done (in-game check pending)
 Type: fix
 
+> **Superseded by [ticket 05](05-one-price-rule.md)** (2026-11-20): the hand prices below are gone; the NASAMS and the Patriot reach Foothold's prices at their spawn price, the SAM launchers priced as SAMs.
+
 ## Decided
 
 David, 2026-11-20 (b): the NASAMS at Foothold's 2,000 credits, as the Patriot at 5,000.

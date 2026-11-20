@@ -405,10 +405,20 @@ F10 → Other → VEAF → Campaign → Shop → **Zone upgrades** → one of ou
 - A zone holds `economy.upgrades_per_zone` (2) bought upgrades; the shop refuses the next one, and a second Patriot battery on the same zone, saying why. A refused purchase costs nothing.
 - An upgrade costs its units' [paid spawn](#paid-spawns) price, in credits (`economy.credits_per_point`, 6): a Hawk battery costs what spawning it costs.
   Its composition is drawn once a mission, so the menu's price is the group placed.
-  On 2026-11-20, with the default unit prices: Hawk about 2,250 credits, Avenger 162, Gepard 156, infantry and armour a few tens to about 250.
-- Except the NASAMS battery, at 2,000 credits, and the Patriot battery, at 5,000: Foothold's prices.
-  At their units' price they came to about 700 and 950 credits, less than a Hawk, because their launchers count as guns (8 points): only their radars have the SAM attribute.
-- `economy.prices` sets an upgrade's price by hand, the NASAMS and the Patriot included.
+- The [per-type prices](#resources) of the SAM elements put the air defence upgrades near Foothold's prices (2026-11-20, over 8 draws):
+
+  | Upgrade | Price | Foothold |
+  |---|---|---|
+  | Hawk battery | 1,970 to 2,030 | 2,000 |
+  | NASAMS battery | 1,980, or 2,970 when its group draws a second Avenger | 2,000 |
+  | Patriot battery | 4,960 to 5,060 | 5,000 |
+  | Avenger section | 1,000 | 1,000 |
+  | Gepard section | 750 | 750 |
+  | Infantry section | 40 to 60 | 500 |
+  | Armour platoon | 70 to 145 | 1,000 |
+
+  Infantry and armour stay at their units' price: bringing them to Foothold's would multiply the price of soldiers and armour 7 to 10 times, and so red's garrisons, convoys and reinforcements.
+- `economy.prices` sets an upgrade's price by hand.
 - `dcs.log` tells each purchase (`bought the upgrade [hawk] for [Hatay]`, and `[CAMPAIGN SHOP]` with the [debugging log](#debug-log)).
 
 ### Testing the balance without a server {#economy-simulator}
@@ -506,13 +516,35 @@ These three values were raised after the first evening flown: with 500, 30 and 1
 | artillery | 5 |
 | AAA, short-range air defence | 8 |
 | short-range SAM | 25 |
-| medium- or long-range SAM element | 40 |
+| medium- or long-range SAM element (attribute `MR SAM` or `LR SAM`) | 40 |
+| SAM launcher (attribute `SAM LL`) | 15 |
+| SAM command post (attribute `SAM CC`) | 10 |
 | helicopter | 15 |
 | aeroplane | 30 |
 | bomber | 100 |
 | anything else | 5 |
 
-`resources.prices` changes a type's price: `{ "T-72B": 7 }`.
+Until 2026-11-20 a SAM launcher and a SAM command post counted as guns (8 points): a Patriot battery cost less than a Hawk battery.
+A launcher does not carry its system's range: a Patriot launcher and a Hawk launcher have the same attribute, `SAM LL`.
+The elements the attributes cannot tell apart therefore have a price by type (`veafCampaign.TYPE_PRICES`), which puts the shop's upgrades near Foothold's prices:
+
+| Type | Points | Why |
+|---|---|---|
+| `M1097 Avenger` | 165 | the Avenger section, one Avenger and a lorry: 1,000 credits |
+| `Gepard` | 41 | the Gepard section, three Gepards and a lorry: 750 credits |
+| `Hawk sr`, `Hawk cwar`, `Hawk tr` | 14 | the `hawk` group, six radars, nine launchers, a command post, an Avenger, Vulcans and lorries: 2,000 credits, its Avenger included |
+| `Hawk ln` | 5 | the same |
+| `NASAMS_LN_B`, `NASAMS_LN_C` | 28 | the `nasams` group, a radar (40), a command post, four launchers, an Avenger and lorries: 2,000 credits |
+| `Patriot str` | 93 | the `patriot` group, a radar, four command posts, eight launchers, Vulcans and lorries: 5,000 credits |
+| `Patriot ln` | 85 | the same |
+| S-300 launchers (`S-300PS 5P85C ln`, `5P85D ln`) | 85 | red's long-range system, as the Patriot |
+| S-300 radars (`40B6M tr`, `5H63C 30H6_tr`, `64H6E sr`, `40B6MD sr`, `40B6MD sr_19J6`) | 93 | the same |
+
+The SA-11 needs none: its launcher and its radar carry `MR SAM` (40 points), its command post `SAM CC` (10).
+Red's Strela, Tor, Osa, Tunguska and Shilka keep their price (25 and 8).
+This price holds everywhere: the shop, the players' paid spawns (a Patriot or NASAMS `-sam` costs as much as the upgrade), the AI's garrisons and reinforcements.
+
+`resources.prices` changes a type's price: `{ "T-72B": 7 }`, and wins over both tables.
 Air defence was made dearer on 2026-11-19 (from 4, 8 and 15): a lost Tor was worth about a BMP, and one SEAD sortie 25 Tor. A randomly drawn airfield garrison now costs 190 points on average (370 at most), an outpost's 130 (210 at most), against 100 and 75 before; a garrison the side cannot pay for is replaced by a token one.
 These are starting values, to be tuned on a server: one factory pays for about one counter-attack and one CAP an hour.
 

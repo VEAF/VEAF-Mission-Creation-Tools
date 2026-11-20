@@ -49,13 +49,12 @@ veafCampaignEconomy.PRICES = {
 --- which joins its garrison. Each is a group of veaf-units.yaml (`group`), or drawn as the garrison draws its own
 --- (`draw`), or a list of DCS types (`units`); `eras` the eras it is offered in, all of them when absent; `once` at
 --- most one per zone. Service dates as `veafCasMission.LONG_RANGE_AIR_DEFENSE_GROUPS` takes them, the 1980 reference
---- for the cold war: no Patriot (1984), NASAMS or Avenger then. Its price is `price` when it has one, else its units'
---- spawn price, in credits. The NASAMS and the Patriot take Foothold's prices (FIX-CAMPAIGN-ECONOMY-BALANCE 02): only
---- their radars carry a SAM attribute, their launchers price as guns, and a Patriot battery came to about 950 credits.
+--- for the cold war: no Patriot (1984), NASAMS or Avenger then. Its price is its units' spawn price, in credits: one
+--- rule (FIX-CAMPAIGN-ECONOMY-BALANCE 05), which `veafCampaign.TYPE_PRICES` sets near Foothold's prices.
 veafCampaignEconomy.UPGRADES = {
   { id = "hawk", group = "hawk", eras = { veaf.ERA.COLD_WAR, veaf.ERA.MODERN } },
-  { id = "nasams", group = "nasams", eras = { veaf.ERA.MODERN }, price = 2000 },
-  { id = "patriot", group = "patriot", eras = { veaf.ERA.MODERN }, once = true, price = 5000 },
+  { id = "nasams", group = "nasams", eras = { veaf.ERA.MODERN } },
+  { id = "patriot", group = "patriot", eras = { veaf.ERA.MODERN }, once = true },
   { id = "avenger", group = "avenger_squad", eras = { veaf.ERA.MODERN } },
   -- veaf-units.yaml has no group of its own for the Gepard: the platoon the blue air defence groups carry
   { id = "gepard", units = { "Gepard", "Gepard", "Gepard", "M 818" }, eras = { veaf.ERA.COLD_WAR, veaf.ERA.MODERN } },
@@ -1170,8 +1169,8 @@ function veafCampaignEconomy.upgradeOffer(upgradeId)
   return offer
 end
 
---- What an upgrade costs: its `economy.prices` entry, else its own `price`, else its units' spawn price in credits —
---- a Hawk battery costs what spawning one costs, and the two never drift apart.
+--- What an upgrade costs: its `economy.prices` entry, else its units' spawn price in credits — a Hawk battery costs
+--- what spawning one costs, and the two never drift apart.
 --- @param upgradeId string
 --- @return number|nil credits; nil when the upgrade cannot be had
 function veafCampaignEconomy.upgradePrice(upgradeId)
@@ -1182,10 +1181,6 @@ function veafCampaignEconomy.upgradePrice(upgradeId)
   local offer = veafCampaignEconomy.upgradeOffer(upgradeId)
   if not offer then
     return nil
-  end
-  local upgrade = upgradeOf(upgradeId)
-  if upgrade.price then
-    return upgrade.price
   end
   local types = {}
   for _, unit in ipairs(offer.units) do

@@ -88,10 +88,6 @@ REWARDS: dict[str, int] = {
     "capture": 200,
 }
 
-#: The zone upgrades with a price of their own rather than their units' spawn price: the `price` of
-#: `veafCampaignEconomy.UPGRADES`, which a test reads back from the Lua (FIX-CAMPAIGN-ECONOMY-BALANCE 02).
-UPGRADE_PRICES: dict[str, int] = {"nasams": 2000, "patriot": 5000}
-
 #: The groups bought in the shop a zone holds at most when `economy.upgrades_per_zone` does not say:
 #: `veafCampaign.DYNAMIC_DEFAULTS.economy.upgrades_per_zone`.
 UPGRADES_PER_ZONE = 2
@@ -141,8 +137,8 @@ def shop_prices(campaign: CampaignDefinition) -> dict[str, int]:
 def shop_lines(campaign: CampaignDefinition) -> list[str]:
     """The shop as the player's guide lists it: each item with its price, then the zone upgrades.
 
-    The upgrades' prices are mostly their units' spawn price, drawn in game: the guide gives the rule, the limit, and
-    the NASAMS's and the Patriot's own prices.
+    The upgrades' prices are their units' spawn price, drawn in game: the guide gives the rule, the limit, and what
+    the air defence upgrades come to with the default unit prices (FIX-CAMPAIGN-ECONOMY-BALANCE 05).
 
     Args:
         campaign: The campaign, its `economy` settings read.
@@ -152,14 +148,12 @@ def shop_lines(campaign: CampaignDefinition) -> list[str]:
     """
     economy = campaign.dynamic.get("economy") or {}
     limit = economy.get("upgrades_per_zone", UPGRADES_PER_ZONE)
-    overrides = economy.get("prices") or {}
-    batteries = {key: int(overrides.get(key, price)) for key, price in UPGRADE_PRICES.items()}
     lines = [
         t("campaign.dossier.guide.price", item=t(f"campaign.dossier.shop.{item}"), price=price)
         for item, price in shop_prices(campaign).items()
         if item in SHOP_PRICES  # an upgrade's entry of `economy.prices` is not a shop item of its own
     ]
-    lines.append(t("campaign.dossier.guide.upgrades", limit=limit, **batteries))
+    lines.append(t("campaign.dossier.guide.upgrades", limit=limit))
     return lines
 
 

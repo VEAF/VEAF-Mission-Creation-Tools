@@ -365,6 +365,31 @@ function TestCampaignResources:test_a_unit_is_priced_by_what_it_is()
   luaunit.assertEquals(veafCampaign.unitPrice("not a unit"), 5)
 end
 
+-- FIX-CAMPAIGN-ECONOMY-BALANCE 05: a SAM launcher (`SAM LL`) and a command post (`SAM CC`) priced as guns made a
+-- Patriot battery cost less than a Hawk
+function TestCampaignResources:test_a_sam_launcher_and_a_command_post_are_not_guns()
+  start()
+  luaunit.assertEquals(veafCampaign.unitPrice("Kub 2P25 ln"), veafCampaign.UNIT_PRICES.sam_launcher)
+  luaunit.assertEquals(veafCampaign.unitPrice("S-300PS 54K6 cp"), veafCampaign.UNIT_PRICES.sam_command)
+  luaunit.assertEquals(veafCampaign.unitPrice("Patriot ECS"), veafCampaign.UNIT_PRICES.sam_command)
+  -- red's short-range air defence and its guns keep their price
+  luaunit.assertEquals(veafCampaign.unitPrice("Strela-10M3"), 25)
+  luaunit.assertEquals(veafCampaign.unitPrice("Tor 9A331"), 25)
+  luaunit.assertEquals(veafCampaign.unitPrice("ZSU-23-4 Shilka"), 8)
+end
+
+function TestCampaignResources:test_the_sam_system_elements_have_a_price_of_their_type()
+  start()
+  for typeName, price in pairs(veafCampaign.TYPE_PRICES) do
+    luaunit.assertEquals(veafCampaign.unitPrice(typeName), price, typeName)
+    luaunit.assertNotNil(veafUnits.findDcsUnit(typeName), typeName .. " is a DCS type")
+  end
+  luaunit.assertEquals(veafCampaign.unitPrice("Patriot ln"), veafCampaign.TYPE_PRICES["Patriot ln"])
+  -- a campaign's resources.prices still wins
+  veafCampaign.data.dynamic.resources = { prices = { ["Patriot ln"] = 3 } }
+  luaunit.assertEquals(veafCampaign.unitPrice("Patriot ln"), 3)
+end
+
 function TestCampaignResources:test_a_price_set_by_type_wins()
   start({ resources = { prices = { ["T-72B"] = 9 } } })
   luaunit.assertEquals(veafCampaign.unitPrice("T-72B"), 9)

@@ -14,7 +14,6 @@ from campaign_manager.models import CampaignDefinition
 from campaign_manager.theatre_dossier import (
     REWARDS,
     SHOP_PRICES,
-    UPGRADE_PRICES,
     guide_blocks,
     shop_lines,
     theatre_dossier,
@@ -92,18 +91,15 @@ class TestTheDossier:
         ]
         assert dict((k, int(v)) for k, v in re.findall(r"(\w+) = (\d+)", block)) == SHOP_PRICES
 
-    def test_the_rewards_and_the_fixed_upgrade_prices_are_the_runtime_s(self) -> None:
-        # FIX-CAMPAIGN-ECONOMY-BALANCE: the guide quotes the rewards and the prices the game pays and asks
+    def test_the_rewards_are_the_runtime_s(self) -> None:
+        # FIX-CAMPAIGN-ECONOMY-BALANCE: the guide quotes the rewards the game pays
         campaign_lua = (_REPO / "src/scripts/veaf/veafCampaign.lua").read_text(encoding="utf-8")
         start = campaign_lua.index("  economy = {")
         block = campaign_lua[start : campaign_lua.index("\n  },", start)]
         defaults = {k: int(v) for k, v in re.findall(r"^\s+(\w+) = (\d+),", block, re.MULTILINE)}
         assert {key: defaults[key] for key in REWARDS} == REWARDS
-        economy_lua = (_REPO / "src/scripts/veaf/veafCampaignEconomy.lua").read_text(encoding="utf-8")
-        fixed = dict(re.findall(r'\{ id = "(\w+)",[^\n]*price = (\d+)', economy_lua))
-        assert {key: int(value) for key, value in fixed.items()} == UPGRADE_PRICES
 
-    def test_the_guide_gives_the_rewards_and_the_battery_prices(self) -> None:
+    def test_the_guide_gives_the_rewards_and_the_upgrades_prices(self) -> None:
         campaign = _campaign()
         with language("en"):
             whole = "\n".join(line for block in guide_blocks(campaign) for line in block.paragraphs)
@@ -111,13 +107,13 @@ class TestTheDossier:
             assert "aircraft 50" in whole
             assert "building of an enemy zone 100" in whole
             assert "brought back to the MASH 200" in whole
-            assert "NASAMS 2000" in whole and "Patriot 5000" in whole
-            economy = campaign.dynamic.setdefault("economy", {})
-            economy["kill_sam"] = 45
-            economy["prices"] = {"patriot": 6000}
+            assert "NASAMS 2,000" in whole and "Patriot 5,000" in whole
+            campaign.dynamic.setdefault("economy", {})["kill_sam"] = 45
             whole = "\n".join(line for block in guide_blocks(campaign) for line in block.paragraphs)
             assert "SAM 45" in whole
-            assert "Patriot 6000" in whole
+            # an upgrade's entry of economy.prices is not a shop item of its own
+            campaign.dynamic["economy"]["prices"] = {"patriot": 6000}
+            assert not any("patriot" in line for line in shop_lines(campaign))
 
     def test_the_shop_lists_the_flights_and_the_zone_upgrades(self) -> None:
         # FEAT-CAMPAIGN-SHOP-UPGRADES: the upgrades' prices are drawn in game, the guide gives their rule and limit

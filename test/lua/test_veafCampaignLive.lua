@@ -1144,12 +1144,17 @@ function TestCampaignUpgrades:test_the_price_shown_is_the_group_placed_and_econo
   luaunit.assertEquals(veafCampaignEconomy.upgradePrice("hawk"), 2000)
 end
 
--- FIX-CAMPAIGN-ECONOMY-BALANCE 02: their launchers price as guns, so their spawn price undervalues them
-function TestCampaignUpgrades:test_the_nasams_and_the_patriot_cost_foothold_s_prices()
-  luaunit.assertEquals(veafCampaignEconomy.upgradePrice("nasams"), 2000)
-  luaunit.assertEquals(veafCampaignEconomy.upgradePrice("patriot"), 5000)
+-- FIX-CAMPAIGN-ECONOMY-BALANCE 05: one rule, the spawn price; ticket 02's hand prices are gone
+function TestCampaignUpgrades:test_the_nasams_and_the_patriot_cost_their_units_spawn_price()
+  local nasams = veafCampaign.unitsPrice(UPGRADE_GROUPS.nasams) * 6 -- economy.credits_per_point
+  local patriot = veafCampaign.unitsPrice(UPGRADE_GROUPS.patriot) * 6
+  luaunit.assertEquals(veafCampaignEconomy.upgradePrice("nasams"), nasams)
+  luaunit.assertEquals(veafCampaignEconomy.upgradePrice("patriot"), patriot)
   luaunit.assertTrue(veafCampaignEconomy.buyUpgrade({ "patriot", "Kobuleti" }))
-  luaunit.assertEquals(veafCampaignEconomy.credits, 100000 - 5000)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 100000 - patriot)
+  for _, upgrade in ipairs(veafCampaignEconomy.UPGRADES) do
+    luaunit.assertNil(upgrade.price, upgrade.id)
+  end
   -- a campaign's economy.prices still wins
   veafCampaign.data.dynamic.economy.prices = { nasams = 1500 }
   luaunit.assertEquals(veafCampaignEconomy.upgradePrice("nasams"), 1500)

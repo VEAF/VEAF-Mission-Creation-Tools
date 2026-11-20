@@ -62,6 +62,27 @@ function TestCampaignEconomySim:test_red_pays_its_sead_for_most_of_the_first_hou
   luaunit.assertTrue(hour >= 0.75, string.format("red cannot pay a SEAD from %.2f h", hour))
 end
 
+-- FIX-CAMPAIGN-ECONOMY-BALANCE 05: the upgrades, drawn from the real groups of veaf-units.yaml and priced unit by unit,
+-- cost about Foothold's prices
+function TestCampaignEconomySim:test_the_upgrades_cost_about_foothold_s_prices()
+  local targets = { hawk = 2000, nasams = 2000, patriot = 5000, avenger = 1000, gepard = 750 }
+  local prices = {}
+  for seed = 1, SEEDS do
+    sim.run({ player = "average", strategy = "never", seed = seed, hours = 0 })
+    veafCampaignEconomy.offers = {}
+    veafCampaign.data.dynamic.economy.prices = {}
+    for id in pairs(targets) do
+      prices[id] = prices[id] or {}
+      table.insert(prices[id], veafCampaignEconomy.upgradePrice(id))
+    end
+  end
+  for id, target in pairs(targets) do
+    -- a drawn group varies: a NASAMS battery draws one Avenger, sometimes two (about 3,000 credits then)
+    local price = median(prices[id])
+    luaunit.assertTrue(price >= target * 0.9 and price <= target * 1.1, string.format("%s %d for %d", id, price, target))
+  end
+end
+
 function TestCampaignEconomySim:test_the_simulator_plays_the_real_campaign()
   local run = sim.run({ player = "average", strategy = "cheapest", seed = 1, hours = 1 })
   -- the kills reached the economy through the event handler, and red spent with its own decision code

@@ -1501,7 +1501,7 @@
   "campaign.dossier.guide.credits": "The coalition earns credits by kills, captures, resupplies and tasks. A kill pays {share} % when the pilot lands at a friendly base, FARP or carrier; that bonus is lost on an ejection or a crash.",
   "campaign.dossier.guide.rewards": "Rewards: ground unit {kill_ground}, SAM {kill_sam}, aircraft {kill_air}, building of an enemy zone {kill_building}, pilot rescued and brought back to the MASH {rescue}, zone captured {capture}.",
   "campaign.dossier.guide.shop_title": "Shop (F10 → Other → VEAF → Campaign → Shop)",
-  "campaign.dossier.guide.upgrades": "Zone upgrades: air defence, infantry or armour set down on one of our zones, joining its garrison, at their units' price, but NASAMS {nasams} and Patriot {patriot}; {limit} per zone, a single Patriot.",
+  "campaign.dossier.guide.upgrades": "Zone upgrades: air defence, infantry or armour set down on one of our zones, joining its garrison, at their units' price (about Hawk 2,000, NASAMS 2,000, Patriot 5,000, Avenger 1,000, Gepard 750 credits); {limit} per zone, a single Patriot.",
   "campaign.dossier.guide.tasks_title": "Tasks",
   "campaign.dossier.guide.tasks": "Three tasks at a time, drawn from the situation and marked on the map: attack, capture, resupply, air superiority, intercept the bombers.",
   "campaign.dossier.guide.intel_title": "Intelligence",

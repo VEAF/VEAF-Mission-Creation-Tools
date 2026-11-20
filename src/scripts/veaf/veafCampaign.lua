@@ -183,20 +183,61 @@ veafCampaign.UNIT_PRICES = {
   -- 25 of them; an estimate, to tune after an evening
   aaa = 8,
   sam_short = 25,
-  sam_long = 40,
+  sam_long = 40, -- a radar or a launcher that DCS says is a medium- or long-range SAM (`MR SAM`, `LR SAM`)
+  -- FIX-CAMPAIGN-ECONOMY-BALANCE 05: a launcher (`SAM LL`) and a command post (`SAM CC`) carry no range of their
+  -- own; they were priced as guns, which made a Patriot battery cost less than a Hawk
+  sam_launcher = 15,
+  sam_command = 10,
   helicopter = 15,
   plane = 30,
   bomber = 100,
   other = 5,
 }
 
---- What a unit type costs in resource points: its `resources.prices` entry, else its kind's price.
+--- What a SAM system's element costs, by DCS type, where its attributes cannot tell one system from another: a
+--- Patriot launcher and a Hawk launcher are both `SAM LL` and nothing more (FIX-CAMPAIGN-ECONOMY-BALANCE 05, David's
+--- option a, 2026-11-20). Set so that the shop's upgrades, drawn from veaf-units.yaml's groups and priced unit by
+--- unit at `economy.credits_per_point` (6), cost about Foothold's: Hawk 2,000, NASAMS 2,000, Patriot 5,000,
+--- Avenger 1,000, Gepard 750 credits. The same price everywhere: the shop, the players' VEAF spawns, the AI's
+--- garrisons and reinforcements. `resources.prices` still overrides a type.
+veafCampaign.TYPE_PRICES = {
+  -- the Avenger section is one Avenger and a lorry: 1,000 credits; the Hawk and NASAMS groups carry one too
+  ["M1097 Avenger"] = 165,
+  -- the Gepard section is three Gepards and a lorry: 750 credits
+  ["Gepard"] = 41,
+  -- the hawk group is six radars, nine launchers, a command post, an Avenger, Vulcans and lorries: 2,000 credits,
+  -- its Avenger included, leaves its radars and launchers cheaper than the medium-range SAM category's
+  ["Hawk sr"] = 14,
+  ["Hawk cwar"] = 14,
+  ["Hawk tr"] = 14,
+  ["Hawk ln"] = 5,
+  -- the nasams group is a radar (the category's 40), a command post, four launchers, an Avenger and lorries
+  ["NASAMS_LN_B"] = 28,
+  ["NASAMS_LN_C"] = 28,
+  -- the patriot group is a radar, four command posts, eight launchers, Vulcans and lorries: 5,000 credits
+  ["Patriot str"] = 93,
+  ["Patriot ln"] = 85,
+  -- red's long-range system, as the Patriot: its launchers are `SAM LL` only, its radars `LR SAM`
+  ["S-300PS 5P85C ln"] = 85,
+  ["S-300PS 5P85D ln"] = 85,
+  ["S-300PS 40B6M tr"] = 93,
+  ["S-300PS 5H63C 30H6_tr"] = 93,
+  ["S-300PS 64H6E sr"] = 93,
+  ["S-300PS 40B6MD sr"] = 93,
+  ["S-300PS 40B6MD sr_19J6"] = 93,
+}
+
+--- What a unit type costs in resource points: its `resources.prices` entry, else its `TYPE_PRICES` entry, else its
+--- kind's price.
 --- @param typeName string the DCS type
 --- @return number
 function veafCampaign.unitPrice(typeName)
   local override = (veafCampaign.setting("resources", "prices") or {})[typeName]
   if override then
     return override
+  end
+  if typeName and veafCampaign.TYPE_PRICES[typeName] then
+    return veafCampaign.TYPE_PRICES[typeName]
   end
   local prices = veafCampaign.UNIT_PRICES
   local unit = veafUnits and veafUnits.findDcsUnit and typeName and veafUnits.findDcsUnit(typeName)
@@ -214,6 +255,10 @@ function veafCampaign.unitPrice(typeName)
     return prices.sam_long
   elseif a["SR SAM"] or a["IR Guided SAM"] then
     return prices.sam_short
+  elseif a["SAM LL"] then
+    return prices.sam_launcher
+  elseif a["SAM CC"] then
+    return prices.sam_command
   elseif category == "Air Defence" then
     return prices.aaa
   elseif a["Tanks"] then

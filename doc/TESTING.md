@@ -202,6 +202,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafCampaignLive.lua` | Campagne persistante : hélicoptères de ravitaillement, aviation ennemie, Hunter, crédits, boutique, tâches, renseignement, équipe espion, chiffres du classement |
 | `test_veafCampaignV15.lua` | Campagne persistante V1.5 : usines et dépôts, ressources et production, réseau d'approvisionnement, spawns payants, sapeurs, stocks d'armement, bombardiers, territoire |
 | `test_veafCampaignSitac.lua` | Campagne persistante : bloc `sitac` du fichier d'état pour la carte web (positions, types, compteurs, liaisons, convois, camps ; joueurs, classement, pilotes éjectés, tâches, AWACS et ravitailleurs), ignoré au rechargement |
+| `test_campaignEconomySim.lua` | Campagne persistante : le simulateur d'économie joue la campagne Oronte avec le vrai code et garde le rythme de l'équipe moyenne (première CAP, Hawk) et du rouge (SEAD) ; voir [Tester l'équilibrage](mission-maker/PERSISTENT_CAMPAIGN.md#economy-simulator) |
 | `test_veafCasMission.lua` | Génération de packages de menaces CAS |
 | `test_veafCasMission_menu.lua` | Menu MISSION CAS fixe : aucune entrée ajoutée ni retirée pendant une mission, réponses sans mission en cours |
 | `test_veafTransportMission.lua` | Setup de mission de transport |

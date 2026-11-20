@@ -346,12 +346,16 @@ The players' coalition has an account, saved with the campaign: `economy.start_c
 | Gain | Setting | Default |
 |---|---|---|
 | a player destroys a ground unit | `economy.kill_ground` | 10 |
-| a player shoots down an aircraft | `economy.kill_air` | 30 |
+| a player destroys a SAM (a unit the ranking counts as `SAM`: DCS attribute `SAM related` or `Air Defence`) | `economy.kill_sam` | 30 |
+| a player shoots down an aeroplane or a helicopter | `economy.kill_air` | 50 |
+| a player destroys a building of an enemy zone (a [factory](#zone-kinds), a depot) | `economy.kill_building` | 100 |
+| a pilot brings downed pilots the CSAR module set down back to the MASH, per pilot, to that pilot | `economy.rescue` | 200 |
 | a zone taken | `economy.capture` | 200 |
 | a delivery to a friendly zone | `economy.delivery` | 100 |
 | a [task](#tasks) done | `tasks.rewards` | 200 to 300 |
 
-A player's kill pays in two parts: `economy.landing_share` (50 %) of it is held until the pilot lands at a friendly airfield, FARP or carrier, and lost on an ejection, a death or a crash; the rest is earned at once.
+These rewards are Foothold's, proven on its servers (2026-11-20).
+A player's kill — a unit, a SAM, an aircraft or a building — pays in two parts: `economy.landing_share` (50 %) of it is held until the pilot lands at a friendly airfield, FARP or carrier, and lost on an ejection, a death or a crash; the rest is earned at once.
 Both parts go to the coalition's account.
 The other gains, which no single pilot carries, are paid whole.
 
@@ -401,9 +405,40 @@ F10 → Other → VEAF → Campaign → Shop → **Zone upgrades** → one of ou
 - A zone holds `economy.upgrades_per_zone` (2) bought upgrades; the shop refuses the next one, and a second Patriot battery on the same zone, saying why. A refused purchase costs nothing.
 - An upgrade costs its units' [paid spawn](#paid-spawns) price, in credits (`economy.credits_per_point`, 6): a Hawk battery costs what spawning it costs.
   Its composition is drawn once a mission, so the menu's price is the group placed.
-  On 2026-11-20, with the default unit prices: Hawk about 2,250 credits, Patriot about 950, NASAMS about 700, Avenger 162, Gepard 156, infantry and armour a few tens to about 250.
-  A Patriot costs less than a Hawk because its launchers count as guns (8 points): only its radars have the SAM attribute; `economy.prices` sets a price by hand.
+- The [per-type prices](#resources) of the SAM elements put the air defence upgrades near Foothold's prices (2026-11-20, over 8 draws):
+
+  | Upgrade | Price | Foothold |
+  |---|---|---|
+  | Hawk battery | 1,970 to 2,030 | 2,000 |
+  | NASAMS battery | 1,980, or 2,970 when its group draws a second Avenger | 2,000 |
+  | Patriot battery | 4,960 to 5,060 | 5,000 |
+  | Avenger section | 1,000 | 1,000 |
+  | Gepard section | 750 | 750 |
+  | Infantry section | 40 to 60 | 500 |
+  | Armour platoon | 70 to 145 | 1,000 |
+
+  Infantry and armour stay at their units' price: bringing them to Foothold's would multiply the price of soldiers and armour 7 to 10 times, and so red's garrisons, convoys and reinforcements.
+- `economy.prices` sets an upgrade's price by hand.
 - `dcs.log` tells each purchase (`bought the upgrade [hawk] for [Hatay]`, and `[CAMPAIGN SHOP]` with the [debugging log](#debug-log)).
+
+### Testing the balance without a server {#economy-simulator}
+
+The economy simulator plays the Oronte campaign with the real campaign code (its four modules), without DCS, as Iron Gall's pacing report does.
+It advances time beat by beat; combat is not simulated: what a team of virtual players does is drawn from rates (kills an hour, captures an evening, ejections), set on the server logs of 2026-11-17 and 2026-11-19.
+The red AI plays with its real decision code: production, CAP and strikes, helicopters, convoys, reinforcements at their units' price.
+
+From the repository:
+
+```powershell
+poetry run campaign-sim report 9 5 --csv economy.csv
+```
+
+It plays 9 h (three evenings of 3 h), on 5 seeds, three teams (occasional, average, expert) with four shop strategies: buy nothing, buy the cheapest item not bought yet, save for a Hawk, save for a Patriot.
+For each, the median run gives the hour of each item's first purchase, the credits earned and spent hour by hour, the red stock, and the hour from which red can no longer pay a SEAD or a raid; `--csv` writes the hour-by-hour rows.
+`poetry run campaign-sim calibrate` checks the rates: the average team must earn about 2,000 credits an evening with the rewards of before 2026-11-20, which the server measured.
+
+The test `test/lua/test_campaignEconomySim.lua` keeps three bounds, measured on 2026-11-20: the average team buys its first CAP between 1 h and 3 h of play (2 h 30 measured), its Hawk between 1 h 30 and 6 h saving for it (2 h 50), and red can pay a SEAD for 45 minutes at least (1 h). A price or a reward that breaks this pacing turns the CI red.
+What the simulator does not play is written in `test/lua/campaign_sim.lua`: the players' zones take no damage, nothing happens between two evenings.
 
 ## The task board {#tasks}
 
@@ -481,13 +516,35 @@ These three values were raised after the first evening flown: with 500, 30 and 1
 | artillery | 5 |
 | AAA, short-range air defence | 8 |
 | short-range SAM | 25 |
-| medium- or long-range SAM element | 40 |
+| medium- or long-range SAM element (attribute `MR SAM` or `LR SAM`) | 40 |
+| SAM launcher (attribute `SAM LL`) | 15 |
+| SAM command post (attribute `SAM CC`) | 10 |
 | helicopter | 15 |
 | aeroplane | 30 |
 | bomber | 100 |
 | anything else | 5 |
 
-`resources.prices` changes a type's price: `{ "T-72B": 7 }`.
+Until 2026-11-20 a SAM launcher and a SAM command post counted as guns (8 points): a Patriot battery cost less than a Hawk battery.
+A launcher does not carry its system's range: a Patriot launcher and a Hawk launcher have the same attribute, `SAM LL`.
+The elements the attributes cannot tell apart therefore have a price by type (`veafCampaign.TYPE_PRICES`), which puts the shop's upgrades near Foothold's prices:
+
+| Type | Points | Why |
+|---|---|---|
+| `M1097 Avenger` | 165 | the Avenger section, one Avenger and a lorry: 1,000 credits |
+| `Gepard` | 41 | the Gepard section, three Gepards and a lorry: 750 credits |
+| `Hawk sr`, `Hawk cwar`, `Hawk tr` | 14 | the `hawk` group, six radars, nine launchers, a command post, an Avenger, Vulcans and lorries: 2,000 credits, its Avenger included |
+| `Hawk ln` | 5 | the same |
+| `NASAMS_LN_B`, `NASAMS_LN_C` | 28 | the `nasams` group, a radar (40), a command post, four launchers, an Avenger and lorries: 2,000 credits |
+| `Patriot str` | 93 | the `patriot` group, a radar, four command posts, eight launchers, Vulcans and lorries: 5,000 credits |
+| `Patriot ln` | 85 | the same |
+| S-300 launchers (`S-300PS 5P85C ln`, `5P85D ln`) | 85 | red's long-range system, as the Patriot |
+| S-300 radars (`40B6M tr`, `5H63C 30H6_tr`, `64H6E sr`, `40B6MD sr`, `40B6MD sr_19J6`) | 93 | the same |
+
+The SA-11 needs none: its launcher and its radar carry `MR SAM` (40 points), its command post `SAM CC` (10).
+Red's Strela, Tor, Osa, Tunguska and Shilka keep their price (25 and 8).
+This price holds everywhere: the shop, the players' paid spawns (a Patriot or NASAMS `-sam` costs as much as the upgrade), the AI's garrisons and reinforcements.
+
+`resources.prices` changes a type's price: `{ "T-72B": 7 }`, and wins over both tables.
 Air defence was made dearer on 2026-11-19 (from 4, 8 and 15): a lost Tor was worth about a BMP, and one SEAD sortie 25 Tor. A randomly drawn airfield garrison now costs 190 points on average (370 at most), an outpost's 130 (210 at most), against 100 and 75 before; a garrison the side cannot pay for is replaced by a token one.
 These are starting values, to be tuned on a server: one factory pays for about one counter-attack and one CAP an hour.
 
@@ -548,7 +605,7 @@ A mission with security off (a test copy) lets everything through, `-cas` except
 The CTLD 2 troop group **"Sappers"** (`demolition.troops`), dropped by the players' side, walks to the enemy factory whose buildings are within `demolition.range` (5 km) of where it was dropped.
 Within 200 m of the buildings, it plants its charges on every one standing, says so, and walks back to its drop point.
 The charges blow `demolition.fuse` (120 s) later, even if the team was killed meanwhile.
-Each building destroyed is worth `economy.demolition` (50) credits, and the factory makes that much less.
+Each building destroyed is worth `economy.demolition` (100) credits, as much as a pilot gets for one, and the factory makes that much less.
 With no enemy factory in range, the team says so and stays where it is.
 
 ## Weapon stocks {#warehouses}
@@ -641,8 +698,23 @@ While the campaign is being tuned, `dynamic.debug` (on by default) writes in `dc
 
 The credits earned are written whether `debug` is on or not:
 
-- one line `CREDITS <pilot> +<amount> (<reason>)` per gain — `kill`, `kill_held`, `landed`, `warehouse` for a pilot; `capture`, `delivery`, `task`, `demolition` under `team`;
+- one line `CREDITS <pilot> +<amount> (<reason>)` per gain — `kill`, `kill_held`, `landed`, `rescue`, `warehouse` for a pilot; `capture`, `delivery`, `task`, `demolition` under `team`;
 - a `CREDITS SUMMARY` at the mission's end, and as soon as nobody is left in a slot: what each earned since the previous summary, and the side's total;
+- at the same moment, an `ECONOMY SUMMARY` block covering the session, from the first beat a player sits in a slot to the summary, to tune the prices on what is really earned and spent:
+  the session's length; then, for the players' credits and each side's resources (when they are counted), the balance at the start and at the end, what was earned and what was spent, by kind, each with its amount and its count;
+  for the credits, the gains (`kill_ground`, `kill_sam`, `kill_air`, `kill_building`, `rescue`, `capture`, `delivery`, `task`…) and the spending (`shop <item>`, `upgrade <upgrade>`, `spawn`, `shop assault`);
+  for the resources, the production, the refunds (`refund`) and the spending (`flight`, `helicopter`, `convoy`, `garrison`, `reinforcement` at the units' price, `raid`, `spawn`);
+
+  ```text
+  ECONOMY SUMMARY (nobody left in a slot): 180 min of play
+  ECONOMY SUMMARY blue credits: 1200 at the start, 950 at the end
+  ECONOMY SUMMARY blue credits earned 2000: capture 1200 (x6), kill_air 500 (x10), kill_ground 300 (x30)
+  ECONOMY SUMMARY blue credits spent 2250: upgrade hawk 2250 (x1)
+  ECONOMY SUMMARY red resources: 900 at the start, 640 at the end
+  ECONOMY SUMMARY red resources earned 760: production 720, refund 40 (x2)
+  ECONOMY SUMMARY red resources spent 1020: flight 480 (x8), convoy 300 (x3), reinforcement 240 (x12)
+  ```
+
 - each pilot's total over the whole campaign, in the save (`parts.economy.pilots`), for the debrief.
 
 ## Checking a mission in game {#self-check}
@@ -688,7 +760,7 @@ A `KO` line is enough to know where to look.
 | `supply_crate` | `Zone supplies` | the name of the CTLD 2 crate that resupplies |
 | `hunter` | `{enabled: true, ground_kills: 8, air_kills: 4, chance: 10}` | the Hunter |
 | `air` | see [enemy air](#air) | `strike_seconds` (900), `max_flights` (4), `cap_per_players` (3), `cap_helicopter_chance` (25), and each side's aircraft |
-| `economy` | see [the shop](#shop) | `start_credits`, `kill_ground`, `kill_air`, `capture`, `delivery`, `prices`, `tanker`, `credits_per_point` (6), `demolition` (50), `warehouse_delivery` (50), `landing_share` (50), `upgrades_per_zone` (2) |
+| `economy` | see [the shop](#shop) | `start_credits`, `kill_ground`, `kill_sam` (30), `kill_air` (50), `kill_building` (100), `rescue` (200), `capture`, `delivery`, `prices`, `tanker`, `credits_per_point` (6), `demolition` (100), `warehouse_delivery` (50), `landing_share` (50), `upgrades_per_zone` (2) |
 | `tasks` | see [the tasks](#tasks) | `count`, `refresh_seconds`, `air_kills`, `rewards` (`attack`, `capture`, `resupply`, `air`, `intercept`) |
 | `intel` | see [intelligence](#intel) | `hidden`, `seconds`, `overflight_altitude`, `spy_troops`, `spy_range` |
 | `resources` | see [the resources](#resources) | `enabled` (true), `start` (1000), `background_per_hour` (60), `reserve` (100), `prices` |

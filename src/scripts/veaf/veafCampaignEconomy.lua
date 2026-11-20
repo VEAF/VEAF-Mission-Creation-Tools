@@ -49,7 +49,8 @@ veafCampaignEconomy.PRICES = {
 --- which joins its garrison. Each is a group of veaf-units.yaml (`group`), or drawn as the garrison draws its own
 --- (`draw`), or a list of DCS types (`units`); `eras` the eras it is offered in, all of them when absent; `once` at
 --- most one per zone. Service dates as `veafCasMission.LONG_RANGE_AIR_DEFENSE_GROUPS` takes them, the 1980 reference
---- for the cold war: no Patriot (1984), NASAMS or Avenger then. Its price is its units' spawn price, in credits.
+--- for the cold war: no Patriot (1984), NASAMS or Avenger then. Its price is its units' spawn price, in credits: one
+--- rule (FIX-CAMPAIGN-ECONOMY-BALANCE 05), which `veafCampaign.TYPE_PRICES` sets near Foothold's prices.
 veafCampaignEconomy.UPGRADES = {
   { id = "hawk", group = "hawk", eras = { veaf.ERA.COLD_WAR, veaf.ERA.MODERN } },
   { id = "nasams", group = "nasams", eras = { veaf.ERA.MODERN } },
@@ -163,11 +164,116 @@ function veafCampaignEconomy.earn(amount, reasonKey, ...)
   veafCampaignEconomy.earnBy(nil, amount, reasonKey, ...)
 end
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- An evening's balance (FIX-CAMPAIGN-ECONOMY-BALANCE 03)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- The session's books, to tune the prices from the log: what each account earned and spent, by kind, from the first
+--- beat a player sits in a slot to the session's summary; nil while closed. By account — `credits`, the players' side's,
+--- and each side's resources when they are counted (by the side's name) —: `{ start, earned = { [kind] = { amount,
+--- count } }, spent = { … } }`; `order` the accounts, `openedAt` the mission time it opened. Not saved.
+veafCampaignEconomy.ledger = nil
+
+--- Whether the sides' resources are counted (a persistent campaign's logistics).
+local function resourcesCounted()
+  return veafCampaignLogistics ~= nil and veafCampaignLogistics.active == true
+end
+
+local function balanceOf(account)
+  if account == "credits" then
+    return veafCampaignEconomy.credits
+  end
+  return veafCampaignLogistics.stock(account)
+end
+
+--- Open the session's books at the balances of now: the players' credits, then the enemy's resources and the players'
+--- side's own, when they are counted.
+function veafCampaignEconomy.openLedger()
+  local accounts = { "credits" }
+  if resourcesCounted() then
+    local own = veafCampaign.playerSide()
+    table.insert(accounts, veafCampaign.enemyOf(own))
+    table.insert(accounts, own)
+  end
+  local ledger = { order = accounts, openedAt = timer.getTime() }
+  for _, account in ipairs(accounts) do
+    ledger[account] = { start = balanceOf(account), earned = {}, spent = {} }
+  end
+  veafCampaignEconomy.ledger = ledger
+end
+
+--- Write a flow in the session's books, when they are open.
+--- @param account string "credits", or a side's name for its resources
+--- @param direction string "earned" or "spent"
+--- @param kind string what for: `capture`, `kill_air`, `shop cap`, `upgrade hawk`, `spawn`, `production`, `flight`…
+--- @param amount number
+--- @param uncounted boolean|nil true for a flow that is not one event: the production, a kill's held share
+function veafCampaignEconomy.book(account, direction, kind, amount, uncounted)
+  local books = veafCampaignEconomy.ledger and veafCampaignEconomy.ledger[account]
+  if not books or not amount or amount <= 0 then
+    return
+  end
+  local entry = books[direction][kind] or { amount = 0, count = 0 }
+  entry.amount = entry.amount + amount
+  if not uncounted then
+    entry.count = entry.count + 1
+  end
+  books[direction][kind] = entry
+end
+
+--- One direction of an account, for its summary line: the total, and each kind, the largest first.
+local function flowText(entries)
+  local kinds, total = {}, 0
+  for kind, entry in pairs(entries) do
+    table.insert(kinds, kind)
+    total = total + entry.amount
+  end
+  table.sort(kinds, function(a, b)
+    if entries[a].amount ~= entries[b].amount then
+      return entries[a].amount > entries[b].amount
+    end
+    return a < b
+  end)
+  local parts = {}
+  for _, kind in ipairs(kinds) do
+    local entry = entries[kind]
+    local count = entry.count > 0 and string.format(" (x%d)", entry.count) or ""
+    table.insert(parts, string.format("%s %d%s", kind, math.floor(entry.amount + 0.5), count))
+  end
+  return math.floor(total + 0.5), #parts > 0 and table.concat(parts, ", ") or "nothing"
+end
+
+--- Write the session's books as one block of `ECONOMY SUMMARY` lines, and close them.
+local function summarizeLedger(why)
+  local ledger = veafCampaignEconomy.ledger
+  veafCampaignEconomy.ledger = nil
+  local minutes = math.floor((timer.getTime() - ledger.openedAt) / 60 + 0.5)
+  logger():info("ECONOMY SUMMARY (%s): %d min of play", why, minutes)
+  for _, account in ipairs(ledger.order) do
+    local books = ledger[account]
+    local label = account == "credits" and (veafCampaign.playerSide() .. " credits") or (account .. " resources")
+    local start, finish = math.floor(books.start + 0.5), math.floor(balanceOf(account) + 0.5)
+    logger():info("ECONOMY SUMMARY %s: %d at the start, %d at the end", label, start, finish)
+    logger():info("ECONOMY SUMMARY %s earned %d: %s", label, flowText(books.earned))
+    logger():info("ECONOMY SUMMARY %s spent %d: %s", label, flowText(books.spent))
+  end
+end
+
 --- `earn`, written against a pilot: one `CREDITS` line in dcs.log per gain, and the pilot's totals.
 --- @param pilot string|nil the player's name; nil for a gain of the whole side
 --- @param amount number
 --- @param reasonKey string|nil the i18n key of why
 function veafCampaignEconomy.earnBy(pilot, amount, reasonKey, ...)
+  veafCampaignEconomy.earnAs(nil, pilot, amount, reasonKey, ...)
+end
+
+--- `earnBy`, with the kind the session's books write it under when it is not its reason: a kill's reward
+--- (`kill_air`…), or the kinds a landing banks, `{ [kind] = credits }`.
+--- @param kind string|table|nil
+--- @param pilot string|nil
+--- @param amount number
+--- @param reasonKey string|nil
+function veafCampaignEconomy.earnAs(kind, pilot, amount, reasonKey, ...)
   if amount < 0 then
     veafCampaignEconomy.credits = math.max(0, veafCampaignEconomy.credits + amount)
   else
@@ -185,6 +291,13 @@ function veafCampaignEconomy.earnBy(pilot, amount, reasonKey, ...)
     veafCampaignEconomy.sessionGains = veafCampaignEconomy.sessionGains or {}
     veafCampaignEconomy.sessionGains[who] = (veafCampaignEconomy.sessionGains[who] or 0) + amount
     logger():info("CREDITS %s +%d (%s): %d for the side", who, amount, reason, veafCampaignEconomy.credits)
+    if type(kind) == "table" then
+      for each, credits in pairs(kind) do
+        veafCampaignEconomy.book("credits", "earned", each, credits, true)
+      end
+    else
+      veafCampaignEconomy.book("credits", "earned", kind or reason, amount)
+    end
   end
   if reasonKey and amount ~= 0 then
     tell("campaign.credits.earned", amount, veaf.t(reasonKey, ...), veafCampaignEconomy.credits)
@@ -192,10 +305,23 @@ function veafCampaignEconomy.earnBy(pilot, amount, reasonKey, ...)
 end
 
 --- Write who earned what since the last summary: one `CREDITS SUMMARY` line per pilot, best first, and the side's
---- total. Said at the mission's end, and when nobody is left in a slot.
+--- total; then the session's books, earned and spent by kind for both sides (`ECONOMY SUMMARY`), when a player sat in a
+--- slot. Said at the mission's end, and when nobody is left in a slot.
 --- @param why string what ends the session
 --- @return boolean whether there was anything to say
 function veafCampaignEconomy.summarizeSession(why)
+  local said = veafCampaignEconomy.summarizeGains(why)
+  if veafCampaignEconomy.ledger then
+    summarizeLedger(why)
+    said = true
+  end
+  return said
+end
+
+--- The `CREDITS SUMMARY` lines of `summarizeSession`.
+--- @param why string what ends the session
+--- @return boolean whether there was anything to say
+function veafCampaignEconomy.summarizeGains(why)
   local gains = veafCampaignEconomy.sessionGains
   if not gains then
     return false
@@ -277,48 +403,69 @@ function veafCampaignEconomy.killStat(kill, target)
   return "Ground Units"
 end
 
+--- The `economy` setting a kill pays, by its ranking figure (FIX-CAMPAIGN-ECONOMY-BALANCE 01, Foothold's rewards);
+--- `kill_ground` for any other.
+veafCampaignEconomy.REWARD_OF_STAT = { Air = "kill_air", Helo = "kill_air", SAM = "kill_sam", Structure = "kill_building" }
+
 --- A building of a campaign zone the enemy holds, destroyed by a player of the players' side: one more `Structure`.
 --- veafEventHandler cannot read a static object's side, so `readPlayerKill` never sees it.
+--- @return string|nil the player, when it is one
 local function countStructure(event)
   local name = event and event.target and event.target.unitName
   local building = name and veafCampaign.structureIndex and veafCampaign.structureIndex[name]
   if not building then
-    return
+    return nil
   end
   local unit, player = veafCampaign.playerUnitOf(event)
   if not player then
-    return
+    return nil
   end
   local own = veafCampaign.playerSide()
   local ok, side = pcall(unit.getCoalition, unit)
   if ok and side == veafCampaign.SIDES[own] and building.zone.entry.owner ~= own then
     veafCampaignEconomy.count(player, "Structure")
+    return player
+  end
+  return nil
+end
+
+--- Pay a pilot's kill: `economy.landing_share` of its credits is held until the pilot lands at a friendly airfield,
+--- FARP or carrier (`onPilotEvent`); the rest is earned at once.
+--- @param event table the S_EVENT_KILL
+--- @param player string
+--- @param stat string the kill's ranking figure, which says its reward (`REWARD_OF_STAT`)
+local function payKill(event, player, stat)
+  local kind = veafCampaignEconomy.REWARD_OF_STAT[stat] or "kill_ground"
+  local amount = veafCampaign.setting("economy", kind)
+  local share = math.max(0, math.min(100, veafCampaign.setting("economy", "landing_share") or 0))
+  local unitName = initiatorName(event)
+  local held = unitName and math.floor(amount * share / 100 + 0.5) or 0
+  if held > 0 then
+    local books = veafCampaignEconomy.held[unitName] or { player = player, amount = 0, kinds = {} }
+    books.amount = books.amount + held
+    books.kinds[kind] = (books.kinds[kind] or 0) + held
+    veafCampaignEconomy.held[unitName] = books
+    veafCampaignEconomy.earnAs(kind, player, amount - held, "campaign.credits.kill_held", player, books.amount)
+  else
+    veafCampaignEconomy.earnAs(kind, player, amount, "campaign.credits.kill", player)
   end
 end
 
---- A kill: a player of the players' side destroyed an enemy unit. `economy.landing_share` of its credits is held until
---- the pilot lands at a friendly airfield, FARP or carrier (`onPilotEvent`); the rest is earned at once.
+--- A kill: a player of the players' side destroyed an enemy unit, or a building of a zone the enemy holds.
 function veafCampaignEconomy.onKill(event)
   if not veafCampaign.over then
-    countStructure(event)
+    local player = countStructure(event)
+    if player then
+      payKill(event, player, "Structure")
+    end
   end
   local kill = veafCampaign.readPlayerKill(event)
   if veafCampaign.over or not kill then
     return
   end
-  veafCampaignEconomy.count(kill.player, veafCampaignEconomy.killStat(kill, event.target))
-  local amount = veafCampaign.setting("economy", kill.air and "kill_air" or "kill_ground")
-  local share = math.max(0, math.min(100, veafCampaign.setting("economy", "landing_share") or 0))
-  local unitName = initiatorName(event)
-  local held = unitName and math.floor(amount * share / 100 + 0.5) or 0
-  if held > 0 then
-    local books = veafCampaignEconomy.held[unitName] or { player = kill.player, amount = 0 }
-    books.amount = books.amount + held
-    veafCampaignEconomy.held[unitName] = books
-    veafCampaignEconomy.earnBy(kill.player, amount - held, "campaign.credits.kill_held", kill.player, books.amount)
-  else
-    veafCampaignEconomy.earnBy(kill.player, amount, "campaign.credits.kill", kill.player)
-  end
+  local stat = veafCampaignEconomy.killStat(kill, event.target)
+  veafCampaignEconomy.count(kill.player, stat)
+  payKill(event, kill.player, stat)
   if kill.air then
     for _, task in ipairs(veafCampaignEconomy.tasks) do
       if task.kind == "air" then
@@ -368,7 +515,7 @@ function veafCampaignEconomy.onPilotEvent(event)
   if id == world.event.S_EVENT_LAND then
     if friendlyPlace(event) then
       veafCampaignEconomy.held[unitName] = nil
-      veafCampaignEconomy.earnBy(books.player, books.amount, "campaign.credits.landed", books.player)
+      veafCampaignEconomy.earnAs(books.kinds, books.player, books.amount, "campaign.credits.landed", books.player)
     end
     return
   end
@@ -384,17 +531,62 @@ function veafCampaignEconomy.onPilotEvent(event)
   )
 end
 
+--- Pay a pilot of the players' side for the downed pilots his helicopter has just delivered to a MASH: `economy.rescue`
+--- each, in full — he is on the ground already (FIX-CAMPAIGN-ECONOMY-BALANCE 01, Foothold's 200). The AI's rescues pay
+--- nothing.
+--- @param heli table the helicopter, as the CSAR module hands it to `csar.rescuePilots`
+--- @param pilots number the downed pilots it carried
+local function payRescue(heli, pilots)
+  if pilots == 0 or veafCampaign.over then
+    return
+  end
+  local okPlayer, player = pcall(heli.getPlayerName, heli)
+  local okSide, side = pcall(heli.getCoalition, heli)
+  if not (okPlayer and player and okSide and side == playerCoalition()) then
+    return
+  end
+  veafCampaignEconomy.earnBy(player, pilots * veafCampaign.setting("economy", "rescue"), "campaign.credits.rescue", player, pilots)
+end
+
+--- Pay the CSAR rescues: wrap the CSAR module's `csar.rescuePilots`, which delivers a helicopter's downed pilots once it
+--- has landed by a MASH, and empties `csar.inTransitGroups` for it. Wrapped once, however often it is called.
+--- @return boolean whether the CSAR module is there to watch
+function veafCampaignEconomy.watchRescues()
+  if not (csar and type(csar.rescuePilots) == "function") then
+    logger():info("no CSAR module: a rescue pays nothing")
+    return false
+  end
+  if csar.rescuePilots == veafCampaignEconomy.rescueWrapper then
+    return true
+  end
+  local deliver = csar.rescuePilots
+  veafCampaignEconomy.rescueWrapper = function(heli)
+    local okName, name = pcall(heli.getName, heli)
+    local carried = okName and type(csar.inTransitGroups) == "table" and csar.inTransitGroups[name]
+    local pilots = 0
+    for _ in pairs(type(carried) == "table" and carried or {}) do
+      pilots = pilots + 1
+    end
+    deliver(heli)
+    payRescue(heli, pilots)
+  end
+  csar.rescuePilots = veafCampaignEconomy.rescueWrapper
+  return true
+end
+
 --- Take a price from the credits for a purchase made outside the shop — the assault order: refused, and
 --- told, when the side cannot pay.
 --- @param price number
 --- @param label string what is bought, as the players read it
+--- @param kind string|nil what the session's books write it under, `purchase` when nil
 --- @return boolean whether it was paid
-function veafCampaignEconomy.charge(price, label)
+function veafCampaignEconomy.charge(price, label, kind)
   if veafCampaignEconomy.credits < price then
     tell("campaign.shop.too_expensive", label, price, veafCampaignEconomy.credits)
     return false
   end
   veafCampaignEconomy.credits = veafCampaignEconomy.credits - price
+  veafCampaignEconomy.book("credits", "spent", kind or "purchase", price)
   veafCampaignEconomy.counters.purchases = veafCampaignEconomy.counters.purchases + 1
   tell("campaign.shop.bought", label, "-", price, veafCampaignEconomy.credits)
   return true
@@ -849,6 +1041,7 @@ function veafCampaignEconomy.buyEscort(parameters)
     )
   end
   veafCampaignEconomy.credits = veafCampaignEconomy.credits - price
+  veafCampaignEconomy.book("credits", "spent", "shop escort", price)
   veafCampaignEconomy.counters.purchases = veafCampaignEconomy.counters.purchases + 1
   trigger.action.outTextForCoalition(
     playerCoalition(),
@@ -900,6 +1093,7 @@ function veafCampaignEconomy.buy(parameters)
     return false
   end
   veafCampaignEconomy.credits = veafCampaignEconomy.credits - price
+  veafCampaignEconomy.book("credits", "spent", "shop " .. itemId, price)
   veafCampaignEconomy.counters.purchases = veafCampaignEconomy.counters.purchases + 1
   tell("campaign.shop.bought", veaf.t("campaign.shop.item." .. itemId), zoneName or "-", price, veafCampaignEconomy.credits)
   logger():info("bought [%s] for [%s], %d credits", itemId, tostring(zoneName), price)
@@ -1043,6 +1237,7 @@ function veafCampaignEconomy.buyUpgrade(parameters)
     return false
   end
   veafCampaignEconomy.credits = veafCampaignEconomy.credits - price
+  veafCampaignEconomy.book("credits", "spent", "upgrade " .. upgradeId, price)
   veafCampaignEconomy.counters.purchases = veafCampaignEconomy.counters.purchases + 1
   tell("campaign.shop.bought", label, veafCampaign.zoneTitle(zoneName), price, veafCampaignEconomy.credits)
   logger():info("bought the upgrade [%s] for [%s], %d unit(s), %d credits", upgradeId, zoneName, #group.units, price)
@@ -1388,7 +1583,10 @@ function veafCampaignEconomy.beat(now)
   if veafCampaign.over then
     return
   end
-  if veafCampaignEconomy.sessionGains and not anyPlayer() then
+  local playing = anyPlayer()
+  if playing and not veafCampaignEconomy.ledger then
+    veafCampaignEconomy.openLedger()
+  elseif not playing and (veafCampaignEconomy.sessionGains or veafCampaignEconomy.ledger) then
     veafCampaignEconomy.summarizeSession("nobody left in a slot")
   end
   veafCampaignEconomy.checkOverflights()
@@ -1449,7 +1647,7 @@ end
 function veafCampaignEconomy.initialize()
   logger():info("Initializing module")
   veafCampaignEconomy.credits = veafCampaign.setting("economy", "start_credits")
-  veafCampaignEconomy.pilots, veafCampaignEconomy.sessionGains = {}, nil
+  veafCampaignEconomy.pilots, veafCampaignEconomy.sessionGains, veafCampaignEconomy.ledger = {}, nil, nil
   veafCampaignEconomy.tasks, veafCampaignEconomy.spies, veafCampaignEconomy.nextTasks = {}, {}, nil
   veafCampaignEconomy.menuBuilt, veafCampaignEconomy.shopPath, veafCampaignEconomy.offers = false, nil, {}
   veafCampaignEconomy.counters = { purchases = 0, posted = 0, completed = 0, reveals = 0, spies = 0 }
@@ -1486,6 +1684,7 @@ function veafCampaignEconomy.initialize()
     { "S_EVENT_LAND", "S_EVENT_EJECTION", "S_EVENT_PILOT_DEAD", "S_EVENT_CRASH", "S_EVENT_DEAD", "S_EVENT_PLAYER_LEAVE_UNIT" },
     veafCampaignEconomy.onPilotEvent
   )
+  veafCampaignEconomy.watchRescues()
   veafCampaignEconomy.buildRadioMenu()
   return true
 end

@@ -11,7 +11,13 @@ from campaign_fixture import PROSE, VALID
 from campaign_manager.briefing_prose import parse_prose
 from campaign_manager.campaign_manager import initial_state, parse_campaign
 from campaign_manager.models import CampaignDefinition
-from campaign_manager.theatre_dossier import SHOP_PRICES, shop_lines, theatre_dossier
+from campaign_manager.theatre_dossier import (
+    REWARDS,
+    SHOP_PRICES,
+    guide_blocks,
+    shop_lines,
+    theatre_dossier,
+)
 from deck_pdf_check import assert_pdf_matches_deck
 from pptx import Presentation
 from veaf_libs.i18n import language
@@ -84,6 +90,30 @@ class TestTheDossier:
             lua.index("veafCampaignEconomy.PRICES = {") : lua.index("}", lua.index("veafCampaignEconomy.PRICES = {"))
         ]
         assert dict((k, int(v)) for k, v in re.findall(r"(\w+) = (\d+)", block)) == SHOP_PRICES
+
+    def test_the_rewards_are_the_runtime_s(self) -> None:
+        # FIX-CAMPAIGN-ECONOMY-BALANCE: the guide quotes the rewards the game pays
+        campaign_lua = (_REPO / "src/scripts/veaf/veafCampaign.lua").read_text(encoding="utf-8")
+        start = campaign_lua.index("  economy = {")
+        block = campaign_lua[start : campaign_lua.index("\n  },", start)]
+        defaults = {k: int(v) for k, v in re.findall(r"^\s+(\w+) = (\d+),", block, re.MULTILINE)}
+        assert {key: defaults[key] for key in REWARDS} == REWARDS
+
+    def test_the_guide_gives_the_rewards_and_the_upgrades_prices(self) -> None:
+        campaign = _campaign()
+        with language("en"):
+            whole = "\n".join(line for block in guide_blocks(campaign) for line in block.paragraphs)
+            assert "SAM 30" in whole
+            assert "aircraft 50" in whole
+            assert "building of an enemy zone 100" in whole
+            assert "brought back to the MASH 200" in whole
+            assert "NASAMS 2,000" in whole and "Patriot 5,000" in whole
+            campaign.dynamic.setdefault("economy", {})["kill_sam"] = 45
+            whole = "\n".join(line for block in guide_blocks(campaign) for line in block.paragraphs)
+            assert "SAM 45" in whole
+            # an upgrade's entry of economy.prices is not a shop item of its own
+            campaign.dynamic["economy"]["prices"] = {"patriot": 6000}
+            assert not any("patriot" in line for line in shop_lines(campaign))
 
     def test_the_shop_lists_the_flights_and_the_zone_upgrades(self) -> None:
         # FEAT-CAMPAIGN-SHOP-UPGRADES: the upgrades' prices are drawn in game, the guide gives their rule and limit

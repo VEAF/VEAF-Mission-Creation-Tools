@@ -647,15 +647,15 @@ function TestCampaignShop:test_kills_captures_and_deliveries_earn_credits()
   veafCampaignEconomy.onKill(kill("Zip"))
   luaunit.assertEquals(veafCampaignEconomy.credits, 105)
   veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
-  luaunit.assertEquals(veafCampaignEconomy.credits, 120)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 130)
   veafCampaign.notify("captured", veafCampaign.zones["Poti"], "blue")
-  luaunit.assertEquals(veafCampaignEconomy.credits, 320)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 330)
   veafCampaign.notify("delivered", veafCampaign.zones["Kobuleti"], "blue", "crate")
-  luaunit.assertEquals(veafCampaignEconomy.credits, 420)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 430)
   -- the enemy's captures and an AI's kills earn nothing
   veafCampaign.notify("captured", veafCampaign.zones["Poti"], "red")
   veafCampaignEconomy.onKill(kill(nil))
-  luaunit.assertEquals(veafCampaignEconomy.credits, 420)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 430)
 end
 
 --- An airbase of a side, as `Airbase.getByName` hands it.
@@ -670,7 +670,7 @@ end
 function TestCampaignShop:test_the_held_credits_are_earned_at_a_friendly_landing()
   -- David, 2026-11-16: "a share at the action, a bonus at landing"
   veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
-  luaunit.assertEquals(veafCampaignEconomy.credits, 115)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 125)
   local saved = Airbase.getByName
   Airbase.getByName = function(name)
     return airbaseOf(name == "Kobuleti" and BLUE or RED)
@@ -684,10 +684,10 @@ function TestCampaignShop:test_the_held_credits_are_earned_at_a_friendly_landing
   end
   land(nil) -- in the open
   land("Senaki-Kolkhi") -- an enemy field
-  luaunit.assertEquals(veafCampaignEconomy.credits, 115)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 125)
   land("Kobuleti")
   Airbase.getByName = saved
-  luaunit.assertEquals(veafCampaignEconomy.credits, 130)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 150)
   luaunit.assertNil(veafCampaignEconomy.held["Zip's Hog"])
 end
 
@@ -695,8 +695,8 @@ function TestCampaignShop:test_the_held_credits_are_lost_with_the_pilot()
   veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
   veafCampaignEconomy.onPilotEvent({ type = { id = world.event.S_EVENT_EJECTION }, initiator = { unitName = "Zip's Hog" } })
   luaunit.assertNil(veafCampaignEconomy.held["Zip's Hog"])
-  luaunit.assertEquals(veafCampaignEconomy.credits, 115)
-  luaunit.assertEquals(#dcs_mocks.messagesContaining("15"), 2) -- the kill, then the loss
+  luaunit.assertEquals(veafCampaignEconomy.credits, 125)
+  luaunit.assertEquals(#dcs_mocks.messagesContaining("25"), 2) -- the kill, then the loss
 end
 
 --- The dcs.log lines holding `text`.
@@ -737,10 +737,183 @@ function TestCampaignShop:test_the_session_summary_says_who_earned_what_once_nob
   end
   veafCampaignEconomy.beat(200)
   coalition.getPlayers = getPlayers
-  luaunit.assertEquals(#loggedLines("CREDITS SUMMARY (nobody left in a slot): 20 earned by the side"), 1)
-  luaunit.assertEquals(#loggedLines("CREDITS SUMMARY Zip: 15 this session"), 1)
+  luaunit.assertEquals(#loggedLines("CREDITS SUMMARY (nobody left in a slot): 30 earned by the side"), 1)
+  luaunit.assertEquals(#loggedLines("CREDITS SUMMARY Zip: 25 this session"), 1)
   luaunit.assertEquals(#loggedLines("CREDITS SUMMARY Paluche: 5 this session"), 1)
   luaunit.assertFalse(veafCampaignEconomy.summarizeSession("again"), "said once")
+end
+
+-- FIX-CAMPAIGN-ECONOMY-BALANCE 01: the rewards of Foothold (SAM 30, aircraft 50, building 100, rescue 200)
+function TestCampaignShop:test_a_sam_pays_more_than_a_ground_unit()
+  local getByName = Unit.getByName
+  Unit.getByName = function(name)
+    if name == "SA-11" then
+      return {
+        hasAttribute = function(_, attribute)
+          return attribute == "SAM related"
+        end,
+      }
+    end
+    return getByName(name)
+  end
+  local event = kill("Zip")
+  event.target.unitName = "SA-11"
+  veafCampaignEconomy.onKill(event)
+  Unit.getByName = getByName
+  -- half at once, half at landing
+  luaunit.assertEquals(veafCampaignEconomy.credits, 115)
+  luaunit.assertEquals(veafCampaignEconomy.held["Zip's Hog"].amount, 15)
+end
+
+function TestCampaignShop:test_a_helicopter_pays_as_an_aeroplane()
+  veafCampaignEconomy.onKill(kill("Zip", Unit.Category.HELICOPTER))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 125)
+  luaunit.assertEquals(veafCampaignEconomy.held["Zip's Hog"].amount, 25)
+end
+
+--- A kill of a building of a zone, as veafEventHandler hands it: a static has no side it can read.
+local function buildingKill(player, zoneName)
+  veafCampaign.structureIndex["building of " .. zoneName] = { zone = veafCampaign.zones[zoneName], index = 1 }
+  return {
+    initiator = { unitName = "Zip's Hog", unitCoalition = BLUE },
+    dcsInitiator = unitAt({ x = 90000 }, { player = player, side = BLUE }),
+    target = { unitName = "building of " .. zoneName },
+  }
+end
+
+function TestCampaignShop:test_a_building_of_an_enemy_zone_destroyed_by_a_player_pays()
+  veafCampaignEconomy.onKill(buildingKill("Zip", "Senaki"))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 150)
+  luaunit.assertEquals(veafCampaignEconomy.held["Zip's Hog"].amount, 50)
+  luaunit.assertEquals(veafCampaignEconomy.pilots["Zip"].stats.Structure, 1)
+  -- one of the players' own buildings, or one destroyed by the AI, pays nothing
+  veafCampaignEconomy.onKill(buildingKill("Zip", "Kobuleti"))
+  veafCampaignEconomy.onKill(buildingKill(nil, "Senaki"))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 150)
+end
+
+function TestCampaignShop:test_each_reward_is_a_setting()
+  veafCampaign.data.dynamic.economy = { kill_air = 7, kill_sam = 8, kill_building = 9, landing_share = 0 }
+  veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
+  veafCampaignEconomy.onKill(buildingKill("Zip", "Senaki"))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 116)
+end
+
+--- The CSAR module's registry and its delivery to the MASH, as CSAR.lua has them.
+local function csarWithPilots(heliName, count)
+  local rescued = {}
+  local groups = {}
+  for index = 1, count do
+    groups["Downed " .. index] = { originalUnit = "x" .. index }
+  end
+  return {
+    inTransitGroups = { [heliName] = groups },
+    rescuePilots = function(heli)
+      table.insert(rescued, heli)
+      csar.inTransitGroups[heli:getName()] = nil
+    end,
+  },
+    rescued
+end
+
+--- A helicopter as `csar.rescuePilots` is handed it.
+local function heli(name, player, side)
+  local unit = unitAt({ x = 0 }, { player = player, side = side or BLUE, category = Unit.Category.HELICOPTER })
+  unit.getName = function()
+    return name
+  end
+  return unit
+end
+
+function TestCampaignShop:test_a_rescue_pays_the_rescuing_pilot_per_pilot_delivered()
+  local saved = csar
+  local rescued
+  csar, rescued = csarWithPilots("Zip's Huey", 2)
+  veafCampaignEconomy.watchRescues()
+  csar.rescuePilots(heli("Zip's Huey", "Zip"))
+  -- the pilots are delivered as before, and the rescuer is paid in full: he is on the ground at the MASH
+  luaunit.assertEquals(#rescued, 1)
+  luaunit.assertEquals(veafCampaignEconomy.credits, 500)
+  luaunit.assertEquals(veafCampaignEconomy.pilots["Zip"].reasons.rescue, 400)
+  luaunit.assertEquals(#loggedLines("CREDITS Zip +400 (rescue)"), 1)
+  -- a second call, nothing in transit any more, pays nothing; watching twice does not pay twice
+  veafCampaignEconomy.watchRescues()
+  csar.inTransitGroups["Zip's Huey"] = { ["Downed 3"] = {} }
+  csar.rescuePilots(heli("Zip's Huey", "Zip"))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 700)
+  csar.rescuePilots(heli("Zip's Huey", "Zip"))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 700)
+  csar = saved
+end
+
+function TestCampaignShop:test_a_rescue_by_the_ai_or_the_enemy_pays_nothing()
+  local saved = csar
+  csar = csarWithPilots("AI Huey", 1)
+  csar.inTransitGroups["Ivan's Mi-8"] = { ["Downed red"] = {} }
+  veafCampaignEconomy.watchRescues()
+  csar.rescuePilots(heli("AI Huey", nil))
+  csar.rescuePilots(heli("Ivan's Mi-8", "Ivan", RED))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 100)
+  csar = saved
+end
+
+function TestCampaignShop:test_no_csar_module_no_rescue_reward()
+  local saved = csar
+  csar = nil
+  luaunit.assertFalse(veafCampaignEconomy.watchRescues())
+  csar = saved
+end
+
+-- FIX-CAMPAIGN-ECONOMY-BALANCE 03: what the players earn and spend in an evening, by kind, to tune the prices
+function TestCampaignShop:test_the_economy_summary_gives_what_was_earned_and_spent_by_kind()
+  local getPlayers, getAirbase = coalition.getPlayers, Airbase.getByName
+  coalition.getPlayers = function()
+    return { "someone" }
+  end
+  dcs_mocks.currentTime = 1000
+  veafCampaignEconomy.beat(1000) -- a player in a slot: the session's books open, at 100 credits
+  luaunit.assertNotNil(veafCampaignEconomy.ledger)
+  veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
+  Airbase.getByName = function()
+    return airbaseOf(BLUE)
+  end
+  veafCampaignEconomy.onPilotEvent({
+    type = { id = world.event.S_EVENT_LAND },
+    initiator = { unitName = "Zip's Hog" },
+    place = { unitName = "Kobuleti" },
+  })
+  Airbase.getByName = getAirbase
+  veafCampaignEconomy.buy({ "illumination", "Senaki" })
+  veafCampaignEconomy.buy({ "illumination", "Senaki" })
+  coalition.getPlayers = function()
+    return {}
+  end
+  dcs_mocks.currentTime = 1000 + 3 * 3600
+  veafCampaignEconomy.beat(dcs_mocks.currentTime)
+  coalition.getPlayers = getPlayers
+  luaunit.assertEquals(#loggedLines("ECONOMY SUMMARY (nobody left in a slot): 180 min"), 1)
+  luaunit.assertEquals(#loggedLines("ECONOMY SUMMARY blue credits: 100 at the start, 50 at the end"), 1)
+  -- the kill counts once, both its parts under its own kind
+  luaunit.assertEquals(#loggedLines("ECONOMY SUMMARY blue credits earned 50: kill_air 50 (x1)"), 1)
+  luaunit.assertEquals(#loggedLines("ECONOMY SUMMARY blue credits spent 100: shop illumination 100 (x2)"), 1)
+  -- closed until a player sits in a slot again
+  luaunit.assertNil(veafCampaignEconomy.ledger)
+  luaunit.assertFalse(veafCampaignEconomy.summarizeSession("again"))
+end
+
+function TestCampaignShop:test_no_economy_summary_when_nobody_played()
+  veafCampaignEconomy.earn(200, "campaign.credits.capture", "Poti")
+  veafCampaignEconomy.summarizeSession("the mission ends")
+  luaunit.assertEquals(#loggedLines("ECONOMY SUMMARY"), 0)
+  luaunit.assertEquals(#loggedLines("CREDITS SUMMARY (the mission ends): 200 earned"), 1)
+end
+
+function TestCampaignShop:test_the_mission_end_closes_the_books()
+  veafCampaignEconomy.openLedger()
+  luaunit.assertTrue(veafCampaignEconomy.charge(30, "Assault", "shop assault"))
+  luaunit.assertTrue(veafCampaignEconomy.summarizeSession("the mission ends"))
+  luaunit.assertEquals(#loggedLines("ECONOMY SUMMARY blue credits earned 0: nothing"), 1)
+  luaunit.assertEquals(#loggedLines("ECONOMY SUMMARY blue credits spent 30: shop assault 30 (x1)"), 1)
 end
 
 function TestCampaignShop:test_credits_never_go_below_zero()
@@ -971,6 +1144,22 @@ function TestCampaignUpgrades:test_the_price_shown_is_the_group_placed_and_econo
   luaunit.assertEquals(veafCampaignEconomy.upgradePrice("hawk"), 2000)
 end
 
+-- FIX-CAMPAIGN-ECONOMY-BALANCE 05: one rule, the spawn price; ticket 02's hand prices are gone
+function TestCampaignUpgrades:test_the_nasams_and_the_patriot_cost_their_units_spawn_price()
+  local nasams = veafCampaign.unitsPrice(UPGRADE_GROUPS.nasams) * 6 -- economy.credits_per_point
+  local patriot = veafCampaign.unitsPrice(UPGRADE_GROUPS.patriot) * 6
+  luaunit.assertEquals(veafCampaignEconomy.upgradePrice("nasams"), nasams)
+  luaunit.assertEquals(veafCampaignEconomy.upgradePrice("patriot"), patriot)
+  luaunit.assertTrue(veafCampaignEconomy.buyUpgrade({ "patriot", "Kobuleti" }))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 100000 - patriot)
+  for _, upgrade in ipairs(veafCampaignEconomy.UPGRADES) do
+    luaunit.assertNil(upgrade.price, upgrade.id)
+  end
+  -- a campaign's economy.prices still wins
+  veafCampaign.data.dynamic.economy.prices = { nasams = 1500 }
+  luaunit.assertEquals(veafCampaignEconomy.upgradePrice("nasams"), 1500)
+end
+
 function TestCampaignUpgrades:test_the_upgrades_offered_follow_the_era()
   local function ids()
     local list = {}
@@ -1099,7 +1288,7 @@ function TestCampaignTasks:test_air_superiority_counts_aircraft_shot_down()
   veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
   veafCampaignEconomy.checkTasks()
   luaunit.assertEquals(#veafCampaignEconomy.tasks, 1)
-  luaunit.assertEquals(veafCampaignEconomy.credits, 30 + 200) -- half of each kill, the rest held until landing
+  luaunit.assertEquals(veafCampaignEconomy.credits, 50 + 200) -- half of each kill, the rest held until landing
 end
 
 -- ---------------------------------------------------------------------------
@@ -1632,7 +1821,7 @@ function TestCampaignRanking:test_the_credits_lost_at_an_ejection_are_remembered
   start({ economy = { start_credits = 100 }, air = {} })
   veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
   veafCampaignEconomy.onPilotEvent({ type = { id = world.event.S_EVENT_EJECTION }, initiator = { unitName = "Zip's Hog" } })
-  luaunit.assertEquals(veafCampaignEconomy.lostAtEjection["Zip's Hog"], 15)
+  luaunit.assertEquals(veafCampaignEconomy.lostAtEjection["Zip's Hog"], 25)
 end
 
 function TestCampaignRanking:test_the_board_is_listed_as_the_f10_menu_gives_it()

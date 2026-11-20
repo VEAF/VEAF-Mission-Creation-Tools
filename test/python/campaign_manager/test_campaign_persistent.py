@@ -133,6 +133,7 @@ class TestTheDynamicBlock:
             ({"network": {"hop_seconds": 0}}, "dynamic.network.hop_seconds"),
             ({"economy": {"credits_per_point": 0}}, "dynamic.economy.credits_per_point"),
             ({"economy": {"upgrades_per_zone": -1}}, "dynamic.economy.upgrades_per_zone"),
+            ({"economy": {"rescue": -1}}, "dynamic.economy.rescue"),
             ({"debug": "yes"}, "dynamic.debug"),
             ({"territory": {"enabled": "yes"}}, "dynamic.territory.enabled"),
         ],
@@ -141,6 +142,12 @@ class TestTheDynamicBlock:
         campaign, issues = _parse(head={"mode": "persistent"}, dynamic=block)
         assert campaign is None
         assert any(f"`{setting}`" in message for message in _errors(issues))
+
+    def test_the_rewards_of_foothold_are_settings(self) -> None:
+        # FIX-CAMPAIGN-ECONOMY-BALANCE 01: a SAM, a building and a rescue each have their own reward
+        economy = {"kill_sam": 40, "kill_building": 90, "rescue": 150}
+        dynamic = _persistent(dynamic={"economy": economy}).dynamic
+        assert {key: dynamic["economy"][key] for key in economy} == economy
 
     def test_the_upgrades_a_zone_holds_are_passed_on(self) -> None:
         # FEAT-CAMPAIGN-SHOP-UPGRADES 01: the shop's limit of bought upgrades per zone

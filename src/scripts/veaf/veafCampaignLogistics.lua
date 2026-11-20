@@ -181,8 +181,9 @@ end
 
 --- Pay `cost` from a side's stock, if it can (see `canPay`).
 --- @param what string|nil what for, for the log
+--- @param kind string|nil what for, for the session's books (`veafCampaignEconomy.book`), `other` when nil
 --- @return boolean whether it was paid
-function veafCampaignLogistics.pay(side, cost, mode, what)
+function veafCampaignLogistics.pay(side, cost, mode, what, kind)
   if not veafCampaignLogistics.canPay(side, cost, mode) then
     veafCampaignLogistics.counters.refused[side] = (veafCampaignLogistics.counters.refused[side] or 0) + 1
     logger():info("%s cannot pay %s (%d points, %d in stock)", side, tostring(what or "a sortie"), cost, veafCampaignLogistics.stock(side))
@@ -194,13 +195,20 @@ function veafCampaignLogistics.pay(side, cost, mode, what)
   end
   veafCampaignLogistics.stocks[side] = veafCampaignLogistics.stock(side) - paid
   veafCampaignLogistics.counters.spent[side] = (veafCampaignLogistics.counters.spent[side] or 0) + paid
+  if veafCampaignEconomy and veafCampaignEconomy.book then
+    veafCampaignEconomy.book(side, "spent", kind or "other", paid)
+  end
   logger():debug("%s pays %d for %s, %d left", side, paid, tostring(what or "a sortie"), veafCampaignLogistics.stock(side))
   return true
 end
 
 --- Add points to a side's stock: production, or what comes home.
-function veafCampaignLogistics.credit(side, points)
+--- @param kind string|nil what it is, for the session's books (`veafCampaignEconomy.book`): `refund`; nil books nothing
+function veafCampaignLogistics.credit(side, points, kind)
   veafCampaignLogistics.stocks[side] = veafCampaignLogistics.stock(side) + points
+  if kind and veafCampaignEconomy and veafCampaignEconomy.book then
+    veafCampaignEconomy.book(side, "earned", kind, points)
+  end
 end
 
 --- What a side makes in an hour: the background production, and each of its factories by the share of its
@@ -227,6 +235,9 @@ function veafCampaignLogistics.produce(seconds)
     local made = veafCampaignLogistics.productionPerHour(side) * seconds / 3600
     veafCampaignLogistics.credit(side, made)
     veafCampaignLogistics.counters.produced[side] = (veafCampaignLogistics.counters.produced[side] or 0) + made
+    if veafCampaignEconomy and veafCampaignEconomy.book then
+      veafCampaignEconomy.book(side, "earned", "production", made, true)
+    end
   end
 end
 
@@ -359,7 +370,7 @@ function veafCampaignLogistics.dispatchDeliveries(now)
       if zone.placed and zone.entry.owner == side and zone:garrisonDamaged() and not deliveryUnderway(zone.name) then
         local cost = veafCampaign.unitsPrice(missingUnits(zone))
         local route = delays[zone.name]
-        if veafCampaignLogistics.pay(side, cost, "essential", "the supply of " .. zone.name) then
+        if veafCampaignLogistics.pay(side, cost, "essential", "the supply of " .. zone.name, "reinforcement") then
           local delay = route and route.delay or veafCampaign.setting("network", "isolated_seconds")
           table.insert(veafCampaignLogistics.deliveries, {
             side = side,
@@ -428,7 +439,7 @@ function veafCampaignLogistics.arriveDeliveries(now)
       local reinforced, spent = zone:reinforce(cost)
       local unspent = math.max(0, cost - (spent or 0))
       if unspent > 0 then
-        veafCampaignLogistics.credit(delivery.side, unspent)
+        veafCampaignLogistics.credit(delivery.side, unspent, "refund")
       end
       if reinforced then
         veafCampaignLogistics.counters.arrived = veafCampaignLogistics.counters.arrived + 1
@@ -573,10 +584,11 @@ function veafCampaignLogistics.spawnPaid(key, options, groupName, requester)
   local balance
   if currency == "credits" then
     veafCampaignEconomy.credits = veafCampaignEconomy.credits - cost
+    veafCampaignEconomy.book("credits", "spent", "spawn", cost)
     balance = veafCampaignEconomy.credits
     answerRequester(requester, veaf.t("campaign.spawn.paid_credits", key, #types, cost, balance))
   else
-    veafCampaignLogistics.pay(side, cost, "debt", "spawn " .. key)
+    veafCampaignLogistics.pay(side, cost, "debt", "spawn " .. key, "spawn")
     balance = veafCampaignLogistics.stock(side)
   end
   if balance < 0 then

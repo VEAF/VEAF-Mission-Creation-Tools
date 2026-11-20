@@ -369,14 +369,41 @@ Un achat refusé (plus de cible, rien à portée) ne coûte rien.
 | Hélico de capture | un hélicoptère qui va prendre une zone neutre | 250 |
 | Hélico de ravitaillement | un hélicoptère qui va ravitailler une de nos zones abîmées | 200 |
 | Raid de bombardiers | un [raid combiné](#bombers) — BARCAP, SEAD, bombardier — sur une zone ennemie, ses bâtiments d'abord | 1300 |
+| Vol CAS | un vol d'attaque de notre camp (`air.<camp>.cas`) qui frappe les unités au sol d'une zone ennemie, puis rentre ; un seul en l'air à la fois | 500 |
+| Vol SEAD | un vol SEAD de notre camp (`air.<camp>.sead`) qui frappe la défense antiaérienne d'une zone ennemie, puis rentre ; un seul en l'air à la fois | 600 |
 | Escorte de mon groupe | deux chasseurs pour le groupe de l'acheteur, qui partent en l'air au-dessus de notre aérodrome le plus proche : un avion reçoit la tâche d'escorte de DCS ; un hélicoptère, trop lent pour des chasseurs, une CAP de 15 km au-dessus de lui, déplacée quand il a avancé de 8 km. Dans le menu de chaque pilote | 300 |
 | Ravitailleur | un article par ravitailleur que nomme `economy.tanker` — un nom, ou une liste : la perche et le panier —, qu'il fait réapparaître (un asset de la mission) puis [replace](#support) hors de portée ; absent sans aucun | 300 |
 
 La BARCAP se tient sur l'axe entre la zone ennemie et notre aérodrome le plus proche, au premier point hors de portée de **toutes** les défenses ennemies (pas seulement celles de la zone visée) plus 15 km, et garde un cercle de 15 km ; quand aucun point de l'axe n'est hors de portée, elle tient au-dessus de son aérodrome.
 La portée se mesure sur les missiles que portent les unités de la zone quand elle est éveillée ; une zone endormie est supposée porter à 75 km si elle a un [SAM longue portée](#long-range-sams), 20 km sinon, et le message le dit.
 
-Les prix se changent dans `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `escort`, `tanker`, et `assault` pour l'ordre d'assaut de F10 → Autres → VEAF → Campagne → Assaut, 300).
+Les vols CAS et SEAD sont les frappes de l'[aviation ennemie](#air), avec les avions de notre camp : ils décollent de notre aérodrome le plus proche de la zone d'où un avion peut partir (piste assez longue, pas sous une défense antiaérienne ennemie, sauf pour la SEAD), et le message dit d'où.
+La SEAD part tout de suite : elle n'attend pas d'ordre du joueur (« push on command » de Foothold, pas fait).
+
+Les prix se changent dans `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `cas`, `sead`, `escort`, `tanker`, les [renforts de zone](#upgrades) par leur nom, et `assault` pour l'ordre d'assaut de F10 → Autres → VEAF → Campagne → Assaut, 300).
 Ce que les joueurs achètent se paie en crédits, jamais sur les [ressources](#resources).
+
+### Renforcer une zone {#upgrades}
+
+F10 → Autres → VEAF → Campagne → Boutique → **Renforcer une zone** → une de nos zones : un groupe acheté qui rejoint la garnison de la zone, comme les « Zone Upgrades » de Foothold.
+
+| Renfort | Nom dans `economy.prices` | Groupe | Époques |
+|---|---|---|---|
+| Batterie Hawk | `hawk` | `hawk` de `veaf-units.yaml` | guerre froide, moderne |
+| Batterie NASAMS | `nasams` | `nasams` | moderne |
+| Batterie Patriot | `patriot` | `patriot` ; une seule par zone | moderne |
+| Section Avenger | `avenger` | `avenger_squad` | moderne |
+| Section Gepard | `gepard` | trois Gepard et un camion | guerre froide, moderne |
+| Section d'infanterie | `infantry` | tirée comme celles des garnisons | toutes |
+| Peloton blindé | `armor` | tiré comme ceux des garnisons | toutes |
+
+- Le groupe est posé comme la garnison, hors du béton et des bâtiments, puis il en fait partie : sauvegardé, endormi et réveillé avec la zone, renforcé par les livraisons au prix de ses unités, perdu avec la zone.
+- Une zone tient `economy.upgrades_per_zone` (2) renforts achetés ; la boutique refuse le suivant, et une deuxième batterie Patriot sur la même zone, en disant pourquoi. Un achat refusé ne coûte rien.
+- Un renfort coûte le prix de ses unités au [spawn payant](#paid-spawns), en crédits (`economy.credits_per_point`, 6) : une batterie Hawk coûte ce que coûte son spawn.
+  Sa composition est tirée une fois par mission, si bien que le prix du menu est celui du groupe posé.
+  Au 20/11/2026, avec les prix des unités par défaut : Hawk vers 2 250 crédits, Patriot vers 950, NASAMS vers 700, Avenger 162, Gepard 156, infanterie et blindés de quelques dizaines à 250 environ.
+  Un Patriot coûte moins qu'un Hawk parce que ses lanceurs sont comptés comme des canons (8 points) : seuls ses radars ont l'attribut SAM ; `economy.prices` fixe un prix à la main.
+- `dcs.log` dit chaque achat (`bought the upgrade [hawk] for [Hatay]`, et `[CAMPAIGN SHOP]` avec le [journal de mise au point](#debug-log)).
 
 ## Le tableau des tâches {#tasks}
 
@@ -607,6 +634,7 @@ Pendant la mise au point, `dynamic.debug` (activé par défaut) écrit dans `dcs
 | `[CAMPAIGN AIRDEF]` | toutes les `debug_status_seconds` (300 s) : pour chaque zone, ses unités de défense antiaérienne et les missiles qui leur restent, lanceurs vides compris |
 | `[CAMPAIGN SUPPLY]` | livraisons du réseau commandées, arrivées, perdues |
 | `[CAMPAIGN ZONE]` | zones prises et neutralisées |
+| `[CAMPAIGN SHOP]` | chaque achat de la [boutique](#shop) : l'article, la zone, le prix et le solde ; pour un [renfort de zone](#upgrades), le groupe posé et ses unités |
 | `[CAMPAIGN STATUS]` | toutes les `debug_status_seconds` (300 s) : par camp, zones, stock et production, livraisons en route, vols en l'air, raid en cours, et les crédits des joueurs |
 
 `debug: false` l'éteint, une fois la campagne sûre.
@@ -660,7 +688,7 @@ Une ligne `KO` suffit à dire où regarder.
 | `supply_crate` | `Zone supplies` | le nom de la caisse CTLD 2 qui ravitaille |
 | `hunter` | `{enabled: true, ground_kills: 8, air_kills: 4, chance: 10}` | le Hunter |
 | `air` | voir [l'aviation ennemie](#air) | `strike_seconds` (900), `max_flights` (4), `cap_per_players` (3), `cap_helicopter_chance` (25), et les avions de chaque camp |
-| `economy` | voir [la boutique](#shop) | `start_credits`, `kill_ground`, `kill_air`, `capture`, `delivery`, `prices`, `tanker`, `credits_per_point` (6), `demolition` (50), `warehouse_delivery` (50), `landing_share` (50) |
+| `economy` | voir [la boutique](#shop) | `start_credits`, `kill_ground`, `kill_air`, `capture`, `delivery`, `prices`, `tanker`, `credits_per_point` (6), `demolition` (50), `warehouse_delivery` (50), `landing_share` (50), `upgrades_per_zone` (2) |
 | `tasks` | voir [les tâches](#tasks) | `count`, `refresh_seconds`, `air_kills`, `rewards` (`attack`, `capture`, `resupply`, `air`, `intercept`) |
 | `intel` | voir [le renseignement](#intel) | `hidden`, `seconds`, `overflight_altitude`, `spy_troops`, `spy_range` |
 | `resources` | voir [les ressources](#resources) | `enabled` (true), `start` (1000), `background_per_hour` (60), `reserve` (100), `prices` |
@@ -693,6 +721,8 @@ Ces points sont écrits et testés hors de DCS, pas encore mesurés en jeu :
 - un hélicoptère de ravitaillement à qui il est dit de ne pas abandonner sa tâche sous une menace (deux fois le 16/11/2026, un Mi-8 envoyé d'Alep vers Afrin s'est reposé à Alep trois minutes après son départ : une cause probable, pas mesurée) ;
 - les numéros des waypoints, tels que chaque module les montre ;
 - un aérodrome neutre ou ennemi au départ, pris en vol, qui offre ses slots dynamiques au preneur (Foothold compte dessus ; pas encore mesuré sur la nôtre) ;
-- un bâtiment détruit compté au classement : il faut que DCS envoie un `S_EVENT_KILL` pour un objet statique.
+- un bâtiment détruit compté au classement : il faut que DCS envoie un `S_EVENT_KILL` pour un objet statique ;
+- un renfort de zone acheté (une batterie Hawk sur Hatay) : posé dans la zone, présent après un redémarrage, et le troisième refusé ;
+- un vol SEAD acheté sur Alep : il décolle de Hatay ou de Gaziantep et engage la défense antiaérienne d'Alep, et une deuxième SEAD est refusée tant qu'il vole.
 
 Voir aussi la [référence du module `veafCampaign`](scripts/veafCampaign.md).

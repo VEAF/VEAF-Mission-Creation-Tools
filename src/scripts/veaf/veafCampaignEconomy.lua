@@ -40,7 +40,30 @@ veafCampaignEconomy.PRICES = {
   bomber = 1300, -- the raid package without escort, 220 points at 6 credits a point (David, 2026-11-16)
   assault = 300, -- the players' assault order (Campaign > Assault), a purchase in a persistent campaign
   escort = 300, -- two fighters covering the buyer's own group, helicopter or airplane (David, 2026-11-16)
+  -- an AI attack flight against an enemy zone, next to the CAP's 400 (FEAT-CAMPAIGN-SHOP-UPGRADES 02); estimates
+  cas = 500,
+  sead = 600,
 }
+
+--- The zone upgrades (FEAT-CAMPAIGN-SHOP-UPGRADES 01, after Foothold's): a group bought on one of the players' zones,
+--- which joins its garrison. Each is a group of veaf-units.yaml (`group`), or drawn as the garrison draws its own
+--- (`draw`), or a list of DCS types (`units`); `eras` the eras it is offered in, all of them when absent; `once` at
+--- most one per zone. Service dates as `veafCasMission.LONG_RANGE_AIR_DEFENSE_GROUPS` takes them, the 1980 reference
+--- for the cold war: no Patriot (1984), NASAMS or Avenger then. Its price is its units' spawn price, in credits.
+veafCampaignEconomy.UPGRADES = {
+  { id = "hawk", group = "hawk", eras = { veaf.ERA.COLD_WAR, veaf.ERA.MODERN } },
+  { id = "nasams", group = "nasams", eras = { veaf.ERA.MODERN } },
+  { id = "patriot", group = "patriot", eras = { veaf.ERA.MODERN }, once = true },
+  { id = "avenger", group = "avenger_squad", eras = { veaf.ERA.MODERN } },
+  -- veaf-units.yaml has no group of its own for the Gepard: the platoon the blue air defence groups carry
+  { id = "gepard", units = { "Gepard", "Gepard", "Gepard", "M 818" }, eras = { veaf.ERA.COLD_WAR, veaf.ERA.MODERN } },
+  { id = "infantry", draw = "infantry" },
+  { id = "armor", draw = "armor" },
+}
+
+--- The size and armour levels of `veafCasMission`'s generators an infantry section and an armour platoon are
+--- drawn at: a garrison's middle class, with no air defence of its own (the air defence is bought apart).
+veafCampaignEconomy.UPGRADE_DRAW = { defense = 0, armor = 3 }
 
 --- How often an escort covering a helicopter moves its circle over it, in seconds, and how far the
 --- helicopter must have gone for the circle to move, in metres.
@@ -59,6 +82,8 @@ veafCampaignEconomy.ITEMS = {
   { id = "capture", zones = "neutral" },
   { id = "resupply", zones = "own" },
   { id = "bomber", zones = "enemy" },
+  { id = "cas", zones = "enemy" },
+  { id = "sead", zones = "enemy" },
   { id = "escort" },
   { id = "tanker" },
 }
@@ -583,6 +608,29 @@ local function zoneSuits(rule, zone)
     or (rule == "enemy" and owner == veafCampaign.enemyOf(own))
 end
 
+--- A CAS or SEAD flight of the players' side against an enemy zone (FEAT-CAMPAIGN-SHOP-UPGRADES 02): the enemy AI's own
+--- strike (`veafCampaignOps.spawnStrike`), from the side's airfield nearest the zone that the role may take off from.
+--- One flight of each kind in the air at a time, as Foothold.
+--- @param zone table the enemy zone
+--- @param role string "cas" or "sead"
+--- @return boolean whether it was sent
+--- @return string the i18n key of why not
+local function sendStrike(zone, role)
+  local side = veafCampaign.playerSide()
+  if veafCampaignOps.flightsUp(side, role) > 0 then
+    return false, "campaign.shop.refused_flight_up"
+  end
+  local origin = veafCampaignOps.nearestOwnZone(side, zone, true, role)
+  if not origin then
+    return false, "campaign.shop.refused_no_airfield"
+  end
+  local spawned = veafCampaignOps.spawnStrike(side, role, zone, origin)
+  if spawned then
+    tell("campaign.shop.strike", veaf.t("campaign.shop.item." .. role), origin.name, veafCampaign.zoneTitle(zone.name))
+  end
+  return spawned ~= nil, "campaign.shop.refused_spawn"
+end
+
 --- What each item does. Each returns true when done, or false and the i18n key of why not; a refusal
 --- costs nothing.
 veafCampaignEconomy.effects = {
@@ -681,6 +729,12 @@ veafCampaignEconomy.effects = {
   bomber = function(zone)
     local raid = veafCampaignOps.sendRaid(veafCampaign.playerSide(), zone, true)
     return raid ~= nil, "campaign.shop.refused_no_bomber"
+  end,
+  cas = function(zone)
+    return sendStrike(zone, "cas")
+  end,
+  sead = function(zone)
+    return sendStrike(zone, "sead")
   end,
   tanker = function(_, name)
     -- one item per tanker of `economy.tanker`: the boom and the basket are bought apart (David, 2026-11-17)
@@ -849,6 +903,159 @@ function veafCampaignEconomy.buy(parameters)
   veafCampaignEconomy.counters.purchases = veafCampaignEconomy.counters.purchases + 1
   tell("campaign.shop.bought", veaf.t("campaign.shop.item." .. itemId), zoneName or "-", price, veafCampaignEconomy.credits)
   logger():info("bought [%s] for [%s], %d credits", itemId, tostring(zoneName), price)
+  veafCampaign.debug("SHOP", "%s bought on [%s] for %d credits, %d left", itemId, tostring(zoneName), price, veafCampaignEconomy.credits)
+  return true
+end
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Zone upgrades (FEAT-CAMPAIGN-SHOP-UPGRADES 01)
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+--- What each upgrade places, by id, once drawn: see `upgradeOffer`.
+veafCampaignEconomy.offers = {}
+
+local function upgradeOf(upgradeId)
+  for _, upgrade in ipairs(veafCampaignEconomy.UPGRADES) do
+    if upgrade.id == upgradeId then
+      return upgrade
+    end
+  end
+  return nil
+end
+
+--- The upgrades the shop offers in the campaign's era, in the menu's order.
+--- @return table the entries of `UPGRADES`
+function veafCampaignEconomy.availableUpgrades()
+  local available = {}
+  for _, upgrade in ipairs(veafCampaignEconomy.UPGRADES) do
+    local offered = upgrade.eras == nil
+    for _, era in ipairs(upgrade.eras or {}) do
+      offered = offered or era == veaf.config.era
+    end
+    if offered then
+      table.insert(available, upgrade)
+    end
+  end
+  return available
+end
+
+--- The group an upgrade places, drawn once a mission and kept: the price the menu shows and the group a purchase
+--- places are then the same units, where a template's random counts would draw another group at each call.
+--- @param upgradeId string
+--- @return table|nil the group, as `veafUnits.processGroup` hands it back; nil when it cannot be had
+function veafCampaignEconomy.upgradeOffer(upgradeId)
+  local offer = veafCampaignEconomy.offers[upgradeId]
+  local upgrade = upgradeOf(upgradeId)
+  if offer or not upgrade then
+    return offer
+  end
+  local side, name = playerCoalition(), "upgrade " .. upgradeId
+  local draw = veafCampaignEconomy.UPGRADE_DRAW
+  if upgrade.group then
+    offer = veafUnits.findGroup(upgrade.group)
+  else
+    local definition
+    if upgrade.draw == "infantry" then
+      definition = veafCasMission.generateInfantryGroup(name, draw.defense, draw.armor, side)
+    elseif upgrade.draw == "armor" then
+      definition = veafCasMission.generateArmorPlatoon(name, draw.defense, draw.armor, side)
+    else
+      definition = { disposition = { h = 4, w = 4 }, units = {}, description = name, groupName = name }
+      for _, typeName in ipairs(upgrade.units) do
+        table.insert(definition.units, { typeName, random = true })
+      end
+    end
+    offer = veafUnits.processGroup(definition)
+  end
+  if not (offer and offer.units and #offer.units > 0) then
+    logger():error("the upgrade [%s] cannot be drawn: it is left out of the shop", upgradeId)
+    return nil
+  end
+  veafCampaignEconomy.offers[upgradeId] = offer
+  return offer
+end
+
+--- What an upgrade costs: its `economy.prices` entry, else its units' spawn price in credits — a Hawk battery costs
+--- what spawning one costs, and the two never drift apart.
+--- @param upgradeId string
+--- @return number|nil credits; nil when the upgrade cannot be had
+function veafCampaignEconomy.upgradePrice(upgradeId)
+  local override = (veafCampaign.setting("economy", "prices") or {})[upgradeId]
+  if override then
+    return override
+  end
+  local offer = veafCampaignEconomy.upgradeOffer(upgradeId)
+  if not offer then
+    return nil
+  end
+  local types = {}
+  for _, unit in ipairs(offer.units) do
+    table.insert(types, unit.typeName)
+  end
+  return veafCampaign.unitsPrice(types) * veafCampaign.setting("economy", "credits_per_point")
+end
+
+--- Why an upgrade cannot be bought on a zone now, or nil: the zone is not the players' any more, holds
+--- `economy.upgrades_per_zone` bought upgrades already, or an upgrade it may hold only one of.
+--- @return string|nil the i18n key
+--- @return any the key's argument
+local function upgradeRefusal(upgrade, zone)
+  if not (zone and zone.placed and zone.entry.owner == veafCampaign.playerSide() and zone.entry.garrison) then
+    return "campaign.shop.refused_zone"
+  end
+  local bought, limit = zone:upgrades(), veafCampaign.setting("economy", "upgrades_per_zone")
+  if #bought >= limit then
+    return "campaign.shop.refused_upgrades_full", limit
+  end
+  for _, group in ipairs(bought) do
+    if upgrade.once and group.upgrade == upgrade.id then
+      return "campaign.shop.refused_upgrade_once"
+    end
+  end
+  return nil
+end
+
+--- Radio command: buy an upgrade on one of the players' zones. Refused with no credit taken when the side cannot pay,
+--- the zone no longer suits, or the group cannot be placed.
+--- @param parameters table `{ upgradeId, zoneName }`
+--- @return boolean whether it was bought
+function veafCampaignEconomy.buyUpgrade(parameters)
+  local upgradeId, zoneName = parameters[1], parameters[2]
+  local upgrade = upgradeOf(upgradeId)
+  if not upgrade or veafCampaign.over then
+    return false
+  end
+  local label = veaf.t("campaign.shop.upgrade." .. upgradeId)
+  local price = veafCampaignEconomy.upgradePrice(upgradeId)
+  if not price then
+    tell("campaign.shop.refused", label, veaf.t("campaign.shop.refused_spawn"))
+    return false
+  end
+  if veafCampaignEconomy.credits < price then
+    tell("campaign.shop.too_expensive", label, price, veafCampaignEconomy.credits)
+    return false
+  end
+  local zone = veafCampaign.zones[zoneName]
+  local why, argument = upgradeRefusal(upgrade, zone)
+  local group = not why and zone:addUpgrade(upgradeId, veafCampaignEconomy.upgradeOffer(upgradeId))
+  if not group then
+    tell("campaign.shop.refused", label, veaf.t(why or "campaign.shop.refused_placed", argument))
+    return false
+  end
+  veafCampaignEconomy.credits = veafCampaignEconomy.credits - price
+  veafCampaignEconomy.counters.purchases = veafCampaignEconomy.counters.purchases + 1
+  tell("campaign.shop.bought", label, veafCampaign.zoneTitle(zoneName), price, veafCampaignEconomy.credits)
+  logger():info("bought the upgrade [%s] for [%s], %d unit(s), %d credits", upgradeId, zoneName, #group.units, price)
+  veafCampaign.debug(
+    "SHOP",
+    "upgrade %s bought on [%s] (%s, %d units) for %d credits, %d left",
+    upgradeId,
+    zoneName,
+    group.name,
+    #group.units,
+    price,
+    veafCampaignEconomy.credits
+  )
   return true
 end
 
@@ -1141,7 +1348,39 @@ function veafCampaignEconomy.buildRadioMenu()
       veafRadio.addCommandToSubmenu(title, veafCampaignEconomy.shopPath, veafCampaignEconomy.buy, { item.id }, veafRadio.USAGE_ForAll)
     end
   end
+  veafCampaignEconomy.buildUpgradesMenu(side)
   veafRadio.refreshRadioMenu()
+end
+
+--- The shop's zone upgrades (FEAT-CAMPAIGN-SHOP-UPGRADES 01): Shop > Zone upgrades > one of the players' zones > the
+--- upgrades of the campaign's era, each with its price. A zone full is listed all the same: the purchase says why not.
+--- @param side number the players' DCS coalition
+function veafCampaignEconomy.buildUpgradesMenu(side)
+  local upgrades = {}
+  for _, upgrade in ipairs(veafCampaignEconomy.availableUpgrades()) do
+    local price = veafCampaignEconomy.upgradePrice(upgrade.id)
+    if price then
+      table.insert(upgrades, { id = upgrade.id, price = price })
+    end
+  end
+  if #upgrades == 0 then
+    return
+  end
+  local path = veafRadio.addSubMenu(veaf.t("menu.campaign.upgrades"), veafCampaignEconomy.shopPath, side)
+  for _, zone in ipairs(veafCampaign.zoneList) do
+    if zone.placed and zoneSuits("own", zone) then
+      local zonePath = veafRadio.addSubMenu(veafCampaign.zoneTitle(zone.name), path, side)
+      for _, upgrade in ipairs(upgrades) do
+        veafRadio.addCommandToSubmenu(
+          veaf.t("menu.campaign.shop_item", veaf.t("campaign.shop.upgrade." .. upgrade.id), upgrade.price),
+          zonePath,
+          veafCampaignEconomy.buyUpgrade,
+          { upgrade.id, zone.name },
+          veafRadio.USAGE_ForAll
+        )
+      end
+    end
+  end
 end
 
 --- One beat, inside veafCampaign's loop.
@@ -1212,7 +1451,7 @@ function veafCampaignEconomy.initialize()
   veafCampaignEconomy.credits = veafCampaign.setting("economy", "start_credits")
   veafCampaignEconomy.pilots, veafCampaignEconomy.sessionGains = {}, nil
   veafCampaignEconomy.tasks, veafCampaignEconomy.spies, veafCampaignEconomy.nextTasks = {}, {}, nil
-  veafCampaignEconomy.menuBuilt, veafCampaignEconomy.shopPath = false, nil
+  veafCampaignEconomy.menuBuilt, veafCampaignEconomy.shopPath, veafCampaignEconomy.offers = false, nil, {}
   veafCampaignEconomy.counters = { purchases = 0, posted = 0, completed = 0, reveals = 0, spies = 0 }
   veafCampaignEconomy.load(veafCampaign.savedPart("economy"))
   veafCampaign.saveParts.economy = { save = veafCampaignEconomy.save }

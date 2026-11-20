@@ -141,6 +141,7 @@ _SCHEMA: dict[str, Check | dict[str, Check]] = {
         "demolition": _natural,
         "warehouse_delivery": _natural,
         "landing_share": _percent,
+        "upgrades_per_zone": _natural,
     },
     "tasks": {"count": _natural, "refresh_seconds": _positive, "air_kills": _positive, "rewards": _counts},
     "intel": {

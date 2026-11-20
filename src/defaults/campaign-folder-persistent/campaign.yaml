@@ -76,6 +76,7 @@ dynamic:
     start_credits: 500
     landing_share: 50
     tanker: [ "Tanker Texaco", "Tanker Arco" ]   # the boom and the basket: one shop item each
+    upgrades_per_zone: 2   # air defence or troops bought on a zone (Shop > Zone upgrades), at most
   tasks:
     count: 3
   intel:

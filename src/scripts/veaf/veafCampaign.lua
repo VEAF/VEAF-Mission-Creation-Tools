@@ -131,6 +131,7 @@ veafCampaign.DYNAMIC_DEFAULTS = {
     -- the share of a pilot's kill held until the pilot lands at a friendly airfield, FARP or carrier, lost on an
     -- ejection, a death or a crash (David, 2026-11-16: "a share at the action, a bonus at landing")
     landing_share = 50,
+    upgrades_per_zone = 2, -- groups bought in the shop a zone holds at most, as Foothold (FEAT-CAMPAIGN-SHOP-UPGRADES 01)
   },
   tasks = { count = 3, refresh_seconds = 300, air_kills = 2, rewards = {} },
   intel = { hidden = true, seconds = 3600, overflight_altitude = 1500, spy_troops = "Spy", spy_range = 5000 },
@@ -322,7 +323,7 @@ function veafCampaign.debugging()
 end
 
 --- Write one line of the testing period's log, when `dynamic.debug` is on: `[CAMPAIGN <TAG>] text`, a tag
---- to search dcs.log by — DECISION, STATUS, FLIGHT, SUPPLY, ZONE.
+--- to search dcs.log by — DECISION, STATUS, FLIGHT, SUPPLY, ZONE, SHOP.
 --- @param tag string
 --- @param fmt string a format, as string.format takes it
 function veafCampaign.debug(tag, fmt, ...)
@@ -632,6 +633,24 @@ local function recordUnit(unit)
   }
 end
 
+--- Record the placed units whose position suits them: dropped here, so that what is recorded is what spawns.
+--- @param units table the placed units, as `veafCasMission.placeGroup` hands them back
+--- @return table the garrison units
+local function recordPlaced(units)
+  local recorded = {}
+  for _, unit in ipairs(units) do
+    if
+      unit.spawnPoint
+      and veafUnits.checkPositionForUnit(unit.spawnPoint, unit)
+      and not veafCampaign.isOnConcrete(unit.spawnPoint)
+      and not veafCampaign.isOnBuilding(unit.spawnPoint)
+    then
+      table.insert(recorded, recordUnit(unit))
+    end
+  end
+  return recorded
+end
+
 --- The group definitions of an explicit garrison list: each group alias is a group of its own, and the
 --- unit aliases and DCS types are gathered into one more.
 local function explicitGroupDefinitions(zoneName, list)
@@ -788,17 +807,7 @@ function VeafCampaignZone:drawGarrison(reserve, soldiers)
 
   local garrison = {}
   for _, placed in ipairs(placedGroups) do
-    local group = { name = placed.name, units = {} }
-    for _, unit in ipairs(placed.units) do
-      if
-        unit.spawnPoint
-        and veafUnits.checkPositionForUnit(unit.spawnPoint, unit)
-        and not veafCampaign.isOnConcrete(unit.spawnPoint)
-        and not veafCampaign.isOnBuilding(unit.spawnPoint)
-      then
-        table.insert(group.units, recordUnit(unit))
-      end
-    end
+    local group = { name = placed.name, units = recordPlaced(placed.units) }
     if #group.units > 0 then
       table.insert(garrison, group)
     end
@@ -821,6 +830,52 @@ function VeafCampaignZone:drawGarrison(reserve, soldiers)
   self.entry.garrison = garrison
   veaf.loggers.get(veafCampaign.Id):info("zone [%s]: garrison drawn, %d unit(s)", self.name, self:countUnits())
   return garrison
+end
+
+--- The groups of the zone's garrison bought in the shop (FEAT-CAMPAIGN-SHOP-UPGRADES 01), in the order they were.
+--- @return table the garrison groups that carry an `upgrade`
+function VeafCampaignZone:upgrades()
+  local bought = {}
+  for _, group in ipairs(self.entry.garrison or {}) do
+    if group.upgrade then
+      table.insert(bought, group)
+    end
+  end
+  return bought
+end
+
+--- Add a group bought in the shop to the zone's garrison (FEAT-CAMPAIGN-SHOP-UPGRADES 01): placed as the garrison is,
+--- then one of its groups like any other — saved, put to sleep and woken with the zone, reinforced, lost with it. In
+--- the world at once when the zone is awake, with the rest of it when it is waking, in its record only when asleep.
+--- @param upgrade string the upgrade's id, recorded on the group
+--- @param definition table the group, as `veafCasMission.placeGroup` takes it
+--- @return table|nil the recorded group; nil when the zone has no garrison or no unit of it could be placed
+function VeafCampaignZone:addUpgrade(upgrade, definition)
+  local garrison = self.entry.garrison
+  if not garrison then
+    return nil
+  end
+  local placed = {}
+  veafCampaign.placeGarrisonGroup(definition, self:getCenter(), self.entry.radius or 2000, placed)
+  local group = {
+    name = string.format("%s upgrade %d %s", self.name, #self:upgrades() + 1, upgrade),
+    upgrade = upgrade,
+    units = recordPlaced(placed),
+  }
+  if #group.units == 0 then
+    veaf.loggers.get(veafCampaign.Id):error("zone [%s]: no unit of the %s bought could be placed", self.name, upgrade)
+    return nil
+  end
+  table.insert(garrison, group)
+  local groupIndex = #garrison
+  if self.wakeQueue then
+    table.insert(self.wakeQueue, groupIndex)
+  elseif self.awake ~= false then
+    self:spawnGroup(groupIndex)
+  end
+  veaf.loggers.get(veafCampaign.Id):info("zone [%s]: %s added to the garrison, %d unit(s)", self.name, group.name, #group.units)
+  self:draw()
+  return group
 end
 
 --- The name a garrison unit spawns under. Stable from one mission to the next, so a loss recorded

@@ -73,7 +73,13 @@ SHOP_PRICES: dict[str, int] = {
     "bomber": 1300,
     "assault": 300,
     "escort": 300,
+    "cas": 500,
+    "sead": 600,
 }
+
+#: The groups bought in the shop a zone holds at most when `economy.upgrades_per_zone` does not say:
+#: `veafCampaign.DYNAMIC_DEFAULTS.economy.upgrades_per_zone`.
+UPGRADES_PER_ZONE = 2
 
 #: The reach a long-range SAM is assumed to have before it is measured, metres: `veafCampaignOps.ASSUMED_LONG_RANGE`.
 ASSUMED_LONG_RANGE = 75000
@@ -115,6 +121,26 @@ def shop_prices(campaign: CampaignDefinition) -> dict[str, int]:
     prices = dict(SHOP_PRICES)
     prices.update({str(k): int(v) for k, v in ((campaign.dynamic.get("economy") or {}).get("prices") or {}).items()})
     return prices
+
+
+def shop_lines(campaign: CampaignDefinition) -> list[str]:
+    """The shop as the player's guide lists it: each item with its price, then the zone upgrades.
+
+    The upgrades' prices are their units' spawn price, drawn in game: the guide gives the rule and the limit.
+
+    Args:
+        campaign: The campaign, its `economy` settings read.
+
+    Returns:
+        One line per item, the zone upgrades last.
+    """
+    limit = (campaign.dynamic.get("economy") or {}).get("upgrades_per_zone", UPGRADES_PER_ZONE)
+    lines = [
+        t("campaign.dossier.guide.price", item=t(f"campaign.dossier.shop.{item}"), price=price)
+        for item, price in shop_prices(campaign).items()
+    ]
+    lines.append(t("campaign.dossier.guide.upgrades", limit=limit))
+    return lines
 
 
 def _title(zone: CampaignZone, numbers: Mapping[str, int]) -> str:
@@ -325,13 +351,9 @@ def _radio_page(mission_folder: Path | None, side: str) -> Page:
 
 def guide_blocks(campaign: CampaignDefinition) -> list[Block]:
     """The game's rules for a pilot discovering it, with the shop's prices."""
-    prices = shop_prices(campaign)
     economy = campaign.dynamic.get("economy") or {}
     share = economy.get("landing_share", 50)
-    shop = tuple(
-        t("campaign.dossier.guide.price", item=t(f"campaign.dossier.shop.{item}"), price=price)
-        for item, price in prices.items()
-    )
+    shop = tuple(shop_lines(campaign))
     return [
         Block(t("campaign.dossier.guide.capture_title"), (t("campaign.dossier.guide.capture"),)),
         Block(t("campaign.dossier.guide.credits_title"), (t("campaign.dossier.guide.credits", share=share),)),

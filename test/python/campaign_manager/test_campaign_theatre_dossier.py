@@ -11,7 +11,7 @@ from campaign_fixture import PROSE, VALID
 from campaign_manager.briefing_prose import parse_prose
 from campaign_manager.campaign_manager import initial_state, parse_campaign
 from campaign_manager.models import CampaignDefinition
-from campaign_manager.theatre_dossier import SHOP_PRICES, theatre_dossier
+from campaign_manager.theatre_dossier import SHOP_PRICES, shop_lines, theatre_dossier
 from deck_pdf_check import assert_pdf_matches_deck
 from pptx import Presentation
 from veaf_libs.i18n import language
@@ -84,6 +84,17 @@ class TestTheDossier:
             lua.index("veafCampaignEconomy.PRICES = {") : lua.index("}", lua.index("veafCampaignEconomy.PRICES = {"))
         ]
         assert dict((k, int(v)) for k, v in re.findall(r"(\w+) = (\d+)", block)) == SHOP_PRICES
+
+    def test_the_shop_lists_the_flights_and_the_zone_upgrades(self) -> None:
+        # FEAT-CAMPAIGN-SHOP-UPGRADES: the upgrades' prices are drawn in game, the guide gives their rule and limit
+        campaign = _campaign()
+        with language("fr"):
+            lines = shop_lines(campaign)
+            assert "Vol CAS : 500 crédits" in lines
+            assert "Vol SEAD : 600 crédits" in lines
+            assert any(line.startswith("Renforcer une zone") and "2 par zone" in line for line in lines)
+            campaign.dynamic.setdefault("economy", {})["upgrades_per_zone"] = 3
+            assert any("3 par zone" in line for line in shop_lines(campaign))
 
 
 class TestTheKneeboard:

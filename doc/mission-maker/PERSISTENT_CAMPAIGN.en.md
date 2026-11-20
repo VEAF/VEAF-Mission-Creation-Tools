@@ -369,14 +369,41 @@ A purchase refused (no target left, nothing in reach) costs nothing.
 | Capture helicopter | a helicopter that goes and takes a neutral zone | 250 |
 | Resupply helicopter | a helicopter that goes and resupplies one of our damaged zones | 200 |
 | Bomber raid | a [combined raid](#bombers) — BARCAP, SEAD, bomber — on an enemy zone, its buildings first | 1300 |
+| CAS flight | an attack flight of our side (`air.<side>.cas`) that strikes the ground units of an enemy zone, then flies home; one in the air at a time | 500 |
+| SEAD flight | a SEAD flight of our side (`air.<side>.sead`) that strikes the air defence of an enemy zone, then flies home; one in the air at a time | 600 |
 | Escort for my group | two fighters for the buyer's group, starting in the air over our nearest airfield: an airplane gets the DCS escort task; a helicopter, too slow for fighters, a 15 km CAP over it, moved when it has gone 8 km. In each pilot's menu | 300 |
 | Tanker | one item per tanker `economy.tanker` names — one name, or a list: the boom and the basket —, which it respawns (an asset of the mission), then [places](#support) out of reach again; absent without one | 300 |
 
 The BARCAP holds on the axis between the enemy zone and our nearest airfield, at the first point out of the reach of **every** enemy air defence (not only the target zone's) plus 15 km, and guards a 15 km circle; when no point of the axis is out of reach, it holds over its airfield.
 The reach is measured on the missiles the zone's units carry when it is awake; a sleeping zone is assumed to reach 75 km when it holds a [long-range SAM](#long-range-sams), 20 km otherwise, and the message says so.
 
-Prices change in `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `escort`, `tanker`, and `assault` for the assault order of F10 → Other → VEAF → Campaign → Assault, 300).
+The CAS and SEAD flights are the [enemy air](#air)'s strikes, flown by our side's aircraft: they take off from our airfield nearest the zone an aircraft may leave from (a runway long enough, not under an enemy air defence, but for the SEAD), and the message says which.
+The SEAD leaves at once: it does not wait for a player's order (Foothold's "push on command", not done).
+
+Prices change in `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `cas`, `sead`, `escort`, `tanker`, the [zone upgrades](#upgrades) by their name, and `assault` for the assault order of F10 → Other → VEAF → Campaign → Assault, 300).
 What the players buy is paid in credits, never from the [resources](#resources).
+
+### Zone upgrades {#upgrades}
+
+F10 → Other → VEAF → Campaign → Shop → **Zone upgrades** → one of our zones: a group bought that joins the zone's garrison, as Foothold's "Zone Upgrades".
+
+| Upgrade | Name in `economy.prices` | Group | Eras |
+|---|---|---|---|
+| Hawk battery | `hawk` | `hawk` of `veaf-units.yaml` | cold war, modern |
+| NASAMS battery | `nasams` | `nasams` | modern |
+| Patriot battery | `patriot` | `patriot`; one per zone | modern |
+| Avenger section | `avenger` | `avenger_squad` | modern |
+| Gepard section | `gepard` | three Gepards and a lorry | cold war, modern |
+| Infantry section | `infantry` | drawn as the garrisons' are | all |
+| Armour platoon | `armor` | drawn as the garrisons' are | all |
+
+- The group is placed as the garrison is, off the concrete and the buildings, then is part of it: saved, put to sleep and woken with the zone, reinforced by the deliveries at its units' price, lost with the zone.
+- A zone holds `economy.upgrades_per_zone` (2) bought upgrades; the shop refuses the next one, and a second Patriot battery on the same zone, saying why. A refused purchase costs nothing.
+- An upgrade costs its units' [paid spawn](#paid-spawns) price, in credits (`economy.credits_per_point`, 6): a Hawk battery costs what spawning it costs.
+  Its composition is drawn once a mission, so the menu's price is the group placed.
+  On 2026-11-20, with the default unit prices: Hawk about 2,250 credits, Patriot about 950, NASAMS about 700, Avenger 162, Gepard 156, infantry and armour a few tens to about 250.
+  A Patriot costs less than a Hawk because its launchers count as guns (8 points): only its radars have the SAM attribute; `economy.prices` sets a price by hand.
+- `dcs.log` tells each purchase (`bought the upgrade [hawk] for [Hatay]`, and `[CAMPAIGN SHOP]` with the [debugging log](#debug-log)).
 
 ## The task board {#tasks}
 
@@ -607,6 +634,7 @@ While the campaign is being tuned, `dynamic.debug` (on by default) writes in `dc
 | `[CAMPAIGN AIRDEF]` | every `debug_status_seconds` (300 s): for each zone, its air defence units and the missiles they have left, empty launchers included |
 | `[CAMPAIGN SUPPLY]` | the network's deliveries ordered, arrived, lost |
 | `[CAMPAIGN ZONE]` | zones captured and turned neutral |
+| `[CAMPAIGN SHOP]` | each purchase in the [shop](#shop): the item, the zone, the price and the balance; for a [zone upgrade](#upgrades), the group placed and its units |
 | `[CAMPAIGN STATUS]` | every `debug_status_seconds` (300 s): per side, zones, stock and production, deliveries on their way, flights up, raid out, and the players' credits |
 
 `debug: false` turns it off, once the campaign is trusted.
@@ -660,7 +688,7 @@ A `KO` line is enough to know where to look.
 | `supply_crate` | `Zone supplies` | the name of the CTLD 2 crate that resupplies |
 | `hunter` | `{enabled: true, ground_kills: 8, air_kills: 4, chance: 10}` | the Hunter |
 | `air` | see [enemy air](#air) | `strike_seconds` (900), `max_flights` (4), `cap_per_players` (3), `cap_helicopter_chance` (25), and each side's aircraft |
-| `economy` | see [the shop](#shop) | `start_credits`, `kill_ground`, `kill_air`, `capture`, `delivery`, `prices`, `tanker`, `credits_per_point` (6), `demolition` (50), `warehouse_delivery` (50), `landing_share` (50) |
+| `economy` | see [the shop](#shop) | `start_credits`, `kill_ground`, `kill_air`, `capture`, `delivery`, `prices`, `tanker`, `credits_per_point` (6), `demolition` (50), `warehouse_delivery` (50), `landing_share` (50), `upgrades_per_zone` (2) |
 | `tasks` | see [the tasks](#tasks) | `count`, `refresh_seconds`, `air_kills`, `rewards` (`attack`, `capture`, `resupply`, `air`, `intercept`) |
 | `intel` | see [intelligence](#intel) | `hidden`, `seconds`, `overflight_altitude`, `spy_troops`, `spy_range` |
 | `resources` | see [the resources](#resources) | `enabled` (true), `start` (1000), `background_per_hour` (60), `reserve` (100), `prices` |
@@ -693,6 +721,8 @@ These are written and tested outside DCS, not yet measured in game:
 - a supply helicopter told not to abort its task under a threat (twice on 2026-11-16 a Mi-8 sent from Aleppo to Afrin landed back at Aleppo three minutes after leaving: a probable cause, not a measured one);
 - the waypoint numbers, as each module shows them;
 - an airfield neutral or enemy at the start, captured in flight, offering its dynamic slots to the side that took it (Foothold relies on it; not measured on ours yet);
-- a building destroyed counted in the ranking: DCS has to send an `S_EVENT_KILL` for a static object.
+- a building destroyed counted in the ranking: DCS has to send an `S_EVENT_KILL` for a static object;
+- a zone upgrade bought (a Hawk battery on Hatay): placed in the zone, there after a restart, and the third one refused;
+- a SEAD flight bought on Aleppo: it takes off from Hatay or Gaziantep and engages Aleppo's air defence, and a second SEAD is refused while it flies.
 
 See also the [`veafCampaign` module reference](scripts/veafCampaign.en.md).

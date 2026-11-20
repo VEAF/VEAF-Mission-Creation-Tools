@@ -1,6 +1,6 @@
 # 02 — CAS and SEAD flights in the shop
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 Type: feature
 
 ## Asked

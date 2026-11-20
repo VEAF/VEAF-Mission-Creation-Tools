@@ -323,7 +323,7 @@ function veafCampaign.debugging()
 end
 
 --- Write one line of the testing period's log, when `dynamic.debug` is on: `[CAMPAIGN <TAG>] text`, a tag
---- to search dcs.log by — DECISION, STATUS, FLIGHT, SUPPLY, ZONE.
+--- to search dcs.log by — DECISION, STATUS, FLIGHT, SUPPLY, ZONE, SHOP.
 --- @param tag string
 --- @param fmt string a format, as string.format takes it
 function veafCampaign.debug(tag, fmt, ...)

@@ -20,7 +20,7 @@ from veaf_libs.mgrs import target_coordinates
 from campaign_manager.models import CampaignDefinition, CampaignState
 from campaign_manager.network_map import kind_of, render_network_map
 from campaign_manager.strategic_map import zone_position
-from campaign_manager.theatre_dossier import owners_of, radio_rows, shop_prices
+from campaign_manager.theatre_dossier import owners_of, radio_rows, shop_lines
 
 #: Where the pages go, under the mission folder.
 KNEEBOARD_DIR = Path("src") / "mission" / "KNEEBOARD" / "IMAGES"
@@ -137,17 +137,10 @@ def kneeboard_pages(
     if radio_tables:
         for index, page in enumerate(table_pages(t("campaign.dossier.title.radio"), radio_tables), 1):
             pages.append((f"campaign-radio-{index}", page))
-    prices = shop_prices(campaign)
     blocks: list[tuple[str | None, list[str]]] = [
         (t("campaign.dossier.guide.menu_title"), [t("campaign.dossier.guide.menu")]),
         (t("campaign.dossier.guide.capture_title"), [t("campaign.dossier.guide.capture")]),
-        (
-            t("campaign.dossier.guide.shop_title"),
-            [
-                t("campaign.dossier.guide.price", item=t(f"campaign.dossier.shop.{i}"), price=p)
-                for i, p in prices.items()
-            ],
-        ),
+        (t("campaign.dossier.guide.shop_title"), shop_lines(campaign)),
     ]
     for index, page in enumerate(text_pages(t("campaign.kneeboard.title.cheat_sheet"), blocks), 1):
         pages.append((f"campaign-cheat-sheet-{index}", page))

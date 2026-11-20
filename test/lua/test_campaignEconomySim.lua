@@ -27,7 +27,16 @@ local function medianHour(options, read)
   return median(values)
 end
 
+--- Under luacov (`test-lua --coverage`, the CI's Lua Coverage job) the simulator's hours of play take longer than the
+--- job may run: 2026-11-20, cancelled at its 15 minutes. The Lua Unit Tests job runs these bounds; the coverage job
+--- skips them.
+local UNDER_COVERAGE = package.loaded.luacov ~= nil or package.loaded["luacov.runner"] ~= nil
+
 TestCampaignEconomySim = {}
+
+function TestCampaignEconomySim:setUp()
+  luaunit.skipIf(UNDER_COVERAGE, "the economy simulator does not run under luacov: too slow for the coverage job")
+end
 
 function TestCampaignEconomySim:test_an_average_team_affords_a_cap_in_its_first_evening()
   local hour = medianHour({ player = "average", strategy = "cheapest", hours = 3 }, function(run)

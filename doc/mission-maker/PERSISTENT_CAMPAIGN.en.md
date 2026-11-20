@@ -411,6 +411,25 @@ F10 → Other → VEAF → Campaign → Shop → **Zone upgrades** → one of ou
 - `economy.prices` sets an upgrade's price by hand, the NASAMS and the Patriot included.
 - `dcs.log` tells each purchase (`bought the upgrade [hawk] for [Hatay]`, and `[CAMPAIGN SHOP]` with the [debugging log](#debug-log)).
 
+### Testing the balance without a server {#economy-simulator}
+
+The economy simulator plays the Oronte campaign with the real campaign code (its four modules), without DCS, as Iron Gall's pacing report does.
+It advances time beat by beat; combat is not simulated: what a team of virtual players does is drawn from rates (kills an hour, captures an evening, ejections), set on the server logs of 2026-11-17 and 2026-11-19.
+The red AI plays with its real decision code: production, CAP and strikes, helicopters, convoys, reinforcements at their units' price.
+
+From the repository:
+
+```powershell
+poetry run campaign-sim report 9 5 --csv economy.csv
+```
+
+It plays 9 h (three evenings of 3 h), on 5 seeds, three teams (occasional, average, expert) with four shop strategies: buy nothing, buy the cheapest item not bought yet, save for a Hawk, save for a Patriot.
+For each, the median run gives the hour of each item's first purchase, the credits earned and spent hour by hour, the red stock, and the hour from which red can no longer pay a SEAD or a raid; `--csv` writes the hour-by-hour rows.
+`poetry run campaign-sim calibrate` checks the rates: the average team must earn about 2,000 credits an evening with the rewards of before 2026-11-20, which the server measured.
+
+The test `test/lua/test_campaignEconomySim.lua` keeps three bounds, measured on 2026-11-20: the average team buys its first CAP between 1 h and 3 h of play (2 h 30 measured), its Hawk between 1 h 30 and 6 h saving for it (2 h 50), and red can pay a SEAD for 45 minutes at least (1 h). A price or a reward that breaks this pacing turns the CI red.
+What the simulator does not play is written in `test/lua/campaign_sim.lua`: the players' zones take no damage, nothing happens between two evenings.
+
 ## The task board {#tasks}
 
 F10 → Other → VEAF → Campaign → **Tasks**: `tasks.count` (3) tasks at once, drawn from the situation and filled up every `tasks.refresh_seconds` (300 s), each marked on our side's map.

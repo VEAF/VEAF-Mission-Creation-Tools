@@ -411,6 +411,25 @@ F10 → Autres → VEAF → Campagne → Boutique → **Renforcer une zone** →
 - `economy.prices` fixe le prix d'un renfort à la main, NASAMS et Patriot compris.
 - `dcs.log` dit chaque achat (`bought the upgrade [hawk] for [Hatay]`, et `[CAMPAIGN SHOP]` avec le [journal de mise au point](#debug-log)).
 
+### Tester l'équilibrage sans serveur {#economy-simulator}
+
+Le simulateur d'économie joue la campagne Oronte avec le vrai code de la campagne (les quatre modules), sans DCS, comme le rapport de rythme d'Iron Gall.
+Il fait avancer le temps par passages de la boucle ; les combats ne sont pas simulés : ce que fait une équipe de joueurs virtuels est tiré de taux (victimes par heure, captures par soirée, éjections), réglés sur les journaux du serveur des 17 et 19/11/2026.
+L'IA rouge joue avec son vrai code de décision : production, CAP et frappes, hélicoptères, convois, renforts au prix des unités.
+
+Depuis le dépôt :
+
+```powershell
+poetry run campaign-sim report 9 5 --csv economie.csv
+```
+
+Il fait jouer 9 h (trois soirées de 3 h), sur 5 graines, trois équipes (occasionnelle, moyenne, experte) avec quatre stratégies d'achat : ne rien acheter, acheter le moins cher pas encore acheté, économiser pour un Hawk, pour un Patriot.
+Pour chacune, la partie médiane donne l'heure du premier achat de chaque article, les crédits gagnés et dépensés heure par heure, le stock rouge, et l'heure à partir de laquelle le rouge ne peut plus payer une SEAD ou un raid ; `--csv` écrit les lignes heure par heure.
+`poetry run campaign-sim calibrate` vérifie le réglage des taux : l'équipe moyenne doit gagner environ 2 000 crédits par soirée avec les gains d'avant le 20/11/2026, ce que le serveur a mesuré.
+
+Le test `test/lua/test_campaignEconomySim.lua` garde trois bornes, mesurées le 20/11/2026 : l'équipe moyenne achète sa première CAP entre 1 h et 3 h de jeu (2 h 30 mesurées), son Hawk entre 1 h 30 et 6 h en économisant (2 h 50), et le rouge peut payer une SEAD pendant 45 minutes au moins (1 h). Un prix ou un gain qui casse ce rythme fait rougir la CI.
+Ce que le simulateur ne joue pas est écrit dans `test/lua/campaign_sim.lua` : les zones des joueurs ne subissent aucun dégât, rien ne passe entre deux soirées.
+
 ## Le tableau des tâches {#tasks}
 
 F10 → Autres → VEAF → Campagne → **Tâches** : `tasks.count` (3) tâches à la fois, tirées de la situation et complétées toutes les `tasks.refresh_seconds` (300 s), chacune marquée sur la carte de notre camp.

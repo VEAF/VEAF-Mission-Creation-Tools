@@ -6,6 +6,7 @@ into the Lua fixtures it loads, and run its report with the Lua the tests use.
 
     poetry run campaign-sim fixtures          # rewrite the fixtures from their sources
     poetry run campaign-sim report [hours] [seeds] [--csv path]
+    poetry run campaign-sim calibrate [hours] [seeds]
 """
 
 from __future__ import annotations
@@ -88,6 +89,18 @@ def report(
     if csv:
         arguments.append(str(csv))
     result = subprocess.run(arguments, cwd=_REPO, check=False)  # noqa: S603 - the tests' own Lua, our own script
+    raise typer.Exit(result.returncode)
+
+
+@app.command()
+def calibrate(
+    hours: int = typer.Argument(9, help="Hours of play for each run."),
+    seeds: int = typer.Argument(5, help="Runs; the report gives their median."),
+) -> None:
+    """Play the average team with no purchase on the rewards of before the lot and of today: the credits an evening."""
+    result = subprocess.run(  # noqa: S603 - the tests' own Lua, our own script
+        [_find_lua(), str(REPORT_LUA), "calibrate", str(hours), str(seeds)], cwd=_REPO, check=False
+    )
     raise typer.Exit(result.returncode)
 
 

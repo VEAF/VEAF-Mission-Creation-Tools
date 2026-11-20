@@ -77,6 +77,21 @@ SHOP_PRICES: dict[str, int] = {
     "sead": 600,
 }
 
+#: What the players earn when `economy` does not say: `veafCampaign.DYNAMIC_DEFAULTS.economy`, which a test reads back
+#: from the Lua (FIX-CAMPAIGN-ECONOMY-BALANCE 01, Foothold's rewards).
+REWARDS: dict[str, int] = {
+    "kill_ground": 10,
+    "kill_sam": 30,
+    "kill_air": 50,
+    "kill_building": 100,
+    "rescue": 200,
+    "capture": 200,
+}
+
+#: The zone upgrades with a price of their own rather than their units' spawn price: the `price` of
+#: `veafCampaignEconomy.UPGRADES`, which a test reads back from the Lua (FIX-CAMPAIGN-ECONOMY-BALANCE 02).
+UPGRADE_PRICES: dict[str, int] = {"nasams": 2000, "patriot": 5000}
+
 #: The groups bought in the shop a zone holds at most when `economy.upgrades_per_zone` does not say:
 #: `veafCampaign.DYNAMIC_DEFAULTS.economy.upgrades_per_zone`.
 UPGRADES_PER_ZONE = 2
@@ -126,7 +141,8 @@ def shop_prices(campaign: CampaignDefinition) -> dict[str, int]:
 def shop_lines(campaign: CampaignDefinition) -> list[str]:
     """The shop as the player's guide lists it: each item with its price, then the zone upgrades.
 
-    The upgrades' prices are their units' spawn price, drawn in game: the guide gives the rule and the limit.
+    The upgrades' prices are mostly their units' spawn price, drawn in game: the guide gives the rule, the limit, and
+    the NASAMS's and the Patriot's own prices.
 
     Args:
         campaign: The campaign, its `economy` settings read.
@@ -134,13 +150,30 @@ def shop_lines(campaign: CampaignDefinition) -> list[str]:
     Returns:
         One line per item, the zone upgrades last.
     """
-    limit = (campaign.dynamic.get("economy") or {}).get("upgrades_per_zone", UPGRADES_PER_ZONE)
+    economy = campaign.dynamic.get("economy") or {}
+    limit = economy.get("upgrades_per_zone", UPGRADES_PER_ZONE)
+    overrides = economy.get("prices") or {}
+    batteries = {key: int(overrides.get(key, price)) for key, price in UPGRADE_PRICES.items()}
     lines = [
         t("campaign.dossier.guide.price", item=t(f"campaign.dossier.shop.{item}"), price=price)
         for item, price in shop_prices(campaign).items()
+        if item in SHOP_PRICES  # an upgrade's entry of `economy.prices` is not a shop item of its own
     ]
-    lines.append(t("campaign.dossier.guide.upgrades", limit=limit))
+    lines.append(t("campaign.dossier.guide.upgrades", limit=limit, **batteries))
     return lines
+
+
+def reward_line(campaign: CampaignDefinition) -> str:
+    """What the players earn, as the player's guide says it: the defaults, overridden by `economy`.
+
+    Args:
+        campaign: The campaign, its `economy` settings read.
+
+    Returns:
+        One sentence with each reward.
+    """
+    economy = campaign.dynamic.get("economy") or {}
+    return t("campaign.dossier.guide.rewards", **{key: int(economy.get(key, value)) for key, value in REWARDS.items()})
 
 
 def _title(zone: CampaignZone, numbers: Mapping[str, int]) -> str:
@@ -356,7 +389,10 @@ def guide_blocks(campaign: CampaignDefinition) -> list[Block]:
     shop = tuple(shop_lines(campaign))
     return [
         Block(t("campaign.dossier.guide.capture_title"), (t("campaign.dossier.guide.capture"),)),
-        Block(t("campaign.dossier.guide.credits_title"), (t("campaign.dossier.guide.credits", share=share),)),
+        Block(
+            t("campaign.dossier.guide.credits_title"),
+            (t("campaign.dossier.guide.credits", share=share), reward_line(campaign)),
+        ),
         Block(t("campaign.dossier.guide.shop_title"), shop),
         Block(t("campaign.dossier.guide.tasks_title"), (t("campaign.dossier.guide.tasks"),)),
         Block(t("campaign.dossier.guide.intel_title"), (t("campaign.dossier.guide.intel"),)),

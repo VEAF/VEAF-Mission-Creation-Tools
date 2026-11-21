@@ -1,6 +1,6 @@
 # FEAT-CAMPAIGN-CONVOYS-FOLLOW-STRIKERS — the enemy's assault convoys sized for the players who can stop them
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 Griffin, relayed by David on 2026-11-21: "ça serait chouette d'adapter le nombre et la fréquence des colonnes ennemies qui partent capturer des points en fonction des forces bleues en présence. Hier on était 3 et il y avait en permanence au moins deux convois rouges à aller intercepter. Du coup, on ne peut pas aller attaquer une base rouge sans laisser se faire capturer au moins deux points bleus."
 

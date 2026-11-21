@@ -26,6 +26,10 @@ Air defence and the CAS and SEAD flights in the campaign shop (David, 2026-11-19
 
 What the players earn pays for what the shop sells (David, 2026-11-20): rewards aligned on Foothold's (SAM 30, aircraft 50, building 100, rescue 200), the NASAMS and the Patriot at Foothold's prices, and an evening's balance of earned and spent in the log for both sides. Three tickets; PR into `feature/dynamic-campaign`.
 
+### [FEAT-CAMPAIGN-CONVOYS-FOLLOW-STRIKERS](FEAT-CAMPAIGN-CONVOYS-FOLLOW-STRIKERS/PRD.md) · 🔄
+
+The enemy's assault convoys sized for the players who can stop them (Griffin and David, 2026-11-21): one convoy on the road per 4 strikers, CAS aircraft or attack helicopters, neutral-zone assaults included, fighters and SEAD-only aircraft not counted; a counter-attack prefers a zone no such player is defending. Two tickets; PR into `feature/dynamic-campaign`.
+
 ## 🧑 Waiting for a human
 
 ### [FIX-CAMPAIGN-SECOND-SERVER-FLIGHT](FIX-CAMPAIGN-SECOND-SERVER-FLIGHT/PRD.md) · 🧑

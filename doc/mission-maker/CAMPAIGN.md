@@ -187,7 +187,7 @@ Son camp est prévenu de son départ et voit aussitôt son axe sur la carte F10 
 L'autre camp l'apprend en renseignement, `rules.intel_seconds` plus tard (1 200 s, 20 minutes, par défaut ; 0 : tout de suite) : le message (« une colonne ennemie quitte Senaki en direction de Poti ») et le même trait sur sa carte arrivent ensemble, et un convoi détruit avant n'est jamais signalé.
 Arrivé, il tient la zone comme toute unité au sol, et la prend au bout de `capture_seconds` : ses survivants dans la zone en deviennent la garnison, sans second tirage sur la réserve.
 Les unités qui ont pris la zone sont celles qui en deviennent la garnison : « dans la zone », c'est ce que trouve la recherche de DCS sur le cercle de la zone, qui déborde de quelques pour cent son rayon — un convoi arrêté juste au bord, à 2 040 m d'une zone de 2 000 m, la prend et la garde.
-Les joueurs bleus en lancent aussi depuis le menu **Campagne → Assauts**, d'une zone bleue vers une voisine qui ne l'est pas, au niveau de sécurité de la mission.
+Les joueurs bleus en lancent aussi depuis le menu **Campagne → Assauts**, d'une zone bleue vers une voisine qui ne l'est pas, au niveau de sécurité de la mission ; dans une [campagne persistante](PERSISTENT_CAMPAIGN.md#shop), c'est un achat en crédits, ouvert à tous les pilotes.
 `rules.assault_convoys: false` coupe la règle ; le menu reste.
 
 ## Le fichier d'état {#state-file}

@@ -4,6 +4,10 @@
 
 Lots written up and ready to take.
 
+### [FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY](FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY/PRD.md) · ⬜
+
+Every air defence DCS offers in the campaign: the Tor M2 and the Pantsir S1 in red's modern short range, a `medium_range_sam` zone option giving red an SA-11, SA-6 or SA-3 battery (red has no medium-range SAM at all today), and the IRIS-T SLM and the Rapier for blue, as a VEAF group and shop upgrades. Three tickets; asked by David after the 2026-11-21 evening on the Campagne server.
+
 ### [FEAT-CAMPAIGN-PILOT-EARNINGS-MENU](FEAT-CAMPAIGN-PILOT-EARNINGS-MENU/PRD.md) · ⬜
 
 A "Mes gains" entry in the persistent campaign's F10 Campaign menu: each pilot reads what he earned this session, what his aircraft holds until landing, his campaign total and rank, and his kills. What each pilot earns was only in `dcs.log` and on the sitac's ranking page. One ticket; asked by David after the 2026-11-21 evening on the Campagne server.

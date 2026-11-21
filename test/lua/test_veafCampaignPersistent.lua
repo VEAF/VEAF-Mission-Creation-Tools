@@ -17,6 +17,7 @@ dofile(src .. "/veafCasMission.lua")
 dofile(src .. "/veafEventHandler.lua")
 dofile(src .. "/veafRadio.lua")
 dofile(src .. "/veafCampaign.lua")
+dofile(src .. "/veafOpposition.lua")
 
 local BLUE, RED = coalition.side.BLUE, coalition.side.RED
 
@@ -142,10 +143,33 @@ local function playersAt(points, side)
         getPoint = function()
           return { x = point.x, y = 0, z = point.z or 0 }
         end,
+        -- `ammo`: the `desc` of what the aircraft carries, two of each (FEAT-CAMPAIGN-CONVOYS-FOLLOW-STRIKERS)
+        getAmmo = function()
+          local ammo = {}
+          for _, desc in ipairs(point.ammo or {}) do
+            table.insert(ammo, { count = 2, desc = desc })
+          end
+          return ammo
+        end,
       })
     end
     return units
   end
+end
+
+--- What a player carries, as `getAmmo`'s `desc`: a striker's bombs, a fighter's air-to-air missiles.
+local BOMBS = { { category = Weapon.Category.BOMB } }
+local AIR_TO_AIR = {
+  { category = Weapon.Category.MISSILE, missileCategory = Weapon.MissileCategory.AAM, guidance = Weapon.GuidanceType.RADAR_ACTIVE },
+}
+
+--- `count` strikers, all at `x` along the map's x axis.
+local function strikers(count, x, ammo)
+  local points = {}
+  for _ = 1, count do
+    table.insert(points, { x = x or 0, ammo = ammo or BOMBS })
+  end
+  return points
 end
 
 --- Groups in the world as coalition.getGroups hands them over: `{ name, category, x, inAir, unit }`, blue
@@ -1024,6 +1048,174 @@ function TestCampaignOffensives:test_a_due_assault_is_not_sent_where_a_convoy_of
   table.insert(veafCampaign.convoys, { side = "red", from = "Poti", to = "Senaki" }) -- sent meanwhile
   veafCampaign.launchDueAssaults(1000000)
   luaunit.assertEquals(#self.sent, 0)
+end
+
+-- FEAT-CAMPAIGN-CONVOYS-FOLLOW-STRIKERS 01: 2026-11-20, three players watched red's three convoys all evening
+
+--- Kobuleti and Poti blue, Senaki (between them) and Zugdidi red: red can counter-attack two zones at once.
+local function twoFrontsData(dynamic)
+  local data = persistentData(dynamic)
+  data.zones[3].owner = "blue"
+  return data
+end
+
+function TestCampaignOffensives:test_one_convoy_per_four_players_who_can_stop_one()
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  for count, cap in pairs({ [0] = 1, [3] = 1, [4] = 1, [5] = 2, [8] = 2, [9] = 3, [20] = 3 }) do
+    playersAt(strikers(count))
+    local got, counted = veafCampaign.convoyCap("red")
+    luaunit.assertEquals({ got, counted }, { cap, count }, count .. " strikers")
+  end
+end
+
+function TestCampaignOffensives:test_the_cap_never_exceeds_max_convoys_nor_follows_the_side_s_own_players()
+  veafCampaign.data = persistentData({ max_convoys = 2, players_per_convoy = 2 })
+  veafCampaign.initialize()
+  playersAt(strikers(9))
+  luaunit.assertEquals(veafCampaign.convoyCap("red"), 2)
+  luaunit.assertEquals(veafCampaign.convoyCap("blue"), 1, "red has no player")
+  veafCampaign.data = persistentData({ max_convoys = 0 })
+  luaunit.assertEquals(veafCampaign.convoyCap("red"), 0, "0 switches the convoys off")
+end
+
+function TestCampaignOffensives:test_fighters_and_anti_radiation_only_aircraft_are_not_counted()
+  veafCampaign.data = persistentData()
+  veafCampaign.initialize()
+  local harm =
+    { { category = Weapon.Category.MISSILE, missileCategory = Weapon.MissileCategory.OTHER, guidance = Weapon.GuidanceType.RADAR_PASSIVE } }
+  local players = strikers(4, 0, AIR_TO_AIR)
+  for _, point in ipairs(strikers(4, 0, harm)) do
+    table.insert(players, point)
+  end
+  table.insert(players, { x = 0, ammo = BOMBS })
+  playersAt(players)
+  luaunit.assertEquals({ veafCampaign.convoyCap("red") }, { 1, 1 })
+end
+
+function TestCampaignOffensives:test_three_players_one_counter_attack_on_the_road()
+  veafCampaign.data = twoFrontsData({ attack_seconds = 10 })
+  veafCampaign.initialize()
+  playersAt(strikers(3, -200000)) -- far from every zone: none is defended
+  local told = {}
+  local savedDebug = veafCampaign.debug
+  veafCampaign.debug = function(tag, fmt, ...)
+    table.insert(told, string.format(fmt, ...))
+  end
+  veafCampaign.launchOffensives(0)
+  veafCampaign.launchOffensives(10)
+  veafCampaign.launchOffensives(20)
+  veafCampaign.debug = savedDebug
+  luaunit.assertEquals(#self.sent, 1)
+  luaunit.assertEquals(told, { "red does not counter-attack: 1 convoy(s) on the road, 3 ground-attack player(s) → 1" })
+end
+
+function TestCampaignOffensives:test_five_players_a_second_counter_attack()
+  veafCampaign.data = twoFrontsData({ attack_seconds = 10 })
+  veafCampaign.initialize()
+  playersAt(strikers(5))
+  veafCampaign.launchOffensives(0)
+  veafCampaign.launchOffensives(10)
+  veafCampaign.launchOffensives(20)
+  luaunit.assertEquals(#self.sent, 2)
+end
+
+function TestCampaignOffensives:test_a_convoy_on_the_road_stays_when_the_players_leave()
+  veafCampaign.data = twoFrontsData({ attack_seconds = 10 })
+  veafCampaign.initialize()
+  playersAt(strikers(5))
+  veafCampaign.launchOffensives(0)
+  veafCampaign.launchOffensives(10)
+  veafCampaign.launchOffensives(20)
+  playersAt({})
+  veafCampaign.launchOffensives(30)
+  luaunit.assertEquals(veafCampaign.convoysUnderway("red"), 2)
+  luaunit.assertEquals(#self.sent, 2)
+end
+
+function TestCampaignOffensives:test_a_neutral_zone_assault_waits_for_a_free_place()
+  local data = persistentData()
+  data.zones[2].owner, data.zones[2].garrison = "neutral", nil -- Senaki, between blue Kobuleti and red Poti
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  local counterAttack = { side = "red", from = "Zugdidi", to = "Kobuleti" }
+  table.insert(veafCampaign.convoys, counterAttack)
+  veafCampaign.launchDueAssaults(1000000)
+  luaunit.assertEquals(#self.sent, 0, "the counter-attack holds red's only place")
+  luaunit.assertNotNil(veafCampaign.pendingAssaults["Senaki|red"], "the assault still waits")
+  counterAttack.ended = true
+  veafCampaign.launchDueAssaults(1000001)
+  luaunit.assertEquals(self.sent, { { side = "red", from = "Poti", to = "Senaki" } })
+  luaunit.assertNil(veafCampaign.pendingAssaults["Senaki|red"])
+end
+
+function TestCampaignOffensives:test_a_neutral_zone_assault_counts_against_the_cap()
+  local data = twoFrontsData({ attack_seconds = 10 })
+  data.zones[4].owner, data.zones[4].garrison = "neutral", nil -- Zugdidi, beyond blue Poti
+  data.zones[1].owner = "neutral" -- and Kobuleti, beyond red Senaki
+  data.zones[1].garrison = nil
+  veafCampaign.data = data
+  veafCampaign.initialize()
+  veafCampaign.launchDueAssaults(1000000) -- red's assault on Kobuleti leaves
+  luaunit.assertEquals(#self.sent, 1)
+  veafCampaign.launchOffensives(0)
+  veafCampaign.launchOffensives(10)
+  luaunit.assertEquals(#self.sent, 1, "no counter-attack on Poti beside it")
+end
+
+-- FEAT-CAMPAIGN-CONVOYS-FOLLOW-STRIKERS 02: a counter-attack goes where the players are not
+
+--- Kobuleti and Poti blue, Poti the weaker: red's counter-attack takes Poti when nobody defends it.
+local function weakPotiData(dynamic)
+  local data = twoFrontsData(dynamic)
+  data.zones[3].garrison = garrison("Poti", { 1 })
+  return data
+end
+
+function TestCampaignOffensives:test_no_player_the_weakest_zone()
+  veafCampaign.data = weakPotiData()
+  veafCampaign.initialize()
+  luaunit.assertEquals(veafCampaign.attackTarget("red").name, "Poti")
+end
+
+function TestCampaignOffensives:test_a_striker_near_the_weakest_zone_sends_the_counter_attack_elsewhere()
+  veafCampaign.data = weakPotiData()
+  veafCampaign.initialize()
+  playersAt(strikers(1, 110000)) -- 10 km from Poti
+  local told = {}
+  local savedDebug = veafCampaign.debug
+  veafCampaign.debug = function(tag, fmt, ...)
+    table.insert(told, string.format(fmt, ...))
+  end
+  local target, from = veafCampaign.attackTarget("red")
+  veafCampaign.debug = savedDebug
+  luaunit.assertEquals({ target.name, from.name }, { "Kobuleti", "Senaki" })
+  luaunit.assertEquals(told, { "red skips [Poti] for its counter-attack: defended by a ground-attack player" })
+end
+
+function TestCampaignOffensives:test_every_zone_defended_the_weakest()
+  veafCampaign.data = weakPotiData()
+  veafCampaign.initialize()
+  local players = strikers(1, 110000)
+  table.insert(players, { x = -5000, ammo = BOMBS }) -- 5 km from Kobuleti
+  playersAt(players)
+  luaunit.assertEquals(veafCampaign.attackTarget("red").name, "Poti")
+end
+
+function TestCampaignOffensives:test_a_fighter_armed_for_air_to_air_defends_nothing()
+  veafCampaign.data = weakPotiData()
+  veafCampaign.initialize()
+  playersAt(strikers(1, 100000, AIR_TO_AIR))
+  luaunit.assertEquals(veafCampaign.attackTarget("red").name, "Poti")
+end
+
+function TestCampaignOffensives:test_a_zone_is_defended_within_the_radius()
+  veafCampaign.data = weakPotiData()
+  veafCampaign.initialize()
+  playersAt(strikers(1, 131000)) -- 31 km from Poti
+  luaunit.assertEquals(veafCampaign.attackTarget("red").name, "Poti", "beyond the 30 km of the default")
+  veafCampaign.data.dynamic.defended_radius = 40000
+  luaunit.assertEquals(veafCampaign.attackTarget("red").name, "Kobuleti")
 end
 
 TestCampaignConvoyGoal = { setUp = setUpSuite, tearDown = tearDownSuite }

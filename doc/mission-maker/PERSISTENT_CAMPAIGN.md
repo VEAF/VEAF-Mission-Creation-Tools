@@ -291,8 +291,13 @@ Sa garnison arrive groupe par groupe, environ `wake_units_per_beat` (10) unités
 
 ## Un front qui bouge tout seul {#front}
 
-- **Contre-attaques** : toutes les `attack_seconds` (900 s), un camp listé dans `attacks` (le rouge par défaut) envoie un convoi d'assaut contre la zone ennemie la plus faible qui le borde, `max_convoys` (2) sur la route au plus.
+- **Contre-attaques** : toutes les `attack_seconds` (900 s), un camp listé dans `attacks` (le rouge par défaut) envoie un convoi d'assaut contre la zone ennemie la plus faible qui le borde.
   Seuls ces camps envoient aussi d'eux-mêmes des convois vers une zone neutre ; le camp des joueurs achète les siens (F10 → Autres → VEAF → Campagne → Assauts), et aucun convoi automatique ne part vers une zone qu'un convoi du même camp vise déjà.
+- **Autant de convois que de joueurs pour les arrêter** : un camp a sur la route un convoi d'assaut par tranche de `players_per_convoy` (4) joueurs adverses armés pour en arrêter un, arrondi au-dessus, au moins 1, au plus `max_convoys` (3) ; les assauts vers une zone neutre comptent aussi, et attendent qu'une place se libère.
+  Compte un joueur dans un slot, en vol ou au sol, qui emporte des bombes, des roquettes ou des missiles air-sol (Maverick, Hellfire, APKWS…) ; un chasseur armé pour l'air-air seulement, ou un avion SEAD qui n'emporte que des missiles antiradar, ne compte pas, et le canon non plus.
+  Un convoi déjà sur la route y reste quand des joueurs partent : le compte ne décide que du départ d'un nouveau convoi. Le 20/11/2026, à trois joueurs, le rouge gardait trois convois sur la route toute la soirée.
+- **Une contre-attaque va là où les joueurs ne sont pas** : une zone est défendue quand un de ces joueurs est à moins de `defended_radius` (30 km) de son centre ; la contre-attaque prend la zone non défendue la plus faible, et la plus faible tout court seulement si toutes sont défendues.
+  Les joueurs entendent parler du convoi comme avant et peuvent faire demi-tour : la règle les fait choisir entre défendre et attaquer, elle ne cache pas l'attaque.
 - **Un convoi d'assaut roule à `assault_speed` (40 km/h)**, sans se disperser sous le feu ; à son départ, `dcs.log` donne la longueur de sa route, le temps qu'il lui faut et quand il sera retiré, puis toutes les `convoy_report_seconds` (300 s) sa distance à sa cible et s'il avance, s'arrête ou fait demi-tour.
   Sous des avions il poursuit sa route ; s'il se replie devant plus fort que lui au sol pendant `fall_back_seconds` (120 s) sans reprendre sa route, son assaut est fini : il est retiré.
 - **Un convoi qui n'arrivera pas libère sa place** : dès que sa cible est à son camp (un hélicoptère l'a prise avant lui), quand il se replie, ou après le temps que demande sa route (une fois et demie le temps prévu, `convoy_timeout`, 2 700 s, au moins), il est retiré de la carte et le prix de ses survivants retourne à son camp ; le 17/11/2026, à 20 km/h sur des routes de 40 à 60 km, les 45 minutes retiraient chaque convoi avant son arrivée.
@@ -742,7 +747,9 @@ Une ligne `KO` suffit à dire où regarder.
 | `max_awake_zones` | 12 | zones de l'arrière éveillées à la fois (le front et les cibles de sorties ne comptent pas) |
 | `attacks` | `[red]` | les camps qui contre-attaquent seuls |
 | `attack_seconds` | 900 | intervalle entre deux contre-attaques d'un camp |
-| `max_convoys` | 2 | convois d'assaut d'un camp sur la route |
+| `max_convoys` | 3 | convois d'assaut d'un camp sur la route, au plus |
+| `players_per_convoy` | 4 | joueurs adverses armés pour arrêter un convoi qui valent un convoi de plus sur la route |
+| `defended_radius` | 30000 | mètres : une zone avec un de ces joueurs aussi près de son centre est défendue, une contre-attaque la laisse de côté |
 | `supply` | `[red]` | les camps dont les hélicoptères IA capturent et ravitaillent |
 | `supply_seconds` | 600 | intervalle entre deux hélicoptères d'un camp |
 | `max_helicopters` | 2 | hélicoptères de ravitaillement d'un camp en vol |

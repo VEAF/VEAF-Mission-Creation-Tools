@@ -291,8 +291,13 @@ Its garrison comes group by group, about `wake_units_per_beat` (10) units per be
 
 ## A front that moves on its own {#front}
 
-- **Counter-attacks**: every `attack_seconds` (900 s), a side listed in `attacks` (red by default) sends an assault convoy against the weakest enemy zone it borders, `max_convoys` (2) on the road at most.
+- **Counter-attacks**: every `attack_seconds` (900 s), a side listed in `attacks` (red by default) sends an assault convoy against the weakest enemy zone it borders.
   Only those sides send convoys on their own toward a neutral zone too; the players' side buys theirs (F10 → Other → VEAF → Campaign → Assaults), and no automatic convoy leaves for a zone a convoy of the same side already drives to.
+- **As many convoys as there are players to stop them**: a side has one assault convoy on the road per `players_per_convoy` (4) enemy players armed to stop one, rounded up, at least 1, at most `max_convoys` (3); assaults on a neutral zone count too, and wait for a free place.
+  A player counts in a slot, airborne or on the ground, carrying bombs, rockets or air-to-ground missiles (Maverick, Hellfire, APKWS…); a fighter armed for air-to-air only, or a SEAD aircraft carrying anti-radiation missiles only, does not, nor does the gun.
+  A convoy already on the road stays there when players leave: the count only decides whether a new convoy leaves. On 2026-11-20, with three players, red kept three convoys on the road all evening.
+- **A counter-attack goes where the players are not**: a zone is defended when one of those players is within `defended_radius` (30 km) of its centre; the counter-attack takes the weakest undefended zone, and the weakest of all only when every one is defended.
+  The players hear of the convoy as before and can turn back: the rule makes them choose between defending and attacking, it does not hide the attack.
 - **An assault convoy drives at `assault_speed` (40 km/h)**, without dispersing under fire; at its departure, `dcs.log` gives the length of its road, the time it needs and when it will be retired, then every `convoy_report_seconds` (300 s) its distance to its target and whether it moves on, stands still or turns back.
   Under aircraft it drives on; if it falls back before a stronger ground force for `fall_back_seconds` (120 s) without taking its road again, its assault is over: it is retired.
 - **A convoy that will not arrive frees its place**: once its target is its side's (a helicopter took it first), when it falls back, or after the time its road needs (half as long again as expected, `convoy_timeout`, 2,700 s, at least), it is taken off the map and the price of its survivors goes back to its side; on 2026-11-17, at 20 km/h on roads of 40 to 60 km, the 45 minutes retired every convoy before it arrived.
@@ -742,7 +747,9 @@ A `KO` line is enough to know where to look.
 | `max_awake_zones` | 12 | zones of the rear awake at once (the front and the targets of sorties do not count) |
 | `attacks` | `[red]` | the sides that counter-attack on their own |
 | `attack_seconds` | 900 | interval between two counter-attacks of a side |
-| `max_convoys` | 2 | a side's assault convoys on the road |
+| `max_convoys` | 3 | a side's assault convoys on the road, at most |
+| `players_per_convoy` | 4 | enemy players armed to stop a convoy that are worth one more convoy on the road |
+| `defended_radius` | 30000 | metres: a zone with one of those players this close to its centre is defended, a counter-attack leaves it aside |
 | `supply` | `[red]` | the sides whose AI helicopters capture and resupply |
 | `supply_seconds` | 600 | interval between two helicopters of a side |
 | `max_helicopters` | 2 | a side's supply helicopters in the air |

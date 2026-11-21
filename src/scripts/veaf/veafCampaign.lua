@@ -83,7 +83,13 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   max_awake_zones = 12, -- zones whose garrison is in the world at once, nearest the players first
   attacks = { "red" }, -- the sides that counter-attack an enemy zone on their own
   attack_seconds = 900, -- seconds between two counter-attacks of a side
-  max_convoys = 2, -- assault convoys of a side on the road at once
+  -- FEAT-CAMPAIGN-CONVOYS-FOLLOW-STRIKERS: on 2026-11-20 three players had red's three convoys to watch all evening. A
+  -- side has one assault convoy on the road per `players_per_convoy` enemy players armed to stop one (bombs, rockets,
+  -- air-to-ground missiles), rounded up, at least 1, at most `max_convoys`, assaults on a neutral zone included; a
+  -- counter-attack prefers a zone with no such player within `defended_radius` (metres). Estimates, to tune
+  max_convoys = 3,
+  players_per_convoy = 4,
+  defended_radius = 30000,
   supply = { "red" }, -- the sides whose AI helicopters capture and resupply zones
   supply_seconds = 600,
   max_helicopters = 2,
@@ -2094,7 +2100,9 @@ function veafCampaign.givenUp(kind, side, target)
   return entry ~= nil and (entry.bannedUntil or 0) > timer.getTime()
 end
 
---- Send the assaults that are due, if they still make sense: the source still held by its side.
+--- Send the assaults that are due, if they still make sense: the source still held by its side. In a persistent
+--- campaign an assault counts against the side's convoy cap (`convoyRoom`): when the cap is reached it waits for a
+--- free place instead of leaving (FEAT-CAMPAIGN-CONVOYS-FOLLOW-STRIKERS 01).
 --- @param now number the mission time
 function veafCampaign.launchDueAssaults(now)
   local due = {}
@@ -2117,7 +2125,15 @@ function veafCampaign.launchDueAssaults(now)
       and not convoyUnderway(pending.side, to.name)
       and not veafCampaign.givenUp("convoy", pending.side, to.name)
     then
-      veafCampaign.sendConvoy(pending.side, from, to)
+      if
+        veafCampaign.isPersistent()
+        and not veafCampaign.convoyRoom(pending.side, "assault " .. key, "send its assault on [" .. to.name .. "]")
+      then
+        veafCampaign.pendingAssaults[key] = pending
+      else
+        veafCampaign.forgetTold("assault " .. key)
+        veafCampaign.sendConvoy(pending.side, from, to)
+      end
     end
   end
 end
@@ -2199,7 +2215,7 @@ function veafCampaign.reportConvoy(record, now)
   )
 end
 
---- Take a convoy off the road: its units leave the world, its place among `max_convoys` is free, and what was paid
+--- Take a convoy off the road: its units leave the world, its place under the convoy cap is free, and what was paid
 --- for its survivors from the side's resources goes back to them.
 --- @param record table the convoy's record
 --- @param reason string why, for the log
@@ -2781,15 +2797,89 @@ function veafCampaign.convoysUnderway(side)
   return count
 end
 
+--- The enemy players who can stop a side's convoys: the other coalition's players armed with bombs, rockets or
+--- air-to-ground missiles (`veafOpposition.groundAttackPlayers`, FEAT-CAMPAIGN-CONVOYS-FOLLOW-STRIKERS); nil when
+--- that module is not loaded.
+--- @param side string "blue" or "red"
+--- @return table|nil the player units
+function veafCampaign.convoyHunters(side)
+  if not (veafOpposition and veafOpposition.groundAttackPlayers) then
+    return nil
+  end
+  return veafOpposition.groundAttackPlayers(otherCoalition(side))
+end
+
+--- How many assault convoys a side may have on the road: one per `players_per_convoy` enemy players armed to
+--- stop one, rounded up, at least 1, at most `max_convoys` (FEAT-CAMPAIGN-CONVOYS-FOLLOW-STRIKERS 01). Without
+--- `veafOpposition` to count them, `max_convoys`.
+--- @param side string "blue" or "red"
+--- @return number the cap
+--- @return number|nil the players counted
+function veafCampaign.convoyCap(side)
+  local max = veafCampaign.setting("max_convoys")
+  local hunters = veafCampaign.convoyHunters(side)
+  if hunters == nil then
+    return max, nil
+  end
+  local wanted = math.max(1, math.ceil(#hunters / veafCampaign.setting("players_per_convoy")))
+  return math.min(max, wanted), #hunters
+end
+
+--- Whether a side may send one more assault convoy now; when it may not, says so once in the debug log. A
+--- convoy already on the road is never taken off for the cap: it only decides whether a new one leaves.
+--- @param side string "blue" or "red"
+--- @param key string what the refusal is told under (`debugOnce`)
+--- @param what string what the side does not do, for the log
+--- @return boolean
+function veafCampaign.convoyRoom(side, key, what)
+  local underway = veafCampaign.convoysUnderway(side)
+  local cap, counted = veafCampaign.convoyCap(side)
+  if underway < cap then
+    return true
+  end
+  veafCampaign.debugOnce(
+    key,
+    string.format("full %d %s %d", underway, tostring(counted), cap),
+    "DECISION",
+    "%s does not %s: %d convoy(s) on the road, %s ground-attack player(s) → %d",
+    side,
+    what,
+    underway,
+    counted and tostring(counted) or "uncounted",
+    cap
+  )
+  return false
+end
+
+--- Whether a player of a list stands within `radius` of a zone's centre, on the map's plane.
+local function anyoneNear(players, zone, radius)
+  for _, unit in ipairs(players) do
+    local point = unit:getPoint()
+    local dx, dz = point.x - zone.entry.x, point.z - zone.entry.z
+    if dx * dx + dz * dz <= radius * radius then
+      return true
+    end
+  end
+  return false
+end
+
 --- The enemy zone a side counter-attacks: among the enemy's zones connected to one of the side's, the
 --- weakest — the lowest share of its garrison alive —, the first declared on a tie; with the neighbour
 --- the convoy leaves from. A zone a convoy of the side is already driving to is left out.
+---
+--- A zone **defended** — an enemy player armed to stop a convoy within `defended_radius` of its centre, airborne
+--- or not — is taken only when every candidate is defended (FEAT-CAMPAIGN-CONVOYS-FOLLOW-STRIKERS 02): the
+--- players choose between defending and attacking. The positions are read now; a convoy on the road keeps its target.
 --- @param side string "blue" or "red"
 --- @return table|nil the target zone
 --- @return table|nil the zone the convoy leaves from
 function veafCampaign.attackTarget(side)
   local enemy = veafCampaign.enemyOf(side)
+  local hunters = veafCampaign.convoyHunters(side) or {}
+  local radius = veafCampaign.setting("defended_radius")
   local best, bestFrom, bestStrength = nil, nil, nil
+  local free, freeFrom, freeStrength = nil, nil, nil
+  local skipped = {}
   for _, zone in ipairs(veafCampaign.zoneList) do
     if
       zone.placed
@@ -2803,16 +2893,33 @@ function veafCampaign.attackTarget(side)
           if bestStrength == nil or strength < bestStrength then
             best, bestFrom, bestStrength = zone, neighbour, strength
           end
+          if anyoneNear(hunters, zone, radius) then
+            table.insert(skipped, zone.name)
+          elseif freeStrength == nil or strength < freeStrength then
+            free, freeFrom, freeStrength = zone, neighbour, strength
+          end
           break
         end
       end
     end
   end
-  return best, bestFrom
+  if free == nil then
+    return best, bestFrom
+  end
+  if #skipped > 0 then
+    veafCampaign.debug(
+      "DECISION",
+      "%s skips [%s] for its counter-attack: defended by a ground-attack player",
+      side,
+      table.concat(skipped, "], [")
+    )
+  end
+  return free, freeFrom
 end
 
 --- Send the counter-attacks that are due: every `attack_seconds` a side listed in `attacks` sends an
---- assault convoy at the weakest enemy zone it borders, `max_convoys` on the road at most.
+--- assault convoy at the weakest enemy zone it borders (`attackTarget`), as many on the road at most as
+--- `convoyCap` allows.
 --- @param now number the mission time
 function veafCampaign.launchOffensives(now)
   if veafCampaign.over then
@@ -2825,16 +2932,7 @@ function veafCampaign.launchOffensives(now)
         veafCampaign.nextAttack[side] = now + veafCampaign.setting("attack_seconds")
       elseif now >= due then
         veafCampaign.nextAttack[side] = now + veafCampaign.setting("attack_seconds")
-        if veafCampaign.convoysUnderway(side) >= veafCampaign.setting("max_convoys") then
-          veafCampaign.debugOnce(
-            "attack " .. side,
-            "full",
-            "DECISION",
-            "%s does not counter-attack: %d convoys already on the road",
-            side,
-            veafCampaign.convoysUnderway(side)
-          )
-        else
+        if veafCampaign.convoyRoom(side, "attack " .. side, "counter-attack") then
           local target, from = veafCampaign.attackTarget(side)
           if not target then
             veafCampaign.debugOnce("attack " .. side, "none", "DECISION", "%s does not counter-attack: no enemy zone it borders", side)

@@ -1,6 +1,6 @@
 # 02 — A counter-attack goes where the players are not
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 
 ## Decided
@@ -27,3 +27,12 @@ A counter-attack skips the zones with a ground-attack player within 30 km while 
 
 1. Fly a striker over Hatay; wait for red's next counter-attack: `dcs.log` names Hatay as skipped (defended) and the convoy leaves for another blue zone on the front.
 2. With an F/A-18C armed for air-to-air only over Hatay, Hatay is not skipped.
+
+## Done
+
+2026-11-21, branch `feature/campaign-convoys-follow-strikers`.
+
+- `veafCampaign.attackTarget(side)` reads the enemy's ground-attack players (ticket 01) when the counter-attack is decided: a candidate zone with one within `defended_radius` (30 km) of its centre is skipped; the weakest undefended zone is taken, the weakest of all when every one is defended. A convoy on the road keeps its target.
+- `[CAMPAIGN DECISION] red skips [Poti] for its counter-attack: defended by a ground-attack player` when a zone is skipped.
+- Setting `defended_radius` in `DYNAMIC_DEFAULTS`, `dynamic_settings.py` and `PERSISTENT_CAMPAIGN.md` / `.en.md`.
+- Tests: no player, a striker near the weakest zone, every zone defended, an air-to-air fighter near the zone, the radius at 31 km with the default and with 40 km.

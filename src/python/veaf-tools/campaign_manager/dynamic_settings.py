@@ -113,6 +113,8 @@ _SCHEMA: dict[str, Check | dict[str, Check]] = {
     "attacks": _sides,
     "attack_seconds": _positive,
     "max_convoys": _natural,
+    "players_per_convoy": _positive,
+    "defended_radius": _natural,
     "supply": _sides,
     "supply_seconds": _positive,
     "max_helicopters": _natural,

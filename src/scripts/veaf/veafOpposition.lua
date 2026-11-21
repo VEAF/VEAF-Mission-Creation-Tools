@@ -171,6 +171,63 @@ function veafOpposition.armedForAirToAir(unit)
   return false
 end
 
+--- Whether a unit carries, right now, something that can stop a convoy (FEAT-CAMPAIGN-CONVOYS-FOLLOW-STRIKERS 01):
+--- a bomb, a rocket, or a missile that is neither air-to-air nor anti-radiation. The gun and gun pods (shells) do
+--- not count, every fighter has one: an F/A-18C with AIM-120 and AIM-9 only, or an F-16C with AGM-88 only, cannot.
+---
+--- Read with `getAmmo`, as `armedForAirToAir`. The families, read in the game's weapon files on 2026-11-21
+--- (`CoreMods/aircraft/AircraftWeaponPack`, DCS 2.9): the GBU-12 is a guided bomb (`wsType_Bomb`), so
+--- `Weapon.Category.BOMB`; the AGM-65D (TV head), the AGM-114K Hellfire (laser head; the AGM-114L has an
+--- active radar one) and the APKWS (`AGR_20_M282`, laser head) are all air-to-surface missiles
+--- (`wsType_AS_Missile`) — the APKWS is a missile, not a rocket —, so `Weapon.Category.MISSILE` with a
+--- `missileCategory` other than `AAM`; the AGM-88 HARM, also an air-to-surface missile, has the passive radar
+--- head (`Head_Type = 3`) the scripting API gives as `Weapon.GuidanceType.RADAR_PASSIVE`. That last mapping of the
+--- game's head type to the scripting enum is not readable in the files (to confirm in game): the AIM-9, AIM-120
+--- and AIM-7 heads (1, 2, 6) are IR, RADAR_ACTIVE and RADAR_SEMI_ACTIVE in the API, so the files' numbers are
+--- not the enum's. Hence the test on the guidance only for ARMs, and on `missileCategory` for the rest: an
+--- AGM-114L's radar head does not make it air-to-air.
+---@param unit table a DCS unit
+---@return boolean
+function veafOpposition.armedForGround(unit)
+  if not unit.getAmmo then
+    return false
+  end
+  local ok, ammo = pcall(unit.getAmmo, unit)
+  if not ok or type(ammo) ~= "table" then
+    return false
+  end
+  for _, item in ipairs(ammo) do
+    local desc = item.desc
+    if desc and (item.count or 0) > 0 then
+      if desc.category == Weapon.Category.BOMB or desc.category == Weapon.Category.ROCKET then
+        return true
+      end
+      if
+        desc.category == Weapon.Category.MISSILE
+        and desc.missileCategory ~= Weapon.MissileCategory.AAM
+        and desc.guidance ~= Weapon.GuidanceType.RADAR_PASSIVE
+      then
+        return true
+      end
+    end
+  end
+  return false
+end
+
+--- The players of a coalition who can stop a convoy (`armedForGround`), in a slot, airborne or not: a striker
+--- on the ramp is about to fly.
+---@param coalitionId number a `coalition.side`
+---@return table the player units
+function veafOpposition.groundAttackPlayers(coalitionId)
+  local players = {}
+  for _, unit in ipairs(coalition.getPlayers(coalitionId) or {}) do
+    if unit and unit:isExist() and veafOpposition.armedForGround(unit) then
+      table.insert(players, unit)
+    end
+  end
+  return players
+end
+
 --- The players of the counted coalition: all of them, only the airborne ones, or only the airborne
 --- ones armed for air-to-air.
 ---@param airborneOnly boolean

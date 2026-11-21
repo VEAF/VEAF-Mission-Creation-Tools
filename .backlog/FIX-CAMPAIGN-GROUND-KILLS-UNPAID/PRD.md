@@ -34,7 +34,7 @@ The initiator has the same data table, but `dcsInitiator` keeps the raw DCS obje
 
 ## Decided
 
-David, 2026-11-21: both tickets.
+David, 2026-11-21: tickets 01 and 02; then ticket 03, the evening's summary lost when the last player disconnects, found the same night and added to this lot since it is the same books.
 
 The integration branch is `feature/dynamic-campaign`: one branch and one pull request into it.
 
@@ -42,3 +42,4 @@ The integration branch is `feature/dynamic-campaign`: one branch and one pull re
 |---|---|
 | 01 | [A ground kill is read before its target is gone](tickets/01-read-the-target-at-the-kill.md) |
 | 02 | [Every pilot who flew is on the ranking](tickets/02-every-pilot-on-the-ranking.md) |
+| 03 | [The evening's summary is written when the last player disconnects](tickets/03-summary-when-the-last-player-disconnects.md) |

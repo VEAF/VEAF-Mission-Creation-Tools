@@ -4,9 +4,13 @@
 
 Lots written up and ready to take.
 
+### [FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT](FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT/PRD.md) · ⬜
+
+A convoy that cannot drive onto its enemy renews its own contact at every push (`closeIn`, `pressOn`), so `convoyMayLeave` keeps it "in contact" for ever: on 2026-11-21 the Aleppo convoy stood still 1.3 km from Menagh from 22:00 to the end and held a place of the convoy cap. One ticket; found while watching the Campagne server (2026-11-21).
+
 ### [FIX-CAMPAIGN-GROUND-KILLS-UNPAID](FIX-CAMPAIGN-GROUND-KILLS-UNPAID/PRD.md) · ⬜
 
-Since 2026-11-15 a player's kill of a ground unit pays nothing and counts nothing: the kill's target is read by name after the unit is gone, so it looks neutral and `readPlayerKill` drops it (31, 24, 13, 10 and 8 kills unpaid on 2026-11-21; only air kills paid). Ticket 02 puts every pilot who flew on the sitac's ranking. Two tickets; found from David's report of an incomplete ranking (2026-11-21).
+Since 2026-11-15 a player's kill of a ground unit pays nothing and counts nothing: the kill's target is read by name after the unit is gone, so it looks neutral and `readPlayerKill` drops it (31, 24, 13, 10 and 8 kills unpaid on 2026-11-21; only air kills paid). Ticket 02 puts every pilot who flew on the sitac's ranking, ticket 03 writes the evening's summary when the last player disconnects. Three tickets; found from David's report of an incomplete ranking (2026-11-21).
 
 ### [FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY](FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY/PRD.md) · ⬜
 

@@ -2728,7 +2728,15 @@ function veafCampaign.absorbConvoy(zone, side)
   return false
 end
 
---- Radio command: a blue assault from one zone to a neighbour, at once, if it still makes sense.
+--- The economy that charges the assault order: in a persistent campaign the order is a purchase, paid in credits
+--- (ticket 14); nil elsewhere, where it is free.
+local function assaultEconomy()
+  return veafCampaign.isPersistent() and veafCampaignEconomy and veafCampaignEconomy.charge and veafCampaignEconomy or nil
+end
+
+--- Radio command: a blue assault from one zone to a neighbour, at once, if it still makes sense. It calls
+--- `sendConvoy` directly: the convoy cap (`convoyRoom`) holds back the automatic assaults and counter-attacks
+--- only, never an order the players paid for.
 --- @param parameters table `{ from, to }`
 function veafCampaign.orderAssault(parameters)
   local from, to = veafCampaign.zones[parameters[1]], veafCampaign.zones[parameters[2]]
@@ -2736,8 +2744,8 @@ function veafCampaign.orderAssault(parameters)
     trigger.action.outTextForCoalition(coalition.side.BLUE, veaf.t("campaign.assault_refused", parameters[1], parameters[2]), 15)
     return
   end
-  -- in a persistent campaign the order is a purchase, paid in credits (ticket 14); refunded if no convoy leaves
-  local economy = veafCampaign.isPersistent() and veafCampaignEconomy and veafCampaignEconomy.charge and veafCampaignEconomy
+  -- refunded if no convoy leaves
+  local economy = assaultEconomy()
   local price = economy and veafCampaignEconomy.price("assault") or 0
   if economy and not economy.charge(price, veaf.t("campaign.shop.item.assault"), "shop assault") then
     return
@@ -2752,20 +2760,30 @@ end
 
 --- The "Assault" submenu, for blue: one entry per blue zone and neighbour it does not hold. Rebuilt
 --- whenever a zone changes hands.
+---
+--- FIX-CAMPAIGN-ASSAULT-ORDER-OPEN: where the order is paid (a persistent campaign), it is a purchase like the
+--- shop's items, open to every player and titled with its price; the entries were secured until 2026-11-21, and a
+--- player without the VEAF password could not run them on the Campagne server. Where it is free, they stay secured.
 function veafCampaign.buildAssaultMenu()
   if not (veafRadio and veafCampaign.rootPath) then
     return
   end
+  local economy = assaultEconomy()
   if veafCampaign.assaultPath then
     veafRadio.clearSubmenu(veafCampaign.assaultPath)
   else
-    veafCampaign.assaultPath = veafRadio.addSubMenu(veaf.t("menu.campaign.assault"), veafCampaign.rootPath, coalition.side.BLUE)
+    local title = veaf.t("menu.campaign.assault")
+    if economy then
+      title = veaf.t("menu.campaign.shop_item", title, economy.price("assault"))
+    end
+    veafCampaign.assaultPath = veafRadio.addSubMenu(title, veafCampaign.rootPath, coalition.side.BLUE)
   end
+  local addCommand = economy and veafRadio.addCommandToSubmenu or veafRadio.addSecuredCommandToSubmenu
   for _, zone in ipairs(veafCampaign.zoneList) do
     if zone.placed and zone.entry.owner == "blue" then
       for _, neighbour in ipairs(veafCampaign.neighbours(zone.name)) do
         if neighbour.entry.owner ~= "blue" then
-          veafRadio.addSecuredCommandToSubmenu(
+          addCommand(
             veaf.t("menu.campaign.assault_entry", veafCampaign.zoneTitle(zone.name), veafCampaign.zoneTitle(neighbour.name)),
             veafCampaign.assaultPath,
             veafCampaign.orderAssault,

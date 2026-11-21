@@ -1839,4 +1839,56 @@ function TestCampaignRanking:test_the_board_is_listed_as_the_f10_menu_gives_it()
   luaunit.assertEquals(missions[2].description, "1/3")
 end
 
+-- ---------------------------------------------------------------------------
+-- The assault order, a purchase open to every player (FIX-CAMPAIGN-ASSAULT-ORDER-OPEN)
+-- ---------------------------------------------------------------------------
+TestCampaignAssaultOrder = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+function TestCampaignAssaultOrder:setUp()
+  setUpSuite(self)
+  self.savedSendConvoy = veafCampaign.sendConvoy
+  self.sent = {}
+  local this = self
+  veafCampaign.sendConvoy = function(side, from, to, purchased)
+    table.insert(this.sent, { side = side, from = from.name, to = to.name, purchased = purchased })
+    return { side = side }
+  end
+end
+
+function TestCampaignAssaultOrder:tearDown()
+  veafCampaign.sendConvoy = self.savedSendConvoy
+  tearDownSuite(self)
+end
+
+-- 2026-11-21: the entries were secured, a player without the VEAF password could not run them on the Campagne server
+function TestCampaignAssaultOrder:test_the_entries_are_open_to_every_player()
+  start({ economy = { start_credits = 500 } })
+  local commands = veafCampaign.assaultPath.commands
+  luaunit.assertTrue(#commands > 0)
+  for _, command in ipairs(commands) do
+    luaunit.assertFalse(command.isSecured, command.title)
+    luaunit.assertEquals(command.usage, veafRadio.USAGE_ForAll, command.title)
+  end
+end
+
+function TestCampaignAssaultOrder:test_the_menu_gives_the_price()
+  start({ economy = { start_credits = 500, prices = { assault = 250 } } })
+  luaunit.assertEquals(veafCampaign.assaultPath.title, veaf.t("menu.campaign.shop_item", veaf.t("menu.campaign.assault"), 250))
+end
+
+function TestCampaignAssaultOrder:test_an_order_is_paid_and_a_convoy_leaves()
+  start({ economy = { start_credits = 500 } })
+  local command = veafCampaign.assaultPath.commands[1]
+  command.method(command.parameters)
+  luaunit.assertEquals(self.sent, { { side = "blue", from = "Kobuleti", to = "Poti", purchased = true } })
+  luaunit.assertEquals(veafCampaignEconomy.credits, 200)
+end
+
+function TestCampaignAssaultOrder:test_too_few_credits_send_nothing()
+  start({ economy = { start_credits = 299 } })
+  veafCampaign.orderAssault({ "Kobuleti", "Poti" })
+  luaunit.assertEquals(self.sent, {})
+  luaunit.assertEquals(veafCampaignEconomy.credits, 299)
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -115,6 +115,16 @@ class TestTheDossier:
             campaign.dynamic["economy"]["prices"] = {"patriot": 6000}
             assert not any("patriot" in line for line in shop_lines(campaign))
 
+    def test_the_shop_says_where_the_assault_is_ordered_and_its_price(self) -> None:
+        # FIX-CAMPAIGN-ASSAULT-ORDER-OPEN: the assault is ordered from Campaign > Assaults, not from the shop's menu
+        campaign = _campaign()
+        with language("fr"):
+            assert "Convoi d'assaut (Campagne → Assauts) : 300 crédits" in shop_lines(campaign)
+            campaign.dynamic.setdefault("economy", {})["prices"] = {"assault": 250}
+            assert "Convoi d'assaut (Campagne → Assauts) : 250 crédits" in shop_lines(campaign)
+        with language("en"):
+            assert "Assault convoy (Campaign → Assaults): 250 credits" in shop_lines(campaign)
+
     def test_the_shop_lists_the_flights_and_the_zone_upgrades(self) -> None:
         # FEAT-CAMPAIGN-SHOP-UPGRADES: the upgrades' prices are drawn in game, the guide gives their rule and limit
         campaign = _campaign()

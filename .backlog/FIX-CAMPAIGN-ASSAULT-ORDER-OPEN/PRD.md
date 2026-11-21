@@ -1,6 +1,6 @@
 # FIX-CAMPAIGN-ASSAULT-ORDER-OPEN — every player can order a paid blue assault
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 
 Rex, relayed by David on 2026-11-21: "ça serait pas mal d'avoir des convois bleus, soit payants soit automatiques".
 

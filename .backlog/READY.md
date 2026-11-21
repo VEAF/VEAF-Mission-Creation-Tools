@@ -4,6 +4,10 @@
 
 Lots written up and ready to take.
 
+### [FIX-CAMPAIGN-GROUND-KILLS-UNPAID](FIX-CAMPAIGN-GROUND-KILLS-UNPAID/PRD.md) · ⬜
+
+Since 2026-11-15 a player's kill of a ground unit pays nothing and counts nothing: the kill's target is read by name after the unit is gone, so it looks neutral and `readPlayerKill` drops it (31, 24, 13, 10 and 8 kills unpaid on 2026-11-21; only air kills paid). Ticket 02 puts every pilot who flew on the sitac's ranking. Two tickets; found from David's report of an incomplete ranking (2026-11-21).
+
 ### [FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY](FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY/PRD.md) · ⬜
 
 Every air defence DCS offers in the campaign: the Tor M2 and the Pantsir S1 in red's modern short range, a `medium_range_sam` zone option giving red an SA-11, SA-6 or SA-3 battery (red has no medium-range SAM at all today), and the IRIS-T SLM and the Rapier for blue, as a VEAF group and shop upgrades. Three tickets; asked by David after the 2026-11-21 evening on the Campagne server.

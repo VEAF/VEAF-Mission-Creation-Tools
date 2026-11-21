@@ -92,6 +92,8 @@ function sim.loadModules()
     "veafEventHandler",
     "veafRadio",
     "veafNamedPoints",
+    -- counts the pilots who can stop a convoy: red's convoy cap follows them (FEAT-CAMPAIGN-CONVOYS-FOLLOW-STRIKERS)
+    "veafOpposition",
   }) do
     dofile(src .. "/" .. name .. ".lua")
   end
@@ -527,6 +529,10 @@ local function pilotUnit(name, point)
   end
   unit.getTypeName = function()
     return "F-16C_50"
+  end
+  -- a striker's load: every virtual pilot attacks ground targets, so each counts for red's convoy cap
+  unit.getAmmo = function()
+    return { { count = 2, desc = { category = Weapon.Category.BOMB } } }
   end
   unit.getDesc = function()
     return { category = Unit.Category.AIRPLANE }

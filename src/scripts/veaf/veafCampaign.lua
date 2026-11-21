@@ -2215,7 +2215,7 @@ function veafCampaign.reportConvoy(record, now)
   )
 end
 
---- Take a convoy off the road: its units leave the world, its place among `max_convoys` is free, and what was paid
+--- Take a convoy off the road: its units leave the world, its place under the convoy cap is free, and what was paid
 --- for its survivors from the side's resources goes back to them.
 --- @param record table the convoy's record
 --- @param reason string why, for the log

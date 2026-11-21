@@ -383,13 +383,18 @@ A purchase refused (no target left, nothing in reach) costs nothing.
 | Escort for my group | two fighters for the buyer's group, starting in the air over our nearest airfield: an airplane gets the DCS escort task; a helicopter, too slow for fighters, a 15 km CAP over it, moved when it has gone 8 km. In each pilot's menu | 300 |
 | Tanker | one item per tanker `economy.tanker` names — one name, or a list: the boom and the basket —, which it respawns (an asset of the mission), then [places](#support) out of reach again; absent without one | 300 |
 
+The **assault convoy** is bought in credits too, but elsewhere: F10 → Other → VEAF → Campaign → **Assaults (300 cr.)**, one entry per zone of ours and neighbour we do not hold.
+An armoured convoy leaves the first for the second at once; it is open to every pilot of the players' side, without the VEAF password, like the shop.
+It is refunded when no convoy leaves (nothing left in reserve), and refused with nothing charged when the start zone is no longer ours, the target already is, or a convoy is already on its way.
+The convoy cap (`max_convoys`) holds back only the convoys the AI sends on its own, never a bought assault.
+Outside a persistent campaign the order is free and stays reserved to senior pilots.
 The BARCAP holds on the axis between the enemy zone and our nearest airfield, at the first point out of the reach of **every** enemy air defence (not only the target zone's) plus 15 km, and guards a 15 km circle; when no point of the axis is out of reach, it holds over its airfield.
 The reach is measured on the missiles the zone's units carry when it is awake; a sleeping zone is assumed to reach 75 km when it holds a [long-range SAM](#long-range-sams), 20 km otherwise, and the message says so.
 
 The CAS and SEAD flights are the [enemy air](#air)'s strikes, flown by our side's aircraft: they take off from our airfield nearest the zone an aircraft may leave from (a runway long enough, not under an enemy air defence, but for the SEAD), and the message says which.
 The SEAD leaves at once: it does not wait for a player's order (Foothold's "push on command", not done).
 
-Prices change in `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `cas`, `sead`, `escort`, `tanker`, the [zone upgrades](#upgrades) by their name, and `assault` for the assault order of F10 → Other → VEAF → Campaign → Assault, 300).
+Prices change in `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `cas`, `sead`, `escort`, `tanker`, the [zone upgrades](#upgrades) by their name, and `assault` for the assault order of F10 → Other → VEAF → Campaign → Assaults, 300).
 What the players buy is paid in credits, never from the [resources](#resources).
 
 ### Zone upgrades {#upgrades}

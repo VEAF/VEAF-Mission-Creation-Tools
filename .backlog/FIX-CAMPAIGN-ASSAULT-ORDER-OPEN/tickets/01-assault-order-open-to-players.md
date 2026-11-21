@@ -1,6 +1,6 @@
 # 01 — The paid assault order open to every player
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 Type: fix
 
 ## To do
@@ -21,3 +21,12 @@ On a server with security on, a player of the players' side without the VEAF pas
 1. On the Campagne server, as a player who has not logged in to VEAF security: F10 → Other → VEAF → Campaign → Assauts: the entries have no "+".
 2. Pick one with 300 credits or more: the message says the convoy leaves, the balance drops by 300, `dcs.log` shows `blue assault convoy [...] left`.
 3. With fewer than 300 credits: refused, nothing leaves.
+
+## Done
+
+- `veafCampaign.buildAssaultMenu`: where the order is charged (a persistent campaign, `assaultEconomy()`), the entries are added with `veafRadio.addCommandToSubmenu`, `USAGE_ForAll` like the shop's items, and the submenu is titled with its price (`Assauts (300 cr.)`); elsewhere they stay secured at the default level. `orderAssault` is unchanged: refused before any charge when the order no longer makes sense, refunded when no convoy leaves.
+- The convoy cap (`convoyRoom`) is called only by the pending automatic assaults and the counter-attacks; `orderAssault` calls `sendConvoy` directly, so a paid order is never held back. Said in `orderAssault`'s comment.
+- Theatre dossier's player guide: the shop's assault line reads "Convoi d'assaut (Campagne → Assauts) : 300 crédits", the price from `economy.prices.assault` over `SHOP_PRICES`, which `test_the_shop_prices_are_the_runtime_s` already checks against `veafCampaignEconomy.PRICES`.
+- `PERSISTENT_CAMPAIGN.md` / `.en.md`: a paragraph under the shop's table — where to order, the price, open to every player, refund and refusal, the cap that does not apply.
+- Tests: `TestCampaignAssaultOrder` (`test_veafCampaignLive.lua`) — entries unsecured, `USAGE_ForAll`, the price in the title, an order paid and a convoy sent, too few credits sends nothing; `test_the_blue_menu_lists_each_blue_zone_towards_each_neighbour_it_does_not_hold` keeps them secured outside a persistent campaign; `test_the_shop_says_where_the_assault_is_ordered_and_its_price` for the guide.
+- The in-game check above is left for the next evening on the Campagne server.

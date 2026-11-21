@@ -383,13 +383,18 @@ Un achat refusé (plus de cible, rien à portée) ne coûte rien.
 | Escorte de mon groupe | deux chasseurs pour le groupe de l'acheteur, qui partent en l'air au-dessus de notre aérodrome le plus proche : un avion reçoit la tâche d'escorte de DCS ; un hélicoptère, trop lent pour des chasseurs, une CAP de 15 km au-dessus de lui, déplacée quand il a avancé de 8 km. Dans le menu de chaque pilote | 300 |
 | Ravitailleur | un article par ravitailleur que nomme `economy.tanker` — un nom, ou une liste : la perche et le panier —, qu'il fait réapparaître (un asset de la mission) puis [replace](#support) hors de portée ; absent sans aucun | 300 |
 
+Le **convoi d'assaut** s'achète aussi en crédits, mais ailleurs : F10 → Autres → VEAF → Campagne → **Assauts (300 cr.)**, une entrée par zone à nous et voisine que nous ne tenons pas.
+Un convoi blindé part aussitôt de la première vers la seconde ; il est ouvert à tous les pilotes du camp des joueurs, sans mot de passe VEAF, comme la boutique.
+Il est remboursé si aucun convoi ne part (plus rien en réserve), et refusé sans rien débiter si la zone de départ n'est plus à nous, si la cible l'est déjà ou si un convoi y va déjà.
+Le plafond de convois (`max_convoys`) ne retient que les convois que l'IA envoie d'elle-même, jamais un assaut acheté.
+Hors d'une campagne persistante, l'ordre est gratuit et reste réservé aux pilotes confirmés.
 La BARCAP se tient sur l'axe entre la zone ennemie et notre aérodrome le plus proche, au premier point hors de portée de **toutes** les défenses ennemies (pas seulement celles de la zone visée) plus 15 km, et garde un cercle de 15 km ; quand aucun point de l'axe n'est hors de portée, elle tient au-dessus de son aérodrome.
 La portée se mesure sur les missiles que portent les unités de la zone quand elle est éveillée ; une zone endormie est supposée porter à 75 km si elle a un [SAM longue portée](#long-range-sams), 20 km sinon, et le message le dit.
 
 Les vols CAS et SEAD sont les frappes de l'[aviation ennemie](#air), avec les avions de notre camp : ils décollent de notre aérodrome le plus proche de la zone d'où un avion peut partir (piste assez longue, pas sous une défense antiaérienne ennemie, sauf pour la SEAD), et le message dit d'où.
 La SEAD part tout de suite : elle n'attend pas d'ordre du joueur (« push on command » de Foothold, pas fait).
 
-Les prix se changent dans `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `cas`, `sead`, `escort`, `tanker`, les [renforts de zone](#upgrades) par leur nom, et `assault` pour l'ordre d'assaut de F10 → Autres → VEAF → Campagne → Assaut, 300).
+Les prix se changent dans `economy.prices` (`jtac`, `illumination`, `smoke`, `intel`, `cap`, `barcap`, `capture`, `resupply`, `bomber`, `cas`, `sead`, `escort`, `tanker`, les [renforts de zone](#upgrades) par leur nom, et `assault` pour l'ordre d'assaut de F10 → Autres → VEAF → Campagne → Assauts, 300).
 Ce que les joueurs achètent se paie en crédits, jamais sur les [ressources](#resources).
 
 ### Renforcer une zone {#upgrades}

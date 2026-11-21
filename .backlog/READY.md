@@ -4,6 +4,10 @@
 
 Lots written up and ready to take.
 
+### [FEAT-CAMPAIGN-PILOT-EARNINGS-MENU](FEAT-CAMPAIGN-PILOT-EARNINGS-MENU/PRD.md) · ⬜
+
+A "Mes gains" entry in the persistent campaign's F10 Campaign menu: each pilot reads what he earned this session, what his aircraft holds until landing, his campaign total and rank, and his kills. What each pilot earns was only in `dcs.log` and on the sitac's ranking page. One ticket; asked by David after the 2026-11-21 evening on the Campagne server.
+
 ### [FEAT-SPAWN-OWNERSHIP-DESPAWN](FEAT-SPAWN-OWNERSHIP-DESPAWN/PRD.md) · ⬜
 
 Each pilot can remove from the F10 menu what his markers spawned (`-sa6`, `-armor`, `-cas`, `-convoy`, `-farp`…), all at once or one by one: the runtime records every marker-spawned group with its author, combat zones left out since they clean their own. `-destroy` stays a trusted member's command. Three tickets, eight questions with a reco each; asked by David while correcting the Open Training conduct sheet (2026-11-10).

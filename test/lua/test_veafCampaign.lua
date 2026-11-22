@@ -75,6 +75,7 @@ local function setUpSuite(self)
   self.saved = {
     composeGarrison = veafCampaign.composeGarrison,
     generateLongRange = veafCasMission.generateLongRangeAirDefenseGroup,
+    generateMediumRange = veafCasMission.generateMediumRangeAirDefenseGroup,
     placeGroup = veafCasMission.placeGroup,
     findGroup = veafUnits.findGroup,
     callbacks = veafEventHandler.callbacks,
@@ -103,6 +104,7 @@ end
 local function tearDownSuite(self)
   veafCampaign.composeGarrison = self.saved.composeGarrison
   veafCasMission.generateLongRangeAirDefenseGroup = self.saved.generateLongRange
+  veafCasMission.generateMediumRangeAirDefenseGroup = self.saved.generateMediumRange
   veafCasMission.placeGroup = self.saved.placeGroup
   veafUnits.findGroup = self.saved.findGroup
   veafEventHandler.callbacks = self.saved.callbacks
@@ -290,6 +292,27 @@ function TestVeafCampaignDraw:test_a_size_class_with_a_long_range_sam_adds_a_bat
   luaunit.assertEquals(#garrison, 2)
   luaunit.assertEquals(garrison[2].name, "Senaki long-range SAM")
   luaunit.assertEquals(garrison[2].units[1].type, "S-300PS 40B6M tr")
+end
+
+-- FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 02: a medium-range battery of its own, named as the long-range one is
+function TestVeafCampaignDraw:test_a_zone_with_a_medium_range_sam_adds_a_battery_of_its_own()
+  local asked = {}
+  veafCasMission.generateMediumRangeAirDefenseGroup = function(name, side)
+    table.insert(asked, { name, side })
+    return { units = { { "SA-11 Buk LN 9A310M1" } }, groupName = name }
+  end
+  veafCasMission.placeGroup = function(definition, position, spacing, result)
+    table.insert(result, placed(definition.units[1][1] or "Infantry AK", 5, 6))
+    return result
+  end
+  local entry = zoneEntry("Senaki", "red")
+  entry.size.medium_range_sam = true
+  veafCampaign.data = { zones = { entry } }
+  veafCampaign.initialize()
+  local garrison = veafCampaign.data.zones[1].garrison
+  luaunit.assertEquals(asked, { { "Senaki medium-range SAM", coalition.side.RED } })
+  luaunit.assertEquals(garrison[#garrison].name, "Senaki medium-range SAM")
+  luaunit.assertEquals(garrison[#garrison].units[1].type, "SA-11 Buk LN 9A310M1")
 end
 
 function TestVeafCampaignDraw:test_an_explicit_garrison_list_replaces_the_draw()

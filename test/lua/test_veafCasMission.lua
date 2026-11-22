@@ -914,6 +914,85 @@ function TestVeafCasMissionLongRange:test_a_missing_template_returns_nil()
   luaunit.assertNil(veafCasMission.generateLongRangeAirDefenseGroup("LR", veafCasMission.SIDE_RED))
 end
 
+-- FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 02: the medium-range batteries a zone's `medium_range_sam` draws, by side and era
+TestVeafCasMissionMediumRange = {}
+
+function TestVeafCasMissionMediumRange:setUp()
+  self.era, self.random, self.findGroup = veaf.config.era, math.random, veafUnits.findGroup
+  veafUnits.findGroup = function(name)
+    return { units = { { typeName = "M1097 Avenger" } }, name = name }
+  end
+end
+
+function TestVeafCasMissionMediumRange:tearDown()
+  veaf.config.era, math.random, veafUnits.findGroup = self.era, self.random, self.findGroup
+end
+
+local function mediumDrawnFor(era, side)
+  veaf.config.era = era
+  local drawn = {}
+  for pick = 1, 3 do
+    math.random = function(a, b)
+      return math.min(pick, b or a)
+    end
+    local group = veafCasMission.generateMediumRangeAirDefenseGroup("MR", side)
+    drawn[group.name] = true
+    luaunit.assertEquals(group.groupName, "MR")
+  end
+  return drawn
+end
+
+function TestVeafCasMissionMediumRange:test_red_modern_draws_an_sa11_an_sa6_or_an_sa3()
+  luaunit.assertEquals(mediumDrawnFor(veaf.ERA.MODERN, veafCasMission.SIDE_RED), { sa11 = true, sa6 = true, sa3 = true })
+end
+
+function TestVeafCasMissionMediumRange:test_red_cold_war_draws_an_sa6_or_an_sa3()
+  luaunit.assertEquals(mediumDrawnFor(veaf.ERA.COLD_WAR, veafCasMission.SIDE_RED), { sa6 = true, sa3 = true })
+end
+
+function TestVeafCasMissionMediumRange:test_blue_draws_a_hawk_or_a_nasams_and_the_hawk_alone_in_the_cold_war()
+  luaunit.assertEquals(mediumDrawnFor(veaf.ERA.MODERN, veafCasMission.SIDE_BLUE), { hawk = true, nasams = true })
+  luaunit.assertEquals(mediumDrawnFor(veaf.ERA.COLD_WAR, veafCasMission.SIDE_BLUE), { hawk = true })
+end
+
+function TestVeafCasMissionMediumRange:test_ww2_places_flak_and_an_unknown_era_is_modern()
+  luaunit.assertEquals(mediumDrawnFor(veaf.ERA.WW2, veafCasMission.SIDE_RED), { ["generateAirDefenseGroup-RED-WW2-4"] = true })
+  luaunit.assertEquals(mediumDrawnFor(nil, veafCasMission.SIDE_RED), { sa11 = true, sa6 = true, sa3 = true })
+end
+
+function TestVeafCasMissionMediumRange:test_a_cold_war_battery_swaps_its_point_defense()
+  veaf.config.era = veaf.ERA.COLD_WAR
+  local group = veafCasMission.generateMediumRangeAirDefenseGroup("MR", veafCasMission.SIDE_BLUE)
+  luaunit.assertEquals(group.units[1].typeName, "Vulcan")
+end
+
+-- the aliases are looked up at run time: one the spawn data does not have would spawn nothing, silently
+function TestVeafCasMissionMediumRange:test_every_battery_named_exists_in_the_spawn_data()
+  local units, groups = veafUnits.UnitsDatabase, veafUnits.GroupsDatabase
+  veafUnits.findGroup = self.findGroup
+  dofile(_base .. "/fixtures/veaf-spawn-data.lua")
+  local missing = {}
+  for _, byEra in pairs(veafCasMission.MEDIUM_RANGE_AIR_DEFENSE_GROUPS) do
+    for _, aliases in pairs(byEra) do
+      for _, alias in ipairs(aliases) do
+        local group = veafUnits.findGroup(alias)
+        if not group or #group.units == 0 then
+          table.insert(missing, alias)
+        end
+      end
+    end
+  end
+  veafUnits.UnitsDatabase, veafUnits.GroupsDatabase = units, groups
+  luaunit.assertEquals(missing, {})
+end
+
+function TestVeafCasMissionMediumRange:test_a_missing_template_returns_nil()
+  veafUnits.findGroup = function()
+    return nil
+  end
+  luaunit.assertNil(veafCasMission.generateMediumRangeAirDefenseGroup("MR", veafCasMission.SIDE_RED))
+end
+
 -- FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 01: the Tor M2 and the Pantsir S1 of the Currenthill pack, drawn in a MODERN mission
 -- in place of a Tor M1 or a Tunguska, one unit at a time, and never in another era.
 TestVeafCasMissionNewerShortRange = {}

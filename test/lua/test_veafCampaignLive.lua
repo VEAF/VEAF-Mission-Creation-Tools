@@ -1549,6 +1549,18 @@ function TestCampaignTakeoff:test_an_assumed_reach_grounds_nobody()
   luaunit.assertNil(veafCampaignOps.coveringEnemy("red", veafCampaign.zones["Poti"]))
 end
 
+-- FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 02: a medium-range battery is assumed to reach between the two
+function TestCampaignTakeoff:test_a_medium_range_sam_is_assumed_to_reach_its_own_distance()
+  start()
+  local kobuleti = veafCampaign.zones["Kobuleti"]
+  kobuleti.entry.size.medium_range_sam = true
+  luaunit.assertEquals({ veafCampaignOps.threatRange(kobuleti) }, { veafCampaignOps.ASSUMED_MEDIUM_RANGE, false })
+  kobuleti.entry.size.long_range_sam = true
+  luaunit.assertEquals({ veafCampaignOps.threatRange(kobuleti) }, { veafCampaignOps.ASSUMED_LONG_RANGE, false })
+  luaunit.assertTrue(veafCampaignOps.ASSUMED_SHORT_RANGE < veafCampaignOps.ASSUMED_MEDIUM_RANGE)
+  luaunit.assertTrue(veafCampaignOps.ASSUMED_MEDIUM_RANGE < veafCampaignOps.ASSUMED_LONG_RANGE)
+end
+
 function TestCampaignTakeoff:test_a_strike_takes_off_then_flies_at_its_altitude()
   local takeoff = { type = "TakeOffParkingHot", action = "From Parking Area Hot", airdromeId = 23 }
   local route = veafAircraftSpawn.roles.campaign_strike.buildRoute({

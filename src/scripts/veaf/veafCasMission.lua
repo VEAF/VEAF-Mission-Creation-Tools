@@ -853,21 +853,37 @@ veafCasMission.LONG_RANGE_AIR_DEFENSE_GROUPS = {
   },
 }
 
---- Generates a long-range air defense battery for the mission's era (the `-samVLR` alias)
-function veafCasMission.generateLongRangeAirDefenseGroup(groupName, side)
+--- The medium-range batteries a campaign zone's `medium_range_sam` draws from, by side and era: group aliases
+--- of veaf-units.yaml (FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 02). Red had none at all until then: short range
+--- everywhere, and one SA-10 or SA-5 where a zone asks for it. COLD_WAR keeps the 1980 reference: no SA-11
+--- (1979-1980, left out as borderline) and no NASAMS (1994). WW2 had no missile: a heavy flak level, taken as
+--- is. Service dates are estimates, not sourced.
+veafCasMission.MEDIUM_RANGE_AIR_DEFENSE_GROUPS = {
+  [veafCasMission.SIDE_BLUE] = {
+    [veaf.ERA.MODERN] = { "hawk", "nasams" },
+    [veaf.ERA.COLD_WAR] = { "hawk" },
+    [veaf.ERA.WW2] = { "generateAirDefenseGroup-BLUE-WW2-4" },
+  },
+  [veafCasMission.SIDE_RED] = {
+    [veaf.ERA.MODERN] = { "sa11", "sa6", "sa3" },
+    [veaf.ERA.COLD_WAR] = { "sa6", "sa3" },
+    [veaf.ERA.WW2] = { "generateAirDefenseGroup-RED-WW2-4" },
+  },
+}
+
+--- A battery drawn from one of the tables above, for the mission's era and the side, with the era's swaps.
+local function _generateBattery(groups, caller, groupName, side)
   -- as generateAirDefenseGroup does: a side that is not red is blue (a neutral marker or country), and
   -- an era with no entry is the default one
-  local bySide = veafCasMission.LONG_RANGE_AIR_DEFENSE_GROUPS[veafCasMission.SIDE_BLUE]
+  local bySide = groups[veafCasMission.SIDE_BLUE]
   if side == nil or side == veafCasMission.SIDE_RED then
-    bySide = veafCasMission.LONG_RANGE_AIR_DEFENSE_GROUPS[veafCasMission.SIDE_RED]
+    bySide = groups[veafCasMission.SIDE_RED]
   end
   local chooseFrom = bySide[veaf.config.era] or bySide[veaf.ERA.MODERN]
   local alias = chooseFrom[math.random(#chooseFrom)]
   local group = veafUnits.findGroup(alias)
   if not group then
-    veaf.loggers
-      .get(veafCasMission.Id)
-      :error(string.format("veafCasMission.generateLongRangeAirDefenseGroup cannot find group [%s]", alias))
+    veaf.loggers.get(veafCasMission.Id):error(string.format("veafCasMission.%s cannot find group [%s]", caller, alias))
     return nil
   end
   -- Changing the type name is enough: spawnAirDefenseBattery runs the group through
@@ -881,6 +897,16 @@ function veafCasMission.generateLongRangeAirDefenseGroup(groupName, side)
   group.description = groupName
   group.groupName = groupName
   return group
+end
+
+--- Generates a long-range air defense battery for the mission's era (the `-samVLR` alias)
+function veafCasMission.generateLongRangeAirDefenseGroup(groupName, side)
+  return _generateBattery(veafCasMission.LONG_RANGE_AIR_DEFENSE_GROUPS, "generateLongRangeAirDefenseGroup", groupName, side)
+end
+
+--- Generates a medium-range air defense battery for the mission's era: a campaign zone's `medium_range_sam`
+function veafCasMission.generateMediumRangeAirDefenseGroup(groupName, side)
+  return _generateBattery(veafCasMission.MEDIUM_RANGE_AIR_DEFENSE_GROUPS, "generateMediumRangeAirDefenseGroup", groupName, side)
 end
 
 --- Generates a transport company and its air defenses

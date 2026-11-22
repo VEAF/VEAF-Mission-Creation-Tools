@@ -854,6 +854,14 @@ ConvoyUnitHandler.STALEMATE_DELAY = 120
 --- convoy is pushed: one still driving to its standoff is closing in already, and DCS's vehicles open fire
 --- on the way (~1.3 km on 2026-10-08).
 ConvoyUnitHandler.HALTED_SPEED = 1
+--- Pushes in a row (`closeIn`, `pressOn`) that brought the convoy no closer to its enemy before it gives up and drives
+--- on. On 2026-11-21 a convoy pushed every two minutes onto an enemy 956 m away, then 957 m, all evening
+--- (FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT). Three: six minutes of pushes that move nothing; an estimate, to be tuned
+--- in game.
+ConvoyUnitHandler.FUTILE_PUSHES = 3
+--- A push that brings the convoy's centre less than this much closer to its enemy moved nothing, in metres. A push
+--- that moves it at all covers hundreds of metres in `STALEMATE_DELAY`; an estimate, to be tuned in game.
+ConvoyUnitHandler.PUSH_PROGRESS_MARGIN = 50
 --- An assault convoy in a fight this close to its objective drives into it, in metres; farther, it closes in
 --- on the threat like any convoy. The drive is off road: on 2026-10-08 a column bogged down at 0.6 m/s on a
 --- 9 km line across country. The red assault on Poti stood 2.8 km from the zone's centre.
@@ -965,9 +973,20 @@ function ConvoyUnitHandler.init(object)
   object.enemies = {}
   -- one record per enemy unit that was seen or fired: { name, point, typeName, strength, lastSeen }
   object.threats = {}
+  -- the last enemy seen or shot from, for the watch's quiet minute
   object.lastContact = nil
-  -- the last shot fired or taken by the convoy in a fight, or the start of the contact, or its last push
+  -- the last enemy newly seen: one already in sight does not count again (FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT)
+  object.lastSighting = nil
+  -- the last shot fired or taken by the convoy
   object.lastFireExchanged = nil
+  -- the last move the convoy gave itself against the enemy: the contact's start, a press on, a close in. Not a
+  -- contact: it restarts the watch's clocks, and the campaign does not read it (FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT)
+  object.lastPush = nil
+  -- the pushes in a row that brought the convoy no closer, and its distance to the enemy at the last one
+  object.futilePushes = 0
+  object.lastPushDistance = nil
+  -- the enemies the convoy gave up pushing onto, by unit name: seen, they start no fight; a shot from them does
+  object.unreachable = {}
   object.nextWideWatch = 0
   object.nextSmoke = 0
   -- the route a Mission Editor group was given, kept to drive on after a contact
@@ -1468,7 +1487,11 @@ function ConvoyUnitHandler:watch(now, group)
 
   local seen = {}
   for _, enemy in ipairs(self.enemies) do
-    if veafGroundAI.isLivingGroundUnitOf(enemy, self.enemySide) and veafGroundAI.anyUnitSees(units, enemy:getPoint()) then
+    if
+      veafGroundAI.isLivingGroundUnitOf(enemy, self.enemySide)
+      and not self.unreachable[enemy:getName()]
+      and veafGroundAI.anyUnitSees(units, enemy:getPoint())
+    then
       table.insert(seen, enemy)
     end
   end
@@ -1483,14 +1506,14 @@ function ConvoyUnitHandler:watch(now, group)
     if now >= (self.nextDangerMark or 0) then
       self:markDanger(now)
     end
-    if now - self.lastContact >= ConvoyUnitHandler.QUIET_DELAY then
+    if now - math.max(self.lastContact, self.lastPush or -math.huge) >= ConvoyUnitHandler.QUIET_DELAY then
       if not self:pressOn(now) then
         self:standDown()
       end
     elseif
       self.state == ConvoyUnitHandler.STATE_FIGHTING
       and #seen > 0
-      and now - self.lastFireExchanged >= ConvoyUnitHandler.STALEMATE_DELAY
+      and now - math.max(self.lastFireExchanged or -math.huge, self.lastPush or -math.huge) >= ConvoyUnitHandler.STALEMATE_DELAY
       and veafGroundAI.isHalted(units)
     then
       self:closeIn(now, seen)
@@ -1508,8 +1531,11 @@ end
 --- from the convoy's centre counted for `math.huge`, and a group of strength 5 fell back from him.
 --- @param unit table a DCS unit
 --- @param now number
+--- A unit seen again within `QUIET_DELAY` is no new sighting: an enemy that stays in sight all evening is one contact,
+--- not one every beat (FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT).
 --- @param fired boolean|nil true when the unit fired at the convoy (a shot or hit event)
-function ConvoyUnitHandler:recordThreat(unit, now, fired)
+--- @param remembered boolean|nil true when the convoy only recalls the unit to push onto it (`pressOn`): not a contact
+function ConvoyUnitHandler:recordThreat(unit, now, fired, remembered)
   local ok, name, point, typeName = pcall(function()
     return unit:getName(), unit:getPoint(), unit:getTypeName()
   end)
@@ -1524,8 +1550,15 @@ function ConvoyUnitHandler:recordThreat(unit, now, fired)
   if isGround and not outOfReach then
     strength = veafGroundAI.unitStrength(unit)
   end
+  local previous = self.threats[name]
   self.threats[name] = { name = name, point = point, typeName = typeName, strength = strength, lastSeen = now, ground = isGround }
+  if remembered then
+    return
+  end
   self.lastContact = now
+  if not previous or now - previous.lastSeen > ConvoyUnitHandler.QUIET_DELAY then
+    self.lastSighting = now
+  end
 end
 
 --- The unit behind a shot: the initiator itself, or the launcher of a weapon; nil when nobody is known.
@@ -1620,8 +1653,11 @@ function ConvoyUnitHandler:engage(now)
     return
   end
   veaf.loggers.get(veafGroundAI.Id):info("convoy %s: contact with %d enemies", veaf.p(self:getName()), #threats)
+  -- a contact that starts: the shot or the sighting behind it is recorded already, here the clocks restart
   self.lastContact = now
-  self.lastFireExchanged = now
+  self.lastPush = now
+  self.futilePushes = 0
+  self.lastPushDistance = nil
   self:suspendItinerary()
 
   local armed, unarmed, ownStrength = {}, {}, 0
@@ -1976,26 +2012,66 @@ end
 --- sight of it, and drove on after a quiet minute — back toward an ambush still whole. So a fighting
 --- convoy closes in again on the nearest living enemy the wide watch knows of, and only stands down when
 --- none is left. A convoy falling back does not press on: it stands down and holds (Q4).
+---
+--- A push is no contact: the enemies recalled to push onto them are not sightings, and the push is timed by `lastPush`.
+--- Pushes that move nothing end in a drive on (`pushMovesSomething`).
 --- @param now number
---- @return boolean true when it closes in again rather than standing down
+--- @return boolean true when it closes in again, or gave up and drove on, rather than standing down
 function ConvoyUnitHandler:pressOn(now)
   if self.state ~= ConvoyUnitHandler.STATE_FIGHTING then
     return false
   end
-  local alive = {}
+  local group = self:getGroup()
+  local from = group and veaf.getAveragePosition(group)
+  local alive, nearest = {}, math.huge
   for _, enemy in ipairs(self.enemies) do
     if veafGroundAI.isLivingGroundUnitOf(enemy, self.enemySide) then
-      self:recordThreat(enemy, now)
+      self:recordThreat(enemy, now, false, true)
       table.insert(alive, enemy)
+      if from then
+        nearest = math.min(nearest, dist2D(from, enemy:getPoint()))
+      end
     end
   end
   if #alive == 0 then
     return false
   end
+  if not self:pushMovesSomething(nearest, {}) then
+    return true
+  end
   veaf.loggers.get(veafGroundAI.Id):info("convoy %s: %d enemies still alive out of sight, closing in again", veaf.p(self:getName()), #alive)
   self:fight(self:recentThreats(), true)
-  self.lastContact = now
+  self.lastPush = now
   return true
+end
+
+--- Before a push: did the pushes so far bring the convoy any closer to its enemy? After `FUTILE_PUSHES` in a row that
+--- did not, the convoy gives up and drives on, the way it does after a fight, and the enemies in sight it could not
+--- reach no longer start a fight by being seen (a shot from them still does).
+---
+--- On 2026-11-21 a red assault convoy stood 1.3 km from Menagh from 22:00 to the end of the evening, pushed every two
+--- minutes onto an enemy 956 m away, then 957 m (FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT).
+--- @param distance number the convoy's distance to the enemy it is about to push onto, in metres
+--- @param seen table the enemy units in sight, given up on with the push
+--- @return boolean true when the push goes ahead, false when the convoy gave up and drove on
+function ConvoyUnitHandler:pushMovesSomething(distance, seen)
+  if self.lastPushDistance and distance > self.lastPushDistance - ConvoyUnitHandler.PUSH_PROGRESS_MARGIN then
+    self.futilePushes = self.futilePushes + 1
+  else
+    self.futilePushes = 0
+  end
+  self.lastPushDistance = distance
+  if self.futilePushes < ConvoyUnitHandler.FUTILE_PUSHES then
+    return true
+  end
+  veaf.loggers.get(veafGroundAI.Id):info("convoy %s: %d pushes moved nothing, driving on", veaf.p(self:getName()), self.futilePushes)
+  for _, enemy in ipairs(seen) do
+    self.unreachable[enemy:getName()] = true
+  end
+  self.futilePushes = 0
+  self.lastPushDistance = nil
+  self:resume()
+  return false
 end
 
 --- Are all these vehicles standing still, below `HALTED_SPEED`?
@@ -2017,7 +2093,8 @@ end
 --- Held at its standoff, a convoy DCS does not make fire stays there for ever, since the enemy in sight
 --- keeps the contact alive and the quiet minute never comes (Kolkhida, 2026-10-10: 40 game minutes, not a
 --- round). Moving is what made DCS's vehicles fire on 2026-10-08 (see `fight`), so the convoy closes in,
---- with no standoff this time; the clock restarts, and another push follows if nobody fires still.
+--- with no standoff this time; the clock restarts, and another push follows if nobody fires still. The push is no
+--- contact (`lastPush`, not `lastFireExchanged`), and pushes that move nothing end in a drive on (`pushMovesSomething`).
 --- @param now number
 --- @param seen table the living enemy units in sight
 function ConvoyUnitHandler:closeIn(now, seen)
@@ -2030,6 +2107,9 @@ function ConvoyUnitHandler:closeIn(now, seen)
       target, targetDistance = enemy:getPoint(), distance
     end
   end
+  if not self:pushMovesSomething(targetDistance, seen) then
+    return
+  end
   veaf.loggers.get(veafGroundAI.Id):info(
     "convoy %s: no fire exchanged for %d s, closing in on an enemy %d m away",
     veaf.p(self:getName()),
@@ -2040,7 +2120,7 @@ function ConvoyUnitHandler:closeIn(now, seen)
     routePoint(from, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
     routePoint(target, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
   })
-  self.lastFireExchanged = now
+  self.lastPush = now
 end
 
 --- Nothing in sight and no shot for a while.

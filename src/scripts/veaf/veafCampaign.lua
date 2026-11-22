@@ -2256,6 +2256,11 @@ end
 
 --- Whether a convoy to retire may leave the world now (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 07): no player within
 --- `wake_radius` of any of its vehicles, and no contact for `retire_quiet_seconds`. Until then it stays in play.
+---
+--- A contact is a shot fired or taken, or an enemy newly seen (`lastFireExchanged`, `lastSighting`). Not the watch's
+--- clock nor the convoy's own pushes: on 2026-11-21 an assault convoy pushed every two minutes onto an enemy in sight it
+--- never reached, never fired, and each push kept it "in contact" to the end of the evening
+--- (FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT).
 --- @param record table the convoy's record
 --- @param now number the mission time
 --- @return boolean
@@ -2266,7 +2271,7 @@ function veafCampaign.convoyMayLeave(record, now)
     return true
   end
   local handler = convoyHandler(record)
-  local touched = handler and math.max(handler.lastContact or -math.huge, handler.lastFireExchanged or -math.huge)
+  local touched = handler and math.max(handler.lastSighting or -math.huge, handler.lastFireExchanged or -math.huge)
   if touched and now - touched < veafCampaign.setting("retire_quiet_seconds") then
     return false, "in contact"
   end

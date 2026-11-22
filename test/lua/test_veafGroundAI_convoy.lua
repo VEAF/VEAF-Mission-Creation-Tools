@@ -1049,6 +1049,79 @@ function TestConvoyWatch:test_a_convoy_falling_back_does_not_walk_back_into_the_
   luaunit.assertEquals(#dcs_mocks.tasksSet, routes, "the enemy in sight, no fire, and still no route toward it")
 end
 
+-- FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT: on 2026-11-21 the red assault convoy "Mule" stood 1.3 km from Menagh
+-- from 22:00 to the end of the evening, pushed every two minutes onto an enemy 956 m away, then 957 m: the
+-- push never moved it, and each push renewed its contact, so the campaign kept it "in contact" for ever.
+
+--- When the convoy was last really in contact: a shot fired or taken, an enemy newly seen.
+local function lastRealContact(handler)
+  return math.max(handler.lastSighting or -math.huge, handler.lastFireExchanged or -math.huge)
+end
+
+function TestConvoyWatch:test_a_push_that_moves_nothing_is_no_contact()
+  local handler = self:_heldAtStandoff()
+  local engaged = lastRealContact(handler)
+  luaunit.assertEquals(engaged, 0, "the enemy first seen is a contact")
+  dcs_mocks.tasksSet = {}
+  dcs_mocks.runScheduled(3 * ConvoyUnitHandler.STALEMATE_DELAY + 5)
+  luaunit.assertEquals(#dcs_mocks.tasksSet, 3, "pushed three times onto the enemy")
+  luaunit.assertEquals(lastRealContact(handler), engaged, "neither the pushes nor the enemy still in sight are a contact")
+end
+
+function TestConvoyWatch:test_pushes_that_move_nothing_give_up_and_drive_on()
+  local handler, enemy = self:_heldAtStandoff()
+  dcs_mocks.tasksSet = {}
+  local pushes = ConvoyUnitHandler.FUTILE_PUSHES
+  dcs_mocks.runScheduled(pushes * ConvoyUnitHandler.STALEMATE_DELAY + 5)
+  luaunit.assertEquals(#dcs_mocks.tasksSet, pushes)
+  luaunit.assertEquals(lastRoutePoint("Watched").x, 800, "the last push, onto the enemy")
+  -- the next push is not given: the convoy drives on
+  dcs_mocks.runScheduled((pushes + 1) * ConvoyUnitHandler.STALEMATE_DELAY + 5)
+  luaunit.assertEquals(#dcs_mocks.tasksSet, pushes + 1)
+  luaunit.assertNotEquals(lastRoutePoint("Watched").x, 800, "back on its way, not onto the enemy")
+  luaunit.assertFalse(handler:isInContact())
+  -- the enemy it could not reach, still in sight, does not start the same fight again
+  dcs_mocks.runScheduled((pushes + 4) * ConvoyUnitHandler.STALEMATE_DELAY)
+  luaunit.assertFalse(handler:isInContact())
+  luaunit.assertEquals(#dcs_mocks.tasksSet, pushes + 1)
+  -- a shot from it is a fight again
+  veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_HIT, initiator = enemy, target = self.units[1] })
+  luaunit.assertTrue(handler:isInContact())
+end
+
+function TestConvoyWatch:test_a_push_that_moves_the_convoy_keeps_pushing()
+  self:_heldAtStandoff()
+  -- every push brings the convoy's centre 100 m closer, never close enough for DCS to open fire
+  local x = 0
+  local closer = 0
+  self.units[1].getPoint = function()
+    return { x = x, y = 0, z = 0 }
+  end
+  dcs_mocks.tasksSet = {}
+  for push = 1, ConvoyUnitHandler.FUTILE_PUSHES + 3 do
+    dcs_mocks.runScheduled(push * ConvoyUnitHandler.STALEMATE_DELAY + 5)
+    if #dcs_mocks.tasksSet > closer then
+      closer = #dcs_mocks.tasksSet
+      x = x + 200
+    end
+  end
+  luaunit.assertEquals(closer, ConvoyUnitHandler.FUTILE_PUSHES + 3, "still pushing")
+  luaunit.assertEquals(lastRoutePoint("Watched").x, 800)
+end
+
+function TestConvoyWatch:test_a_press_on_out_of_sight_is_no_contact_either()
+  local handler, enemy = self:_heldAtStandoff()
+  local engaged = lastRealContact(handler)
+  -- the enemy drops out of sight, alive: the convoy presses on toward it every quiet minute
+  dcs_mocks.visibilityAnswer = false
+  handler.enemies = { enemy }
+  dcs_mocks.runScheduled(2 * ConvoyUnitHandler.QUIET_DELAY + 5)
+  luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING, "still pressing on")
+  luaunit.assertEquals(handler.lastPush, 2 * ConvoyUnitHandler.QUIET_DELAY, "pressed on twice, a quiet minute apart")
+  luaunit.assertEquals(handler.lastContact, 0, "the enemy recalled to press on is not seen again")
+  luaunit.assertEquals(lastRealContact(handler), engaged)
+end
+
 function TestConvoyWatch:test_the_watch_ends_when_the_convoy_is_gone()
   local handler = veafGroundAI.addConvoy("Watched")
   dcs_mocks.removeGroup("Watched")

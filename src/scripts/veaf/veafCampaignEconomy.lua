@@ -1607,7 +1607,7 @@ end
 -- Radio menu, loop, save, self-check
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- The players' side's menus under Campaign: Credits, Shop, Tasks, Intel. The shop lists, under each
+--- The players' side's menus under Campaign: Credits, My earnings, Shop, Tasks, Intel. The shop lists, under each
 --- item, the zones it applies to now; it is rebuilt when a zone changes hands.
 function veafCampaignEconomy.buildRadioMenu()
   if not (veafRadio and veafCampaign.rootPath) then

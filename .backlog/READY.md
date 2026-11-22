@@ -4,6 +4,10 @@
 
 Lots written up and ready to take.
 
+### [FIX-GROUNDAI-CLOSE-IN-REACHABLE](FIX-GROUNDAI-CLOSE-IN-REACHABLE/PRD.md) · ⬜
+
+The cause behind FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT: `closeIn` drives a convoy onto the enemy's exact point in one off-road segment, which DCS may refuse silently. Aim at a reachable point on a checked path (water, slope), check 30 s after an order that the convoy moved, and start no route `On Road` off the road. Three tickets; from the dcs-cartographie session's study of DCS ground AI movement (2026-11-22). Lands after FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT.
+
 ### [FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT](FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT/PRD.md) · ⬜
 
 A convoy that cannot drive onto its enemy renews its own contact at every push (`closeIn`, `pressOn`), so `convoyMayLeave` keeps it "in contact" for ever: on 2026-11-21 the Aleppo convoy stood still 1.3 km from Menagh from 22:00 to the end and held a place of the convoy cap. One ticket; found while watching the Campagne server (2026-11-21).

@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
+### [FIX-COMBATZONE-FIRST-ROUTE](FIX-COMBATZONE-FIRST-ROUTE/PRD.md) · 🔄
+
+A group a combat zone spawns from a VEAF command gets its route from the zone's hook in its creation frame, where DCS drops it; give it through `veafSpawn.giveFirstRoute`, 5 s later. One ticket, one PR into `feature/dynamic-campaign`; left over by FIX-SPAWN-GROUP-FIRST-ROUTE (2026-11-22).
+
 ### [FIX-CAMPAIGN-ASSAULT-ORDER-OPEN](FIX-CAMPAIGN-ASSAULT-ORDER-OPEN/PRD.md) · 🔄
 
 Every player can order a paid blue assault (Rex and David, 2026-11-21): in a persistent campaign the Campaign → Assaults order is a purchase, so it is no longer secured, and the shop and the player guide say where it is and what it costs. One ticket; PR into `feature/dynamic-campaign`.

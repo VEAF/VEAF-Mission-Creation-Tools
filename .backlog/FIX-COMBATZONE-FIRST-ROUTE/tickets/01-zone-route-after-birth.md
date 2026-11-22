@@ -1,6 +1,6 @@
 # 01 — The zone's route 5 s after the birth
 
-Status: 🧑 waiting-human
+Status: ✅ done
 Type: fix
 
 ## To do
@@ -20,3 +20,7 @@ A group a combat zone spawns from a VEAF command drives its route within seconds
 ## In-game check
 
 In a test mission, a combat zone with a command element that has a route (a convoy or an armour group drawn with waypoints): activate the zone, the group leaves within 10 s and follows its waypoints.
+
+## Measured (2026-11-22, in game, through the bridge)
+
+Test mission: a copy of the demo mission built with this branch's scripts, the command element `#command="-armor, defense 1, size 4" KhoM-1` given a second waypoint 1 km north. Zone `combatzone_khoni_medium` activated; its group "Armored Platoon" (6 units) started between t+5 s and t+10 s after the activation, then drove due north: 47 m at t+30 s, 44 m more over the next 30 s, heading north at 2.3 m/s. The fix works in game.

@@ -425,6 +425,73 @@ function TestConvoyHelpers:test_the_fall_back_route_is_off_road_then_on_road()
   luaunit.assertEquals(route[4].x, -9000)
 end
 
+-- FIX-GROUNDAI-CLOSE-IN-REACHABLE ticket 03: an `On Road` point far from any road makes the whole route fail, silently
+-- (from DCS's code, dcs-cartographie, not measured). A fight leaves the convoy off the road.
+
+--- Run `body` with the road along x = 0 (every point's nearest road point is straight west or east of it).
+local function withRoadAlongX0(body)
+  local saved = land.getClosestPointOnRoads
+  land.getClosestPointOnRoads = function(_, x, z)
+    return 0, z
+  end
+  local ok, err = pcall(body)
+  land.getClosestPointOnRoads = saved
+  if not ok then
+    error(err, 0)
+  end
+end
+
+--- Every `On Road` point of a route lies on the road along x = 0.
+local function onRoadPointsOnTheRoad(points)
+  for _, point in ipairs(points) do
+    if point.action == "On Road" and math.abs(point.x) > ConvoyUnitHandler.ON_ROAD_TOLERANCE then
+      return false
+    end
+  end
+  return true
+end
+
+function TestConvoyHelpers:test_off_the_road_a_route_gets_to_the_road_first()
+  withRoadAlongX0(function()
+    local entry = veafGroundAI.roadEntry({ x = 350, y = 0, z = 1000 }, 11)
+    luaunit.assertEquals(#entry, 2)
+    luaunit.assertEquals({ entry[1].x, entry[1].y, entry[1].action }, { 350, 1000, "Off Road" })
+    luaunit.assertEquals({ entry[2].x, entry[2].y, entry[2].action }, { 0, 1000, "On Road" })
+    local exit = veafGroundAI.roadExit({ x = -500, y = 0, z = 4000 }, 11)
+    luaunit.assertEquals({ exit[1].x, exit[1].action, exit[2].x, exit[2].action }, { 0, "On Road", -500, "Off Road" })
+  end)
+end
+
+function TestConvoyHelpers:test_on_the_road_a_route_starts_on_it()
+  withRoadAlongX0(function()
+    local entry = veafGroundAI.roadEntry({ x = 5, y = 0, z = 1000 }, 11)
+    luaunit.assertEquals(#entry, 1)
+    luaunit.assertEquals(entry[1].action, "On Road")
+    luaunit.assertEquals(#veafGroundAI.roadExit({ x = 5, y = 0, z = 4000 }, 11), 1)
+  end)
+end
+
+function TestConvoyHelpers:test_with_no_road_a_route_stays_off_road()
+  local saved = land.getClosestPointOnRoads
+  land.getClosestPointOnRoads = function()
+    return nil
+  end
+  local entry = veafGroundAI.roadEntry({ x = 350, y = 0, z = 1000 }, 11)
+  local exit = veafGroundAI.roadExit({ x = 350, y = 0, z = 1000 }, 11)
+  land.getClosestPointOnRoads = saved
+  luaunit.assertEquals({ #entry, entry[1].action, #exit, exit[1].action }, { 1, "Off Road", 1, "Off Road" })
+end
+
+function TestConvoyHelpers:test_a_rally_point_off_the_road_is_no_on_road_point()
+  withRoadAlongX0(function()
+    local route = veafGroundAI.fallBackRoute({ x = 0, y = 0, z = 0 }, { x = -1000, y = 0, z = -800 }, { x = -9000, y = 0, z = 4000 }, 11)
+    luaunit.assertTrue(onRoadPointsOnTheRoad(route))
+    luaunit.assertEquals({ route[2].x, route[2].action }, { -1000, "Off Road" }, "off road to the rally point")
+    luaunit.assertEquals({ route[3].x, route[3].action }, { 0, "On Road" }, "then onto the road")
+    luaunit.assertEquals({ route[#route].x, route[#route].action }, { -9000, "Off Road" }, "and off it to the place")
+  end)
+end
+
 function TestConvoyHelpers:test_the_call_for_help()
   local threats = {
     { name = "r1", point = { x = 1000, y = 0, z = 0 }, typeName = "BMP-2", strength = 3 },
@@ -1430,6 +1497,41 @@ function TestConvoyOrders:test_an_order_that_moves_nothing_is_said_once()
   end
   dcs_mocks.runScheduled(2 * ConvoyUnitHandler.ORDER_CHECK_DELAY + 5)
   luaunit.assertEquals(#dcs_mocks.findLog("moved nothing"), 1)
+end
+
+function TestConvoyOrders:test_a_retreat_from_off_the_road_gets_to_the_road_first()
+  -- the convoy fought 350 m off the road along x = 0; the retreat is on the road, from the road
+  makeGroup("Column", { makeUnit("k-1", { attributes = IFV, point = { x = 350, y = 0, z = 1000 } }) })
+  local handler = veafGroundAI.addConvoy("Column", "Column")
+  local savedRoads, savedAirbases = land.getClosestPointOnRoads, coalition.getAirbases
+  land.getClosestPointOnRoads = function(_, x, z)
+    return 0, z
+  end
+  coalition.getAirbases = function()
+    return {
+      {
+        getName = function()
+          return "Home"
+        end,
+        getPoint = function()
+          return { x = 0, y = 0, z = 9000 }
+        end,
+        getDesc = function()
+          return { category = Airbase.Category.AIRDROME }
+        end,
+      },
+    }
+  end
+  local ok, err = pcall(function()
+    luaunit.assertTrue(handler:retreat())
+  end)
+  land.getClosestPointOnRoads, coalition.getAirbases = savedRoads, savedAirbases
+  if not ok then
+    error(err, 0)
+  end
+  local points = lastTaskSetOn("Column").params.route.points
+  luaunit.assertEquals({ points[1].x, points[1].action }, { 350, "Off Road" })
+  luaunit.assertEquals({ points[2].x, points[2].action }, { 0, "On Road" })
 end
 
 function TestConvoyOrders:test_resume_brings_the_unarmed_group_back_and_merges_it_when_close()

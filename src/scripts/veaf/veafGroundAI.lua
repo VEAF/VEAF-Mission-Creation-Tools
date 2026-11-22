@@ -910,6 +910,10 @@ ConvoyUnitHandler.ORDER_CHECK_DELAY = 25
 --- order. Driving, it covers that in a few seconds; an estimate, to be tuned in game.
 ConvoyUnitHandler.ORDER_MOVED_MARGIN = 20
 
+--- An `On Road` point farther than this from a road, in metres, makes the whole route fail: "more than about 10 m"
+--- (from DCS's code, dcs-cartographie; not measured).
+ConvoyUnitHandler.ON_ROAD_TOLERANCE = 10
+
 --- A town masks a rally point when its centre lies this close to the line from the enemy to it.
 ConvoyUnitHandler.TOWN_COVER_RADIUS = 400
 --- The name the unarmed vehicles' group takes, after the convoy's.
@@ -1497,8 +1501,76 @@ end
 function veafGroundAI.fallBackRoute(from, rally, destination, speed)
   local points = { routePoint(from, "Off Road", speed), routePoint(rally, "Off Road", speed) }
   if destination then
-    table.insert(points, routePoint(rally, "On Road", speed))
-    table.insert(points, routePoint(destination, "On Road", speed))
+    local entry = veafGroundAI.roadEntry(rally, speed)
+    if entry[1].action == "Off Road" then
+      table.remove(entry, 1) -- the rally point is there already
+    end
+    for _, point in ipairs(entry) do
+      table.insert(points, point)
+    end
+    for _, point in ipairs(veafGroundAI.roadExit(destination, speed)) do
+      table.insert(points, point)
+    end
+  end
+  return points
+end
+
+--- The nearest road point to this one, a vec3, and whether this one is on it already (within `ON_ROAD_TOLERANCE`).
+--- @param point table a vec3
+--- @return table|nil the road point; nil when there is no road
+--- @return boolean
+local function nearestRoad(point)
+  local roadX, roadZ = land.getClosestPointOnRoads("roads", point.x, point.z)
+  if not (roadX and roadZ) then
+    return nil, false
+  end
+  local road = { x = roadX, y = 0, z = roadZ }
+  return road, dist2D(road, point) <= ConvoyUnitHandler.ON_ROAD_TOLERANCE
+end
+
+--- The first points of a route that drives on the road from where a group stands: `On Road` there when it is on the
+--- road, otherwise off road to the nearest road point and `On Road` from it. An `On Road` point far from any road makes
+--- the whole route fail, silently (from DCS's code, dcs-cartographie; not measured), and a fight leaves a convoy off
+--- the road. Off road only when there is no road.
+--- @param point table a vec3
+--- @param speed number metres per second
+--- @return table route points
+function veafGroundAI.roadEntry(point, speed)
+  local road, onIt = nearestRoad(point)
+  if not road then
+    return { routePoint(point, "Off Road", speed) }
+  end
+  if onIt then
+    return { routePoint(point, "On Road", speed) }
+  end
+  return { routePoint(point, "Off Road", speed), routePoint(road, "On Road", speed) }
+end
+
+--- The last points of a route that drives on the road to a place: `On Road` there when it is on the road, otherwise
+--- `On Road` to the nearest road point and off road from it (see `roadEntry`).
+--- @param point table a vec3
+--- @param speed number metres per second
+--- @return table route points
+function veafGroundAI.roadExit(point, speed)
+  local road, onIt = nearestRoad(point)
+  if not road then
+    return { routePoint(point, "Off Road", speed) }
+  end
+  if onIt then
+    return { routePoint(point, "On Road", speed) }
+  end
+  return { routePoint(road, "On Road", speed), routePoint(point, "Off Road", speed) }
+end
+
+--- A route on the road from one point to another (`roadEntry`, then `roadExit`).
+--- @param from table a vec3
+--- @param to table a vec3
+--- @param speed number metres per second
+--- @return table route points
+function veafGroundAI.roadRoute(from, to, speed)
+  local points = veafGroundAI.roadEntry(from, speed)
+  for _, point in ipairs(veafGroundAI.roadExit(to, speed)) do
+    table.insert(points, point)
   end
   return points
 end
@@ -2471,13 +2543,9 @@ function ConvoyUnitHandler:retreat(destinationText)
   self:suspendItinerary()
   self:clearDanger()
   local speed = veafGroundAI.FALL_BACK_SPEED
-  local route = { routePoint(from, "On Road", speed), routePoint(destination, "On Road", speed) }
-  self:order(self.groupName, route)
+  self:order(self.groupName, veafGroundAI.roadRoute(from, destination, speed))
   if self:getUnarmedGroup() then
-    self:order(
-      self.unarmedGroupName,
-      { routePoint(veaf.getAveragePosition(self:getUnarmedGroup()), "On Road", speed), routePoint(destination, "On Road", speed) }
-    )
+    self:order(self.unarmedGroupName, veafGroundAI.roadRoute(veaf.getAveragePosition(self:getUnarmedGroup()), destination, speed))
   end
   self.state = ConvoyUnitHandler.STATE_RETREATING
   self:say("groundai.convoy_retreating")
@@ -2531,14 +2599,7 @@ function ConvoyUnitHandler:resume()
     unarmed:getController():pushTask({ id = "Hold", params = {} })
     local from = veaf.getAveragePosition(group)
     local meeting = veaf.getAveragePosition(unarmed)
-    local speed = veafGroundAI.FALL_BACK_SPEED
-    local route = { routePoint(from, "Off Road", speed) }
-    local roadX, roadZ = land.getClosestPointOnRoads("roads", from.x, from.z)
-    if roadX and roadZ then
-      table.insert(route, routePoint({ x = roadX, z = roadZ }, "On Road", speed))
-    end
-    table.insert(route, routePoint(meeting, "On Road", speed))
-    self:order(self.groupName, route)
+    self:order(self.groupName, veafGroundAI.roadRoute(from, meeting, veafGroundAI.FALL_BACK_SPEED))
     self.rejoinDeadline = timer.getTime() + ConvoyUnitHandler.REJOIN_TIMEOUT
     self.state = ConvoyUnitHandler.STATE_RESUMING
   else

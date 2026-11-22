@@ -394,10 +394,25 @@ function veafCampaignEconomy.killStat(kill, target)
   elseif kill.category == Unit.Category.HELICOPTER then
     return "Helo"
   end
+  -- a ground unit destroyed is often no longer found by name: its DCS object is asked next, then its type's
+  -- attributes, when the campaign's records know its type (FIX-CAMPAIGN-GROUND-KILLS-UNPAID 01)
   local unit = target and target.unitName and Unit.getByName(target.unitName)
-  if hasAttribute(unit, "Infantry") then
+  local function has(attribute)
+    if unit then
+      return hasAttribute(unit, attribute)
+    end
+    if hasAttribute(kill.object, attribute) then
+      return true
+    end
+    if kill.typeName and Unit.getDescByName then
+      local ok, desc = pcall(Unit.getDescByName, kill.typeName)
+      return ok and type(desc) == "table" and type(desc.attributes) == "table" and desc.attributes[attribute] ~= nil
+    end
+    return false
+  end
+  if has("Infantry") then
     return "Infantry"
-  elseif hasAttribute(unit, "SAM related") or hasAttribute(unit, "Air Defence") then
+  elseif has("SAM related") or has("Air Defence") then
     return "SAM"
   end
   return "Ground Units"

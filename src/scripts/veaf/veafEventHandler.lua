@@ -205,6 +205,13 @@ local function transformEvent(event)
     -- already false.
     dcsInitiator = event.initiator,
     target = veafEventHandler.completeUnit(event.target),
+    -- The DCS target itself, for the same reason as `dcsInitiator`. `target` above is read from
+    -- `Unit.getByName`, and a ground unit destroyed is no longer found by name when its S_EVENT_KILL
+    -- arrives (an aircraft shot down still is, while it falls): the data table then says neutral with no
+    -- category, and from 2026-11-15 to 2026-11-21 every player's ground kill in the campaign was dropped
+    -- for it (FIX-CAMPAIGN-GROUND-KILLS-UNPAID). Whether the dead object still answers `getCoalition` at
+    -- that moment is to confirm in game; its readers ask it under pcall.
+    dcsTarget = event.target,
     weapon = event.weapon,
     weaponName = event.weapon_name,
     comment = event.comment,

@@ -1891,4 +1891,125 @@ function TestCampaignAssaultOrder:test_too_few_credits_send_nothing()
   luaunit.assertEquals(veafCampaignEconomy.credits, 299)
 end
 
+-- ---------------------------------------------------------------------------
+-- A ground kill whose target is already gone (FIX-CAMPAIGN-GROUND-KILLS-UNPAID 01)
+-- ---------------------------------------------------------------------------
+TestCampaignGroundKill = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+function TestCampaignGroundKill:setUp()
+  setUpSuite(self)
+  self.descByName = Unit.getDescByName
+  start({ economy = { start_credits = 0, landing_share = 0 }, air = {} })
+end
+
+function TestCampaignGroundKill:tearDown()
+  Unit.getDescByName = self.descByName
+  tearDownSuite(self)
+end
+
+--- A kill as the evening of 2026-11-21 handed it over: the target was no longer found by `Unit.getByName`, so its
+--- data table says neutral with no category; `dcsTarget` is the raw DCS object, `raw` how it answers (nil: gone).
+local function goneKill(name, raw)
+  local event = kill("Zip")
+  event.target = { unitName = name, unitCoalition = coalition.side.NEUTRAL }
+  if raw then
+    event.dcsTarget = {
+      getName = function()
+        return name
+      end,
+      getCoalition = function()
+        return raw.side
+      end,
+      getDesc = function()
+        return { category = raw.category or Unit.Category.GROUND_UNIT }
+      end,
+      getTypeName = function()
+        return raw.type or "T-72B"
+      end,
+      hasAttribute = function(_, attribute)
+        return (raw.attributes or {})[attribute] == true
+      end,
+    }
+  else
+    -- the object no longer answers anything
+    event.dcsTarget = setmetatable({}, {
+      __index = function()
+        return function()
+          error("the object is gone")
+        end
+      end,
+    })
+  end
+  return event
+end
+
+function TestCampaignGroundKill:test_a_red_vehicle_gone_by_name_is_counted_and_paid()
+  veafCampaignEconomy.onKill(goneKill("Red armor #1", { side = RED }))
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"]["Ground Units"], 1)
+  luaunit.assertEquals(#loggedLines("CREDITS Zip +10 (kill)"), 1)
+end
+
+function TestCampaignGroundKill:test_the_held_share_is_held_as_for_any_kill()
+  veafCampaign.data.dynamic.economy.landing_share = 50
+  veafCampaignEconomy.onKill(goneKill("Red armor #1", { side = RED }))
+  luaunit.assertEquals(#loggedLines("CREDITS Zip +5 (kill_held)"), 1)
+end
+
+function TestCampaignGroundKill:test_a_sam_gone_by_name_is_still_a_sam()
+  veafCampaignEconomy.onKill(goneKill("Red SAM #1", { side = RED, attributes = { ["SAM related"] = true } }))
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"].SAM, 1)
+  luaunit.assertEquals(#loggedLines("CREDITS Zip +30 (kill)"), 1)
+end
+
+function TestCampaignGroundKill:test_a_garrison_unit_found_by_the_campaign_alone_is_counted()
+  -- nothing answers any more: the campaign's index says the unit stood in Senaki, which red holds
+  Unit.getDescByName = function(typeName)
+    return { attributes = typeName == "T-72B" and { ["Ground Units"] = true } or {} }
+  end
+  veafCampaign.unitIndex["Senaki garrison #1"] = { zone = veafCampaign.zones["Senaki"], group = 1, unit = 1 }
+  veafCampaignEconomy.onKill(goneKill("Senaki garrison #1"))
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"]["Ground Units"], 1)
+  luaunit.assertEquals(#loggedLines("CREDITS Zip +10 (kill)"), 1)
+end
+
+function TestCampaignGroundKill:test_a_garrison_sam_found_by_the_campaign_alone_is_a_sam()
+  Unit.getDescByName = function(typeName)
+    return { attributes = typeName == "SA-11 Buk LN 9A310M1" and { ["SAM related"] = true } or {} }
+  end
+  veafCampaign.zones["Senaki"].entry.garrison = garrison("Senaki", nil, { "SA-11 Buk LN 9A310M1" })
+  veafCampaign.unitIndex["Senaki garrison #1"] = { zone = veafCampaign.zones["Senaki"], group = 1, unit = 1 }
+  veafCampaignEconomy.onKill(goneKill("Senaki garrison #1"))
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"].SAM, 1)
+end
+
+function TestCampaignGroundKill:test_an_assault_convoy_found_by_the_campaign_alone_is_counted()
+  table.insert(veafCampaign.convoys, { name = "Senaki - Poti assault", side = "red" })
+  veafCampaignEconomy.onKill(goneKill("Senaki - Poti assault #3"))
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"]["Ground Units"], 1)
+end
+
+function TestCampaignGroundKill:test_the_hunter_counts_it_too()
+  veafCampaign.data.dynamic.hunter = { enabled = true }
+  veafCampaignOps.onKill(goneKill("Red armor #1", { side = RED }))
+  luaunit.assertEquals(veafCampaignOps.hunted["Zip"].ground, 1)
+end
+
+function TestCampaignGroundKill:test_an_air_kill_is_still_paid()
+  veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"].Air, 1)
+end
+
+function TestCampaignGroundKill:test_a_truly_neutral_target_is_ignored()
+  veafCampaignEconomy.onKill(goneKill("Civilian car #1", { side = coalition.side.NEUTRAL }))
+  veafCampaignEconomy.onKill(goneKill("Unknown wreck #1"))
+  luaunit.assertNil(veafCampaignEconomy.sitacStats()["Zip"])
+end
+
+function TestCampaignGroundKill:test_friendly_fire_is_ignored()
+  veafCampaignEconomy.onKill(goneKill("Blue armor #1", { side = BLUE }))
+  veafCampaign.unitIndex["Kobuleti garrison #1"] = { zone = veafCampaign.zones["Kobuleti"], group = 1, unit = 1 }
+  veafCampaignEconomy.onKill(goneKill("Kobuleti garrison #1"))
+  luaunit.assertNil(veafCampaignEconomy.sitacStats()["Zip"])
+end
+
 os.exit(luaunit.LuaUnit.run())

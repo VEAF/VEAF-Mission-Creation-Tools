@@ -1,6 +1,6 @@
 # FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY — every air defence DCS offers, red's medium range first
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 David, 2026-11-21, after the evening on the Campagne server: "il faudrait s'assurer qu'on a tous les SAM possibles. Par exemple, on ne spawn jamais de Tor M2."
 
@@ -43,3 +43,7 @@ The integration branch is `feature/dynamic-campaign`: one branch and one pull re
 | 01 | [Red's short range draws the Tor M2 and the Pantsir](tickets/01-red-short-range-tor-m2-pantsir.md) (a) |
 | 02 | [A medium-range SAM for red](tickets/02-red-medium-range-sam.md) (b) |
 | 03 | [The IRIS-T SLM and the Rapier for blue](tickets/03-blue-iris-t-and-rapier.md) (c) |
+
+## Done
+
+The three tickets are implemented in one pull request into `feature/dynamic-campaign`. What is left is the in-game check of each ticket, on the Campagne server after a rebuild, with `medium_range_sam` set on two or three red zones of the Oronte campaign by the control session.

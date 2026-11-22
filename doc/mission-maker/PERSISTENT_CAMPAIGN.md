@@ -109,7 +109,7 @@ Ce que la campagne doit tenir se déclare dans `campaign.yaml`, en zone avec sa 
 - aucun AWACS ni ravitailleur dans `dynamic.support.assets`, pas de `dynamic.economy.tanker`, ou l'un d'eux qui n'est aucun groupe de la mission template : les joueurs volent sans, et la boutique n'a pas de ravitailleur ;
 - aucun ravitailleur à perche (KC-135, KC-10A) ou aucun à panier (KC-135MPRS, KC-130, S-3B, IL-78M) parmi `dynamic.support.assets` : les F-16 et A-10, ou les F/A-18 et AV-8B, ne peuvent pas ravitailler ;
 - un canal du `src/presets.yaml` du template nommé d'après un aérodrome d'un autre théâtre : écrivez le plan de fréquences de la campagne pour son théâtre ;
-- plus de [SAM longue portée](#long-range-sams) que permis, ou trop proches, est une erreur.
+- plus de [SAM longue ou moyenne portée](#long-range-sams) que permis, ou trop proches, est une erreur.
 
 ### Un waypoint par zone {#waypoints}
 
@@ -143,7 +143,7 @@ Le même dossier s'écrit aussi en PDF à côté, `<opération>_dossier-de-theat
 | Situation stratégique | `briefing.yaml` : politique, économique, mode d'action ennemi |
 | Carte du réseau | chaque zone dans la couleur de son camp, un symbole par sorte (carré aérodrome, rond avant-poste, triangle usine, losange dépôt), son numéro de [waypoint](#waypoints), les liaisons, le territoire teinté par camp et le front, avec ses petites hachures de chaque côté, comme sur la carte F10 |
 | Le réseau ennemi | quelle usine alimente quelles zones, ce que chaque dépôt accélère, les zones déjà coupées, et les **nœuds critiques** : les zones ennemies dont la prise isole d'autres zones de leur usine |
-| Défenses aériennes connues | les [SAM longue portée](#long-range-sams) avec leur portée en cercle, et ce que le renseignement en sait (« probable » tant qu'aucune reconnaissance ne l'a confirmé) ; les nôtres aussi |
+| Défenses aériennes connues | les [SAM longue et moyenne portée](#long-range-sams) avec leur portée en cercle, et ce que le renseignement en sait (« probable » tant qu'aucune reconnaissance ne l'a confirmé) ; les nôtres aussi |
 | Axes d'effort | `axes:` de `briefing.yaml`, présentés comme indicatifs : la situation évolue, adaptez-vous |
 | Nos moyens | nos zones, nos aérodromes, l'AWACS et les ravitailleurs |
 | Plan radio | les canaux UHF et VHF du [plan radio](#radio-plan), lus dans `src/presets.yaml` |
@@ -185,6 +185,18 @@ Réservez-les aux points clés du réseau : une grande base, une usine, un dép�
 long_range_sams: { per_side: 2, min_spacing: 120000 }
 zones:
   - { name: Alep, at: { airfield: Aleppo }, size: airfield, side: red, long_range_sam: true }
+```
+
+Un SAM moyenne portée se pose de la même façon : `medium_range_sam: true` sur la zone ajoute à sa garnison une batterie `<zone> medium-range SAM`.
+Le rouge tire un SA-11, un SA-6 ou un SA-3 (un SA-6 ou un SA-3 en guerre froide), le bleu un Hawk ou un NASAMS (un Hawk en guerre froide).
+`medium_range_sams` en limite le nombre par camp (`per_side`, 3) et l'écart (`min_spacing`, 60 km) ; ce sont des estimations, à régler après une soirée.
+Une zone endormie qui en a une est supposée porter à 40 km : l'IA tient ses CAP et ses frappes hors de ce cercle, comme elle le fait à 75 km pour une batterie longue portée.
+Une zone prise perd sa batterie et le nouveau propriétaire tire la sienne, comme pour la longue portée.
+
+```yaml
+medium_range_sams: { per_side: 3, min_spacing: 60000 }
+zones:
+  - { name: Hama, at: { airfield: Hama }, size: airfield, side: red, medium_range_sam: true }
 ```
 
 ## La sauvegarde {#save}
@@ -405,7 +417,7 @@ Il est remboursé si aucun convoi ne part (plus rien en réserve), et refusé sa
 Le plafond de convois (`max_convoys`) ne retient que les convois que l'IA envoie d'elle-même, jamais un assaut acheté.
 Hors d'une campagne persistante, l'ordre est gratuit et reste réservé aux pilotes confirmés.
 La BARCAP se tient sur l'axe entre la zone ennemie et notre aérodrome le plus proche, au premier point hors de portée de **toutes** les défenses ennemies (pas seulement celles de la zone visée) plus 15 km, et garde un cercle de 15 km ; quand aucun point de l'axe n'est hors de portée, elle tient au-dessus de son aérodrome.
-La portée se mesure sur les missiles que portent les unités de la zone quand elle est éveillée ; une zone endormie est supposée porter à 75 km si elle a un [SAM longue portée](#long-range-sams), 20 km sinon, et le message le dit.
+La portée se mesure sur les missiles que portent les unités de la zone quand elle est éveillée ; une zone endormie est supposée porter à 75 km si elle a un [SAM longue portée](#long-range-sams), 40 km si elle a un SAM moyenne portée, 20 km sinon, et le message le dit.
 
 Les vols CAS et SEAD sont les frappes de l'[aviation ennemie](#air), avec les avions de notre camp : ils décollent de notre aérodrome le plus proche de la zone d'où un avion peut partir (piste assez longue, pas sous une défense antiaérienne ennemie, sauf pour la SEAD), et le message dit d'où.
 La SEAD part tout de suite : elle n'attend pas d'ordre du joueur (« push on command » de Foothold, pas fait).
@@ -421,8 +433,10 @@ F10 → Autres → VEAF → Campagne → Boutique → **Renforcer une zone** →
 |---|---|---|---|
 | Batterie Hawk | `hawk` | `hawk` de `veaf-units.yaml` | guerre froide, moderne |
 | Batterie NASAMS | `nasams` | `nasams` | moderne |
+| Batterie IRIS-T SLM | `iristslm` | `iristslm` (pack Currenthill, livré avec DCS) | moderne |
 | Batterie Patriot | `patriot` | `patriot` ; une seule par zone | moderne |
 | Section Avenger | `avenger` | `avenger_squad` | moderne |
+| Batterie Rapier | `rapier` | `rapier_radar` (avec son radar Blindfire) | guerre froide, moderne |
 | Section Gepard | `gepard` | trois Gepard et un camion | guerre froide, moderne |
 | Section d'infanterie | `infantry` | tirée comme celles des garnisons | toutes |
 | Peloton blindé | `armor` | tiré comme ceux des garnisons | toutes |
@@ -437,8 +451,10 @@ F10 → Autres → VEAF → Campagne → Boutique → **Renforcer une zone** →
   |---|---|---|
   | Batterie Hawk | 1 970 à 2 030 | 2 000 |
   | Batterie NASAMS | 1 980, ou 2 970 quand son groupe tire un second Avenger | 2 000 |
+  | Batterie IRIS-T SLM (22/11/2026) | 2 040 à 2 050 | — |
   | Batterie Patriot | 4 960 à 5 060 | 5 000 |
   | Section Avenger | 1 000 | 1 000 |
+  | Batterie Rapier (22/11/2026) | 1 060 à 1 070 | — |
   | Section Gepard | 750 | 750 |
   | Section d'infanterie | 40 à 60 | 500 |
   | Peloton blindé | 70 à 145 | 1 000 |
@@ -561,6 +577,7 @@ Les éléments que les attributs ne distinguent pas ont donc un prix par type (`
 | `Hawk sr`, `Hawk cwar`, `Hawk tr` | 14 | le groupe `hawk`, six radars, neuf lanceurs, un poste, un Avenger, des Vulcan et des camions : 2 000 crédits, Avenger compris |
 | `Hawk ln` | 5 | idem |
 | `NASAMS_LN_B`, `NASAMS_LN_C` | 28 | le groupe `nasams`, un radar (40), un poste, quatre lanceurs, un Avenger et des camions : 2 000 crédits |
+| `CHAP_IRISTSLM_LN` | 72 | le groupe `iristslm`, un radar (40), un poste (10), quatre lanceurs de 8 missiles et des camions, sans défense rapprochée : 2 000 crédits comme le Hawk et le NASAMS (au seul `SAM LL`, 680 crédits, moins qu'une section Avenger) |
 | `Patriot str` | 93 | le groupe `patriot`, un radar, quatre postes, huit lanceurs, des Vulcan et des camions : 5 000 crédits |
 | `Patriot ln` | 85 | idem |
 | lanceurs S-300 (`S-300PS 5P85C ln`, `5P85D ln`) | 85 | le système longue portée rouge, comme le Patriot |

@@ -57,6 +57,8 @@ connections:
 # Every key is optional; these are the defaults, written out to show them.
 # Long-range SAMs are a zone's own (`long_range_sam: true`, Batumi and Kutaisi above), two a side at most,
 # 120 km apart at least: `long_range_sams: { per_side: 2, min_spacing: 120000 }` at the top level.
+# Medium-range SAMs (an SA-11, an SA-6, a Hawk) the same way: `medium_range_sam: true` on a zone, three a side
+# at most, 60 km apart at least: `medium_range_sams: { per_side: 3, min_spacing: 60000 }`.
 dynamic:
   save_seconds: 60
   wake_radius: 60000

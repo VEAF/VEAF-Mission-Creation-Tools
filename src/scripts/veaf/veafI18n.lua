@@ -2284,6 +2284,8 @@ veaf.i18nCatalog = {
   ["menu.campaign.upgrades"] = { fr = "Renforcer une zone", en = "Zone upgrades" },
   ["campaign.shop.upgrade.hawk"] = { fr = "Batterie Hawk", en = "Hawk battery" },
   ["campaign.shop.upgrade.nasams"] = { fr = "Batterie NASAMS", en = "NASAMS battery" },
+  ["campaign.shop.upgrade.iristslm"] = { fr = "Batterie IRIS-T SLM", en = "IRIS-T SLM battery" },
+  ["campaign.shop.upgrade.rapier"] = { fr = "Batterie Rapier", en = "Rapier battery" },
   ["campaign.shop.upgrade.patriot"] = { fr = "Batterie Patriot", en = "Patriot battery" },
   ["campaign.shop.upgrade.avenger"] = { fr = "Section Avenger", en = "Avenger section" },
   ["campaign.shop.upgrade.gepard"] = { fr = "Section Gepard", en = "Gepard section" },

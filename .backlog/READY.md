@@ -8,10 +8,6 @@ Lots written up and ready to take.
 
 A ground group spawned with a destination (`veafSpawnCore`) gets its route in its creation frame, where DCS drops it, and `On Road` from its own position, which fails off the road. Give it 5 s later, from the road, as FIX-GROUNDAI-CLOSE-IN-REACHABLE did for the convoys. One ticket; left over by that lot (2026-11-22).
 
-### [FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY](FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY/PRD.md) · ⬜
-
-Every air defence DCS offers in the campaign: the Tor M2 and the Pantsir S1 in red's modern short range, a `medium_range_sam` zone option giving red an SA-11, SA-6 or SA-3 battery (red has no medium-range SAM at all today), and the IRIS-T SLM and the Rapier for blue, as a VEAF group and shop upgrades. Three tickets; asked by David after the 2026-11-21 evening on the Campagne server.
-
 ### [FEAT-SPAWN-OWNERSHIP-DESPAWN](FEAT-SPAWN-OWNERSHIP-DESPAWN/PRD.md) · ⬜
 
 Each pilot can remove from the F10 menu what his markers spawned (`-sa6`, `-armor`, `-cas`, `-convoy`, `-farp`…), all at once or one by one: the runtime records every marker-spawned group with its author, combat zones left out since they clean their own. `-destroy` stays a trusted member's command. Three tickets, eight questions with a reco each; asked by David while correcting the Open Training conduct sheet (2026-11-10).

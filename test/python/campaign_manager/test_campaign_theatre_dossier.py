@@ -108,6 +108,7 @@ class TestTheDossier:
             assert "building of an enemy zone 100" in whole
             assert "brought back to the MASH 200" in whole
             assert "NASAMS 2,000" in whole and "Patriot 5,000" in whole
+            assert "IRIS-T SLM 2,000" in whole and "Rapier 1,000" in whole
             campaign.dynamic.setdefault("economy", {})["kill_sam"] = 45
             whole = "\n".join(line for block in guide_blocks(campaign) for line in block.paragraphs)
             assert "SAM 45" in whole

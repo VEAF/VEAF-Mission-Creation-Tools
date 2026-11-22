@@ -65,7 +65,8 @@ end
 -- FIX-CAMPAIGN-ECONOMY-BALANCE 05: the upgrades, drawn from the real groups of veaf-units.yaml and priced unit by unit,
 -- cost about Foothold's prices
 function TestCampaignEconomySim:test_the_upgrades_cost_about_foothold_s_prices()
-  local targets = { hawk = 2000, nasams = 2000, patriot = 5000, avenger = 1000, gepard = 750 }
+  -- FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 03: the IRIS-T SLM as the Hawk and the NASAMS, the Rapier as an Avenger section
+  local targets = { hawk = 2000, nasams = 2000, patriot = 5000, avenger = 1000, gepard = 750, iristslm = 2000, rapier = 1000 }
   local prices = {}
   for seed = 1, SEEDS do
     sim.run({ player = "average", strategy = "never", seed = seed, hours = 0 })

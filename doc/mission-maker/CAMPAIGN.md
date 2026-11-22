@@ -143,7 +143,7 @@ Une classe de taille est un jeu de paramètres des générateurs CAS : la garnis
 | `airfield` | 1 | 5 | 2 | non | pas encore mesuré (≈ 31 à la défense 3) |
 
 Les nombres entre parenthèses sont ceux de 40 tirages du 2026-10-06, avant que la défense aérienne monte.
-Depuis le 18/11/2026, une base aérienne tire un groupe de défense aérienne de niveau 4 ou 5 (SA-8, SA-15, Tunguska à l'ère moderne) — **un seul** depuis le 19/11/2026 : deux groupes de niveau 5 donnaient 32 unités et 121 missiles à Alep — et un avant-poste un groupe de niveau 3 environ (Strela-10, Strela-1) ; avant, une base n'avait que des SAM infrarouges de courte portée et un avant-poste une Shilka.
+Depuis le 18/11/2026, une base aérienne tire un groupe de défense aérienne de niveau 4 ou 5 (SA-8, SA-15, Tunguska à l'ère moderne ; depuis le 22/11/2026, un Tor M2 à la place d'un SA-15 et un Pantsir à la place d'un Tunguska une fois sur deux) — **un seul** depuis le 19/11/2026 : deux groupes de niveau 5 donnaient 32 unités et 121 missiles à Alep — et un avant-poste un groupe de niveau 3 environ (Strela-10, Strela-1) ; avant, une base n'avait que des SAM infrarouges de courte portée et un avant-poste une Shilka.
 Une campagne qui veut une défense plus légère la baisse avec `size_classes:`, par exemple `airfield: { defense: 3 }`.
 
 Un SAM longue portée appartient à une zone, pas à sa classe : `long_range_sam: true` sur la zone ajoute la batterie (une vingtaine d'unités) à sa garnison.
@@ -154,6 +154,17 @@ Jusqu'au 17/11/2026, chaque zone d'aérodrome en tirait une, et le premier soir 
 long_range_sams: { per_side: 2, min_spacing: 120000 }
 zones:
   - { name: Kutaisi, at: { airfield: Kutaisi }, size: airfield, side: red, long_range_sam: true }
+```
+
+Un SAM moyenne portée s'ajoute de la même façon, avec `medium_range_sam: true` sur la zone (ou sur une classe de taille) : un SA-11, un SA-6 ou un SA-3 pour le rouge à l'ère moderne, un SA-6 ou un SA-3 en guerre froide ; un Hawk ou un NASAMS pour le bleu, un Hawk en guerre froide.
+Le rouge n'en avait aucun avant le 22/11/2026 : de la courte portée partout, et une batterie longue portée là où une zone en demande une.
+`campaign validate` en refuse plus de `medium_range_sams.per_side` (3) par camp, et deux d'un même camp à moins de `medium_range_sams.min_spacing` (60 km) ; ces deux valeurs sont des estimations, à régler après une soirée.
+Une zone peut avoir les deux batteries.
+
+```yaml
+medium_range_sams: { per_side: 3, min_spacing: 60000 }
+zones:
+  - { name: Hama, at: { airfield: Hama }, size: airfield, side: red, medium_range_sam: true }
 ```
 
 `size` va de 1 à 5, `defense` et `armor` de 0 à 5, comme pour un marqueur `_cas`.

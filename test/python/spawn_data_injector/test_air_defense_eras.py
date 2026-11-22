@@ -97,11 +97,11 @@ def test_every_era_variant_type_is_known_to_dcs(groups: dict) -> None:
     assert unknown == set()
 
 
-def _long_range_aliases() -> set[str]:
-    """Every group alias named in veafCasMission.LONG_RANGE_AIR_DEFENSE_GROUPS, read from the Lua source."""
+def _long_range_aliases(table: str = "LONG_RANGE_AIR_DEFENSE_GROUPS") -> set[str]:
+    """Every group alias named in one of veafCasMission's battery tables, read from the Lua source."""
     root = Path(__file__).parents[3]
     source = (root / "src/scripts/veaf/veafCasMission.lua").read_text(encoding="utf-8")
-    start = source.index("veafCasMission.LONG_RANGE_AIR_DEFENSE_GROUPS = {")
+    start = source.index(f"veafCasMission.{table} = {{")
     block = source[start : source.index("\n}\n", start)]
     return set(re.findall(r'"([^"]+)"', block))
 
@@ -109,6 +109,13 @@ def _long_range_aliases() -> set[str]:
 def test_every_long_range_battery_the_runtime_draws_exists(groups: dict) -> None:
     aliases = _long_range_aliases()
     assert {"patriot", "hawk", "sa2", "sa5", "sa10"} <= aliases
+    assert aliases - set(groups) == set()
+
+
+def test_every_medium_range_battery_the_runtime_draws_exists(groups: dict) -> None:
+    """FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 02: a zone's `medium_range_sam`."""
+    aliases = _long_range_aliases("MEDIUM_RANGE_AIR_DEFENSE_GROUPS")
+    assert {"hawk", "nasams", "sa3", "sa6", "sa11"} <= aliases
     assert aliases - set(groups) == set()
 
 

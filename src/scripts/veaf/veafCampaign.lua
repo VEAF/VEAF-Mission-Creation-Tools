@@ -220,6 +220,11 @@ veafCampaign.TYPE_PRICES = {
   -- the nasams group is a radar (the category's 40), a command post, four launchers, an Avenger and lorries
   ["NASAMS_LN_B"] = 28,
   ["NASAMS_LN_C"] = 28,
+  -- the iristslm group is a radar (40), a command post (10), four launchers of 8 missiles and lorries, no point
+  -- defence: priced as the launchers' `SAM LL` alone, 680 credits, it cost less than an Avenger section; 2,000 credits
+  -- as the Hawk and the NASAMS (FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 03, an estimate). The rapier_radar group is 1,060
+  -- credits as it stands, about an Avenger section.
+  ["CHAP_IRISTSLM_LN"] = 72,
   -- the patriot group is a radar, four command posts, eight launchers, Vulcans and lorries: 5,000 credits
   ["Patriot str"] = 93,
   ["Patriot ln"] = 85,
@@ -818,7 +823,13 @@ end
 --- empty — a side with nothing left in reserve can only scrape a token garrison together.
 local function sizeForDraw(size, reserve)
   if reserve and reserveTotal(reserve) == 0 then
-    return { size = 1, defense = math.min(1, size.defense), armor = math.min(1, size.armor), long_range_sam = false }
+    return {
+      size = 1,
+      defense = math.min(1, size.defense),
+      armor = math.min(1, size.armor),
+      long_range_sam = false,
+      medium_range_sam = false,
+    }
   end
   return size
 end
@@ -827,7 +838,7 @@ end
 ---
 --- An explicit `garrison_list` replaces the draw, for the side that declared it (`declared_side`).
 --- Otherwise the zone's size class drives
---- `veafCasMission.generateCasGroup`, plus a long-range battery when the class asks for one. Units
+--- `veafCasMission.generateCasGroup`, plus a long-range battery and a medium-range one when the class asks for them. Units
 --- whose position does not suit them are dropped here, so that what is recorded is what spawns.
 --- @param reserve table|nil the reserve the draw takes from, unit by unit; nil for a garrison of the
 ---   campaign's starting situation, which costs nothing
@@ -855,12 +866,19 @@ function VeafCampaignZone:drawGarrison(reserve, soldiers)
     local size = sizeForDraw(self.entry.size, reserve)
     local units = veafCampaign.composeGarrison(self.name .. " garrison", center, radius, size, side)
     table.insert(placedGroups, { name = self.name .. " garrison", units = units })
-    if size.long_range_sam then
-      local battery = veafCasMission.generateLongRangeAirDefenseGroup(self.name .. " long-range SAM", side)
-      local lrUnits = {}
-      veafCampaign.placeGarrisonGroup(battery, center, radius, lrUnits)
-      if #lrUnits > 0 then
-        table.insert(placedGroups, { name = self.name .. " long-range SAM", units = lrUnits })
+    -- the batteries a zone asks for, each its own group, named so that the briefings and the wake order can tell them
+    local batteries = {
+      { wanted = size.long_range_sam, generate = veafCasMission.generateLongRangeAirDefenseGroup, suffix = " long-range SAM" },
+      { wanted = size.medium_range_sam, generate = veafCasMission.generateMediumRangeAirDefenseGroup, suffix = " medium-range SAM" },
+    }
+    for _, battery in ipairs(batteries) do
+      if battery.wanted then
+        local name = self.name .. battery.suffix
+        local batteryUnits = {}
+        veafCampaign.placeGarrisonGroup(battery.generate(name, side), center, radius, batteryUnits)
+        if #batteryUnits > 0 then
+          table.insert(placedGroups, { name = name, units = batteryUnits })
+        end
       end
     end
   end
@@ -1078,15 +1096,15 @@ function VeafCampaignZone:wake(why)
   self:startSpawning()
 end
 
---- Put the zone's garrison in the world group by group, about `wake_units_per_beat` units per beat, its long-range
---- battery last (ticket 06): Hama's 42 units in one go froze the server. A group is never split: a launcher in
+--- Put the zone's garrison in the world group by group, about `wake_units_per_beat` units per beat, its long- and
+--- medium-range batteries last (ticket 06): Hama's 42 units in one go froze the server. A group is never split: a launcher in
 --- another DCS group than its radar never fires.
 --- @return number the units submitted now
 function VeafCampaignZone:startSpawning()
   self:removeReinforcementGroups()
   local queue, last = {}, {}
   for groupIndex, group in ipairs(self.entry.garrison or {}) do
-    table.insert(group.name:find("long%-range SAM") and last or queue, groupIndex)
+    table.insert(group.name:find("%-range SAM$") and last or queue, groupIndex)
   end
   for _, groupIndex in ipairs(last) do
     table.insert(queue, groupIndex)

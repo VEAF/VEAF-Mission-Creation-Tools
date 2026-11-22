@@ -143,7 +143,7 @@ A size class is a set of parameters of the CAS generators: the garrison has as m
 | `airfield` | 1 | 5 | 2 | no | not measured yet (≈ 31 at defence 3) |
 
 The figures in brackets come from 40 draws on 2026-10-06, before the air defence went up.
-Since 2026-11-18 an airfield draws an air defence group of level 4 or 5 (SA-8, SA-15, Tunguska in the modern era) — **a single one** since 2026-11-19: two groups of level 5 gave Aleppo 32 units and 121 missiles — and an outpost one group of about level 3 (Strela-10, Strela-1); before, an airfield had only short-range infrared SAMs and an outpost a Shilka.
+Since 2026-11-18 an airfield draws an air defence group of level 4 or 5 (SA-8, SA-15, Tunguska in the modern era; since 2026-11-22, a Tor M2 in place of an SA-15 and a Pantsir in place of a Tunguska one time in two) — **a single one** since 2026-11-19: two groups of level 5 gave Aleppo 32 units and 121 missiles — and an outpost one group of about level 3 (Strela-10, Strela-1); before, an airfield had only short-range infrared SAMs and an outpost a Shilka.
 A campaign that wants a lighter defence lowers it with `size_classes:`, for instance `airfield: { defense: 3 }`.
 
 A long-range SAM belongs to a zone, not to its class: `long_range_sam: true` on the zone adds the battery (about 20 units) to its garrison.
@@ -154,6 +154,17 @@ Until 2026-11-17 every airfield zone drew one, and on the first evening of a per
 long_range_sams: { per_side: 2, min_spacing: 120000 }
 zones:
   - { name: Kutaisi, at: { airfield: Kutaisi }, size: airfield, side: red, long_range_sam: true }
+```
+
+A medium-range SAM is added the same way, with `medium_range_sam: true` on the zone (or on a size class): an SA-11, an SA-6 or an SA-3 for red in the modern era, an SA-6 or an SA-3 in the cold war; a Hawk or a NASAMS for blue, a Hawk in the cold war.
+Red had none before 2026-11-22: short range everywhere, and one long-range battery where a zone asks for it.
+`campaign validate` refuses more than `medium_range_sams.per_side` (3) per side, and two of a side closer than `medium_range_sams.min_spacing` (60 km); both values are estimates, to tune after an evening.
+A zone may have both batteries.
+
+```yaml
+medium_range_sams: { per_side: 3, min_spacing: 60000 }
+zones:
+  - { name: Hama, at: { airfield: Hama }, size: airfield, side: red, medium_range_sam: true }
 ```
 
 `size` runs from 1 to 5, `defense` and `armor` from 0 to 5, as for a `_cas` marker.

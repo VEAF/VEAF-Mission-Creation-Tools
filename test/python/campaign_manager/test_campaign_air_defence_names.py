@@ -30,5 +30,18 @@ class TestTheNames:
                 text = describe_garrison_entry(entry)
                 assert "_" not in text and "generateAirDefenseGroup" not in text, text
 
+    def test_the_tor_m2_and_the_pantsir_by_their_names(self) -> None:
+        """FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 01: the Currenthill pack's systems, as pilots call them."""
+        with language("fr"):
+            assert describe_garrison_entry("sa15m2_squad") == "SA-15 Tor M2 (SAM courte portée)"
+            assert describe_garrison_entry("sa22_squad") == "SA-22 Pantsir (SAM courte portée)"
+
+    def test_the_iris_t_and_the_rapier_by_their_names(self) -> None:
+        """FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 03: blue's IRIS-T SLM and Rapier."""
+        with language("fr"):
+            assert describe_garrison_entry("iristslm") == "IRIS-T SLM (SAM moyenne portée)"
+            assert describe_garrison_entry("iris-t") == "IRIS-T SLM (SAM moyenne portée)"
+            assert describe_garrison_entry("rapier_radar") == "Rapier (SAM courte portée)"
+
     def test_an_entry_it_does_not_know_is_left_as_written(self) -> None:
         assert describe_garrison_entry("my-own-group") == "my-own-group"

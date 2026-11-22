@@ -134,8 +134,10 @@ veafCampaignOps.BARCAP_MARGIN = 15000
 veafCampaignOps.BARCAP_RADIUS = 15000
 
 --- The reach assumed for a zone's air defence when none of its missiles can be measured (a sleeping
---- zone), in metres: an estimation, not a measure — a long-range battery and the short-range rest.
+--- zone), in metres: an estimation, not a measure — a long-range battery, a medium-range one (an SA-11, an SA-6, a
+--- Hawk: FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 02) and the short-range rest.
 veafCampaignOps.ASSUMED_LONG_RANGE = 75000
+veafCampaignOps.ASSUMED_MEDIUM_RANGE = 40000
 veafCampaignOps.ASSUMED_SHORT_RANGE = 20000
 
 --- What each strike role engages.
@@ -1212,7 +1214,7 @@ end
 --- How far a zone's air defence reaches, in metres: the longest maximum range of the missiles its live
 --- units carry, read from DCS (`getAmmo`, `rangeMaxAltMax`), and remembered in the zone's entry (saved with
 --- the campaign). A sleeping zone has no live unit to ask: its reach is then the one remembered, else assumed,
---- the long-range figure when its class has a long-range battery.
+--- the long-range figure when its class has a long-range battery, the medium-range one when it has a medium-range one.
 --- @param zone table
 --- @return number metres
 --- @return boolean true when measured, false when assumed
@@ -1245,7 +1247,10 @@ function veafCampaignOps.threatRange(zone)
     return zone.entry.reach, true
   end
   local size = zone.entry.size or {}
-  return size.long_range_sam and veafCampaignOps.ASSUMED_LONG_RANGE or veafCampaignOps.ASSUMED_SHORT_RANGE, false
+  if size.long_range_sam then
+    return veafCampaignOps.ASSUMED_LONG_RANGE, false
+  end
+  return size.medium_range_sam and veafCampaignOps.ASSUMED_MEDIUM_RANGE or veafCampaignOps.ASSUMED_SHORT_RANGE, false
 end
 
 --- The point of a line, from an enemy zone toward a side's airfield, nearest the enemy zone that is out of every

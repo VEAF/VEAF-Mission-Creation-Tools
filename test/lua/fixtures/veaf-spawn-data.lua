@@ -524,6 +524,23 @@ veafUnits.GroupsDatabase = {
     },
   },
   {
+    aliases = { "iristslm", "iris-t", "IRIS-T" },
+    group = {
+      disposition = { h = 7, w = 11 },
+      units = {
+        { "CHAP_IRISTSLM_STR", cell = 41 },
+        { "CHAP_IRISTSLM_CP", cell = 34 },
+        { "CHAP_IRISTSLM_LN", cell = 4, hdg = 315 },
+        { "CHAP_IRISTSLM_LN", cell = 11, hdg = 45 },
+        { "CHAP_IRISTSLM_LN", cell = 70, hdg = 225 },
+        { "CHAP_IRISTSLM_LN", cell = 77, hdg = 135 },
+        { "CHAP_M1083", number = { min = 1, max = 2 }, random = true },
+      },
+      description = "IRIS-T SLM battery",
+      groupName = "IRIS-T SLM battery",
+    },
+  },
+  {
     aliases = { "hawk", "ha", "mim-23" },
     group = {
       disposition = { h = 40, w = 40 },

@@ -1,6 +1,6 @@
 # 03 — The IRIS-T SLM and the Rapier for blue
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 Type: feature
 
 ## To do
@@ -17,6 +17,16 @@ Type: feature
 ## Done when
 
 On a blue zone of a modern campaign, a player can buy an IRIS-T SLM or a Rapier upgrade from Campaign → Boutique, and `-iristslm` spawns the battery; with tests.
+
+## Done
+
+- `iristslm` (`iris-t`) in `veaf-units.yaml`, read from the Currenthill files on 2026-11-22: `CHAP_IRISTSLM_STR` is the search and track radar (`MR SAM`, 250 km) and requires `CHAP_IRISTSLM_CP` within 1,000 m; each `CHAP_IRISTSLM_LN` (8 missiles, 1 to 40 km) depends on the STR. Four launchers, laid out as the NASAMS, and one or two `CHAP_M1083` lorries.
+- `-iristslm` spawns it (US by default, Skynet on), listed in `doc/ALIASES.md` / `.en.md`.
+- Shop: `iristslm` (modern) and `rapier` (`rapier_radar`, cold war and modern) in `veafCampaignEconomy.UPGRADES`, titles in both languages. Priced at the bare spawn price, the IRIS-T came to 680 credits, less than an Avenger section; `TYPE_PRICES["CHAP_IRISTSLM_LN"] = 72` brings it to 2,040-2,050 credits as the Hawk and the NASAMS. The Rapier costs 1,060-1,070 as it stands.
+- Names: `IRIS-T SLM` (medium), `Rapier` (short) in `air_defence_names.py`; the player guide's shop line gives both prices.
+- Skynet knows the IRIS-T SLM (`Iris-T SLM`, `complex`, the STR as search radar, HARM engagement) and the Rapier; nothing to add.
+- The IRIS-T SLM (2022) is kept out of the cold war by the upgrade's `eras`.
+- Tests: the upgrades' prices, purchase and eras (`test_veafCampaignLive.lua`), their prices near the targets (`test_campaignEconomySim.lua`), the names, the guide.
 
 ## In-game check
 

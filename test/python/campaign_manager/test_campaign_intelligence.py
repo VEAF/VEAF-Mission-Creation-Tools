@@ -85,6 +85,27 @@ class TestTheEnemyPicture:
         with language("fr"):
             assert "Batterie SA-10 détruite." in enemy_picture(campaign, state, campaign.zone("Senaki"))
 
+    # FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 02
+    def test_a_medium_range_sam_is_suspected_then_named(self) -> None:
+        campaign = _campaign(long_range_sam=False, medium_range_sam=True)
+        state = initial_state(campaign)
+        senaki = campaign.zone("Senaki")
+        with language("fr"):
+            text = enemy_picture(campaign, state, senaki)
+        assert "Défense aérienne moyenne portée probable, type non confirmé." in text
+        assert "longue portée" not in text
+        state.zones["Senaki"].garrison = [
+            {"name": "Senaki garrison", "units": [{"type": "T-72B", "alive": True}]},
+            {"name": "Senaki medium-range SAM", "units": [{"type": "SA-11 Buk LN 9A310M1", "alive": True}]},
+        ]
+        with language("fr"):
+            assert "Batterie SA-11 confirmée sur la position." in enemy_picture(campaign, state, senaki)
+
+    def test_a_zone_with_a_medium_range_sam_alone_is_a_main_position(self) -> None:
+        campaign = _campaign(long_range_sam=False, medium_range_sam=True)
+        with language("fr"):
+            assert friendly_picture(campaign, campaign.zone("Senaki")) == "base défendue, avec sa batterie sol-air"
+
     def test_a_logistics_zone_and_an_outpost_have_their_own_text_and_source(self) -> None:
         campaign = _campaign()
         state = initial_state(campaign)

@@ -1,6 +1,6 @@
 # 01 — Red's short range draws the Tor M2 and the Pantsir
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 Type: feature
 
 ## To do
@@ -16,6 +16,15 @@ Type: feature
 ## Done when
 
 In a modern campaign, a red airfield zone draws a Tor M2 or a Pantsir S1 in a fair share of draws, and a cold war one never does; with tests.
+
+## Done
+
+- `veafCasMission.AIR_DEFENSE_TYPES_DRAWN_BY_ERA`: in a MODERN mission each `Tor 9A331` is drawn as itself or a `CHAP_TorM2`, each `2S6 Tunguska` as itself or a `CHAP_PantsirS1`, one chance in two, unit by unit. It applies to the generated levels (`generateAirDefenseGroup`) and the escorts (`_addDefenseForGroups`), rather than new yaml variants: a yaml group cannot choose between two types, and a Pantsir replacing a Tunguska keeps the mix as strong. Levels 4 and below hold neither a Tor nor a Tunguska and are unchanged.
+- `ESCORT_TYPES_REPLACED_BY_ERA` (cold war): Tor M2 → `Osa 9A33 ln`, Pantsir → `ZSU-23-4 Shilka`.
+- `air_defence_names.py`: "SA-15 Tor M2", "SA-22 Pantsir" (`_VEHICLES`, and `sa15m2_squad`, `sa22_squad` in `_SYSTEMS`).
+- Skynet (`skynet-iads-compiled.lua`) knows both as point defences (`Tor M2`, `Pantsir S1`, harm detection and HARM engagement); nothing to add.
+- Measured 2026-11-22, 40 draws of a red airfield garrison (size 1, defence 5, armour 2) through `composeGarrison` with the real spawn data, three seeds: 31 to 33 of 40 hold a Tor M2 or a Pantsir (19 to 20 Tor M2, 31 to 39 Pantsir), about 34 units each; cold war, 0 of 40. Written over the table.
+- Tests: `TestVeafCasMissionNewerShortRange` (`test_veafCasMission.lua`), the cold war sweep's `AFTER_1980` list, `test_campaign_air_defence_names.py`.
 
 ## In-game check
 

@@ -109,7 +109,7 @@ What the campaign must hold is declared in `campaign.yaml`, as a zone with its g
 - no AWACS nor tanker in `dynamic.support.assets`, no `dynamic.economy.tanker`, or one of them that is no group of the template mission: the players fly without, and the shop has no tanker;
 - no boom tanker (KC-135, KC-10A) or no basket tanker (KC-135MPRS, KC-130, S-3B, IL-78M) among `dynamic.support.assets`: the F-16 and the A-10, or the F/A-18 and the AV-8B, cannot refuel;
 - a channel of the template's `src/presets.yaml` named after an airfield of another theatre: write the campaign's frequency plan for its theatre;
-- more [long-range SAMs](#long-range-sams) than allowed, or too close, is an error.
+- more [long- or medium-range SAMs](#long-range-sams) than allowed, or too close, is an error.
 
 ### A waypoint per zone {#waypoints}
 
@@ -143,7 +143,7 @@ The same dossier is also written as a PDF beside it, `<operation>_dossier-de-the
 | Strategic situation | `briefing.yaml`: political, economic, enemy course of action |
 | Network map | each zone in its side's colour, a symbol per kind (square airfield, circle outpost, triangle factory, diamond depot), its [waypoint](#waypoints) number, the connections, the territory tinted by side and the front with its short hatches on each side, as on the F10 map |
 | The enemy network | which factory feeds which zones, what each depot speeds up, the zones already cut off, and the **critical nodes**: the enemy zones whose capture cuts other zones off from their factory |
-| Known air defences | the [long-range SAMs](#long-range-sams) with their reach drawn as a circle, and what intelligence knows of them ("probable" until a reconnaissance confirms it); ours too |
+| Known air defences | the [long- and medium-range SAMs](#long-range-sams) with their reach drawn as a circle, and what intelligence knows of them ("probable" until a reconnaissance confirms it); ours too |
 | Axes of effort | `axes:` from `briefing.yaml`, given as indicative: the situation moves, adapt |
 | Our means | our zones, our airfields, the AWACS and the tankers |
 | Radio plan | the UHF and VHF channels of the [radio plan](#radio-plan), read from `src/presets.yaml` |
@@ -185,6 +185,18 @@ Keep them for the key points of the network: a large base, a factory, a depot.
 long_range_sams: { per_side: 2, min_spacing: 120000 }
 zones:
   - { name: Aleppo, at: { airfield: Aleppo }, size: airfield, side: red, long_range_sam: true }
+```
+
+A medium-range SAM is set the same way: `medium_range_sam: true` on the zone adds a battery `<zone> medium-range SAM` to its garrison.
+Red draws an SA-11, an SA-6 or an SA-3 (an SA-6 or an SA-3 in the cold war), blue a Hawk or a NASAMS (a Hawk in the cold war).
+`medium_range_sams` caps them per side (`per_side`, 3) and spaces them (`min_spacing`, 60 km); both are estimates, to tune after an evening.
+A sleeping zone that holds one is assumed to reach 40 km: the AI keeps its CAPs and strikes out of that circle, as it does at 75 km for a long-range battery.
+A zone taken loses its battery and the new owner draws its own, as for the long range.
+
+```yaml
+medium_range_sams: { per_side: 3, min_spacing: 60000 }
+zones:
+  - { name: Hama, at: { airfield: Hama }, size: airfield, side: red, medium_range_sam: true }
 ```
 
 ## The save {#save}
@@ -405,7 +417,7 @@ It is refunded when no convoy leaves (nothing left in reserve), and refused with
 The convoy cap (`max_convoys`) holds back only the convoys the AI sends on its own, never a bought assault.
 Outside a persistent campaign the order is free and stays reserved to senior pilots.
 The BARCAP holds on the axis between the enemy zone and our nearest airfield, at the first point out of the reach of **every** enemy air defence (not only the target zone's) plus 15 km, and guards a 15 km circle; when no point of the axis is out of reach, it holds over its airfield.
-The reach is measured on the missiles the zone's units carry when it is awake; a sleeping zone is assumed to reach 75 km when it holds a [long-range SAM](#long-range-sams), 20 km otherwise, and the message says so.
+The reach is measured on the missiles the zone's units carry when it is awake; a sleeping zone is assumed to reach 75 km when it holds a [long-range SAM](#long-range-sams), 40 km when it holds a medium-range one, 20 km otherwise, and the message says so.
 
 The CAS and SEAD flights are the [enemy air](#air)'s strikes, flown by our side's aircraft: they take off from our airfield nearest the zone an aircraft may leave from (a runway long enough, not under an enemy air defence, but for the SEAD), and the message says which.
 The SEAD leaves at once: it does not wait for a player's order (Foothold's "push on command", not done).
@@ -421,8 +433,10 @@ F10 → Other → VEAF → Campaign → Shop → **Zone upgrades** → one of ou
 |---|---|---|---|
 | Hawk battery | `hawk` | `hawk` of `veaf-units.yaml` | cold war, modern |
 | NASAMS battery | `nasams` | `nasams` | modern |
+| IRIS-T SLM battery | `iristslm` | `iristslm` (Currenthill pack, shipped with DCS) | modern |
 | Patriot battery | `patriot` | `patriot`; one per zone | modern |
 | Avenger section | `avenger` | `avenger_squad` | modern |
+| Rapier battery | `rapier` | `rapier_radar` (with its Blindfire radar) | cold war, modern |
 | Gepard section | `gepard` | three Gepards and a lorry | cold war, modern |
 | Infantry section | `infantry` | drawn as the garrisons' are | all |
 | Armour platoon | `armor` | drawn as the garrisons' are | all |
@@ -437,8 +451,10 @@ F10 → Other → VEAF → Campaign → Shop → **Zone upgrades** → one of ou
   |---|---|---|
   | Hawk battery | 1,970 to 2,030 | 2,000 |
   | NASAMS battery | 1,980, or 2,970 when its group draws a second Avenger | 2,000 |
+  | IRIS-T SLM battery (2026-11-22) | 2,040 to 2,050 | — |
   | Patriot battery | 4,960 to 5,060 | 5,000 |
   | Avenger section | 1,000 | 1,000 |
+  | Rapier battery (2026-11-22) | 1,060 to 1,070 | — |
   | Gepard section | 750 | 750 |
   | Infantry section | 40 to 60 | 500 |
   | Armour platoon | 70 to 145 | 1,000 |
@@ -561,6 +577,7 @@ The elements the attributes cannot tell apart therefore have a price by type (`v
 | `Hawk sr`, `Hawk cwar`, `Hawk tr` | 14 | the `hawk` group, six radars, nine launchers, a command post, an Avenger, Vulcans and lorries: 2,000 credits, its Avenger included |
 | `Hawk ln` | 5 | the same |
 | `NASAMS_LN_B`, `NASAMS_LN_C` | 28 | the `nasams` group, a radar (40), a command post, four launchers, an Avenger and lorries: 2,000 credits |
+| `CHAP_IRISTSLM_LN` | 72 | the `iristslm` group, a radar (40), a command post (10), four launchers of 8 missiles and lorries, no point defence: 2,000 credits as the Hawk and the NASAMS (at the bare `SAM LL`, 680 credits, less than an Avenger section) |
 | `Patriot str` | 93 | the `patriot` group, a radar, four command posts, eight launchers, Vulcans and lorries: 5,000 credits |
 | `Patriot ln` | 85 | the same |
 | S-300 launchers (`S-300PS 5P85C ln`, `5P85D ln`) | 85 | red's long-range system, as the Patriot |

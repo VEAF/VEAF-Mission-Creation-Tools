@@ -95,11 +95,16 @@ UPGRADES_PER_ZONE = 2
 #: The reach a long-range SAM is assumed to have before it is measured, metres: `veafCampaignOps.ASSUMED_LONG_RANGE`.
 ASSUMED_LONG_RANGE = 75000
 
+#: The reach a medium-range one is assumed to have, metres: `veafCampaignOps.ASSUMED_MEDIUM_RANGE`.
+ASSUMED_MEDIUM_RANGE = 40000
+
 #: Words of an explicit garrison entry that name an air defence: what "our defences" lists.
 _AIR_DEFENCE_WORDS = (
     "hawk",
     "patriot",
     "nasams",
+    "iris",
+    "rapier",
     "avenger",
     "stinger",
     "roland",
@@ -234,14 +239,22 @@ def network_blocks(campaign: CampaignDefinition, picture: NetworkPicture, number
 
 
 def defence_circles(campaign: CampaignDefinition, state: CampaignState) -> list[ReachCircle]:
-    """A circle per long-range SAM, at the reach the campaign assumes until it is measured."""
+    """A circle per long- or medium-range SAM, at the reach the campaign assumes until it is measured."""
     owners = owners_of(state)
     circles = []
     for zone in campaign.zones:
         owner = owners.get(zone.name, "neutral")
-        if campaign.has_long_range_sam(zone) and owner in ("blue", "red"):
-            lat, lon = zone_position(campaign, zone)
-            circles.append(ReachCircle(lat, lon, ASSUMED_LONG_RANGE, OWNER_COLOURS[owner], zone.label))
+        if owner not in ("blue", "red"):
+            continue
+        # the longer reach only: a zone with both batteries is one circle
+        if campaign.has_long_range_sam(zone):
+            reach = ASSUMED_LONG_RANGE
+        elif campaign.has_medium_range_sam(zone):
+            reach = ASSUMED_MEDIUM_RANGE
+        else:
+            continue
+        lat, lon = zone_position(campaign, zone)
+        circles.append(ReachCircle(lat, lon, reach, OWNER_COLOURS[owner], zone.label))
     return circles
 
 
@@ -251,7 +264,7 @@ def _air_defence_page(campaign: CampaignDefinition, state: CampaignState, number
     enemy_lines = [
         f"{_title(zone, numbers)} : {enemy_picture(campaign, state, zone)}"
         for zone in campaign.zones
-        if owners.get(zone.name) == enemy and campaign.has_long_range_sam(zone)
+        if owners.get(zone.name) == enemy and campaign.has_sam_battery(zone)
     ]
     our_lines = []
     for zone in campaign.zones:
@@ -263,6 +276,8 @@ def _air_defence_page(campaign: CampaignDefinition, state: CampaignState, number
             for entry in (zone.garrison or ())
             if any(word in entry.lower().replace("-", "").split("_")[0] for word in _AIR_DEFENCE_WORDS)
         ]
+        if campaign.has_medium_range_sam(zone):
+            declared.insert(0, t("campaign.dossier.defence.medium_range"))
         if campaign.has_long_range_sam(zone):
             declared.insert(0, t("campaign.dossier.defence.long_range"))
         if declared:
@@ -278,7 +293,7 @@ def _air_defence_page(campaign: CampaignDefinition, state: CampaignState, number
                 t("campaign.dossier.heading.our_defences"), tuple(our_lines) or (t("campaign.dossier.defence.none"),)
             ),
         ],
-        note=t("campaign.dossier.defence.note", km=ASSUMED_LONG_RANGE // 1000),
+        note=t("campaign.dossier.defence.note", km=ASSUMED_LONG_RANGE // 1000, medium_km=ASSUMED_MEDIUM_RANGE // 1000),
     )
 
 
@@ -513,7 +528,9 @@ def theatre_dossier(
         page.title = f"{number}. {page.title}"
     kinds = [t(f"campaign.dossier.legend.{kind}") for kind in ("airfield", "outpost", "factory", "depot")]
     network_legend = [*kinds, t("campaign.dossier.legend.numbers")]
-    circles_legend = [t("campaign.dossier.legend.circles", km=ASSUMED_LONG_RANGE // 1000)]
+    circles_legend = [
+        t("campaign.dossier.legend.circles", km=ASSUMED_LONG_RANGE // 1000, medium_km=ASSUMED_MEDIUM_RANGE // 1000)
+    ]
     day = day or date.today()
     deck = Presentation()
     deck.slide_width, deck.slide_height = _WIDTH, _HEIGHT

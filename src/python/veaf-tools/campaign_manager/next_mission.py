@@ -116,6 +116,7 @@ def mission_data(
                 "defense": size.defense,
                 "armor": size.armor,
                 "long_range_sam": campaign.has_long_range_sam(zone),
+                "medium_range_sam": campaign.has_medium_range_sam(zone),
             },
         }
         if zone.location.airfield:

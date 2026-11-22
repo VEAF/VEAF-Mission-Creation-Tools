@@ -989,6 +989,62 @@ function VeafCampaignZone:separateSam()
   return true
 end
 
+--- Whether a garrison group is one of the zone's SAM sites, the groups Skynet commands (FEAT-CAMPAIGN-SKYNET 03): its SAM
+--- group, a long- or medium-range battery, or any other group holding a missile launcher — a NASAMS, an IRIS-T SLM, a
+--- Rapier bought in the shop. Never the garrison's main group, whose short-range weapons stay with DCS's AI, nor an
+--- Avenger or a Gepard bought apart, which carry no launcher of that kind.
+--- @param group table the recorded group
+--- @return boolean
+function VeafCampaignZone:isSamGroup(group)
+  if group.name == self.name .. " garrison" then
+    return false
+  end
+  if group.name:find("SAM$") then
+    return true
+  end
+  for _, unit in ipairs(group.units) do
+    if attributesOf(unit.type)["SAM LL"] then
+      return true
+    end
+  end
+  return false
+end
+
+--- Declare a SAM group the campaign has just spawned to its side's Skynet network (FEAT-CAMPAIGN-SKYNET 03). Skynet takes
+--- the groups on the map when it starts, and the campaign spawns its garrisons later, zone by zone.
+---
+--- A site of that name already in the network is removed first: the campaign spawns a group again under its name (a zone
+--- woken again, a SAM brought back by a delivery), and `veafSkynet.addGroupToNetwork` refuses a name the network lists.
+--- The periodic sweep (`veafSkynet.removeVanishedSites`) drops a despawned site, but not one DCS reported a unit of lost:
+--- that site stays as destroyed, and would hold its name against the new group for the rest of the mission.
+--- @param groupName string the DCS group, just spawned
+--- @param side number the DCS coalition
+--- @return boolean true when declared; false when Skynet is not running
+function veafCampaign.declareToSkynet(groupName, side)
+  if not (veafSkynet and veafSkynet.initialized) then
+    veaf.loggers.get(veafCampaign.Id):debug("[CAMPAIGN SKYNET] [%s] not declared: Skynet is not running", groupName)
+    return false
+  end
+  local networkName = veafSkynet.defaultIADS[tostring(side)]
+  local network = veafSkynet.getNetwork(networkName)
+  local sites = network and network.iads and network.iads.samSites or {}
+  local replaced = 0
+  for index = #sites, 1, -1 do
+    if sites[index].dcsName == groupName then
+      veafSkynet.removeSkynetElement(sites[index], network)
+      replaced = replaced + 1
+    end
+  end
+  if replaced > 0 then
+    veafSkynet.rebuildRadarCoverage(networkName)
+  end
+  veafSkynet.integrateMissionSpawn(groupName)
+  veaf.loggers
+    .get(veafCampaign.Id)
+    :info("[CAMPAIGN SKYNET] [%s] declared to %s%s", groupName, tostring(networkName), replaced > 0 and ", its old site replaced" or "")
+  return true
+end
+
 --- The groups of the zone's garrison bought in the shop (FEAT-CAMPAIGN-SHOP-UPGRADES 01), in the order they were.
 --- @return table the garrison groups that carry an `upgrade`
 function VeafCampaignZone:upgrades()
@@ -1108,6 +1164,10 @@ function VeafCampaignZone:spawnGroup(groupIndex, only)
     hidden = false,
     units = dcsUnits,
   })
+  -- the units a delivery brings back beside a group are no SAM: an air defence unit brought back respawns its group whole
+  if not only and self:isSamGroup(group) then
+    veafCampaign.declareToSkynet(groupName, side)
+  end
   veafCampaign.counters.spawns = veafCampaign.counters.spawns + #dcsUnits
   return #dcsUnits
 end

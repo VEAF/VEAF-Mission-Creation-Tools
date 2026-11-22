@@ -2114,4 +2114,176 @@ function TestCampaignEvening:test_the_last_pilot_dead_writes_the_summary_too()
   luaunit.assertEquals(#loggedLines("CREDITS SUMMARY (the last player left his slot)"), 1)
 end
 
+-- ---------------------------------------------------------------------------
+-- My earnings (FEAT-CAMPAIGN-PILOT-EARNINGS-MENU 01)
+-- ---------------------------------------------------------------------------
+TestCampaignEarnings = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+--- The unit a pilot calls the menu from, registered so that `Unit.getByName` finds it.
+local function cockpit(unitName, player, id)
+  dcs_mocks.addUnit(unitName, {
+    _id = id,
+    getPlayerName = function()
+      return player
+    end,
+    getGroup = function()
+      return {
+        getID = function()
+          return 77
+        end,
+      }
+    end,
+  })
+end
+
+--- What `reportEarnings` said to the unit `id`: one message.
+local function earningsTo(id)
+  local said = {}
+  for _, message in ipairs(dcs_mocks.messages) do
+    if message.fn == "outTextForUnit" and message.target == id then
+      table.insert(said, message.text)
+    end
+  end
+  luaunit.assertEquals(#said, 1)
+  return said[1]
+end
+
+local function contains(text, part)
+  luaunit.assertNotNil(string.find(text, part, 1, true), string.format("%q not in:\n%s", part, text))
+end
+
+function TestCampaignEarnings:test_the_entry_is_split_per_pilot_and_knows_its_caller()
+  local perPilot, commands = {}, {}
+  local saved = { veafRadio.addSubMenuPerPilot, veafRadio.addCommandToSubmenu }
+  veafRadio.addSubMenuPerPilot = function(title, menu, filter, side)
+    local subMenu = saved[1](title, menu, filter, side)
+    perPilot[title] = { menu = menu, subMenu = subMenu, side = side }
+    return subMenu
+  end
+  veafRadio.addCommandToSubmenu = function(title, menu, method, parameters, usage, ...)
+    table.insert(commands, { title = title, menu = menu, method = method, usage = usage })
+    return saved[2](title, menu, method, parameters, usage, ...)
+  end
+  start({ economy = { start_credits = 0 }, air = {} })
+  veafRadio.addSubMenuPerPilot, veafRadio.addCommandToSubmenu = saved[1], saved[2]
+  local entry = perPilot[veaf.t("menu.campaign.earnings")]
+  luaunit.assertNotNil(entry)
+  luaunit.assertEquals(entry.menu, veafCampaign.rootPath)
+  luaunit.assertEquals(entry.side, BLUE)
+  local found = nil
+  for _, command in ipairs(commands) do
+    if command.menu == entry.subMenu then
+      found = command
+    end
+  end
+  luaunit.assertNotNil(found)
+  luaunit.assertEquals(found.method, veafCampaignEconomy.reportEarnings)
+  luaunit.assertEquals(found.usage, veafRadio.USAGE_ForGroup)
+end
+
+function TestCampaignEarnings:test_a_pilot_reads_his_session_his_held_credits_his_total_his_rank_and_his_kills()
+  start({ economy = { start_credits = 0 }, air = {} })
+  cockpit("Zip's Hog", "Zip", 5)
+  veafCampaignEconomy.onKill(killOf("T-72")) -- 5 now, 5 held
+  veafCampaignEconomy.onKill(killOf("MiG-29", {}, Unit.Category.AIRPLANE)) -- 25 now, 25 held
+  veafCampaignEconomy.earnBy("Paluche", 200, "campaign.credits.rescue", "Paluche", 1)
+  veafCampaignEconomy.count("Zip", "Deaths")
+  veafCampaignEconomy.reportEarnings("Zip's Hog")
+  local text = earningsTo(5)
+  contains(text, "My earnings - Zip")
+  contains(text, "This session (since nobody was left in a slot): 30 cr.")
+  contains(text, "- kills: 30 cr.")
+  contains(text, "Held in your aircraft: 30 cr.")
+  contains(text, "Campaign: 30 cr., rank 2 of 2")
+  contains(text, "aircraft 1, ground units 1, deaths 1")
+  luaunit.assertNil(string.find(text, "helicopters", 1, true), "a category at zero is left out")
+  luaunit.assertNil(string.find(text, "kill_held", 1, true), "the code's keys are not shown")
+end
+
+function TestCampaignEarnings:test_the_held_credits_move_into_the_session_once_landed()
+  start({ economy = { start_credits = 0 }, air = {} })
+  cockpit("Zip's Hog", "Zip", 5)
+  veafCampaignEconomy.onKill(killOf("MiG-29", {}, Unit.Category.AIRPLANE))
+  Airbase.getByName = function()
+    return airbaseOf(BLUE)
+  end
+  veafCampaignEconomy.onPilotEvent({
+    type = { id = world.event.S_EVENT_LAND },
+    initiator = { unitName = "Zip's Hog" },
+    place = { unitName = "Kobuleti" },
+  })
+  veafCampaignEconomy.reportEarnings("Zip's Hog")
+  local text = earningsTo(5)
+  contains(text, "This session (since nobody was left in a slot): 50 cr.")
+  contains(text, "- kills: 25 cr.")
+  contains(text, "- bonus banked at landing: 25 cr.")
+  contains(text, "Held in your aircraft: nothing")
+end
+
+function TestCampaignEarnings:test_a_pilot_with_no_books_reads_a_short_answer()
+  start({ economy = { start_credits = 0 }, air = {} })
+  cockpit("Hog 2", "Newbie", 6)
+  veafCampaignEconomy.reportEarnings("Hog 2")
+  luaunit.assertEquals(earningsTo(6), "My earnings - Newbie: nothing yet this session.")
+  -- his books opened at his first slot, still empty: the same short answer
+  veafCampaignEconomy.onPlayerEnter({ initiator = { unitName = "Hog 2" }, dcsInitiator = Unit.getByName("Hog 2") })
+  dcs_mocks.messages = {}
+  veafCampaignEconomy.reportEarnings({ "Hog 2" })
+  luaunit.assertEquals(earningsTo(6), "My earnings - Newbie: nothing yet this session.")
+end
+
+function TestCampaignEarnings:test_two_pilots_read_each_their_own()
+  start({ economy = { start_credits = 0 }, air = {} })
+  cockpit("Zip's Hog", "Zip", 5)
+  cockpit("Hog 2", "Paluche", 6)
+  veafCampaignEconomy.onKill(killOf("MiG-29", {}, Unit.Category.AIRPLANE))
+  veafCampaignEconomy.earnBy("Paluche", 200, "campaign.credits.rescue", "Paluche", 1)
+  veafCampaignEconomy.reportEarnings("Zip's Hog")
+  veafCampaignEconomy.reportEarnings("Hog 2")
+  local zip, paluche = earningsTo(5), earningsTo(6)
+  contains(zip, "My earnings - Zip")
+  contains(zip, "rank 2 of 2")
+  contains(paluche, "My earnings - Paluche")
+  contains(paluche, "This session (since nobody was left in a slot): 200 cr.")
+  contains(paluche, "- rescues: 200 cr.")
+  contains(paluche, "Held in your aircraft: nothing")
+  contains(paluche, "rank 1 of 2")
+  luaunit.assertNil(string.find(paluche, "aircraft 1", 1, true))
+end
+
+function TestCampaignEarnings:test_the_team_line_says_what_the_whole_side_earned()
+  start({ economy = { start_credits = 0 }, air = {} })
+  cockpit("Zip's Hog", "Zip", 5)
+  veafCampaignEconomy.onKill(killOf("T-72"))
+  veafCampaign.notify("captured", veafCampaign.zones["Poti"], "blue")
+  veafCampaignEconomy.reportEarnings("Zip's Hog")
+  local text = earningsTo(5)
+  contains(text, "Captures, tasks and network deliveries go to the whole team: 200 cr. this session")
+  -- the team is no pilot of the ranking
+  contains(text, "rank 1 of 1")
+end
+
+function TestCampaignEarnings:test_the_session_starts_again_after_the_summary()
+  start({ economy = { start_credits = 0 }, air = {} })
+  cockpit("Zip's Hog", "Zip", 5)
+  veafCampaignEconomy.onKill(killOf("MiG-29", {}, Unit.Category.AIRPLANE))
+  veafCampaignEconomy.summarizeSession("nobody left in a slot")
+  veafCampaignEconomy.onKill(killOf("T-72"))
+  veafCampaignEconomy.reportEarnings("Zip's Hog")
+  local text = earningsTo(5)
+  contains(text, "This session (since nobody was left in a slot): 5 cr.")
+  contains(text, "Campaign: 30 cr.")
+  -- the held credits belong to the aircraft, not to the session
+  contains(text, "Held in your aircraft: 30 cr.")
+end
+
+function TestCampaignEarnings:test_a_caller_gone_or_with_no_player_reads_nothing()
+  start({ economy = { start_credits = 0 }, air = {} })
+  cockpit("AI Hog", nil, 7)
+  veafCampaignEconomy.reportEarnings("AI Hog")
+  veafCampaignEconomy.reportEarnings("nobody")
+  veafCampaignEconomy.reportEarnings(nil)
+  luaunit.assertEquals(#dcs_mocks.messages, 0)
+end
+
 os.exit(luaunit.LuaUnit.run())

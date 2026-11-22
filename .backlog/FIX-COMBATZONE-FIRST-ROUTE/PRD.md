@@ -1,6 +1,6 @@
 # FIX-COMBATZONE-FIRST-ROUTE — a group a combat zone spawns by command gets its route 5 s after its birth
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human
 
 Left over by FIX-SPAWN-GROUP-FIRST-ROUTE (ticket 01, "Not done"): "a combat zone gives the route of the groups its elements spawn from its own hook, in the same frame (`veafCombatZone.lua`, `registerSpawnedGroupsHook`); same defect, outside this ticket." David, 2026-11-22: create the lot.
 

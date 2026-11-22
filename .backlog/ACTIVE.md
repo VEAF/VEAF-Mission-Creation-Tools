@@ -6,10 +6,6 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [FIX-COMBATZONE-FIRST-ROUTE](FIX-COMBATZONE-FIRST-ROUTE/PRD.md) · 🔄
-
-A group a combat zone spawns from a VEAF command gets its route from the zone's hook in its creation frame, where DCS drops it; give it through `veafSpawn.giveFirstRoute`, 5 s later. One ticket, one PR into `feature/dynamic-campaign`; left over by FIX-SPAWN-GROUP-FIRST-ROUTE (2026-11-22).
-
 ### [FIX-CAMPAIGN-ASSAULT-ORDER-OPEN](FIX-CAMPAIGN-ASSAULT-ORDER-OPEN/PRD.md) · 🔄
 
 Every player can order a paid blue assault (Rex and David, 2026-11-21): in a persistent campaign the Campaign → Assaults order is a purchase, so it is no longer secured, and the shop and the player guide say where it is and what it costs. One ticket; PR into `feature/dynamic-campaign`.
@@ -39,6 +35,10 @@ What the players earn pays for what the shop sells (David, 2026-11-20): rewards 
 The enemy's assault convoys sized for the players who can stop them (Griffin and David, 2026-11-21): one convoy on the road per 4 strikers, CAS aircraft or attack helicopters, neutral-zone assaults included, fighters and SEAD-only aircraft not counted; a counter-attack prefers a zone no such player is defending. Two tickets; PR into `feature/dynamic-campaign`.
 
 ## 🧑 Waiting for a human
+
+### [FIX-COMBATZONE-FIRST-ROUTE](FIX-COMBATZONE-FIRST-ROUTE/PRD.md) · 🧑
+
+A group a combat zone spawns from a VEAF command gets its route from the zone's hook in its creation frame, where DCS drops it; give it through `veafSpawn.giveFirstRoute`, 5 s later. Left over by FIX-SPAWN-GROUP-FIRST-ROUTE (2026-11-22). Merged into `feature/dynamic-campaign` (#1332); waiting for the in-game check.
 
 ### [FIX-SPAWN-GROUP-FIRST-ROUTE](FIX-SPAWN-GROUP-FIRST-ROUTE/PRD.md) · 🧑
 

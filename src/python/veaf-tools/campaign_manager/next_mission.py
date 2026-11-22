@@ -297,6 +297,31 @@ def enable_support_module(mission_yaml: Path, dynamic: dict[str, Any]) -> bool:
     return True
 
 
+def enable_skynet_module(mission_yaml: Path, dynamic: dict[str, Any]) -> bool:
+    """Turn the `SKYNET` module on in `mission.yaml`, for both sides, unless `dynamic.skynet.enabled` is false.
+
+    Skynet creates a network for each coalition when it starts. The campaign spawns its garrisons later, zone by
+    zone, and declares each of its SAM groups itself (`veafCampaign.declareToSkynet`), so the birth-event
+    integration is left off: a group declared twice would only be refused, but the rule is one path per spawn.
+
+    Args:
+        mission_yaml: The mission's `mission.yaml`.
+        dynamic: The campaign's `dynamic:` block.
+
+    Returns:
+        Whether the module was set; ``False`` when the campaign turns it off.
+    """
+    if (dynamic.get("skynet") or {}).get("enabled") is False:
+        return False
+    data = load_yaml(mission_yaml)
+    modules = data.setdefault("modules", {})
+    if modules is None:
+        modules = data["modules"] = {}
+    modules["SKYNET"] = {"enabled": True, "dynamic_spawn": False}
+    save_yaml(mission_yaml, data)
+    return True
+
+
 def open_every_campaign_airfield(campaign: CampaignDefinition, mission_folder: Path) -> list[str]:
     """List every airfield zone of the campaign under the player side's `airports:` in `src/warehouses.yaml`.
 
@@ -708,6 +733,7 @@ def prepare_next_mission(
     if campaign.mode == "persistent":
         add_campaign_cargo(mission_folder, campaign.dynamic)
         enable_support_module(mission_folder / "mission.yaml", campaign.dynamic)
+        enable_skynet_module(mission_folder / "mission.yaml", campaign.dynamic)
         hide_enemies_on_the_map(mission_folder / "mission.yaml")
         slot_airbases = open_every_campaign_airfield(campaign, mission_folder)
     else:

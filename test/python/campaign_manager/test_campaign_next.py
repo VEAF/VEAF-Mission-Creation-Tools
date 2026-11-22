@@ -526,6 +526,42 @@ class TestTheSupportModule:
         assert not enable_support_module(mission_yaml, {})
 
 
+class TestTheSkynetModule:
+    """FEAT-CAMPAIGN-SKYNET 01: a persistent campaign's SAM sites run under Skynet, both sides, unless it says not."""
+
+    def test_the_campaign_turns_it_on_for_both_sides(self, tmp_path: Path) -> None:
+        from campaign_manager.next_mission import enable_skynet_module
+
+        mission_yaml = tmp_path / "mission.yaml"
+        mission_yaml.write_text("modules:\n  SKYNET: false\n  MOVE: true\n", encoding="utf-8")
+        assert enable_skynet_module(mission_yaml, {})
+        modules = yaml.safe_load(mission_yaml.read_text(encoding="utf-8"))["modules"]
+        # the campaign declares each SAM group itself (ticket 03): no birth-event integration on top of it
+        assert modules["SKYNET"] == {"enabled": True, "dynamic_spawn": False}
+        assert modules["MOVE"] is True
+
+    def test_the_generated_lua_initializes_it(self, tmp_path: Path) -> None:
+        from campaign_manager.next_mission import enable_skynet_module
+
+        mission_yaml = tmp_path / "mission.yaml"
+        mission_yaml.write_text("modules: {}\n", encoding="utf-8")
+        enable_skynet_module(mission_yaml, {})
+        from mission_builder.mission_builder_worker import _normalize_mission_yaml
+
+        normalized = _normalize_mission_yaml(yaml.safe_load(mission_yaml.read_text(encoding="utf-8")))
+        lua = generate_config_lua(normalized)
+        assert "veafSkynet.DynamicSpawn = false" in lua
+        assert "veafSkynet.initialize(false, false, false, false)" in lua
+
+    def test_a_campaign_that_turns_it_off_keeps_it_off(self, tmp_path: Path) -> None:
+        from campaign_manager.next_mission import enable_skynet_module
+
+        mission_yaml = tmp_path / "mission.yaml"
+        mission_yaml.write_text("modules:\n  SKYNET: false\n", encoding="utf-8")
+        assert not enable_skynet_module(mission_yaml, {"skynet": {"enabled": False}})
+        assert yaml.safe_load(mission_yaml.read_text(encoding="utf-8"))["modules"]["SKYNET"] is False
+
+
 class TestAPersistentCampaignsConditions:
     """David, 2026-11-17: the server's MizEdit gives a persistent campaign its real weather at each load."""
 
@@ -575,6 +611,8 @@ class TestAPersistentDcsBriefing:
         mission_yaml = (report.folder / "mission.yaml").read_text(encoding="utf-8")
         assert "Campaign_Caucasus-Front_Mission_01_Bouclier" in mission_yaml
         assert written["blue_task"] == "1. Couper le réseau"
+        # FEAT-CAMPAIGN-SKYNET 01: a persistent campaign's mission starts Skynet
+        assert yaml.safe_load(mission_yaml)["modules"]["SKYNET"] == {"enabled": True, "dynamic_spawn": False}
 
     def test_situation_axes_and_the_kneeboard(self) -> None:
         from campaign_manager.briefing_prose import BriefingProse, Titled

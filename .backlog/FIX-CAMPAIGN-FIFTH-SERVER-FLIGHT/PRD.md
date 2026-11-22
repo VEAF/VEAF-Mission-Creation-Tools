@@ -27,6 +27,6 @@ David, 2026-11-22: one lot, four tickets, the recommendations below. The integra
 | # | Left to do |
 |---|---|
 | 01 | in-game check: ROE OPEN_FIRE (2) on a strike's first point and a SEAD's push point |
-| 02 | Measured 2026-11-22 evening: the Hawk never fires, in Hatay's mixed group, in a group of its own, or as a standard site alone, while a NASAMS beside it fires at the same armed Su-25. The mixed-group hypothesis is refuted; no split. David to decide which system replaces the Hawk in the blue level-5 garrison template |
+| 02 | Measured 2026-11-22 evening: the Hawk never fires, in Hatay's mixed group, in a group of its own, or as a standard site alone, while a NASAMS beside it fires at the same armed Su-25. The mixed-group hypothesis is refuted; no split. But Hawks fire in David's other missions (Foothold): the difference in how these were spawned is still to find before any change |
 | 03 | in-game check: `awacs_standoff` (100 km) for an AWACS, tankers unchanged; each move logged from the bullseye |
 | 04 | in-game check: a helicopter's own timeout: distance / 40 m/s × 1.5 + 300 s, floored at `helicopter_timeout` |

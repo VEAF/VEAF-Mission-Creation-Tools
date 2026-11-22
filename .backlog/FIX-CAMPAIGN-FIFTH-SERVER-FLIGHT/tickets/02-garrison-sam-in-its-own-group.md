@@ -50,7 +50,7 @@ The script was written without DCS and never run: its positions may need moving 
 
 ## Measured (2026-11-22 evening, David's DCS, through the bridge)
 
-**The mixed-group hypothesis is refuted: the Hawk does not fire at all, in a group of its own or not.**
+**The mixed-group hypothesis is refuted: in this setup the Hawk did not fire, in a group of its own or not.** David, 2026-11-22: Hawks fire in his other missions, Foothold's `Blue SAM HAWK` among them (Mission Editor group, same composition as `BLUE-5`, skill High, a route, launchers turned to cover all around). So something in how these Hawks were spawned differs; not found yet.
 
 Bench 1, an empty Syria mission (`veaf-mesure-sam-Syria.miz`), single player then server mode: nothing fired at all, not even the NASAMS control, against an **unarmed** An-26B at 4,000 m or a **clean** Su-25T at 3,000 m passing overhead. A Hawk site alone, the same inside a 33-unit mixed group, a full Hawk with CWAR, a NASAMS with and without a route: 0 missiles fired. The search radars detected the targets; the Hawk tracking radars never came on. Likely, not proven: DCS air defence does not engage an aircraft carrying no weapon. The script of this file flies an unarmed target, so it cannot measure anything.
 

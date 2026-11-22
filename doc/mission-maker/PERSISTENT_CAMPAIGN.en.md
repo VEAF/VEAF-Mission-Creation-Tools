@@ -702,6 +702,7 @@ dynamic:
 The AWACS and tankers named in `support.assets` (assets of the mission, with an orbit in the Mission Editor) are held out of the enemy's air defence by the [`veafSupport` module](scripts/veafSupport.en.md), which `campaign next` turns on in `mission.yaml` with these settings; the campaign hands it the reach of its zones, asleep or awake, and its front:
 
 - on the line from their Mission Editor orbit to the enemy zone nearest it, at the first point out of the reach of **every** enemy air defence plus `support.margin` (30 km), never ahead of their side's own zone nearest that enemy;
+- an AWACS, besides, at least `support.awacs_standoff` (100 km) from **every** enemy zone, even one held by MANPADS alone: on 2026-11-22 a zone reaching 4 km left it 35 km away; the tankers stay as near the front as the reach allows;
 - out at once, with `support.retreat_margin` (50 km), when a reach comes over its orbit; closer only after 30 minutes of calm and for a step of 30 km at least (`support.advance_seconds`, `support.min_advance`), so a SAM that wakes and sleeps does not make it shuttle; its leg (`support.leg`, 30 nm) laid across the axis;
 - its F10 marks (leg and label, for its side) redrawn at each move;
 - each move told to its side: the new orbit in bearing and range from the bullseye, frequency unchanged.
@@ -819,7 +820,7 @@ A `KO` line is enough to know where to look.
 | `debug` | see [the debugging log](#debug-log) | `true` while testing |
 | `debug_status_seconds` | 300 | seconds between two status lines of the log |
 | `territory` | see [territory](#territory) | `enabled` (true), `margin` (70000), `hatch_spacing` (3000), `hatch_length` (2500) |
-| `support` | see [AWACS and tankers](#support) and the [`veafSupport` module](scripts/veafSupport.en.md#settings) | `assets` (none), `margin` (30000), `retreat_margin` (50000), `seconds` (60), `advance_seconds` (1800), `min_advance` (30000), `leg` (30, nm) |
+| `support` | see [AWACS and tankers](#support) and the [`veafSupport` module](scripts/veafSupport.en.md#settings) | `assets` (none), `margin` (30000), `retreat_margin` (50000), `seconds` (60), `advance_seconds` (1800), `min_advance` (30000), `leg` (30, nm), `awacs_standoff` (100000) |
 
 The caps are conservative by default; they will be tuned from what the servers hold.
 

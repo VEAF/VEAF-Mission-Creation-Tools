@@ -765,6 +765,7 @@ SUPPORT_SETTINGS: tuple[str, ...] = (
     "min_advance",
     "leg",
     "sam_reach_floor",
+    "awacs_standoff",
 )
 
 

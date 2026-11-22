@@ -25,9 +25,11 @@ Each asset is a group placed in the Mission Editor, with an **Orbit** in its rou
 ## How an asset holds {#behaviour}
 
 - **Where**: on the line from the threat nearest its Mission Editor orbit through that orbit, at the first point out of the reach of **every** threat plus `margin`. Never nearer the threat than its orbit — in a persistent campaign, than its side's own front zone —, and as far back as needed.
+- **An AWACS holds further out**: at least `awacs_standoff` (100 km, about 55 nm) from the centre of **every** threat, whatever its reach, when it retreats as when it advances. Its radar sees far, it has no need to come near the front; the tankers, handy near the front, keep the reach rule. An asset is an AWACS when DCS gives its aircraft the `AWACS` attribute.
 - **Retreat at once**: when a threat reaches its orbit (plus `margin`), it falls back with `retreat_margin`, wider, so as not to sit on the edge.
 - **Advance only after a long calm**: it comes closer only when a new orbit `min_advance` (30 km) closer has stayed possible for `advance_seconds` (30 minutes), and no sooner than `advance_seconds` after its last move. A SAM that wakes and sleeps, or appears and dies, every few minutes does not make it shuttle: it falls back once, and holds.
 - **Each move is told** to its side: the new orbit by bearing and range from the bullseye, frequency unchanged. In a campaign, its side's command speaks.
+  `dcs.log` writes it too, with its distance to the threat: `[AWACS Magic] retreat: orbit moved 100 km (Jisr al-Shughur), orbit now 180/81 NM from the bullseye, 100 km from [Jisr al-Shughur]`.
 - **Its marks follow it**: its leg and a label with its name and frequency, drawn on the F10 map for its side only, removed and redrawn at each move, so the map and the announcement always agree.
 - **A respawned asset** (the assets menu, the campaign's shop) comes back on its Mission Editor orbit: it is weighed again from there.
 
@@ -48,6 +50,7 @@ Each asset is a group placed in the Mission Editor, with an **Orbit** in its rou
 | `min_advance` | 30000 | metres closer a new orbit must be to be worth an advance |
 | `leg` | 30 | nautical miles of the racetrack, laid across the axis |
 | `sam_reach_floor` | 15000 | metres: in a mission alone, a missile reaching less is no threat |
+| `awacs_standoff` | 100000 | metres an AWACS holds from every threat's centre, whatever its reach; not the tankers |
 
 ## Still to check in game {#to-verify}
 

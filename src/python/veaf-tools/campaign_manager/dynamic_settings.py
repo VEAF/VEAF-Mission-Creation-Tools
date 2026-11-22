@@ -194,6 +194,7 @@ _SCHEMA: dict[str, Check | dict[str, Check]] = {
         "min_advance": _positive,
         "leg": _positive,
         "sam_reach_floor": _positive,
+        "awacs_standoff": _positive,
     },
     "debug": _flag,
     "debug_status_seconds": _positive,

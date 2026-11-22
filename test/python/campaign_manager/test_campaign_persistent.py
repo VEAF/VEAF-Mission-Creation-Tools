@@ -109,6 +109,7 @@ class TestTheDynamicBlock:
             "debug": False,
             "debug_status_seconds": 600,
             "territory": {"enabled": True, "margin": 50000},
+            "support": {"assets": ["AWACS Magic"], "awacs_standoff": 120000},
         }
         dynamic = _persistent(dynamic=block).dynamic
         for key, value in block.items():
@@ -122,6 +123,7 @@ class TestTheDynamicBlock:
             ({"ground_wake_radius": 0}, "dynamic.ground_wake_radius"),
             ({"reach_wake_margin": -1}, "dynamic.reach_wake_margin"),
             ({"front_depth": 0}, "dynamic.front_depth"),
+            ({"support": {"awacs_standoff": 0}}, "dynamic.support.awacs_standoff"),
             ({"takeoff_threat_range": 0}, "dynamic.takeoff_threat_range"),
             ({"attacks": ["green"]}, "dynamic.attacks"),
             ({"players_per_convoy": 0}, "dynamic.players_per_convoy"),

@@ -25,9 +25,11 @@ Chaque moyen est un groupe posé dans l'éditeur, avec une **orbite** dans sa ro
 ## Comment un moyen se tient {#behaviour}
 
 - **Où** : sur la ligne qui va de la menace la plus proche de son orbite de l'éditeur à cette orbite, au premier point hors de portée de **toutes** les menaces plus `margin`. Jamais plus près de la menace que son orbite — en campagne persistante, que la zone de son camp la plus avancée —, et aussi loin en arrière qu'il le faut.
+- **Un AWACS se tient plus loin** : à au moins `awacs_standoff` (100 km, environ 55 nautiques) du centre de **chaque** menace, quelle que soit sa portée, en se repliant comme en avançant. Son radar voit loin, il n'a pas besoin d'approcher le front ; les ravitailleurs, utiles près du front, gardent la règle de la portée. Un moyen est un AWACS quand DCS donne à son appareil l'attribut `AWACS`.
 - **Il se replie aussitôt** : quand une menace atteint son orbite (plus `margin`), il recule avec `retreat_margin`, plus large, pour ne pas rester au bord.
 - **Il n'avance qu'après un long calme** : il se rapproche seulement quand une orbite plus proche de `min_advance` (30 km) est restée possible pendant `advance_seconds` (30 minutes), et pas avant `advance_seconds` après son dernier déplacement. Un SAM qui se réveille et se rendort, ou apparaît et meurt, toutes les quelques minutes ne le fait pas faire d'allers-retours : il recule une fois, et tient.
 - **Chaque déplacement est annoncé** à son camp : la nouvelle orbite en relèvement et distance du bullseye, fréquence inchangée. En campagne, c'est le commandement de son camp qui parle.
+  `dcs.log` l'écrit aussi, avec sa distance à la menace : `[AWACS Magic] retreat: orbit moved 100 km (Jisr al-Shughur), orbit now 180/81 NM from the bullseye, 100 km from [Jisr al-Shughur]`.
 - **Ses marques le suivent** : sa branche et une étiquette avec son nom et sa fréquence, dessinées sur la carte F10 pour son seul camp, effacées et redessinées à chaque déplacement, si bien que la carte et l'annonce disent toujours la même chose.
 - **Un moyen réapparu** (menu des assets, boutique de la campagne) revient sur son orbite de l'éditeur : il est réévalué depuis là.
 
@@ -48,6 +50,7 @@ Chaque moyen est un groupe posé dans l'éditeur, avec une **orbite** dans sa ro
 | `min_advance` | 30000 | mètres dont une orbite doit être plus proche pour valoir une avancée |
 | `leg` | 30 | nautiques de l'hippodrome, posé en travers de l'axe |
 | `sam_reach_floor` | 15000 | mètres : dans une mission seule, un missile qui porte moins loin n'est pas une menace |
+| `awacs_standoff` | 100000 | mètres dont un AWACS se tient du centre de chaque menace, quelle que soit sa portée ; pas les ravitailleurs |
 
 ## Ce qui reste à vérifier en jeu {#to-verify}
 

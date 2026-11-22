@@ -229,7 +229,9 @@ veafSpawn.firstRouteIds = {}
 --- Give a group `executeCommand` just spawned its route, `CONVOY_FIRST_ORDER_DELAY_SECONDS` later: an order given in
 --- the frame a group is created is lost, 3 times out of 3, and taken 5 s later (measured 2026-11, dcs-cartographie).
 --- Not when the group is gone by then, nor when a group spawned again under the same name meanwhile has its own (the
---- last order wins). Ground groups only: an aircraft or a ship gets its route in its definition, or from its role.
+--- last order wins). Measured on ground groups; a route passed with the command can also reach an aircraft or a ship (a
+--- Mission Editor placeholder's route, `veafInterpreter`), which then flies or sails its spawn route for those 5 s. An
+--- aircraft with a role never comes here.
 --- @param groupName string
 --- @param route table|nil route points; nothing is given without them
 function veafSpawn.giveFirstRoute(groupName, route)

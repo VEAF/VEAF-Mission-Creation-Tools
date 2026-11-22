@@ -1,6 +1,6 @@
 # 02 — A garrison's SAM in a group of its own
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — the measure needs DCS running on David's machine
 Type: fix
 
 ## To do
@@ -20,3 +20,30 @@ The measure is written down, and a zone's radar air defence fires at an enemy ai
 ## In-game check
 
 On the Campagne server: a `[CAMPAIGN FLIGHT]` line where a Hawk at Hatay, or an SA-11 / SA-6 / SA-3 at Aleppo or Bassel Al-Assad, kills an aircraft, or the `[CAMPAIGN AIRDEF]` missile count of its launchers going down.
+
+## State (2026-11-22, the implementing session)
+
+**Not measured: DCS was not running.** No `DCS.exe` process on DAVID-BUREAU, nothing on the fiddle hook (port 12080) nor on the bridge (8080).
+Nothing was changed in the garrison code: the ticket says to measure first, and to split only if the mixed group stays silent.
+
+What the code and the server log narrow down, measured:
+
+- **The red medium- and long-range batteries are already groups of their own.** `VeafCampaignZone:drawGarrison` (`veafCampaign.lua`, the `batteries` table) places each `medium_range_sam` / `long_range_sam` battery as its own group, saved under its own name.
+  The Campagne server's log has `group [Aleppo medium-range SAM] reinforced` (2026-11-22 16:19 UTC).
+  So the SA-11 / SA-6 / SA-3 drawn on 2026-11-22 are not concerned by the mixed-group hypothesis.
+- **The only multi-unit SAM drawn inside the main group is the blue Hawk.** `composeGarrison` puts `generateAirDefenseGroup` in the garrison's one group, and among its templates only `generateAirDefenseGroup-BLUE-5` holds a SAM of separate pieces (Hawk sr, pcp, tr, 3 ln, plus Chaparral, Gepard, lorries).
+  `BLUE-4` holds a Roland Radar with Roland ADS, which are self-contained (Roland ADS has 4 kills in the log); the red templates hold only self-contained vehicles and a Dog Ear radar.
+  The server log knows a single group at Hatay, `Hatay garrison`.
+
+So the split, if the measure calls for it, concerns only the Hawk of `BLUE-5` (and a `garrison_list` that would declare a multi-unit SAM).
+
+## Measurement procedure (to run with DCS up)
+
+1. Launch any Syria mission in DCS, unpaused, with the fiddle hook installed (it is: `Saved Games/DCS/Scripts/Hooks/dcs-fiddle-server.lua`).
+2. Send [`measure/sam-in-mixed-group.lua`](../measure/sam-in-mixed-group.lua) to the hook (`env=default`, Lua base64-encoded in the path, Basic auth `veaf` with `%USERPROFILE%\dcs-fiddle-token.txt`).
+   It spawns a Hawk site alone and the same site inside a 30-odd-unit mixed group, 60 km apart, each with a red An-26B flown over it at 4,000 m.
+3. Every minute for ten minutes, send the `measure-result.lua` block at the end of that file: missiles left on each site's launchers, each target alive or down, the shots seen.
+4. Read: site A fires and site B does not → the hypothesis holds, split the Hawk into its own group (the "To do" above). Both fire → stop, the cause is elsewhere (alarm state, skill, masking at Hatay). Neither fires → the test is wrong (positions, target), fix it before concluding.
+5. Write the result into `known-limitations.yaml` (`kind: dcs`, value and date) and regenerate `docs/agents/dcs-runtime-traps.md`.
+
+The script was written without DCS and never run: its positions may need moving off a town or a ridge.

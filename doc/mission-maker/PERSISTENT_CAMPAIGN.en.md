@@ -20,7 +20,7 @@
 - **The enemy pays for what it sends** with the [resources](#resources) its factories make: destroying its [factories](#zone-kinds) or cutting its [supply network](#network) grounds its CAP in the end.
 - **The map is tinted** by side, each zone holding the [territory](#territory) nearest to it, and the front reads between the two colours.
 - **Every announcement says who speaks**: "Blue command:" (or red) for what a side does or suffers, "Intelligence:" for what is learnt of the enemy — a convoy or a helicopter leaving, a raid inbound.
-- **The F10 → Other → VEAF → Campaign menu** gives the situation, the credits, the tasks, the intelligence and the shop; the "(admin)" commands come last.
+- **The F10 → Other → VEAF → Campaign menu** gives the situation, the credits, [my earnings](#my-earnings), the tasks, the intelligence and the shop; the "(admin)" commands come last.
 - **The game ends** when one side holds no zone left: a victory if it is the enemy, a defeat if it is us.
   Everyone is told, and the campaign starts afresh at the next load of the mission.
 
@@ -377,6 +377,20 @@ A player's kill — a unit, a SAM, an aircraft or a building — pays in two par
 Both parts go to the coalition's account.
 A ground unit destroyed counts even when DCS no longer finds it by name at the kill: its side is asked of the DCS object, else of the campaign's garrisons, assault convoys and aircraft.
 The other gains, which no single pilot carries, are paid whole.
+
+### My earnings {#my-earnings}
+
+F10 → Other → VEAF → Campaign → **My earnings** → Show: each pilot reads his own figures, to him alone.
+In a group of several player slots, the entry has one submenu per pilot, under his callsign.
+
+- **This session**: what he earned, by reason (kills, bonus banked at landing, rescues, weapon deliveries).
+  The session is the one of the log's `CREDITS SUMMARY`: it starts again when nobody is left in a slot, never under a pilot who is flying.
+- **Held in your aircraft**: the share of his kills his aircraft holds until it lands at a friendly airfield, FARP or carrier.
+- **Campaign**: his total since the campaign started, and his rank among the pilots.
+- **Score**: his kills by category (aircraft, helicopters, air defence, ground units, infantry, buildings), his weapon deliveries and his deaths, only what is above zero.
+- **The team**: what captures, tasks and network deliveries brought the whole side during the session.
+
+A pilot who has earned nothing yet reads "nothing yet this session".
 
 F10 → Other → VEAF → Campaign → **Shop**: each item lists the zones it applies to.
 A purchase refused (no target left, nothing in reach) costs nothing.

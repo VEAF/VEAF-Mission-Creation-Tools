@@ -1,6 +1,6 @@
 # FEAT-CAMPAIGN-PILOT-EARNINGS-MENU — each pilot sees in game what he earned
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 David, 2026-11-21, after the evening on the Campagne server: "il me semblait que j'avais demandé à avoir un menu pour savoir chaque pilote qu'est-ce qu'il a gagné".
 

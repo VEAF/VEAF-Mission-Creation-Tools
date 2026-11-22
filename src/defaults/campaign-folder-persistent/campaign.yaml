@@ -109,3 +109,4 @@ dynamic:
   support:
     assets: [ "AWACS Magic", "Tanker Texaco", "Tanker Arco" ]   # Texaco a KC-135 (boom), Arco a KC-135MPRS (basket)
     margin: 30000            # `campaign next` writes this block into mission.yaml's SUPPORT module (veafSupport)
+    awacs_standoff: 100000   # metres an AWACS holds from every enemy zone, whatever its reach; not the tankers

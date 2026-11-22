@@ -1,6 +1,6 @@
 # 03 — The AWACS holds well behind the front
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — the in-game check
 Type: fix
 
 ## To do
@@ -20,3 +20,11 @@ An AWACS held by the SUPPORT module stays at least 100 km from every enemy zone,
 ## In-game check
 
 On the Campagne server: the `VEAF-SUPPORT` move lines give the AWACS at 100 km or more from the nearest red zone; on the F10 map its orbit is over blue territory.
+
+## Done (2026-11-22)
+
+- `veafSupport.lua`: setting `awacs_standoff` (default 100000 m). `threatOver` and `station` take an optional `standoff`: a point is safe only beyond every reach plus the margin **and** `standoff` from every threat's centre. `follow` passes it for an AWACS (`veafSupport.isAwacs`: the DCS attribute `AWACS` of the group's first unit), 0 for a tanker, in danger, retreat and advance alike.
+- Each move logs the orbit from the bullseye and its distance to the threat: `[AWACS Magic] retreat: orbit moved 100 km (Jisr al-Shughur), orbit now 180/81 NM from the bullseye, 100 km from [Jisr al-Shughur]`.
+- Settings: `dynamic.support.awacs_standoff` in the campaign check (`dynamic_settings.py`) and the SUPPORT block of `mission.yaml` (`lua_config_generator.py`); in the shipped `campaign.yaml` and `mission.yaml` defaults, with its comment.
+- Tests: `test_veafSupport.lua` (an AWACS 100 km from a MANPADS zone, a tanker where it was, the setting, no advance inside the standoff, the log line); Python, the setting accepted and passed on, 0 refused.
+- Docs: `veafSupport` page and the campaign page, FR/EN.

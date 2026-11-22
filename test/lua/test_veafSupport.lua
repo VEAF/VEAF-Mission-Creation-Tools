@@ -36,6 +36,7 @@ function TestVeafSupport:setUp()
   self.moves, self.marks, self.removed = {}, {}, {}
   self.groupId = 1
   self.sams = {}
+  self.awacs = false -- a tanker unless a test says otherwise: the rule every asset shares
   local this = self
   self.saved = {
     move = veafMove,
@@ -70,6 +71,15 @@ function TestVeafSupport:setUp()
       end,
       getID = function()
         return this.groupId
+      end,
+      getUnits = function()
+        return {
+          {
+            hasAttribute = function(_, attribute)
+              return attribute == "AWACS" and this.awacs
+            end,
+          },
+        }
       end,
     }
   end
@@ -222,6 +232,63 @@ function TestVeafSupport:test_a_campaign_gives_its_threats_its_front_and_its_voi
   luaunit.assertEquals(self.moves[1].x, -50000)
   luaunit.assertEquals(#told, 1)
   luaunit.assertEquals(told[1].side, BLUE)
+end
+
+-- 2026-11-22: a red zone with MANPADS alone (reach 4 km) let the AWACS hold some 35 km from it; its radar sees about
+-- 100 NM, it has no need to be that close (David). The tankers stay handy near the front.
+local function manpadsZone()
+  veafSupport.threatSource = function()
+    return { { center = { x = -50000, z = 0 }, reach = 4000, name = "Jisr al-Shughur" } }
+  end
+end
+
+function TestVeafSupport:test_an_awacs_holds_awacs_standoff_from_every_enemy_zone_whatever_its_reach()
+  self.awacs = true
+  manpadsZone()
+  veafSupport.follow("AWACS Magic", 0)
+  luaunit.assertEquals(#self.moves, 1, "its Mission Editor orbit is 50 km from the zone: out at once")
+  luaunit.assertEquals(self.moves[1].x, -50000 - 100000, "100 km from the zone's centre, the default standoff")
+  veafSupport.follow("AWACS Magic", 1800)
+  veafSupport.follow("AWACS Magic", 3600)
+  luaunit.assertEquals(#self.moves, 1, "and it holds there")
+end
+
+function TestVeafSupport:test_a_tanker_holds_where_it_did()
+  manpadsZone()
+  veafSupport.follow("AWACS Magic", 0)
+  veafSupport.follow("AWACS Magic", 1800)
+  luaunit.assertEquals(#self.moves, 0, "50 km from a 4 km reach, beyond the 30 km margin: it stays on its orbit")
+end
+
+function TestVeafSupport:test_the_standoff_is_a_setting()
+  self.awacs = true
+  manpadsZone()
+  veafSupport.configure({ assets = { "AWACS Magic" }, awacs_standoff = 70000 })
+  veafSupport.follow("AWACS Magic", 0)
+  luaunit.assertEquals(self.moves[1].x, -50000 - 70000)
+end
+
+function TestVeafSupport:test_an_awacs_never_advances_inside_its_standoff()
+  self.awacs = true
+  -- the campaign case where a tanker advanced to the front, 50 km from Senaki: the AWACS, 100 km out, stays
+  veafSupport.threatSource = function()
+    return { { center = { x = 0, z = 0 }, reach = 20000, name = "Senaki" } }
+  end
+  veafSupport.frontLimit = function()
+    return 50000
+  end
+  veafSupport.follow("AWACS Magic", 0)
+  veafSupport.follow("AWACS Magic", 1800)
+  veafSupport.follow("AWACS Magic", 3600)
+  luaunit.assertEquals(#self.moves, 0)
+end
+
+function TestVeafSupport:test_a_move_logs_the_orbit_from_the_bullseye_and_its_distance_to_the_threat()
+  self.awacs = true
+  manpadsZone()
+  veafSupport.follow("AWACS Magic", 0)
+  -- the bullseye is the origin: the orbit 150 km south is on 180, 81 NM
+  luaunit.assertEquals(#dcs_mocks.findLog("orbit now 180/81 NM from the bullseye, 100 km from %[Jisr al%-Shughur%]"), 1)
 end
 
 os.exit(luaunit.LuaUnit.run())

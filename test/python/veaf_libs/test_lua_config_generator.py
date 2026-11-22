@@ -156,6 +156,14 @@ def test_support_is_configured_then_started_after_move():
     assert lua.index("veafMove.initialize()") < configure, "MOVE comes with it and starts first"
 
 
+def test_support_passes_the_awacs_standoff_on():
+    """FIX-CAMPAIGN-FIFTH-SERVER-FLIGHT 03: how far an AWACS holds from every threat, whatever its reach."""
+    lua = generate_config_lua(
+        {"lua_modules": {"SUPPORT": {"enabled": True, "assets": ["AWACS Magic"], "awacs_standoff": 120000}}}
+    )
+    assert 'veafSupport.configure({assets = {"AWACS Magic"}, awacs_standoff = 120000})' in lua
+
+
 def test_support_refuses_an_unknown_setting():
     with pytest.raises(ValueError, match="unknown setting `orbit`"):
         generate_config_lua({"lua_modules": {"SUPPORT": {"enabled": True, "assets": ["AWACS"], "orbit": 1}}})

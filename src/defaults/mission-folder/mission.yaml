@@ -150,6 +150,7 @@ modules:
   #     enabled: true
   #     assets: [ "AWACS Magic", "Tanker Texaco", "Tanker Arco" ]   # groups with an Orbit in their route
   #     margin: 30000           # metres beyond every enemy reach
+  #     awacs_standoff: 100000  # metres an AWACS holds from every threat, whatever its reach
   # ASSIST offers guided checklists from the F10 menu (Assistance / …). Off by default:
   # every activated checklist bakes one picture per step into the .miz.
   # With no `checklists:` list, the checklists you drop in this mission's `checklists/`

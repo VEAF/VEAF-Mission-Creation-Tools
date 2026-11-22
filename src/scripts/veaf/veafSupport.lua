@@ -6,6 +6,8 @@
 -- ---------
 -- * Each asset named in the SUPPORT module's `assets` holds on the line from its Mission Editor orbit to the
 --   nearest enemy air defence, at the first point out of the reach of every one of them plus `margin`.
+-- * An AWACS also holds `awacs_standoff` from every threat's centre, whatever its reach: its radar sees far, it has
+--   no need to be near the front. The tankers hold as near as the reach allows.
 -- * It retreats at once, with `retreat_margin`, when a threat reaches its orbit; it moves closer only when the
 --   way has been clear for `advance_seconds` and the new orbit is `min_advance` closer: a SAM that wakes and
 --   sleeps every few minutes does not make it shuttle.
@@ -39,6 +41,7 @@ veafSupport.DEFAULTS = {
   min_advance = 30000, -- metres closer the new orbit must be for an advance to be worth it
   leg = 30, -- nautical miles of the racetrack, laid across the axis
   sam_reach_floor = 15000, -- metres: in a mission alone, a missile reaching less is no threat to an AWACS
+  awacs_standoff = 100000, -- metres an AWACS holds from every threat's centre, whatever its reach (not the tankers)
 }
 
 veafSupport.settings = {}
@@ -130,10 +133,12 @@ function veafSupport.threats(side)
   return veafSupport.missionThreats(side)
 end
 
---- The threat whose reach comes over a point, with a margin; nil when none does.
-function veafSupport.threatOver(point, threats, margin)
+--- The threat whose reach comes over a point, with a margin, or whose centre is nearer than `standoff`; nil when none.
+--- @param standoff number|nil metres from every threat's centre, whatever its reach (an AWACS); nil or 0 for none
+function veafSupport.threatOver(point, threats, margin, standoff)
   for _, threat in ipairs(threats) do
-    if distance2d(point, threat.center) < threat.reach + margin then
+    local d = distance2d(point, threat.center)
+    if d < threat.reach + margin or d < (standoff or 0) then
       return threat
     end
   end
@@ -141,15 +146,17 @@ function veafSupport.threatOver(point, threats, margin)
 end
 
 --- Where an asset holds: on the line from the threat nearest its Mission Editor orbit through that orbit, the first
---- point out of every threat plus `margin`, walking away from the threat. It never comes nearer the threat than its
---- orbit — in a campaign, than its side's front (`frontLimit`) — and goes back beyond its orbit as far as needed.
+--- point out of every threat plus `margin` (and, for an AWACS, `standoff` from every threat's centre), walking away
+--- from the threat. It never comes nearer the threat than its orbit — in a campaign, than its side's front
+--- (`frontLimit`) — and goes back beyond its orbit as far as needed.
 --- @param side number the coalition
 --- @param anchor table `{ x, z }` the Mission Editor orbit
 --- @param threats table
 --- @param margin number metres
+--- @param standoff number|nil metres from every threat's centre (an AWACS); nil or 0 for none
 --- @return table `{ x, z }`
 --- @return table|nil the threat the axis points at
-function veafSupport.station(side, anchor, threats, margin)
+function veafSupport.station(side, anchor, threats, margin, standoff)
   local target, nearest = nil, nil
   for _, threat in ipairs(threats) do
     local d = distance2d(anchor, threat.center)
@@ -172,7 +179,7 @@ function veafSupport.station(side, anchor, threats, margin)
   local d = math.max(0, start)
   while d <= length + veafSupport.SEARCH do
     local point = { x = target.center.x + ux * d, z = target.center.z + uz * d }
-    if not veafSupport.threatOver(point, threats, margin) then
+    if not veafSupport.threatOver(point, threats, margin, standoff) then
       return point, target
     end
     d = d + veafSupport.STEP
@@ -189,6 +196,19 @@ function veafSupport.fromBullseye(side, point)
   local dx, dz = point.x - bullseye.x, point.z - bullseye.z
   local bearing = math.floor(math.deg(math.atan2(dz, dx)) + 360.5) % 360
   return bearing, math.floor(math.sqrt(dx * dx + dz * dz) / 1852 + 0.5)
+end
+
+--- Whether an asset is an AWACS (the DCS attribute of its first unit): it then holds `awacs_standoff` from every threat.
+--- @param group table the asset's group
+--- @return boolean
+function veafSupport.isAwacs(group)
+  local units = group.getUnits and group:getUnits() or {}
+  local unit = units[1]
+  if not (unit and unit.hasAttribute) then
+    return false
+  end
+  local ok, value = pcall(unit.hasAttribute, unit, "AWACS")
+  return ok and value == true
 end
 
 --- The frequency an asset is called on, MHz, from its group's data; nil when unknown.
@@ -250,14 +270,17 @@ local function move(name, state, side, point, target, why, now)
   local from = state.station or point
   state.station, state.lastMove, state.calmSince = point, now, nil
   veafSupport.drawMarks(state, name, side, point, legEnd(point, heading))
+  local bearing, range = veafSupport.fromBullseye(side, point)
+  -- where it holds now, so a check reads it rather than guesses it (2026-11-22: "the AWACS is on the red side")
   logger():info(
-    "[%s] %s: orbit moved %d km (%s)",
+    "[%s] %s: orbit moved %d km (%s), orbit now %s, %s",
     name,
     why,
     math.floor(distance2d(from, point) / 1000),
-    target and target.name or "no threat"
+    target and target.name or "no threat",
+    bearing and string.format("%03d/%d NM from the bullseye", bearing, range) or "bullseye unknown",
+    target and string.format("%d km from [%s]", math.floor(distance2d(point, target.center) / 1000 + 0.5), target.name) or "no threat"
   )
-  local bearing, range = veafSupport.fromBullseye(side, point)
   if bearing then
     say(side, veaf.t("support." .. why, name, bearing, range))
   end
@@ -288,15 +311,16 @@ function veafSupport.follow(name, now)
   end
   local current = state.station or anchor
   local threats = veafSupport.threats(side)
-  if veafSupport.threatOver(current, threats, veafSupport.setting("margin")) then
+  local standoff = veafSupport.isAwacs(group) and veafSupport.setting("awacs_standoff") or 0
+  if veafSupport.threatOver(current, threats, veafSupport.setting("margin"), standoff) then
     -- in danger: out at once, and well out
-    local point, target = veafSupport.station(side, anchor, threats, veafSupport.setting("retreat_margin"))
+    local point, target = veafSupport.station(side, anchor, threats, veafSupport.setting("retreat_margin"), standoff)
     if distance2d(point, current) > veafSupport.STEP then
       move(name, state, side, point, target, "retreat", now)
     end
     return
   end
-  local candidate, target = veafSupport.station(side, anchor, threats, veafSupport.setting("margin"))
+  local candidate, target = veafSupport.station(side, anchor, threats, veafSupport.setting("margin"), standoff)
   local gain
   if target then
     gain = distance2d(current, target.center) - distance2d(candidate, target.center)

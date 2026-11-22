@@ -318,7 +318,7 @@ Sa garnison arrive groupe par groupe, environ `wake_units_per_beat` (10) unités
 - **L'autre camp est prévenu aussitôt** du départ d'un convoi, et voit son axe sur la carte.
 - **Ravitaillement** : une livraison dans une zone amie abîmée ramène les unités mortes de son premier groupe touché, **payées sur le stock de [ressources](#resources) du camp** au prix que coûterait leur spawn, les moins chères d'abord ; ce que le stock ne peut pas payer reste mort (un camp dont les ressources ne sont pas comptées récupère tout le groupe).
   Livrent : une caisse « Zone supplies » posée dans la zone, des troupes CTLD 2 déposées dans la zone (sauf l'équipe espion et les équipes JTAC), un hélicoptère de ravitaillement posé.
-- **Hélicoptères IA** : toutes les `supply_seconds` (600 s), un camp listé dans `supply` (le rouge par défaut) envoie un hélicoptère (`helicopter`, Mi-8MT rouge, UH-1H bleu) vers une zone neutre qui le borde, qu'il prend en s'y posant, ou à défaut vers sa zone la plus abîmée, qu'il ravitaille ; `max_helicopters` (2) en vol au plus, et un hélicoptère qui ne s'est pas posé au bout de `helicopter_timeout` (1 200 s) est retiré.
+- **Hélicoptères IA** : toutes les `supply_seconds` (600 s), un camp listé dans `supply` (le rouge par défaut) envoie un hélicoptère (`helicopter`, Mi-8MT rouge, UH-1H bleu) vers une zone neutre qui le borde, qu'il prend en s'y posant, ou à défaut vers sa zone la plus abîmée, qu'il ravitaille ; `max_helicopters` (2) en vol au plus, et un hélicoptère qui ne s'est pas posé à temps est retiré : le temps de sa route à 40 m/s, une fois et demie, plus 5 minutes pour la mise en route et le poser, et au moins `helicopter_timeout` (1 200 s) ; `dcs.log` le dit à son départ (`… leaves [Bassel Al-Assad] to resupply [Jisr al-Shughur], 57 km, timeout 41 min`). Le 22/11/2026, les 20 minutes fixes retiraient en route chaque Mi-8 envoyé à 57 km, et le suivant partait aussitôt.
   L'autre camp est prévenu à son départ, pour l'intercepter.
   Un hélicoptère qui se repose loin de sa zone a échoué aussitôt, et `dcs.log` dit où il s'est posé.
   Dans une zone d'aérodrome, il se pose sur le terrain ; dans une autre zone (une ville, un point), sur l'endroit dégagé le plus proche du centre, dans les 60 % de son rayon : envoyés au centre d'Afrin, quatre Mi-8 ont fait demi-tour aussitôt.
@@ -332,6 +332,7 @@ Sa garnison arrive groupe par groupe, environ `wake_units_per_beat` (10) unités
   Elle engage nos avions de combat ; un hélicoptère ou un avion d'attaque qu'elle détecte n'est engagé que sur un tirage de `air.cap_helicopter_chance` (25 %), fait une fois par appareil, comme l'option `InvisibleA10` de Foothold.
 - **Frappes** : toutes les `air.strike_seconds` (900 s), une frappe CAS (sur la zone qui a le plus d'unités) ou SEAD (sur celle qui a le plus de défense antiaérienne), en alternance, sur une zone qui borde le territoire ennemi.
   Une frappe CAS laisse de côté une zone sous une défense antiaérienne mesurée de 15 km ou plus (un Hawk, un SA-6), la sienne ou celle d'une voisine : c'est le travail de la SEAD.
+  Une frappe n'ouvre le feu que sur les unités au sol de sa zone (ROE *open fire*, pas *weapons free*), même armée de missiles air-air : le 22/11/2026, un Su-25 en *weapons free* avait abattu l'AWACS avec ses R-60M.
 - Elles **décollent** de l'aérodrome ennemi le plus proche, moteur chaud sur des parkings libres (les abris d'abord, les places ouvertes ensuite ; un gros avion, bombardier ou transport, jamais dans un abri), ou de la piste quand il n'y en a pas assez ; sans aérodrome, pas de sortie. Il en va de même pour la CAP, la BARCAP et le Hunter.
   Rien ne décolle d'un aérodrome à moins de `takeoff_threat_range` (40 km) d'une défense antiaérienne ennemie dont la portée a été mesurée (un Patriot abattrait les avions pendant qu'ils montent) ; la portée que donne DCS est celle du missile contre une cible haute, bien plus longue que celle à laquelle le SAM voit un avion qui décolle, d'où ce plafond, une estimation à régler.
   Aucun avion de l'IA ne part d'un terrain dont la plus longue piste fait moins de `min_runway_length` (1 500 m), et un seul vol à la fois part de la piste d'un terrain : le 17/11/2026, quinze avions envoyés de Taftanaz se sont empilés sur un même point de sa piste sans jamais décoller.
@@ -701,6 +702,7 @@ dynamic:
 Les AWACS et ravitailleurs nommés dans `support.assets` (des assets de la mission, avec une orbite dans l'éditeur) sont tenus hors des défenses ennemies par le [module `veafSupport`](scripts/veafSupport.md), que `campaign next` active dans `mission.yaml` avec ces réglages ; la campagne lui donne la portée de ses zones, endormies ou éveillées, et son front :
 
 - sur la ligne entre leur orbite de l'éditeur et la zone ennemie la plus proche, au premier point hors de portée de **toutes** les défenses antiaériennes ennemies plus `support.margin` (30 km), jamais en avant de la zone de leur camp la plus proche de cet ennemi ;
+- un AWACS, en plus, à au moins `support.awacs_standoff` (100 km) de **chaque** zone ennemie, même gardée par des MANPADS seuls : le 22/11/2026, une zone à 4 km de portée le laissait à 35 km d'elle ; les ravitailleurs restent aussi près du front que la portée le permet ;
 - repliés aussitôt, avec `support.retreat_margin` (50 km), quand une portée atteint leur orbite ; rapprochés seulement après 30 minutes de calme et d'un pas de 30 km au moins (`support.advance_seconds`, `support.min_advance`), si bien qu'un SAM qui se réveille et se rendort ne les fait pas faire d'allers-retours ; leur branche (`support.leg`, 30 nautiques) posée en travers de l'axe ;
 - leurs marques F10 (branche et étiquette, pour leur camp) redessinées à chaque déplacement ;
 - chaque déplacement annoncé à leur camp : la nouvelle orbite en relèvement et distance du bullseye, fréquence inchangée.
@@ -792,7 +794,7 @@ Une ligne `KO` suffit à dire où regarder.
 | `supply` | `[red]` | les camps dont les hélicoptères IA capturent et ravitaillent |
 | `supply_seconds` | 600 | intervalle entre deux hélicoptères d'un camp |
 | `max_helicopters` | 2 | hélicoptères de ravitaillement d'un camp en vol |
-| `helicopter_timeout` | 1200 | un hélicoptère pas posé au bout de ce temps est retiré |
+| `helicopter_timeout` | 1200 | le moins de temps qu'a un hélicoptère pour se poser avant d'être retiré ; une route longue lui en donne plus (une fois et demie son vol, plus 5 minutes) |
 | `helicopter_capture_seconds` | 600 | une zone neutre tenue par des hélicoptères posés, seuls, est prise au bout de ce temps |
 | `helicopter_garrison` | 6 | les fantassins que laisse une capture par des hélicoptères posés, seuls ; aucun véhicule |
 | `convoy_timeout` | 2700 | le moins de temps qu'a un convoi d'assaut avant d'être retiré de la carte, sa place libérée ; sinon une fois et demie le temps que demande sa route |
@@ -818,7 +820,7 @@ Une ligne `KO` suffit à dire où regarder.
 | `debug` | voir [le journal de mise au point](#debug-log) | `true` pendant les essais |
 | `debug_status_seconds` | 300 | intervalle entre deux lignes d'état du journal |
 | `territory` | voir [le territoire](#territory) | `enabled` (true), `margin` (70000), `hatch_spacing` (3000), `hatch_length` (2500) |
-| `support` | voir [AWACS et ravitailleurs](#support) et le [module `veafSupport`](scripts/veafSupport.md#settings) | `assets` (aucun), `margin` (30000), `retreat_margin` (50000), `seconds` (60), `advance_seconds` (1800), `min_advance` (30000), `leg` (30, nautiques) |
+| `support` | voir [AWACS et ravitailleurs](#support) et le [module `veafSupport`](scripts/veafSupport.md#settings) | `assets` (aucun), `margin` (30000), `retreat_margin` (50000), `seconds` (60), `advance_seconds` (1800), `min_advance` (30000), `leg` (30, nautiques), `awacs_standoff` (100000) |
 
 Les plafonds sont prudents par défaut ; ils se règleront d'après ce que tiennent les serveurs.
 

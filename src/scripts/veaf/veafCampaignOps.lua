@@ -459,6 +459,16 @@ function veafCampaignOps.nearestOwnZone(side, target, airfieldsOnly, role)
   return best
 end
 
+--- How long a supply helicopter has to land: its flight at `veafAircraftSpawn.HELICOPTER_SPEED`, times 1.5, plus 300 s
+--- for the start-up and the landing, never less than `helicopter_timeout`. On 2026-11-22 the 20 minutes of the
+--- setting took away every Mi-8 sent from Bassel Al-Assad to Jisr al-Shughur, 57 km, some 24 minutes of flight.
+--- @param distance number metres from its start to its landing spot
+--- @return number seconds
+function veafCampaignOps.helicopterTimeout(distance)
+  local speed = veafAircraftSpawn and veafAircraftSpawn.HELICOPTER_SPEED or 40
+  return math.max(veafCampaign.setting("helicopter_timeout"), distance / speed * 1.5 + 300)
+end
+
 --- Send a supply helicopter from the side's nearest zone to the target, with veafAircraftSpawn's
 --- `transport` job: a `Land` task on the nearest clearing to the target's centre.
 --- @param side string
@@ -507,11 +517,29 @@ function veafCampaignOps.sendHelicopter(side, target, kind)
       group:getController():setOption(AI.Option.Air.id.REACTION_ON_THREAT, AI.Option.Air.val.REACTION_ON_THREAT.EVADE_FIRE)
     end)
   end
-  local record = { name = spawned, side = side, from = source.name, to = target.name, kind = kind, startedAt = timer.getTime() }
+  local distance = distance2d(start, center)
+  local record = {
+    name = spawned,
+    side = side,
+    from = source.name,
+    to = target.name,
+    kind = kind,
+    startedAt = timer.getTime(),
+    timeout = veafCampaignOps.helicopterTimeout(distance),
+  }
   table.insert(veafCampaignOps.helicopters, record)
   veafCampaignOps.counters.helicoptersSent = veafCampaignOps.counters.helicoptersSent + 1
-  veafCampaign.keepAwake(target, veafCampaign.setting("helicopter_timeout"))
-  logger():info("%s supply helicopter [%s] leaves [%s] to %s [%s]", side, spawned, source.name, kind, target.name)
+  veafCampaign.keepAwake(target, record.timeout)
+  logger():info(
+    "%s supply helicopter [%s] leaves [%s] to %s [%s], %d km, timeout %d min",
+    side,
+    spawned,
+    source.name,
+    kind,
+    target.name,
+    math.floor(distance / 1000 + 0.5),
+    math.ceil(record.timeout / 60)
+  )
   veafCampaign.announce(
     side,
     side,
@@ -572,7 +600,8 @@ local function finish(record, outcome)
 end
 
 --- Follow one helicopter: landed in its zone, it captures (by holding the ground, the capture rule does
---- it) or delivers; destroyed, or still flying after `helicopter_timeout`, it has failed.
+--- it) or delivers; destroyed, or still flying after its own timeout (`helicopterTimeout`; `helicopter_timeout` for a
+--- record that has none), it has failed.
 --- @param record table
 --- @param now number the mission time
 function veafCampaignOps.followHelicopter(record, now)
@@ -604,7 +633,7 @@ function veafCampaignOps.followHelicopter(record, now)
     record.airborne = true
   elseif record.airborne and not landedHere and not record.landedAt then
     -- down again away from its zone: it turned back, or landed short. Said where, and its place freed at once rather
-    -- than after `helicopter_timeout` (2026-11-16: two Mi-8 for Afrin landed back at Aleppo 3 minutes after leaving)
+    -- than after its timeout (2026-11-16: two Mi-8 for Afrin landed back at Aleppo 3 minutes after leaving)
     local source = veafCampaign.zones[record.from]
     logger():info(
       "supply helicopter [%s] for [%s] landed %d km from it, %s km from [%s] it left",
@@ -641,7 +670,7 @@ function veafCampaignOps.followHelicopter(record, now)
     finish(record, "aborted") -- the other side took the zone first
     return
   end
-  if not record.landedAt and now - record.startedAt >= veafCampaign.setting("helicopter_timeout") then
+  if not record.landedAt and now - record.startedAt >= (record.timeout or veafCampaign.setting("helicopter_timeout")) then
     finish(record, "failed")
   end
 end
@@ -989,7 +1018,9 @@ veafAircraftSpawn.roles.campaign_strike = {
         priority = 0,
       },
     }
-    local roe = { id = "WrappedAction", params = { action = { id = "Option", params = { name = 0, value = 0 } } } }
+    -- open fire (ROE 2), not weapons free (0): weapons free, a red CAS Su-25 shot the AWACS down with the R-60M of
+    -- its loadout (2026-11-22); open fire, the AI attacks only the targets its tasks name
+    local roe = { id = "WrappedAction", params = { action = { id = "Option", params = { name = 0, value = 2 } } } }
     local orbit = {
       id = "ControlledTask",
       params = {

@@ -318,7 +318,7 @@ Its garrison comes group by group, about `wake_units_per_beat` (10) units per be
 - **The other side is told at once** of a convoy leaving, and sees its axis on the map.
 - **Resupply**: a delivery to a damaged friendly zone brings back the dead units of its first damaged group, **paid from the side's [resource](#resources) stock** at the price their spawn would cost, cheapest first; what the stock cannot pay stays dead (a side whose resources are not counted gets the whole group back).
   Deliveries are: a "Zone supplies" crate set down in the zone, CTLD 2 troops deployed in the zone (the spy team and the JTAC teams excepted), a supply helicopter landed in it.
-- **AI helicopters**: every `supply_seconds` (600 s), a side listed in `supply` (red by default) sends a helicopter (`helicopter`, a Mi-8MT for red, a UH-1H for blue) to a neutral zone it borders, which it takes by landing there, or else to its most damaged zone, which it resupplies; `max_helicopters` (2) in the air at most, and one that has not landed after `helicopter_timeout` (1,200 s) is removed.
+- **AI helicopters**: every `supply_seconds` (600 s), a side listed in `supply` (red by default) sends a helicopter (`helicopter`, a Mi-8MT for red, a UH-1H for blue) to a neutral zone it borders, which it takes by landing there, or else to its most damaged zone, which it resupplies; `max_helicopters` (2) in the air at most, and one that has not landed in time is removed: its route's flight at 40 m/s, times 1.5, plus 5 minutes for the start-up and the landing, and at least `helicopter_timeout` (1,200 s); `dcs.log` says it when it leaves (`… leaves [Bassel Al-Assad] to resupply [Jisr al-Shughur], 57 km, timeout 41 min`). On 2026-11-22 the fixed 20 minutes removed on its way every Mi-8 sent 57 km away, and the next one left at once.
   The other side is told when it leaves, to intercept it.
   One that lands again away from its zone has failed at once, and `dcs.log` says where it landed.
   In an airfield zone it lands on the field; in any other zone (a town, a point), on the clear spot nearest the centre, within 60 % of its radius: sent to Afrin's centre, four Mi-8 turned back at once.
@@ -332,6 +332,7 @@ Its garrison comes group by group, about `wake_units_per_beat` (10) units per be
   It engages our combat airplanes; a helicopter or an attack airplane it detects is engaged only on a draw of `air.cap_helicopter_chance` (25 %), made once per aircraft, as Foothold's `InvisibleA10` option.
 - **Strikes**: every `air.strike_seconds` (900 s), a CAS strike (on the zone with the most units) or a SEAD strike (on the one with the most air defence), in turn, on a zone bordering the enemy's territory.
   A CAS strike leaves out a zone under a measured air defence of 15 km or more (a Hawk, an SA-6), the zone's own or a neighbour's: that is the SEAD's job.
+  A strike opens fire only on its zone's ground units (ROE open fire, not weapons free), even with air-to-air missiles on board: on 2026-11-22 a Su-25, weapons free, shot the AWACS down with its R-60M.
 - They **take off** from the nearest enemy airfield, hot on free stands (shelters first, open stands after; a large aircraft, bomber or transport, never in a shelter), or from the runway when there are not enough; no airfield, no sortie. So do the CAP, the BARCAP and the Hunter.
   Nothing takes off from an airfield within `takeoff_threat_range` (40 km) of an enemy air defence whose reach was measured (a Patriot would shoot the aircraft down while they climb); the reach DCS gives is the missile's against a high target, much longer than the range at which the SAM sees an aircraft taking off, hence this cap, an estimation to tune.
   No aeroplane of the AI leaves a field whose longest runway is shorter than `min_runway_length` (1,500 m), and one flight at a time leaves a field's runway: on 2026-11-17 fifteen aircraft sent from Taftanaz piled up on one spot of its strip and never took off.
@@ -701,6 +702,7 @@ dynamic:
 The AWACS and tankers named in `support.assets` (assets of the mission, with an orbit in the Mission Editor) are held out of the enemy's air defence by the [`veafSupport` module](scripts/veafSupport.en.md), which `campaign next` turns on in `mission.yaml` with these settings; the campaign hands it the reach of its zones, asleep or awake, and its front:
 
 - on the line from their Mission Editor orbit to the enemy zone nearest it, at the first point out of the reach of **every** enemy air defence plus `support.margin` (30 km), never ahead of their side's own zone nearest that enemy;
+- an AWACS, besides, at least `support.awacs_standoff` (100 km) from **every** enemy zone, even one held by MANPADS alone: on 2026-11-22 a zone reaching 4 km left it 35 km away; the tankers stay as near the front as the reach allows;
 - out at once, with `support.retreat_margin` (50 km), when a reach comes over its orbit; closer only after 30 minutes of calm and for a step of 30 km at least (`support.advance_seconds`, `support.min_advance`), so a SAM that wakes and sleeps does not make it shuttle; its leg (`support.leg`, 30 nm) laid across the axis;
 - its F10 marks (leg and label, for its side) redrawn at each move;
 - each move told to its side: the new orbit in bearing and range from the bullseye, frequency unchanged.
@@ -792,7 +794,7 @@ A `KO` line is enough to know where to look.
 | `supply` | `[red]` | the sides whose AI helicopters capture and resupply |
 | `supply_seconds` | 600 | interval between two helicopters of a side |
 | `max_helicopters` | 2 | a side's supply helicopters in the air |
-| `helicopter_timeout` | 1200 | a helicopter not landed after this long is removed |
+| `helicopter_timeout` | 1200 | the least time a helicopter has to land before it is removed; a long route gives it more (1.5 times its flight, plus 5 minutes) |
 | `helicopter_capture_seconds` | 600 | a neutral zone held by landed helicopters alone is taken after this long |
 | `helicopter_garrison` | 6 | the soldiers a capture by landed helicopters alone leaves; no vehicle |
 | `convoy_timeout` | 2700 | the least time an assault convoy has before it is taken off the map, its place freed; else half as long again as its road needs |
@@ -818,7 +820,7 @@ A `KO` line is enough to know where to look.
 | `debug` | see [the debugging log](#debug-log) | `true` while testing |
 | `debug_status_seconds` | 300 | seconds between two status lines of the log |
 | `territory` | see [territory](#territory) | `enabled` (true), `margin` (70000), `hatch_spacing` (3000), `hatch_length` (2500) |
-| `support` | see [AWACS and tankers](#support) and the [`veafSupport` module](scripts/veafSupport.en.md#settings) | `assets` (none), `margin` (30000), `retreat_margin` (50000), `seconds` (60), `advance_seconds` (1800), `min_advance` (30000), `leg` (30, nm) |
+| `support` | see [AWACS and tankers](#support) and the [`veafSupport` module](scripts/veafSupport.en.md#settings) | `assets` (none), `margin` (30000), `retreat_margin` (50000), `seconds` (60), `advance_seconds` (1800), `min_advance` (30000), `leg` (30, nm), `awacs_standoff` (100000) |
 
 The caps are conservative by default; they will be tuned from what the servers hold.
 

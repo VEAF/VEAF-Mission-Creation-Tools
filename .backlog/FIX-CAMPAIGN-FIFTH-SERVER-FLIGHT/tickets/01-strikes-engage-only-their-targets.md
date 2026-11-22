@@ -1,6 +1,6 @@
 # 01 — Red strikes engage only their targets
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — the in-game check
 Type: fix
 
 ## To do
@@ -19,3 +19,12 @@ A red CAS or SEAD flight attacks the zone it was sent to and never an aircraft; 
 ## In-game check
 
 On the Campagne server or a test mission: a red CAS flight passes within 20 km of the AWACS or a player aircraft without firing at it, and still attacks its zone.
+
+## Done (2026-11-22)
+
+- `veafCampaignOps.lua`, `campaign_strike`: the ROE given at the first point (CAS, SEAD sent alone) and at a raid SEAD's push point is `OPEN_FIRE` (`Option name 0 value 2`); the SEAD's hold (`value 4`) is unchanged.
+  The bombers' `weaponsFree()` is untouched: they carry no air-to-air missile.
+- Tests: `test_a_strike_engages_orbits_and_lands_home` (first point) and `test_the_sead_holds_then_engages_from_its_push_point` (push point) now assert `value = 2`.
+- The `cas` loadout keeps its R-60M; the fallback (removing them) waits for the in-game check.
+- No `known-limitations.yaml` entry: nothing measured in DCS yet.
+- Doc: the campaign page (FR/EN) says a strike opens fire only on its zone's ground units.

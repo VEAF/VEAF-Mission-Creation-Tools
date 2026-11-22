@@ -310,6 +310,110 @@ function TestConvoyHelpers:test_the_rally_search_is_bounded()
   )
 end
 
+-- FIX-GROUNDAI-CLOSE-IN-REACHABLE ticket 01: on 2026-11-21 `closeIn` sent the convoy "Mule" onto an enemy's exact point,
+-- one off-road segment of about a kilometre, and it never moved. The close in now aims short of the enemy, at the end
+-- of a path checked for water and slope.
+
+--- Run `body` with land.getHeight answering `height(point)` (a DCS vec2: y is the easting).
+local function withHeight(height, body)
+  local saved = land.getHeight
+  land.getHeight = height
+  local ok, err = pcall(body)
+  land.getHeight = saved
+  if not ok then
+    error(err, 0)
+  end
+end
+
+--- The distance between two vec3s, on the ground.
+local function flat(a, b)
+  return math.sqrt((a.x - b.x) ^ 2 + (a.z - b.z) ^ 2)
+end
+
+function TestConvoyHelpers:test_a_reachable_enemy_is_closed_in_on_short_of_it_in_a_few_legs()
+  local from, enemy = { x = 0, y = 0, z = 0 }, { x = 800, y = 0, z = 0 }
+  local path = veafGroundAI.closeInPath(from, enemy, 0.5, {})
+  luaunit.assertNotNil(path)
+  local aim = path[#path]
+  luaunit.assertAlmostEquals(flat(aim, enemy), ConvoyUnitHandler.CLOSE_IN_STANDOFF, 1, "short of the enemy, within reach")
+  luaunit.assertAlmostEquals(aim.z, 0, 1e-6, "straight at it on open ground")
+  luaunit.assertTrue(#path >= 2 and #path <= 5, #path .. " points")
+  local previous = from
+  for _, point in ipairs(path) do
+    luaunit.assertTrue(flat(previous, point) <= ConvoyUnitHandler.CLOSE_IN_LEG + 1e-6, "legs of at most CLOSE_IN_LEG")
+    previous = point
+  end
+end
+
+function TestConvoyHelpers:test_a_close_enemy_is_closed_in_on_halfway()
+  -- 400 m away: the standoff would send it back, so it halves the distance
+  local path = veafGroundAI.closeInPath({ x = 0, y = 0, z = 0 }, { x = 400, y = 0, z = 0 }, 0.5, {})
+  luaunit.assertAlmostEquals(path[#path].x, 200, 1)
+end
+
+function TestConvoyHelpers:test_water_between_the_convoy_and_the_enemy_keeps_the_aim_on_the_near_bank()
+  -- a river runs across, 400 to 460 m north: a vehicle that cannot swim drives to its bank, not into it
+  local wet = function(point)
+    return point.x >= 400 and point.x <= 460
+  end
+  withWater(wet, function()
+    local path = veafGroundAI.closeInPath({ x = 0, y = 0, z = 0 }, { x = 1000, y = 0, z = 0 }, 0.5, {})
+    luaunit.assertNotNil(path)
+    local aim = path[#path]
+    luaunit.assertTrue(aim.x < 400 and aim.x >= 400 - ConvoyUnitHandler.CLOSE_IN_SAMPLE_STEP, "on the near bank: x=" .. aim.x)
+    for _, point in ipairs(path) do
+      luaunit.assertFalse(wet({ x = point.x, y = point.z }))
+    end
+  end)
+end
+
+function TestConvoyHelpers:test_a_slope_too_steep_takes_another_bearing()
+  -- a steep bank right ahead of the convoy, 10 m wide, on the straight line to the enemy
+  local height = function(point)
+    if point.x >= 40 and point.x <= 160 and math.abs(point.y) < 5 then
+      return 30
+    end
+    return 0
+  end
+  withHeight(height, function()
+    local path = veafGroundAI.closeInPath({ x = 0, y = 0, z = 0 }, { x = 800, y = 0, z = 0 }, 0.5, {})
+    luaunit.assertNotNil(path)
+    local aim = path[#path]
+    luaunit.assertNotEquals(math.floor(aim.z + 0.5), 0, "around the bank, not over it")
+    luaunit.assertAlmostEquals(flat(aim, { x = 800, z = 0 }), ConvoyUnitHandler.CLOSE_IN_STANDOFF, 1)
+  end)
+end
+
+function TestConvoyHelpers:test_an_aim_that_failed_is_not_taken_again()
+  local first = veafGroundAI.closeInPath({ x = 0, y = 0, z = 0 }, { x = 800, y = 0, z = 0 }, 0.5, {})
+  local second = veafGroundAI.closeInPath({ x = 0, y = 0, z = 0 }, { x = 800, y = 0, z = 0 }, 0.5, { first[#first] })
+  luaunit.assertNotNil(second)
+  luaunit.assertTrue(flat(first[#first], second[#second]) > ConvoyUnitHandler.FAILED_AIM_RADIUS, "another aim")
+end
+
+function TestConvoyHelpers:test_nothing_reachable_means_no_path()
+  -- water everywhere but where the convoy stands
+  withWater(function(point)
+    return math.sqrt(point.x ^ 2 + point.y ^ 2) > 20
+  end, function()
+    luaunit.assertNil(veafGroundAI.closeInPath({ x = 0, y = 0, z = 0 }, { x = 800, y = 0, z = 0 }, 0.5, {}))
+  end)
+end
+
+function TestConvoyHelpers:test_the_least_capable_vehicle_sets_the_slope()
+  local function unit(desc)
+    return {
+      getDesc = function()
+        return desc
+      end,
+    }
+  end
+  luaunit.assertEquals(veafGroundAI.maxSlopeOf({ unit({ maxSlopeAngle = 0.6 }), unit({ maxSlopeAngle = 0.47 }) }), 0.47)
+  -- a vehicle whose limit DCS does not give takes the prudent default
+  luaunit.assertEquals(veafGroundAI.maxSlopeOf({ unit({}), unit({ maxSlopeAngle = 0.6 }) }), ConvoyUnitHandler.DEFAULT_MAX_SLOPE)
+  luaunit.assertEquals(veafGroundAI.maxSlopeOf({ {} }), ConvoyUnitHandler.DEFAULT_MAX_SLOPE)
+end
+
 function TestConvoyHelpers:test_the_fall_back_route_is_off_road_then_on_road()
   local route = veafGroundAI.fallBackRoute({ x = 0, y = 0, z = 0 }, { x = -1000, y = 0, z = -800 }, { x = -9000, y = 0, z = 4000 }, 11)
   luaunit.assertEquals(#route, 4)
@@ -973,7 +1077,7 @@ function TestConvoyWatch:test_a_convoy_still_driving_in_is_not_pushed()
   self:_setSpeed(0)
   dcs_mocks.runScheduled(2 * ConvoyUnitHandler.STALEMATE_DELAY + ConvoyUnitHandler.CLOSE_WATCH_PERIOD)
   luaunit.assertEquals(#dcs_mocks.tasksSet, 1)
-  luaunit.assertEquals(lastRoutePoint("Watched").x, 2500)
+  luaunit.assertEquals(lastRoutePoint("Watched").x, 2500 - ConvoyUnitHandler.CLOSE_IN_STANDOFF)
 end
 
 function TestConvoyWatch:test_a_stalemate_in_sight_closes_in_on_the_enemy()
@@ -983,7 +1087,7 @@ function TestConvoyWatch:test_a_stalemate_in_sight_closes_in_on_the_enemy()
   luaunit.assertEquals(#dcs_mocks.tasksSet, 0, "not before the delay")
   dcs_mocks.runScheduled(ConvoyUnitHandler.STALEMATE_DELAY + 5)
   local stop = lastRoutePoint("Watched")
-  luaunit.assertEquals({ stop.x, stop.y, stop.action }, { 800, 0, "Off Road" }, "onto the enemy, not to the standoff")
+  luaunit.assertEquals({ stop.x, math.floor(stop.y + 0.5), stop.action }, { 500, 0, "Off Road" }, "short of the enemy, past the standoff")
   luaunit.assertEquals(stop.speed, ConvoyUnitHandler.ASSAULT_SPEED)
   luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING)
   luaunit.assertEquals(countMessages("back on the road"), 0)
@@ -1001,7 +1105,7 @@ function TestConvoyWatch:test_the_kolkhida_assault_convoy_far_from_poti_closes_i
   self:_heldAtStandoff()
   dcs_mocks.runScheduled(ConvoyUnitHandler.STALEMATE_DELAY + 5)
   local stop = lastRoutePoint("Watched")
-  luaunit.assertEquals({ stop.x, stop.y }, { 800, 0 })
+  luaunit.assertEquals({ stop.x, math.floor(stop.y + 0.5) }, { 500, 0 })
 end
 
 function TestConvoyWatch:test_fire_exchanged_keeps_the_orders()
@@ -1074,11 +1178,11 @@ function TestConvoyWatch:test_pushes_that_move_nothing_give_up_and_drive_on()
   local pushes = ConvoyUnitHandler.FUTILE_PUSHES
   dcs_mocks.runScheduled(pushes * ConvoyUnitHandler.STALEMATE_DELAY + 5)
   luaunit.assertEquals(#dcs_mocks.tasksSet, pushes)
-  luaunit.assertEquals(lastRoutePoint("Watched").x, 800, "the last push, onto the enemy")
+  luaunit.assertEquals(lastRoutePoint("Watched").x, 500, "the last push, toward the enemy")
   -- the next push is not given: the convoy drives on
   dcs_mocks.runScheduled((pushes + 1) * ConvoyUnitHandler.STALEMATE_DELAY + 5)
   luaunit.assertEquals(#dcs_mocks.tasksSet, pushes + 1)
-  luaunit.assertNotEquals(lastRoutePoint("Watched").x, 800, "back on its way, not onto the enemy")
+  luaunit.assertNotEquals(lastRoutePoint("Watched").x, 500, "back on its way, not toward the enemy")
   luaunit.assertFalse(handler:isInContact())
   -- the enemy it could not reach, still in sight, does not start the same fight again
   dcs_mocks.runScheduled((pushes + 4) * ConvoyUnitHandler.STALEMATE_DELAY)
@@ -1102,11 +1206,36 @@ function TestConvoyWatch:test_a_push_that_moves_the_convoy_keeps_pushing()
     dcs_mocks.runScheduled(push * ConvoyUnitHandler.STALEMATE_DELAY + 5)
     if #dcs_mocks.tasksSet > closer then
       closer = #dcs_mocks.tasksSet
-      x = x + 200
+      x = x + 100
     end
   end
   luaunit.assertEquals(closer, ConvoyUnitHandler.FUTILE_PUSHES + 3, "still pushing")
-  luaunit.assertEquals(lastRoutePoint("Watched").x, 800)
+  -- the last push still short of the enemy, never onto it
+  local last = lastRoutePoint("Watched").x
+  luaunit.assertTrue(last > 300 and last < 800, "x=" .. last)
+end
+
+function TestConvoyWatch:test_with_nothing_reachable_it_does_not_push_and_says_so_once()
+  self:_heldAtStandoff()
+  dcs_mocks.tasksSet = {}
+  dcs_mocks.logs = {}
+  local surface = land.getSurfaceType
+  land.getSurfaceType = function(point)
+    -- water all around the convoy, past 20 m
+    return math.sqrt(point.x ^ 2 + point.y ^ 2) > 20 and land.SurfaceType.WATER or land.SurfaceType.LAND
+  end
+  local ok, err = pcall(function()
+    dcs_mocks.runScheduled(ConvoyUnitHandler.STALEMATE_DELAY + 5)
+    luaunit.assertEquals(#dcs_mocks.tasksSet, 0, "no route")
+    luaunit.assertEquals(#dcs_mocks.findLog("no reachable point"), 1)
+    -- the clock restarts: not one line every beat
+    dcs_mocks.runScheduled(2 * ConvoyUnitHandler.STALEMATE_DELAY - 5)
+    luaunit.assertEquals(#dcs_mocks.findLog("no reachable point"), 1)
+  end)
+  land.getSurfaceType = surface
+  if not ok then
+    error(err, 0)
+  end
 end
 
 function TestConvoyWatch:test_a_press_on_out_of_sight_is_no_contact_either()

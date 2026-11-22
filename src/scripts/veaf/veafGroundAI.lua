@@ -885,6 +885,24 @@ ConvoyUnitHandler.DRY_STEP = 50
 --- Metres of the drive left out at its start: it starts from the column's average position, in the water when the
 --- column follows a shore, while its trucks stand on the road around it.
 ConvoyUnitHandler.DRY_START = 150
+--- How far from its enemy a close in stops, in metres: short of driving onto it, well inside the ~1.3 km at which DCS's
+--- vehicles opened fire on 2026-10-08. An enemy closer than twice this is closed in on halfway. An estimate, to be
+--- tuned in game (FIX-GROUNDAI-CLOSE-IN-REACHABLE).
+ConvoyUnitHandler.CLOSE_IN_STANDOFF = 300
+--- The bearings a close in tries, in degrees off the straight line to the enemy, in this order: the aim turns around
+--- the enemy, at the same distance from it, when the straight path is blocked.
+ConvoyUnitHandler.CLOSE_IN_BEARINGS = { 0, 20, -20, 40, -40, 60, -60 }
+--- Metres between two points where a close in's path is checked for water and slope.
+ConvoyUnitHandler.CLOSE_IN_SAMPLE_STEP = 25
+--- Metres between two waypoints of a close in. Off road, one every 100 to 500 m keeps a group within 7 to 9 m of the
+--- line on average (measured 2026-11, dcs-cartographie).
+ConvoyUnitHandler.CLOSE_IN_LEG = 200
+--- The slope a vehicle climbs when DCS does not give it, as the sine of the angle (`Unit.getDesc().maxSlopeAngle` is
+--- one). A prudent estimate, the prototype's of dcs-cartographie: a BTR-80 given 0.47 climbed 31° (measured 2026-11).
+ConvoyUnitHandler.DEFAULT_MAX_SLOPE = 0.35
+--- A close in that ends this close to the aim of a close in that moved nothing takes another aim, in metres.
+ConvoyUnitHandler.FAILED_AIM_RADIUS = 100
+
 --- A town masks a rally point when its centre lies this close to the line from the enemy to it.
 ConvoyUnitHandler.TOWN_COVER_RADIUS = 400
 --- The name the unarmed vehicles' group takes, after the convoy's.
@@ -987,6 +1005,8 @@ function ConvoyUnitHandler.init(object)
   object.lastPushDistance = nil
   -- the enemies the convoy gave up pushing onto, by unit name: seen, they start no fight; a shot from them does
   object.unreachable = {}
+  -- the aims of the close ins that moved nothing, vec3s: the next close in takes another (FIX-GROUNDAI-CLOSE-IN-REACHABLE)
+  object.failedAims = {}
   object.nextWideWatch = 0
   object.nextSmoke = 0
   -- the route a Mission Editor group was given, kept to drive on after a contact
@@ -1280,6 +1300,97 @@ function veafGroundAI.isDryDrive(from, to)
     end
   end
   return true
+end
+
+--- The steepest slope this group climbs: its least capable vehicle's, as the sine of the angle. A group takes the
+--- limits of its least capable vehicle (measured 2026-11, dcs-cartographie).
+--- @param units table DCS units
+--- @return number
+function veafGroundAI.maxSlopeOf(units)
+  local slope = math.huge
+  for _, unit in ipairs(units) do
+    local ok, desc = pcall(function()
+      return unit:getDesc()
+    end)
+    local own = ok and type(desc) == "table" and tonumber(desc.maxSlopeAngle) or ConvoyUnitHandler.DEFAULT_MAX_SLOPE
+    slope = math.min(slope, own)
+  end
+  if slope == math.huge then
+    return ConvoyUnitHandler.DEFAULT_MAX_SLOPE
+  end
+  return slope
+end
+
+--- How far a vehicle gets on the straight, off-road drive from one point to another: the last point, checked every
+--- `CLOSE_IN_SAMPLE_STEP`, before water or a slope steeper than `maxSlope`.
+---
+--- Water stops every convoy: `Unit.getDesc` does not say whether a vehicle swims, and a group with one vehicle that
+--- cannot swim goes looking for a crossing 300 to 700 m away (measured 2026-11, dcs-cartographie). The slope is the
+--- one along the drive, between two checked points.
+--- @param from table a vec3
+--- @param to table a vec3
+--- @param maxSlope number the sine of the steepest slope allowed
+--- @return table the farthest point reached, a vec3 (`from` itself when the first step fails)
+function veafGroundAI.reachableAlong(from, to, maxSlope)
+  local length = dist2D(from, to)
+  local steps = math.ceil(length / ConvoyUnitHandler.CLOSE_IN_SAMPLE_STEP)
+  local reached = { x = from.x, y = 0, z = from.z }
+  local height = land.getHeight({ x = from.x, y = from.z })
+  for step = 1, steps do
+    local t = step / steps
+    local point = { x = from.x + t * (to.x - from.x), y = 0, z = from.z + t * (to.z - from.z) }
+    local surface = land.getSurfaceType({ x = point.x, y = point.z })
+    if surface == land.SurfaceType.WATER or surface == land.SurfaceType.SHALLOW_WATER then
+      return reached
+    end
+    local pointHeight = land.getHeight({ x = point.x, y = point.z })
+    local run, rise = length / steps, math.abs(pointHeight - height)
+    if rise / math.sqrt(run * run + rise * rise) > maxSlope then
+      return reached
+    end
+    reached, height = point, pointHeight
+  end
+  return reached
+end
+
+--- The path a convoy closes in on its enemy by: a few off-road points, `CLOSE_IN_LEG` apart, to an aim short of the
+--- enemy that the convoy can reach.
+---
+--- On 2026-11-21 the convoy "Mule" was sent onto an enemy's exact point, one off-road segment of about a kilometre,
+--- every two minutes, and never moved: a route with one segment DCS judges impossible (water, slope) is not installed
+--- at all, and the group stays still with no message (from DCS's code, dcs-cartographie). So the aim is
+--- `CLOSE_IN_STANDOFF` short of the enemy, and the path to it checked (`reachableAlong`); a path cut short by water or
+--- a slope ends before it, when that still brings the convoy closer by `PUSH_PROGRESS_MARGIN`. Otherwise the aim turns
+--- around the enemy (`CLOSE_IN_BEARINGS`). An aim near one that moved nothing is not taken again.
+--- @param from table the convoy's vec3
+--- @param enemy table the enemy's vec3
+--- @param maxSlope number the sine of the steepest slope the convoy climbs (`maxSlopeOf`)
+--- @param failedAims table vec3s of the aims that moved nothing
+--- @return table|nil the points after `from`, vec3s, the aim last; nil when nothing is reachable
+function veafGroundAI.closeInPath(from, enemy, maxSlope, failedAims)
+  local distance = dist2D(from, enemy)
+  local standoff = math.min(ConvoyUnitHandler.CLOSE_IN_STANDOFF, distance / 2)
+  local back = math.atan2(from.z - enemy.z, from.x - enemy.x)
+  for _, offset in ipairs(ConvoyUnitHandler.CLOSE_IN_BEARINGS) do
+    local bearing = back + math.rad(offset)
+    local aim = { x = enemy.x + standoff * math.cos(bearing), y = 0, z = enemy.z + standoff * math.sin(bearing) }
+    local reached = veafGroundAI.reachableAlong(from, aim, maxSlope)
+    local usable = dist2D(reached, enemy) <= distance - ConvoyUnitHandler.PUSH_PROGRESS_MARGIN
+    for _, failed in ipairs(failedAims) do
+      usable = usable and dist2D(reached, failed) > ConvoyUnitHandler.FAILED_AIM_RADIUS
+    end
+    if usable then
+      local length = dist2D(from, reached)
+      local legs = math.ceil(length / ConvoyUnitHandler.CLOSE_IN_LEG)
+      local path = {}
+      for leg = 1, legs do
+        local t = leg / legs
+        table.insert(path, { x = from.x + t * (reached.x - from.x), y = 0, z = from.z + t * (reached.z - from.z) })
+      end
+      return path
+    end
+  end
+  return nil
 end
 
 --- The point a convoy falls back to: out of the enemy's sight, preferably toward a friendly place.
@@ -2095,6 +2206,10 @@ end
 --- round). Moving is what made DCS's vehicles fire on 2026-10-08 (see `fight`), so the convoy closes in,
 --- with no standoff this time; the clock restarts, and another push follows if nobody fires still. The push is no
 --- contact (`lastPush`, not `lastFireExchanged`), and pushes that move nothing end in a drive on (`pushMovesSomething`).
+---
+--- Not onto the enemy's point: to a point short of it, along a path checked for water and slope (`closeInPath`,
+--- FIX-GROUNDAI-CLOSE-IN-REACHABLE), in one order of a few off-road points. With nothing reachable the convoy does not
+--- push, and the clock restarts all the same: the push that could not be given counts as one that moved nothing.
 --- @param now number
 --- @param seen table the living enemy units in sight
 function ConvoyUnitHandler:closeIn(now, seen)
@@ -2110,17 +2225,27 @@ function ConvoyUnitHandler:closeIn(now, seen)
   if not self:pushMovesSomething(targetDistance, seen) then
     return
   end
+  self.lastPush = now
+  local path = veafGroundAI.closeInPath(from, target, veafGroundAI.maxSlopeOf(group:getUnits()), self.failedAims)
+  if not path then
+    veaf.loggers
+      .get(veafGroundAI.Id)
+      :info("convoy %s: no reachable point toward an enemy %d m away, not closing in", veaf.p(self:getName()), math.floor(targetDistance))
+    return
+  end
+  local aim = path[#path]
   veaf.loggers.get(veafGroundAI.Id):info(
-    "convoy %s: no fire exchanged for %d s, closing in on an enemy %d m away",
+    "convoy %s: no fire exchanged for %d s, closing in on an enemy %d m away, to %d m from it",
     veaf.p(self:getName()),
     ConvoyUnitHandler.STALEMATE_DELAY,
-    math.floor(targetDistance)
+    math.floor(targetDistance),
+    math.floor(dist2D(aim, target))
   )
-  veaf.goRoute(self.groupName, {
-    routePoint(from, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
-    routePoint(target, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
-  })
-  self.lastPush = now
+  local route = { routePoint(from, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED) }
+  for _, point in ipairs(path) do
+    table.insert(route, routePoint(point, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED))
+  end
+  veaf.goRoute(self.groupName, route)
 end
 
 --- Nothing in sight and no shot for a while.

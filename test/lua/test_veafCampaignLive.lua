@@ -528,6 +528,8 @@ function TestCampaignAir:test_a_strike_engages_orbits_and_lands_home()
     },
   })
   luaunit.assertEquals(#route, 3)
+  -- open fire, not weapons free: on 2026-11-22 a red CAS Su-25, weapons free, shot the AWACS down with its R-60M
+  luaunit.assertEquals(route[1].task.params.tasks[1].params.action.params, { name = 0, value = 2 })
   local engage = route[1].task.params.tasks[2]
   luaunit.assertEquals(engage.id, "EngageTargetsInZone")
   luaunit.assertEquals(engage.params.point, { x = 5000, y = 6000 })

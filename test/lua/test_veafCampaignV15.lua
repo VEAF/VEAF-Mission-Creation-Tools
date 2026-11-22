@@ -1560,9 +1560,9 @@ function TestCampaignBombers:test_the_sead_holds_then_engages_from_its_push_poin
   local first = route[1].task.params.tasks
   luaunit.assertEquals(first[1].params.action.params, { name = 0, value = 4 })
   luaunit.assertEquals(first[2].id, "EngageTargetsInZone")
-  -- it orbits at the hold until its flag is raised, then is weapons free from its push point
+  -- it orbits at the hold until its flag is raised, then opens fire on its targets from its push point
   luaunit.assertEquals(route[2].task.params.tasks[1].params.stopCondition.userFlag, "raid 1 sead")
-  luaunit.assertEquals(route[3].task.params.tasks[1].params.action.params, { name = 0, value = 0 })
+  luaunit.assertEquals(route[3].task.params.tasks[1].params.action.params, { name = 0, value = 2 })
   luaunit.assertEquals(#route[3].task.params.tasks, 1)
   luaunit.assertEquals({ route[4].x, route[4].y }, { -40000, 0 })
 end

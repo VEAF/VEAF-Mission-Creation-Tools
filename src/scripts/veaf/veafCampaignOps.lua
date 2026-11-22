@@ -989,7 +989,9 @@ veafAircraftSpawn.roles.campaign_strike = {
         priority = 0,
       },
     }
-    local roe = { id = "WrappedAction", params = { action = { id = "Option", params = { name = 0, value = 0 } } } }
+    -- open fire (ROE 2), not weapons free (0): weapons free, a red CAS Su-25 shot the AWACS down with the R-60M of
+    -- its loadout (2026-11-22); open fire, the AI attacks only the targets its tasks name
+    local roe = { id = "WrappedAction", params = { action = { id = "Option", params = { name = 0, value = 2 } } } }
     local orbit = {
       id = "ControlledTask",
       params = {

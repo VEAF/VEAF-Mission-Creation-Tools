@@ -2012,4 +2012,89 @@ function TestCampaignGroundKill:test_friendly_fire_is_ignored()
   luaunit.assertNil(veafCampaignEconomy.sitacStats()["Zip"])
 end
 
+-- ---------------------------------------------------------------------------
+-- Every pilot on the ranking, and the evening's summary (FIX-CAMPAIGN-GROUND-KILLS-UNPAID 02 and 03)
+-- ---------------------------------------------------------------------------
+TestCampaignEvening = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+function TestCampaignEvening:setUp()
+  setUpSuite(self)
+  start({ economy = { start_credits = 0, landing_share = 0 }, air = {} })
+end
+
+--- A player's aircraft, named `name`, as coalition.getPlayers and an event's `dcsInitiator` hand it over.
+local function playerAircraft(name, player, side)
+  local unit = unitAt({ x = 0 }, { player = player, side = side or BLUE })
+  unit.getName = function()
+    return name
+  end
+  return unit
+end
+
+--- An event of a player's aircraft, in the shape veafEventHandler hands it over.
+local function pilotEvent(id, unit)
+  return { type = { id = id }, initiator = { unitName = unit:getName() }, dcsInitiator = unit }
+end
+
+function TestCampaignEvening:test_a_pilot_who_took_a_slot_is_on_the_ranking_with_zero()
+  veafCampaignEconomy.onPlayerEnter(pilotEvent(world.event.S_EVENT_BIRTH, playerAircraft("Hog 1", "griffin")))
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["griffin"], { Points = 0 })
+end
+
+function TestCampaignEvening:test_a_gain_afterwards_adds_to_the_same_books()
+  veafCampaignEconomy.onPlayerEnter(pilotEvent(world.event.S_EVENT_PLAYER_ENTER_UNIT, playerAircraft("Hog 1", "Zip")))
+  veafCampaignEconomy.onKill(kill("Zip"))
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"].Points, 10)
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"]["Ground Units"], 1)
+end
+
+function TestCampaignEvening:test_an_enemy_pilot_and_an_ai_get_no_books()
+  veafCampaignEconomy.onPlayerEnter(pilotEvent(world.event.S_EVENT_BIRTH, playerAircraft("Fulcrum 1", "Ivan", RED)))
+  veafCampaignEconomy.onPlayerEnter(pilotEvent(world.event.S_EVENT_BIRTH, playerAircraft("Hog 2", nil)))
+  luaunit.assertNil(next(veafCampaignEconomy.sitacStats()))
+end
+
+function TestCampaignEvening:test_the_last_player_leaving_writes_the_summary_at_once()
+  local hog = playerAircraft("Hog 1", "Zip")
+  coalition.getPlayers = function(side)
+    return side == BLUE and { hog } or {}
+  end
+  veafCampaignEconomy.beat(100) -- a player in a slot: the session's books open
+  veafCampaignEconomy.onKill(kill("Zip"))
+  -- he quits the server from his cockpit; DCS pauses the mission at once, so no beat follows
+  veafCampaignEconomy.onPlayerLeave(pilotEvent(world.event.S_EVENT_PLAYER_LEAVE_UNIT, hog))
+  luaunit.assertEquals(#loggedLines("CREDITS SUMMARY (the last player left his slot): 10 earned by the side"), 1)
+  luaunit.assertEquals(#loggedLines("ECONOMY SUMMARY (the last player left his slot)"), 1)
+  -- said once: the beat that may come has nothing left to say
+  coalition.getPlayers = function()
+    return {}
+  end
+  veafCampaignEconomy.beat(200)
+  luaunit.assertEquals(#loggedLines("SUMMARY (nobody left in a slot)"), 0)
+end
+
+function TestCampaignEvening:test_a_player_still_in_a_slot_keeps_the_session_open()
+  local hog, viper = playerAircraft("Hog 1", "Zip"), playerAircraft("Viper 1", "Paluche")
+  coalition.getPlayers = function(side)
+    return side == BLUE and { hog, viper } or {}
+  end
+  veafCampaignEconomy.beat(100)
+  veafCampaignEconomy.onKill(kill("Zip"))
+  veafCampaignEconomy.onPlayerLeave(pilotEvent(world.event.S_EVENT_PLAYER_LEAVE_UNIT, hog))
+  veafCampaignEconomy.onPlayerLeave(pilotEvent(world.event.S_EVENT_PILOT_DEAD, hog))
+  luaunit.assertEquals(#loggedLines("SUMMARY"), 0)
+  luaunit.assertNotNil(veafCampaignEconomy.ledger)
+end
+
+function TestCampaignEvening:test_the_last_pilot_dead_writes_the_summary_too()
+  local hog = playerAircraft("Hog 1", "Zip")
+  coalition.getPlayers = function(side)
+    return side == BLUE and { hog } or {}
+  end
+  veafCampaignEconomy.beat(100)
+  veafCampaignEconomy.onKill(kill("Zip"))
+  veafCampaignEconomy.onPlayerLeave(pilotEvent(world.event.S_EVENT_PILOT_DEAD, hog))
+  luaunit.assertEquals(#loggedLines("CREDITS SUMMARY (the last player left his slot)"), 1)
+end
+
 os.exit(luaunit.LuaUnit.run())

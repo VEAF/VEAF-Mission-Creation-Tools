@@ -68,3 +68,11 @@ In every case the Hawk search radar was on and the tracking radars never came on
 Consequence for this ticket: splitting the Hawk into its own group changes nothing; no code change. The fix is to stop relying on the Hawk: the blue level-5 template (`generateAirDefenseGroup-BLUE-5`) and every other place that spawns a Hawk need another system. That choice is David's; written in the PRD's state.
 
 Not measured: whether the Hawk is broken in DCS for everyone, or only with these compositions; the DCS version of David's install and of the server were not compared.
+
+### Second run, and the server's log (2026-11-22, late evening)
+
+- An exact copy of Foothold's `Blue SAM HAWK` (19 units, skill High, its headings, a route), spawned by script in CJTF Blue 8 km from Hatay in the same measuring mission, against the same kind of armed CAS strike: **0 missiles, its tracking radars never on**. A Turkish copy could not be spawned (no Turkey in the mission).
+- **The Campagne server's own log contradicts "the Hawk never fires"**: on 2026-11-20 at 20:40 UTC a campaign `Hawk ln` fired two `MIM-23K Hawk` at a Su-25 (`type=shot`, `initiator_unit_type=Hawk ln`). So a garrison Hawk does fire on the server. What the measuring bench lacks is still unknown.
+- The same log shows red's SEAD killing the blue Hawk's radars again and again: `Hawk sr` / `Hawk cwar` dead on 2026-11-19 (×4), 2026-11-21 (×2), 2026-11-22 15:48 UTC (`Hawk sr`). A Hawk whose search radar is dead is blind. Whether Hatay's was alive at 15:38 UTC on 2026-11-22, when David saw the Su-25 come to 3 NM, is not known.
+
+Next step, cheaper than a bench: at the next flight, read the Campagne log for `initiator_unit_type=Hawk ln` shots and for `Hawk sr` deaths, and set them against the red strikes on Hatay. No code change before that.

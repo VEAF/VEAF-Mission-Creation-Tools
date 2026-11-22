@@ -969,6 +969,8 @@ local UPGRADE_GROUPS = {
   nasams = { "NASAMS_LN_C", "NASAMS_Radar_MPQ64F1" },
   patriot = { "Patriot ln", "Patriot str" },
   avenger_squad = { "M1097 Avenger", "M 818" },
+  iristslm = { "CHAP_IRISTSLM_STR", "CHAP_IRISTSLM_CP", "CHAP_IRISTSLM_LN", "CHAP_IRISTSLM_LN" },
+  rapier_radar = { "rapier_fsa_blindfire_radar", "rapier_fsa_optical_tracker_unit", "rapier_fsa_launcher" },
 }
 
 local function processed(types, name)
@@ -1160,6 +1162,20 @@ function TestCampaignUpgrades:test_the_nasams_and_the_patriot_cost_their_units_s
   luaunit.assertEquals(veafCampaignEconomy.upgradePrice("nasams"), 1500)
 end
 
+-- FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 03
+function TestCampaignUpgrades:test_the_iris_t_and_the_rapier_cost_their_units_spawn_price_and_are_placed()
+  local iris = veafCampaign.unitsPrice(UPGRADE_GROUPS.iristslm) * 6 -- economy.credits_per_point
+  local rapier = veafCampaign.unitsPrice(UPGRADE_GROUPS.rapier_radar) * 6
+  luaunit.assertEquals(veafCampaignEconomy.upgradePrice("iristslm"), iris)
+  luaunit.assertEquals(veafCampaignEconomy.upgradePrice("rapier"), rapier)
+  luaunit.assertTrue(veafCampaignEconomy.buyUpgrade({ "iristslm", "Kobuleti" }))
+  luaunit.assertTrue(veafCampaignEconomy.buyUpgrade({ "rapier", "Kobuleti" }))
+  luaunit.assertEquals(veafCampaignEconomy.credits, 100000 - iris - rapier)
+  local kobuleti = veafCampaign.zones["Kobuleti"]
+  luaunit.assertNotNil(upgradeGroupNamed(kobuleti, "Kobuleti upgrade 1 iristslm"))
+  luaunit.assertNotNil(upgradeGroupNamed(kobuleti, "Kobuleti upgrade 2 rapier"))
+end
+
 function TestCampaignUpgrades:test_the_upgrades_offered_follow_the_era()
   local function ids()
     local list = {}
@@ -1169,9 +1185,9 @@ function TestCampaignUpgrades:test_the_upgrades_offered_follow_the_era()
     return list
   end
   veaf.config.era = veaf.ERA.MODERN
-  luaunit.assertEquals(ids(), { "hawk", "nasams", "patriot", "avenger", "gepard", "infantry", "armor" })
+  luaunit.assertEquals(ids(), { "hawk", "nasams", "iristslm", "patriot", "avenger", "rapier", "gepard", "infantry", "armor" })
   veaf.config.era = veaf.ERA.COLD_WAR
-  luaunit.assertEquals(ids(), { "hawk", "gepard", "infantry", "armor" })
+  luaunit.assertEquals(ids(), { "hawk", "rapier", "gepard", "infantry", "armor" })
   veaf.config.era = veaf.ERA.WW2
   luaunit.assertEquals(ids(), { "infantry", "armor" })
 end

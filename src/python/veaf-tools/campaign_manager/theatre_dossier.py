@@ -103,6 +103,8 @@ _AIR_DEFENCE_WORDS = (
     "hawk",
     "patriot",
     "nasams",
+    "iris",
+    "rapier",
     "avenger",
     "stinger",
     "roland",

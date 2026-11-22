@@ -408,6 +408,22 @@ groups:
   - {type: M1097 Avenger, number: {max: 2, min: 1}, random: true}
   description: NASAMS B battery
   groupName: NASAMS B battery
+# IRIS-T SLM (FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 03), from the Currenthill Assets Pack that ships with DCS
+# (CoreMods/tech, read on 2026-11-22): CHAP_IRISTSLM_STR is the search and track radar (MR SAM, 250 km) and needs
+# the command post CHAP_IRISTSLM_CP within 1,000 m to work; each CHAP_IRISTSLM_LN launcher (8 missiles, 1 to 40 km)
+# depends on the STR. Laid out as the NASAMS battery, the radar and the command post in the middle.
+- aliases: [iristslm, iris-t, IRIS-T]
+  disposition: {h: 7, w: 11}
+  units:
+  - {type: CHAP_IRISTSLM_STR, cell: 41}
+  - {type: CHAP_IRISTSLM_CP, cell: 34}
+  - {type: CHAP_IRISTSLM_LN, cell: 4, hdg: 315}
+  - {type: CHAP_IRISTSLM_LN, cell: 11, hdg: 45}
+  - {type: CHAP_IRISTSLM_LN, cell: 70, hdg: 225}
+  - {type: CHAP_IRISTSLM_LN, cell: 77, hdg: 135}
+  - {type: CHAP_M1083, number: {max: 2, min: 1}, random: true}
+  description: IRIS-T SLM battery
+  groupName: IRIS-T SLM battery
 - aliases: [hawk, ha, mim-23]
   disposition: {h: 40, w: 40}
   units:

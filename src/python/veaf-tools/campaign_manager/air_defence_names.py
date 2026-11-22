@@ -35,6 +35,11 @@ _SYSTEMS: dict[str, tuple[str, str]] = {
     "sa19": ("SA-19", "short"),
     "sa15m2_squad": ("SA-15 Tor M2", "short"),
     "sa22_squad": ("SA-22 Pantsir", "short"),
+    # FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 03; `iris-t` is looked up without its hyphen
+    "iristslm": ("IRIS-T SLM", "medium"),
+    "irist": ("IRIS-T SLM", "medium"),
+    "rapier_radar": ("Rapier", "short"),
+    "rapier_optical": ("Rapier", "short"),
 }
 
 #: The air-defence vehicles a generated defence holds, by DCS type, as pilots call them; trucks, radars and

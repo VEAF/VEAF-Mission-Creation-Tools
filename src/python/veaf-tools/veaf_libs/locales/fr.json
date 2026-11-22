@@ -1502,7 +1502,7 @@
   "campaign.dossier.guide.credits": "La coalition gagne des crédits par les victoires, les prises, les ravitaillements et les tâches. Une victoire paie {share} % à l'atterrissage sur une base, une FARP ou un porte-avions ami ; ce bonus est perdu si le pilote s'éjecte ou s'écrase.",
   "campaign.dossier.guide.rewards": "Gains : unité au sol {kill_ground}, SAM {kill_sam}, aéronef {kill_air}, bâtiment d'une zone ennemie {kill_building}, pilote secouru et ramené au MASH {rescue}, zone prise {capture}.",
   "campaign.dossier.guide.shop_title": "Boutique (F10 → Autres → VEAF → Campagne → Boutique)",
-  "campaign.dossier.guide.upgrades": "Renforcer une zone : défense aérienne, infanterie ou blindés posés sur une de nos zones, qui rejoignent sa garnison, au prix de leurs unités (environ Hawk 2 000, NASAMS 2 000, Patriot 5 000, Avenger 1 000, Gepard 750 crédits) ; {limit} par zone, un seul Patriot.",
+  "campaign.dossier.guide.upgrades": "Renforcer une zone : défense aérienne, infanterie ou blindés posés sur une de nos zones, qui rejoignent sa garnison, au prix de leurs unités (environ Hawk 2 000, NASAMS 2 000, IRIS-T SLM 2 000, Patriot 5 000, Avenger 1 000, Rapier 1 000, Gepard 750 crédits) ; {limit} par zone, un seul Patriot.",
   "campaign.dossier.guide.tasks_title": "Tâches",
   "campaign.dossier.guide.tasks": "Trois tâches à la fois, tirées de la situation et marquées sur la carte : attaquer, prendre, ravitailler, supériorité aérienne, intercepter les bombardiers.",
   "campaign.dossier.guide.intel_title": "Renseignement",

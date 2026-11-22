@@ -87,8 +87,8 @@ def test_load_framework_spawn_data_shape() -> None:
     data = load_framework_spawn_data()
     assert len(data["units"]) == 23  # 13 + 8 helicopters (FEAT-HELICOPTER-SPAWN) + the Freya and Würzburg radars
     assert (
-        len(data["groups"]) == 98
-    )  # 78 + 16 air-defense era variants (FIX-SCRATCH-MISSION-FINDINGS 12) + 4 WW2 batteries
+        len(data["groups"]) == 99
+    )  # 78 + 16 air-defense era variants (FIX-SCRATCH-MISSION-FINDINGS 12) + 4 WW2 batteries + the IRIS-T SLM
     # hidden groups preserved (the generateAirDefenseGroup-* entries)
     hidden = [g for g in data["groups"] if g.get("hidden")]
     assert len(hidden) == 28

@@ -220,6 +220,11 @@ veafCampaign.TYPE_PRICES = {
   -- the nasams group is a radar (the category's 40), a command post, four launchers, an Avenger and lorries
   ["NASAMS_LN_B"] = 28,
   ["NASAMS_LN_C"] = 28,
+  -- the iristslm group is a radar (40), a command post (10), four launchers of 8 missiles and lorries, no point
+  -- defence: priced as the launchers' `SAM LL` alone, 680 credits, it cost less than an Avenger section; 2,000 credits
+  -- as the Hawk and the NASAMS (FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 03, an estimate). The rapier_radar group is 1,060
+  -- credits as it stands, about an Avenger section.
+  ["CHAP_IRISTSLM_LN"] = 72,
   -- the patriot group is a radar, four command posts, eight launchers, Vulcans and lorries: 5,000 credits
   ["Patriot str"] = 93,
   ["Patriot ln"] = 85,

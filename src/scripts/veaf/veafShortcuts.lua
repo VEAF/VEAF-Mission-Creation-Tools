@@ -1237,6 +1237,13 @@ function veafShortcuts.buildDefaultList()
   )
   veafShortcuts.AddAlias(
     VeafAlias:new()
+      :setName("-iristslm")
+      :setDescription("IRIS-T SLM battery (US by default)")
+      :setVeafCommand("_spawn group, name iristslm, country USA, skynet true, spacing 1, radius 0")
+      :setBypassSecurity(false)
+  )
+  veafShortcuts.AddAlias(
+    VeafAlias:new()
       :setName("-hawk")
       :setDescription("Hawk battery (US by default)")
       :setVeafCommand("_spawn group, name hawk, country USA, skynet true, spacing 1, radius 0")

@@ -2213,3 +2213,19 @@ limitations:
   cost: |
     From 2026-11-15 to 2026-11-21 the persistent campaign paid no player's ground kill and counted none on its
     ranking: the pilots who only attacked ground targets were missing from it.
+
+- id: skynet-refuses-a-group-respawned-under-its-name-after-a-loss
+  kind: tool
+  area: runtime
+  title: "Skynet refuses a SAM group spawned again under its name once one of its units was killed"
+  symptom: |
+    `veafSkynet.addGroupToNetwork` refuses a group whose name the network already lists, and the periodic sweep
+    (`veafSkynet.removeVanishedSites`) drops a vanished site only when DCS reported none of its units lost: a site
+    that lost a unit stays listed as destroyed, Skynet's readout of a kill. A script that spawns a SAM group again
+    under the same name after a loss (a repair, a respawn) calls `veafSkynet.integrateMissionSpawn` for nothing:
+    the new group stays out of the network for the rest of the mission. Read in the code on 2026-11-22
+    (FEAT-CAMPAIGN-SKYNET 03); combat zones are not affected, they respawn under a new name.
+  workaround: |
+    Spawn again under a new name, or remove the old site first, as the persistent campaign does
+    (`veafCampaign.declareToSkynet`: `veafSkynet.removeSkynetElement` on the site of that name, then
+    `veafSkynet.rebuildRadarCoverage`).

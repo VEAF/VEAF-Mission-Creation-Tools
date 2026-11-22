@@ -36,6 +36,10 @@ The enemy's assault convoys sized for the players who can stop them (Griffin and
 
 ## 🧑 Waiting for a human
 
+### [FEAT-CAMPAIGN-SKYNET](FEAT-CAMPAIGN-SKYNET/PRD.md) · 🧑
+
+The persistent campaign's SAM sites run under Skynet, both sides. Done: `campaign next` turns the SKYNET module on (`dynamic.skynet.enabled: false` keeps it off); a garrison's multi-piece SAM (the blue level-5 Hawk) moves to a group of its own, `<zone> SAM`, on a fresh draw and on a loaded save; the campaign declares every SAM group it spawns to its side's network, replacing an old site of the same name, one `[CAMPAIGN SKYNET]` line each. Waiting: the in-game checks on the Campagne server after the redeploy. PR into `feature/dynamic-campaign`.
+
 ### [FIX-CAMPAIGN-FIFTH-SERVER-FLIGHT](FIX-CAMPAIGN-FIFTH-SERVER-FLIGHT/PRD.md) · 🧑
 
 What the 22/11 afternoon on the Campagne server showed. Done: red strikes open fire on their targets only (ROE OPEN_FIRE, not weapons free), an AWACS holds `awacs_standoff` (100 km) from every enemy zone, a supply helicopter's timeout comes from its distance. Waiting: the in-game checks, and ticket 02's DCS measure (a Hawk inside the garrison's mixed group), not taken since DCS was not running; the red medium-range batteries turned out to be groups of their own already. PR into `feature/dynamic-campaign`.

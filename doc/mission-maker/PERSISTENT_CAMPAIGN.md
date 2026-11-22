@@ -719,6 +719,36 @@ dynamic:
 
 La portée est celle qu'utilise [la BARCAP](#shop) : mesurée sur les missiles quand une zone est éveillée, supposée pour une zone jamais vue éveillée.
 
+## Les SAM sous Skynet {#skynet}
+
+Les SAM des deux camps sont commandés par [Skynet](scripts/veafSkynetIadsHelper.md), le réseau de défense antiaérienne de VEAF : `campaign next` active le module `SKYNET` dans `mission.yaml`, et la campagne déclare chaque groupe SAM qu'elle fait apparaître au réseau de son camp.
+
+Ce qu'un pilote voit :
+
+- un site qui voit arriver un missile antiradar coupe souvent son radar, puis le rallume une fois le missile passé ;
+- un site éteint garde un petit rayon de défense à lui (la « dernière ligne de défense » de Skynet) : il s'allume quand un avion entre dans ce rayon ;
+- sans radar d'alerte avancée (EWR), aucun dans la campagne, un site garde son propre radar allumé, comme avant.
+
+Ce qui est sous Skynet :
+
+- le SAM d'une garnison fait de plusieurs véhicules (un lanceur qui tire sur le radar d'un autre véhicule, ses radars, son poste de commande) : il est tiré dans un groupe à lui, `<zone> SAM` (par exemple `Hatay SAM`, le Hawk d'une zone bleue de niveau 5) ;
+- les batteries longue et moyenne portée (`<zone> long-range SAM`, `<zone> medium-range SAM`) ;
+- les [renforts de zone](#upgrades) qui portent un lanceur de missiles : Hawk, NASAMS, IRIS-T SLM, Patriot, Rapier.
+
+Les armes courte portée (Gepard, Avenger, Stinger, Shilka, Tunguska…) restent dans le groupe principal de la garnison, à l'IA de DCS : Skynet commande un groupe entier, et éteindrait tout le groupe avec son SAM.
+Une sauvegarde d'avant ce changement est coupée de la même façon au chargement, sans nouveau tirage : chaque unité garde son type, sa position, son cap et son état, et la coupure est écrite à la sauvegarde suivante.
+Le groupe SAM se réveille entier, en dernier, comme les batteries.
+
+`dcs.log` dit chaque déclaration, qu'il y ait `debug` ou non : `[CAMPAIGN SKYNET] [Hatay SAM] declared to blue iads`.
+Un groupe qui réapparaît sous son nom (zone réveillée, SAM ramené par une livraison) remplace son ancien site dans le réseau (`its old site replaced`).
+`skynet.enabled: false` laisse les SAM à l'IA de DCS, comme avant.
+
+```yaml
+dynamic:
+  skynet:
+    enabled: false
+```
+
 ## Le territoire {#territory}
 
 Chaque zone tient la part de la carte plus proche d'elle que de toute autre zone (sa cellule de Voronoï), teintée sur la carte F10 de la couleur de son camp, gris pour une zone neutre ; une ligne sombre court entre deux cellules de camps différents : c'est le front, souligné de chaque côté par de petites hachures obliques de la couleur du camp, bien visibles là où la teinte est pâle.
@@ -820,6 +850,7 @@ Une ligne `KO` suffit à dire où regarder.
 | `debug` | voir [le journal de mise au point](#debug-log) | `true` pendant les essais |
 | `debug_status_seconds` | 300 | intervalle entre deux lignes d'état du journal |
 | `territory` | voir [le territoire](#territory) | `enabled` (true), `margin` (70000), `hatch_spacing` (3000), `hatch_length` (2500) |
+| `skynet` | voir [les SAM sous Skynet](#skynet) | `enabled` (true) |
 | `support` | voir [AWACS et ravitailleurs](#support) et le [module `veafSupport`](scripts/veafSupport.md#settings) | `assets` (aucun), `margin` (30000), `retreat_margin` (50000), `seconds` (60), `advance_seconds` (1800), `min_advance` (30000), `leg` (30, nautiques), `awacs_standoff` (100000) |
 
 Les plafonds sont prudents par défaut ; ils se règleront d'après ce que tiennent les serveurs.
@@ -845,6 +876,7 @@ Ces points sont écrits et testés hors de DCS, pas encore mesurés en jeu :
 - une unité au sol détruite par un joueur, comptée et payée : `CREDITS <pilote> +<montant> (kill_held)` dans `dcs.log` (si l'objet DCS de la cible répond encore à `getCoalition` au moment du kill, ou si la campagne doit le reprendre de ses registres, reste à mesurer) ;
 - le bilan de la soirée écrit quand le dernier joueur quitte le serveur depuis son cockpit : `grep "SUMMARY" dcs.log`, à l'heure de son départ ;
 - un renfort de zone acheté (une batterie Hawk sur Hatay) : posé dans la zone, présent après un redémarrage, et le troisième refusé ;
+- les SAM sous Skynet : une ligne `[CAMPAIGN SKYNET]` par groupe SAM au réveil de sa zone, `Hatay SAM` dans son propre groupe, le Gepard et l'Avenger de Hatay qui tirent toujours, et un site rouge qui s'éteint sous un missile antiradar puis se rallume ;
 - un vol SEAD acheté sur Alep : il décolle de Hatay ou de Gaziantep et engage la défense antiaérienne d'Alep, et une deuxième SEAD est refusée tant qu'il vole.
 
 Voir aussi la [référence du module `veafCampaign`](scripts/veafCampaign.md).

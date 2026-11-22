@@ -196,6 +196,8 @@ _SCHEMA: dict[str, Check | dict[str, Check]] = {
         "sam_reach_floor": _positive,
         "awacs_standoff": _positive,
     },
+    # the SKYNET module, which `campaign next` turns on for both sides unless this says not (FEAT-CAMPAIGN-SKYNET)
+    "skynet": {"enabled": _flag},
     "debug": _flag,
     "debug_status_seconds": _positive,
 }

@@ -1,6 +1,6 @@
 # 02 — A garrison's SAM in a group of its own
 
-Status: ⬜ ready
+Status: 🧑 waiting-human (in-game check)
 Type: feature
 
 ## To do
@@ -19,3 +19,14 @@ No multi-unit SAM shares a group with a garrison's short-range weapons, in a fre
 ## In-game check
 
 On the Campagne server: `Hatay SAM` (or the chosen name) listed as its own group, and Hatay's main group still firing its Gepard and Avenger.
+
+## Done
+
+- `VeafCampaignZone:separateSam()` moves a SAM's pieces from the main group `<zone> garrison` into `<zone> SAM`, appended to the garrison; called by `drawGarrison` (a fresh draw, at start or after a capture) and by `veafCampaign.initialize` for a garrison already recorded (a loaded save, or a data table's). Idempotent: a main group with no such SAM is left alone, and a save already split is not touched.
+- **Choice: DCS's unit attributes (`dcsUnits.DcsUnitsDatabase[type].attribute`)**, not Skynet's database. `SkynetIADS.database` is loaded only when the module is on, and calls the Roland ADS a "complex" SAM although this ticket keeps it in the main group; the attributes are always loaded (`veafCampaign.reserveCategory` reads them already). The rule:
+  - a group holds such a SAM when one of its units is a **launcher that needs another vehicle's radar** (`SAM LL` without `SAM TR`: Hawk ln, Kub ln, NASAMS ln, Patriot ln);
+  - then its pieces move: those launchers, every **radar with no weapon** (`SAM SR` or `SAM TR` without `AA_missile` or `AA_flak`: Hawk sr, tr, cwar) and every **command post** (`SAM CC`: Hawk pcp);
+  - the launcher condition is what keeps a lone acquisition radar where it is: the red groups' Dog Ear radar (levels 1 to 5) and BLUE-4's Roland Radar beside its Roland ADS are radars with no weapon, and pulling them out alone would have put an EWR under Skynet in every red zone, which the lot excludes. Measured on `veaf-units.yaml`: of the garrison air defence templates, only `generateAirDefenseGroup-BLUE-5` splits.
+- Each unit record moves as it is (type, x, z, heading, alive, missiles): `unitIndex` is rebuilt at spawn from the new indices, a loss is recorded against the SAM group, the price (`garrisonPrice`, by type) is unchanged, `[CAMPAIGN AIRDEF]` walks every group, and the kill payment pays by the killed unit's type, not its group. The next save writes the split back (it writes `entry.garrison`).
+- Wake order: `startSpawning` puts every group whose name ends in `SAM` last (the pattern was `-range SAM`), whole: "a group is never split" holds.
+- Tests (`TestVeafCampaignSamGroup`): the attribute rule on the types concerned; a fresh BLUE-5-like garrison split and spawned as two DCS groups; a garrison with a Dog Ear or a Roland left in one group; a loaded save split with its dead, positions and headings, same price, units indexed under the new group; a loss in the SAM group; a save already split left alone; the SAM group waking after a group bought later (checked to fail with the old pattern).

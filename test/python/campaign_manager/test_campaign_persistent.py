@@ -110,6 +110,7 @@ class TestTheDynamicBlock:
             "debug_status_seconds": 600,
             "territory": {"enabled": True, "margin": 50000},
             "support": {"assets": ["AWACS Magic"], "awacs_standoff": 120000},
+            "skynet": {"enabled": False},
         }
         dynamic = _persistent(dynamic=block).dynamic
         for key, value in block.items():
@@ -143,6 +144,8 @@ class TestTheDynamicBlock:
             ({"economy": {"rescue": -1}}, "dynamic.economy.rescue"),
             ({"debug": "yes"}, "dynamic.debug"),
             ({"territory": {"enabled": "yes"}}, "dynamic.territory.enabled"),
+            ({"skynet": {"enabled": "yes"}}, "dynamic.skynet.enabled"),
+            ({"skynet": {"ewr": True}}, "dynamic.skynet.ewr"),
         ],
     )
     def test_a_bad_setting_is_named(self, block: dict[str, Any], setting: str) -> None:

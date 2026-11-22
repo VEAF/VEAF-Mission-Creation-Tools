@@ -1,6 +1,6 @@
 # 02 — A medium-range SAM for red
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 Type: feature
 
 ## To do
@@ -20,6 +20,14 @@ Type: feature
 ## Done when
 
 A campaign that sets `medium_range_sam` on a red zone gets an SA-11, SA-6 or SA-3 battery there, capped and spaced, and the AI and the briefings know its reach; with tests.
+
+## Done
+
+- Python: `SizeClass.medium_range_sam`, `CampaignZone.medium_range_sam`, `CampaignDefinition.has_medium_range_sam` / `has_sam_battery`, `medium_range_sams` (`per_side` 3, `min_spacing` 60 km, the same keys as `long_range_sams`; estimates). The validator checks both kinds with one function (`_check_sam_batteries`); a long- and a medium-range battery do not count against each other. `next_mission` hands the flag to the runtime.
+- Lua: `veafCasMission.MEDIUM_RANGE_AIR_DEFENSE_GROUPS` and `generateMediumRangeAirDefenseGroup` (one code path with the long-range one); `drawGarrison` places `<zone> medium-range SAM`; `startSpawning` wakes it last with the long-range one; `veafCampaignOps.ASSUMED_MEDIUM_RANGE` (40 km, an estimate) for a sleeping zone. A captured zone redraws as for the long range.
+- Intelligence and briefings: a zone with either battery is a main position; the medium battery is suspected, then named from the state (`medium-range SAM` suffix); the mission deck lists it; the theatre dossier draws a 40 km circle and lists ours.
+- Docs: `CAMPAIGN.md` / `.en.md`, `PERSISTENT_CAMPAIGN.md` / `.en.md`, the default persistent `campaign.yaml` comment.
+- Tests: `test_campaign_definition.py`, `test_campaign_intelligence.py`, `test_campaign_next.py`, `test_air_defense_eras.py`; Lua `TestVeafCasMissionMediumRange`, the draw in `test_veafCampaign.lua`, the assumed reach in `test_veafCampaignLive.lua`.
 
 ## In-game check
 

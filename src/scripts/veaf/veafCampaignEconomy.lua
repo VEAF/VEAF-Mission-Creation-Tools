@@ -130,6 +130,10 @@ veafCampaignEconomy.pilots = {}
 --- The gains since the last summary of the session, by pilot; nil when there are none.
 veafCampaignEconomy.sessionGains = nil
 
+--- The same gains by pilot and reason, `{ [who] = { [reason] = credits } }`, what "My earnings" reads; nil with
+--- `sessionGains` (FEAT-CAMPAIGN-PILOT-EARNINGS-MENU 01).
+veafCampaignEconomy.sessionReasons = nil
+
 --- Who a gain nobody flew for is written against.
 veafCampaignEconomy.TEAM = "team"
 
@@ -290,6 +294,10 @@ function veafCampaignEconomy.earnAs(kind, pilot, amount, reasonKey, ...)
     end
     veafCampaignEconomy.sessionGains = veafCampaignEconomy.sessionGains or {}
     veafCampaignEconomy.sessionGains[who] = (veafCampaignEconomy.sessionGains[who] or 0) + amount
+    veafCampaignEconomy.sessionReasons = veafCampaignEconomy.sessionReasons or {}
+    local sessionReasons = veafCampaignEconomy.sessionReasons[who] or {}
+    sessionReasons[reason] = (sessionReasons[reason] or 0) + amount
+    veafCampaignEconomy.sessionReasons[who] = sessionReasons
     logger():info("CREDITS %s +%d (%s): %d for the side", who, amount, reason, veafCampaignEconomy.credits)
     if type(kind) == "table" then
       for each, credits in pairs(kind) do
@@ -342,7 +350,7 @@ function veafCampaignEconomy.summarizeGains(why)
     local books = veafCampaignEconomy.pilots[name]
     logger():info("CREDITS SUMMARY %s: %d this session, %d in the campaign", name, gains[name], books and books.total or gains[name])
   end
-  veafCampaignEconomy.sessionGains = nil
+  veafCampaignEconomy.sessionGains, veafCampaignEconomy.sessionReasons = nil, nil
   return true
 end
 
@@ -1274,6 +1282,114 @@ function veafCampaignEconomy.reportCredits()
   tell("campaign.credits.balance", veafCampaignEconomy.credits)
 end
 
+--- The words "My earnings" gives a gain's reason, by the reason the books write: the part of a kill paid at once and
+--- the kill paid in full are both kills. Any other reason is `other`.
+veafCampaignEconomy.EARNINGS_REASON = { kill = "kill", kill_held = "kill", landed = "landed", rescue = "rescue", warehouse = "warehouse" }
+
+--- The ranking figures "My earnings" lists, in its order: `{ Foothold's name, the i18n key's last part }`.
+veafCampaignEconomy.EARNINGS_STATS = {
+  { "Air", "air" },
+  { "Helo", "helo" },
+  { "SAM", "sam" },
+  { "Ground Units", "ground" },
+  { "Infantry", "infantry" },
+  { "Structure", "structure" },
+  { "Warehouse delivery", "warehouse" },
+  { "Deaths", "deaths" },
+}
+
+--- A pilot's rank among the pilots of the campaign by his total, and their number; the team is no pilot. Pilots with
+--- the same total share a rank.
+local function rankOf(player, total)
+  local rank, count, listed = 1, 0, false
+  for name, books in pairs(veafCampaignEconomy.pilots) do
+    if name ~= veafCampaignEconomy.TEAM then
+      count = count + 1
+      listed = listed or name == player
+      if (books.total or 0) > total then
+        rank = rank + 1
+      end
+    end
+  end
+  return rank, listed and count or count + 1
+end
+
+--- What "My earnings" tells a pilot (FEAT-CAMPAIGN-PILOT-EARNINGS-MENU 01): his gains since the last session summary,
+--- by reason; what his aircraft holds until it lands; his campaign total and rank; his score; and the team's gains.
+--- "This session" is the period of the `CREDITS SUMMARY`: it is written only once nobody is left in a slot, so it
+--- never restarts under a pilot who is flying, and the message says so.
+--- @param player string the pilot's name
+--- @param unitName string|nil his unit, whose held credits are his
+--- @return string
+function veafCampaignEconomy.earningsText(player, unitName)
+  local books = veafCampaignEconomy.pilots[player]
+  local stats = books and books.stats or {}
+  local sessionGain = veafCampaignEconomy.sessionGains and veafCampaignEconomy.sessionGains[player] or 0
+  local held = unitName and veafCampaignEconomy.held[unitName]
+  local heldAmount = held and held.player == player and held.amount or 0
+  local scored = false
+  for _, stat in ipairs(veafCampaignEconomy.EARNINGS_STATS) do
+    scored = scored or (stats[stat[1]] or 0) > 0
+  end
+  if sessionGain == 0 and heldAmount == 0 and (books and books.total or 0) == 0 and not scored then
+    return veaf.t("campaign.earnings.nothing", player)
+  end
+  local lines = { veaf.t("campaign.earnings.header", player), veaf.t("campaign.earnings.session", sessionGain) }
+  local byLabel, labels = {}, {}
+  local reasons = veafCampaignEconomy.sessionReasons and veafCampaignEconomy.sessionReasons[player] or {}
+  for reason, amount in pairs(reasons) do
+    local label = veaf.t("campaign.earnings.reason." .. (veafCampaignEconomy.EARNINGS_REASON[reason] or "other"))
+    if not byLabel[label] then
+      table.insert(labels, label)
+    end
+    byLabel[label] = (byLabel[label] or 0) + amount
+  end
+  table.sort(labels, function(a, b)
+    if byLabel[a] ~= byLabel[b] then
+      return byLabel[a] > byLabel[b]
+    end
+    return a < b
+  end)
+  for _, label in ipairs(labels) do
+    table.insert(lines, veaf.t("campaign.earnings.reason_line", label, byLabel[label]))
+  end
+  if heldAmount > 0 then
+    table.insert(lines, veaf.t("campaign.earnings.held", heldAmount))
+  else
+    table.insert(lines, veaf.t("campaign.earnings.held_none"))
+  end
+  local total = books and books.total or 0
+  table.insert(lines, veaf.t("campaign.earnings.campaign", total, rankOf(player, total)))
+  local score = {}
+  for _, stat in ipairs(veafCampaignEconomy.EARNINGS_STATS) do
+    local value = stats[stat[1]] or 0
+    if value > 0 then
+      table.insert(score, string.format("%s %d", veaf.t("campaign.earnings.stat." .. stat[2]), value))
+    end
+  end
+  if #score > 0 then
+    table.insert(lines, veaf.t("campaign.earnings.score", table.concat(score, ", ")))
+  end
+  local team = veafCampaignEconomy.sessionGains and veafCampaignEconomy.sessionGains[veafCampaignEconomy.TEAM] or 0
+  table.insert(lines, veaf.t("campaign.earnings.team", team))
+  return table.concat(lines, "\n")
+end
+
+--- Radio command "My earnings": the caller's own figures, to him alone.
+--- @param parameters table|string the caller's unit name, as `USAGE_ForGroup` passes it
+function veafCampaignEconomy.reportEarnings(parameters)
+  local unitName = type(parameters) == "table" and parameters[#parameters] or parameters
+  local unit = type(unitName) == "string" and Unit.getByName(unitName)
+  if not unit then
+    return
+  end
+  local ok, player = pcall(unit.getPlayerName, unit)
+  if not (ok and player) then
+    return
+  end
+  veaf.outTextForUnit(unitName, veafCampaignEconomy.earningsText(player, unitName), 30)
+end
+
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Task board (ticket 07)
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1507,6 +1623,16 @@ function veafCampaignEconomy.buildRadioMenu()
       nil,
       veafRadio.USAGE_ForAll
     )
+    -- split per pilot: in a group of several player slots, a per-group command would carry the first pilot's unit
+    -- name only, and every pilot of the group would read the first one's figures
+    local earnings = veafRadio.addSubMenuPerPilot(veaf.t("menu.campaign.earnings"), veafCampaign.rootPath, nil, side)
+    veafRadio.addCommandToSubmenu(
+      veaf.t("menu.campaign.earnings_show"),
+      earnings,
+      veafCampaignEconomy.reportEarnings,
+      nil,
+      veafRadio.USAGE_ForGroup
+    )
     veafRadio.addCommandToSubmenu(
       veaf.t("menu.campaign.tasks"),
       veafCampaign.rootPath,
@@ -1716,6 +1842,7 @@ function veafCampaignEconomy.initialize()
   logger():info("Initializing module")
   veafCampaignEconomy.credits = veafCampaign.setting("economy", "start_credits")
   veafCampaignEconomy.pilots, veafCampaignEconomy.sessionGains, veafCampaignEconomy.ledger = {}, nil, nil
+  veafCampaignEconomy.sessionReasons = nil
   veafCampaignEconomy.tasks, veafCampaignEconomy.spies, veafCampaignEconomy.nextTasks = {}, {}, nil
   veafCampaignEconomy.menuBuilt, veafCampaignEconomy.shopPath, veafCampaignEconomy.offers = false, nil, {}
   veafCampaignEconomy.counters = { purchases = 0, posted = 0, completed = 0, reveals = 0, spies = 0 }

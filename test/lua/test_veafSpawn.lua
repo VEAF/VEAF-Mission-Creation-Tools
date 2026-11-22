@@ -3125,12 +3125,15 @@ end
 
 function TestSpawnCommandLeavesARoleAlone:test_an_aircraft_with_a_role_keeps_its_route()
   self:_run("CAP-with-role", true)
+  dcs_mocks.runScheduled(veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS)
   luaunit.assertEquals(self.routed, {})
 end
 
 function TestSpawnCommandLeavesARoleAlone:test_a_group_without_a_role_is_still_made_ready_and_routed()
   self:_run("Tanks-no-role", false)
   luaunit.assertEquals(self.readied, { "Tanks-no-role" })
+  -- routed once the first-order delay is over (FIX-SPAWN-GROUP-FIRST-ROUTE)
+  dcs_mocks.runScheduled(veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS)
   luaunit.assertEquals(#self.routed, 1)
 end
 
@@ -4785,6 +4788,162 @@ function TestVeafSpawnConvoyArmorTypes:test_a_convoy_stopped_before_its_first_ro
   dcs_mocks.runScheduled(veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS)
   luaunit.assertEquals(routesSetOn("Assault"), 0)
   veafSpawn.spawnedConvoys["Assault"] = nil
+end
+
+-------------------------------------------------------------------------------------------------
+-- FIX-SPAWN-GROUP-FIRST-ROUTE: a group `veafSpawnCore` spawns with a destination (or a route) gets that route
+-- `CONVOY_FIRST_ORDER_DELAY_SECONDS` after its creation, not in the frame it was created, where the order is lost.
+-------------------------------------------------------------------------------------------------
+
+TestSpawnGroupFirstRoute = {}
+
+function TestSpawnGroupFirstRoute:setUp()
+  dcs_mocks.reset()
+  self._handlers = veafSpawn.commandHandlers
+  self._route = veaf.generateVehiclesRoute
+  self._ready = veaf.readyForCombat
+  veaf.readyForCombat = function() end
+  self.generated = {}
+  veaf.generateVehiclesRoute = function(startPoint, destination, onRoad)
+    table.insert(self.generated, { startPoint = startPoint, destination = destination, onRoad = onRoad })
+    return { { name = "to " .. tostring(destination) } }
+  end
+  veafSpawn.commandHandlers = {}
+  veafSpawn.registerCommandHandler("group", "OPEN", function()
+    return "Spawned-1"
+  end)
+end
+
+function TestSpawnGroupFirstRoute:tearDown()
+  veafSpawn.commandHandlers = self._handlers
+  veaf.generateVehiclesRoute = self._route
+  veaf.readyForCombat = self._ready
+end
+
+--- Create the group the handler "spawned", standing at (100, 0, 200).
+local function addSpawnedGroup(name)
+  dcs_mocks.addGroup(name, {
+    getUnit = function()
+      return {
+        getPosition = function()
+          return { p = { x = 100, y = 0, z = 200 } }
+        end,
+      }
+    end,
+  })
+end
+
+--- The routes set on a group's controller, in order.
+local function routesOf(groupName)
+  local routes = {}
+  for _, set in ipairs(dcs_mocks.tasksSet) do
+    if set.group == groupName and set.task.id == "Mission" then
+      table.insert(routes, set.task.params.route.points)
+    end
+  end
+  return routes
+end
+
+local function spawnCommand(text, route)
+  veafSpawn.executeCommand({ x = 0, y = 0, z = 0 }, text, coalition.side.BLUE, 0, true, nil, nil, nil, route)
+end
+
+function TestSpawnGroupFirstRoute:test_the_route_to_the_destination_comes_5_s_after_the_birth()
+  addSpawnedGroup("Spawned-1")
+  spawnCommand("_spawn group, name x, dest KOBULETI")
+  luaunit.assertEquals(#routesOf("Spawned-1"), 0, "not in the frame of its creation")
+  dcs_mocks.runScheduled(veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS - 1)
+  luaunit.assertEquals(#routesOf("Spawned-1"), 0)
+  dcs_mocks.runScheduled(veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS)
+  luaunit.assertEquals(routesOf("Spawned-1"), { { { name = "to KOBULETI" } } })
+  -- generated from where the group stands, on the road unless `offroad`
+  luaunit.assertEquals(self.generated[1].startPoint, { x = 100, y = 0, z = 200 })
+  luaunit.assertTrue(self.generated[1].onRoad)
+end
+
+function TestSpawnGroupFirstRoute:test_a_route_passed_with_the_command_comes_5_s_after_the_birth_too()
+  addSpawnedGroup("Spawned-1")
+  spawnCommand("_spawn group, name x", { { name = "given" } })
+  luaunit.assertEquals(#routesOf("Spawned-1"), 0)
+  dcs_mocks.runScheduled(veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS)
+  luaunit.assertEquals(routesOf("Spawned-1"), { { { name = "given" } } })
+end
+
+function TestSpawnGroupFirstRoute:test_no_route_when_the_group_is_gone_by_then()
+  addSpawnedGroup("Spawned-1")
+  spawnCommand("_spawn group, name x, dest KOBULETI")
+  dcs_mocks.removeGroup("Spawned-1")
+  dcs_mocks.runScheduled(veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS)
+  luaunit.assertEquals(#routesOf("Spawned-1"), 0)
+end
+
+function TestSpawnGroupFirstRoute:test_a_group_destroyed_but_still_registered_gets_no_route()
+  addSpawnedGroup("Spawned-1")
+  spawnCommand("_spawn group, name x, dest KOBULETI")
+  Group.getByName("Spawned-1").isExist = function()
+    return false
+  end
+  dcs_mocks.runScheduled(veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS)
+  luaunit.assertEquals(#routesOf("Spawned-1"), 0)
+end
+
+function TestSpawnGroupFirstRoute:test_a_group_spawned_again_under_its_name_gets_only_its_own_route()
+  addSpawnedGroup("Spawned-1")
+  spawnCommand("_spawn group, name x, dest KOBULETI")
+  dcs_mocks.runScheduled(2)
+  spawnCommand("_spawn group, name x, dest BATUMI")
+  dcs_mocks.runScheduled(2 + veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS)
+  luaunit.assertEquals(routesOf("Spawned-1"), { { { name = "to BATUMI" } } }, "the last order wins")
+end
+
+function TestSpawnGroupFirstRoute:test_an_offroad_spawn_still_asks_for_an_offroad_route()
+  addSpawnedGroup("Spawned-1")
+  spawnCommand("_spawn group, name x, dest KOBULETI, offroad")
+  dcs_mocks.runScheduled(veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS)
+  luaunit.assertFalse(self.generated[1].onRoad)
+  luaunit.assertEquals(#routesOf("Spawned-1"), 1)
+end
+
+-- The road entry the ticket asked for is already how `generateVehiclesRoute` starts an on-road route: off road from
+-- where the group stands to the nearest road point (`T_STA`), on the road from there (`STA`), on the road to the road
+-- point nearest the destination (`END`), and off it to the destination itself (`T_END`). Pinned here, since a route
+-- whose first `On Road` point lies away from the road fails whole (from DCS's code, dcs-cartographie; not measured).
+TestVehiclesRouteRoadEntry = {}
+
+function TestVehiclesRouteRoadEntry:setUp()
+  dcs_mocks.reset()
+  self._roads = land.getClosestPointOnRoads
+  self._namedPoints = veafNamedPoints
+  -- the road runs north-south along x = 0
+  land.getClosestPointOnRoads = function(_, x, z)
+    return 0, z
+  end
+  veafNamedPoints = {
+    getPoint = function()
+      return { x = 3000, y = 0, z = 5000 }
+    end,
+  }
+end
+
+function TestVehiclesRouteRoadEntry:tearDown()
+  land.getClosestPointOnRoads = self._roads
+  veafNamedPoints = self._namedPoints
+end
+
+function TestVehiclesRouteRoadEntry:test_an_off_road_start_drives_off_road_to_the_road_first()
+  local route = veaf.generateVehiclesRoute({ x = 400, y = 0, z = 1000 }, "KOBULETI", true)
+  luaunit.assertEquals({ route[1].name, route[1].action, route[1].x, route[1].y }, { "T_STA", "Off Road", 400, 1000 })
+  luaunit.assertEquals({ route[2].name, route[2].action, route[2].x, route[2].y }, { "STA", "On Road", 0, 1000 })
+  luaunit.assertEquals({ route[3].name, route[3].action, route[3].x, route[3].y }, { "END", "On Road", 0, 5000 })
+  luaunit.assertEquals({ route[4].name, route[4].action, route[4].x, route[4].y }, { "T_END", "Diamond", 3000, 5000 })
+end
+
+function TestVehiclesRouteRoadEntry:test_an_offroad_route_has_no_on_road_point()
+  local route = veaf.generateVehiclesRoute({ x = 400, y = 0, z = 1000 }, "KOBULETI", false)
+  luaunit.assertEquals(#route, 3)
+  for _, point in ipairs(route) do
+    luaunit.assertNotEquals(point.action, "On Road")
+  end
 end
 
 os.exit(luaunit.LuaUnit.run())

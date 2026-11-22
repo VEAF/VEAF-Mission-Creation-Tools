@@ -223,6 +223,38 @@ function veafSpawn.registerCommandHandler(key, security, fn)
   table.insert(veafSpawn.commandHandlers, { key = key, fn = fn, security = security })
 end
 
+--- The id of the first route each spawned group waits for, by group name (see `giveFirstRoute`).
+veafSpawn.firstRouteIds = {}
+
+--- Give a group `executeCommand` just spawned its route, `CONVOY_FIRST_ORDER_DELAY_SECONDS` later: an order given in
+--- the frame a group is created is lost, 3 times out of 3, and taken 5 s later (measured 2026-11, dcs-cartographie).
+--- Not when the group is gone by then, nor when a group spawned again under the same name meanwhile has its own (the
+--- last order wins). Measured on ground groups; a route passed with the command can also reach an aircraft or a ship (a
+--- Mission Editor placeholder's route, `veafInterpreter`), which then flies or sails its spawn route for those 5 s. An
+--- aircraft with a role never comes here.
+--- @param groupName string
+--- @param route table|nil route points; nothing is given without them
+function veafSpawn.giveFirstRoute(groupName, route)
+  if not route then
+    return
+  end
+  local id = (veafSpawn.firstRouteIds[groupName] or 0) + 1
+  veafSpawn.firstRouteIds[groupName] = id
+  if veafGroundAI and veafGroundAI.noteBirth then
+    veafGroundAI.noteBirth(groupName)
+  end
+  veaf.scheduleFunction(function()
+    if veafSpawn.firstRouteIds[groupName] ~= id then
+      return
+    end
+    veafSpawn.firstRouteIds[groupName] = nil
+    local group = Group.getByName(groupName)
+    if group and group:isExist() then
+      veaf.goRoute(group, route)
+    end
+  end, nil, timer.getTime() + veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS)
+end
+
 function veafSpawn.executeCommand(
   eventPos,
   eventText,
@@ -452,7 +484,8 @@ function veafSpawn.executeCommand(
               if hasRole then
                 veaf.loggers.get(veafSpawn.Id):trace("%s flies a role, its route and options are kept", veaf.p(spawnedGroup))
               elseif not route and not routeDone and options.destination then
-                --  make the group go to destination
+                --  make the group go to destination; `generateVehiclesRoute` drives it off road to the nearest road
+                --  first unless `offroad`
                 local actualPosition = groupObject:getUnit(1):getPosition().p
                 local route = veaf.generateVehiclesRoute(
                   actualPosition,
@@ -462,9 +495,9 @@ function veafSpawn.executeCommand(
                   options.patrol,
                   spawnedGroup
                 )
-                veaf.goRoute(groupObject, route)
+                veafSpawn.giveFirstRoute(spawnedGroup, route)
               elseif route then
-                veaf.goRoute(groupObject, route)
+                veafSpawn.giveFirstRoute(spawnedGroup, route)
               end
               -- add the group to the IADS, if there is one
               if veafSkynet then

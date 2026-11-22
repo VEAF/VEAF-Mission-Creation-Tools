@@ -36,6 +36,10 @@ The enemy's assault convoys sized for the players who can stop them (Griffin and
 
 ## 🧑 Waiting for a human
 
+### [FIX-SPAWN-GROUP-FIRST-ROUTE](FIX-SPAWN-GROUP-FIRST-ROUTE/PRD.md) · 🧑
+
+A ground group spawned with a destination or a route (`veafSpawnCore`) got it in its creation frame, where DCS drops it; it now gets it 5 s later, as FIX-GROUNDAI-CLOSE-IN-REACHABLE did for the convoys. Its route already drove off road to the nearest road first (`generateVehiclesRoute`), now pinned by a test. Merged into `feature/dynamic-campaign`; waiting for the in-game check.
+
 ### [FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY](FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY/PRD.md) · 🧑
 
 Every air defence DCS offers in the campaign: the Tor M2 and the Pantsir S1 in red's modern short range, a `medium_range_sam` zone option giving red an SA-11, SA-6 or SA-3 battery, and the IRIS-T SLM and the Rapier for blue, as a VEAF group and shop upgrades. Implemented in one PR into `feature/dynamic-campaign`; waiting for the in-game checks on the Campagne server.

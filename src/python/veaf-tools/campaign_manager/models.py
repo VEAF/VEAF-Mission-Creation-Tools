@@ -94,6 +94,7 @@ class SizeClass:
     defense: int
     armor: int
     long_range_sam: bool = False
+    medium_range_sam: bool = False
 
 
 #: The shipped size classes. A campaign overrides any parameter of them, or declares new ones.
@@ -122,6 +123,14 @@ DEFAULT_LONG_RANGE_SAM_CAP = 2
 
 #: The least distance between two zones holding a long-range SAM, in metres, by default.
 DEFAULT_LONG_RANGE_SAM_SPACING = 120000
+
+#: How many zones of a declared side may hold a medium-range SAM (an SA-11, an SA-6, a Hawk), by default
+#: (FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 02). An estimate to tune after an evening on the server, not a measure.
+DEFAULT_MEDIUM_RANGE_SAM_CAP = 3
+
+#: The least distance between two zones holding a medium-range SAM, in metres, by default: an estimate too,
+#: about twice the 30 to 40 km such a battery reaches.
+DEFAULT_MEDIUM_RANGE_SAM_SPACING = 60000
 
 
 @dataclass(frozen=True)
@@ -152,6 +161,8 @@ class CampaignZone:
     """What the intelligence says of the zone when the enemy holds it, in place of the generated text."""
     long_range_sam: bool | None = None
     """Whether the zone holds a long-range SAM; ``None`` follows its size class."""
+    medium_range_sam: bool | None = None
+    """Whether the zone holds a medium-range SAM; ``None`` follows its size class."""
 
     @property
     def label(self) -> str:
@@ -207,6 +218,10 @@ class CampaignDefinition:
     """How many zones of a declared side may hold a long-range SAM (`long_range_sams.per_side`)."""
     long_range_sam_spacing: int = DEFAULT_LONG_RANGE_SAM_SPACING
     """The least distance between two of them, in metres (`long_range_sams.min_spacing`)."""
+    medium_range_sam_cap: int = DEFAULT_MEDIUM_RANGE_SAM_CAP
+    """How many zones of a declared side may hold a medium-range SAM (`medium_range_sams.per_side`)."""
+    medium_range_sam_spacing: int = DEFAULT_MEDIUM_RANGE_SAM_SPACING
+    """The least distance between two of them, in metres (`medium_range_sams.min_spacing`)."""
 
     def shop_tankers(self) -> list[str]:
         """The tankers `dynamic.economy.tanker` names: one name or a list of them, the boom and the basket.
@@ -232,6 +247,31 @@ class CampaignDefinition:
             return zone.long_range_sam
         size = self.size_classes.get(zone.size)
         return size is not None and size.long_range_sam
+
+    def has_medium_range_sam(self, zone: CampaignZone) -> bool:
+        """Return whether a zone holds a medium-range SAM: its own flag, else its size class's.
+
+        Args:
+            zone: One of the campaign's zones.
+
+        Returns:
+            ``True`` when its garrison draws a medium-range battery.
+        """
+        if zone.medium_range_sam is not None:
+            return zone.medium_range_sam
+        size = self.size_classes.get(zone.size)
+        return size is not None and size.medium_range_sam
+
+    def has_sam_battery(self, zone: CampaignZone) -> bool:
+        """Return whether a zone holds a long- or a medium-range SAM.
+
+        Args:
+            zone: One of the campaign's zones.
+
+        Returns:
+            ``True`` when its garrison draws either battery.
+        """
+        return self.has_long_range_sam(zone) or self.has_medium_range_sam(zone)
 
     def zone(self, name: str) -> CampaignZone:
         """Return the zone of that name.

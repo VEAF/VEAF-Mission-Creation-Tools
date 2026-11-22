@@ -33,6 +33,8 @@ _SYSTEMS: dict[str, tuple[str, str]] = {
     "sa11": ("SA-11", "medium"),
     "sa15": ("SA-15", "short"),
     "sa19": ("SA-19", "short"),
+    "sa15m2_squad": ("SA-15 Tor M2", "short"),
+    "sa22_squad": ("SA-22 Pantsir", "short"),
 }
 
 #: The air-defence vehicles a generated defence holds, by DCS type, as pilots call them; trucks, radars and
@@ -48,6 +50,8 @@ _VEHICLES: dict[str, str] = {
     "AAV7": "AAV7",
     "2S6 Tunguska": "SA-19 Tunguska",
     "Tor 9A331": "SA-15",
+    "CHAP_TorM2": "SA-15 Tor M2",
+    "CHAP_PantsirS1": "SA-22 Pantsir",
     "Osa 9A33 ln": "SA-8",
     "Strela-10M3": "SA-13",
     "Strela-1 9P31": "SA-9",

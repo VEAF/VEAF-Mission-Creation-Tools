@@ -924,6 +924,24 @@ objects. The airfield's automatic capture is on unless a script turns it off.
 airfield of the map since FEAT-DYNAMIC-CAMPAIGN ticket 20. Whether a capture by `Airbase.setCoalition` moves
 the dynamic slots and the warehouse is still to be measured.
 
+### A ground unit destroyed is no longer found by `Unit.getByName` when its `S_EVENT_KILL` arrives {#kill-target-gone-by-name}
+
+Measured **2026-11-21**.
+
+On the Campagne server, from 20:17 to 22:20 UTC, `dcs.log` held 86 kills by five players attacking ground
+targets (griffin 31 in an AH-64D, Zip 24, Mitch 13, Paluche 10, Angrydad54 8) and not one `CREDITS` line for
+them; the 8 kills of aircraft and helicopters by a sixth player were all paid. A handler that reads the kill's target by name, as `veafEventHandler` did, finds
+nothing for a vehicle destroyed: its side reads neutral and its category nil. An aircraft shot down is still
+found while it falls. Whether the raw `event.target` object still answers `getCoalition` at that moment is
+to measure.
+
+**What to do:** Keep the raw object (`veafEventHandler` hands it as `dcsTarget` since FIX-CAMPAIGN-GROUND-KILLS-UNPAID) and ask
+it under `pcall`; when it no longer answers, take the side from the mission's own records of the unit (the
+persistent campaign looks up its garrisons, assault convoys and aircraft by name).
+
+*What it cost:* From 2026-11-15 to 2026-11-21 the persistent campaign paid no player's ground kill and counted none on its
+ranking: the pilots who only attacked ground targets were missing from it.
+
 ## Radio and frequencies {#radio}
 
 ### The text of `Radio.lua` is not the airfield frequencies DCS uses — DCS completes the missing bands {#radio-lua-is-not-what-the-f10-view-shows}

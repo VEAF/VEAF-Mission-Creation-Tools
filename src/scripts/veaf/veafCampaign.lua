@@ -612,7 +612,9 @@ veafCampaign.zones = {}
 --- The zones in the order the data table declares them, so that nothing depends on `pairs`.
 veafCampaign.zoneList = {}
 
---- Which garrison unit a DCS unit name is: `{ zone, group index, unit index }`.
+--- Which garrison unit a DCS unit name is: `{ zone, group index, unit index, side, type }`, `side` the zone's owner
+--- and `type` the unit's when it was spawned: a zone that loses its last unit turns neutral and drops its garrison,
+--- maybe before the kill's event is read (`recordOf`).
 veafCampaign.unitIndex = {}
 
 --- Which factory building a DCS static name is: `{ zone, index }` (ticket 11).
@@ -988,7 +990,7 @@ function VeafCampaignZone:spawnGroup(groupIndex, only)
         skill = "Random",
         heading = unit.heading,
       })
-      veafCampaign.unitIndex[name] = { zone = self, group = groupIndex, unit = unitIndex }
+      veafCampaign.unitIndex[name] = { zone = self, group = groupIndex, unit = unitIndex, side = self.entry.owner, type = unit.type }
     end
   end
   if #dcsUnits == 0 then
@@ -2717,7 +2719,7 @@ function veafCampaign.absorbConvoy(zone, side)
       for index, unit in ipairs(inside) do
         local point = unit:getPoint()
         table.insert(group.units, { type = unit:getTypeName(), x = point.x, z = point.z, heading = 0, alive = true })
-        veafCampaign.unitIndex[unit:getName()] = { zone = zone, group = 1, unit = index }
+        veafCampaign.unitIndex[unit:getName()] = { zone = zone, group = 1, unit = index, side = side, type = group.units[index].type }
       end
       zone.entry.garrison = { group }
       record.absorbed = typesOf(inside)
@@ -4321,10 +4323,69 @@ function veafCampaign.playerUnitOf(event)
   return unit, player
 end
 
+--- Ask a DCS object one of its methods, under pcall: a dead object may no longer answer.
+--- @return any the answer, or nil
+local function ask(object, method)
+  if type(object) ~= "table" then
+    return nil
+  end
+  local ok, call = pcall(function()
+    return object[method]
+  end)
+  if not ok or type(call) ~= "function" then
+    return nil
+  end
+  local answered, value = pcall(call, object)
+  if answered then
+    return value
+  end
+  return nil
+end
+
+--- What the campaign's own records say of a unit, by its name: a garrison unit (`unitIndex`, its zone's owner), an
+--- assault convoy (`convoys`, by its group) or a campaign aircraft (veafCampaignOps' flights). A kill's target is
+--- often no longer found by name when its event arrives, and these records are then the only ones left.
+--- @param name string|nil the unit's name
+--- @return table|nil `{ side, category, typeName }`, `side` a `coalition.side`, `typeName` when the record knows it
+function veafCampaign.recordOf(name)
+  if type(name) ~= "string" then
+    return nil
+  end
+  local where = veafCampaign.unitIndex[name]
+  if where then
+    -- the side and type it was spawned with: its zone may already be neutral, its garrison gone, when the
+    -- unit was its last and its death was read before its kill
+    local group = where.zone.entry.garrison and where.zone.entry.garrison[where.group]
+    local unit = group and group.units[where.unit]
+    local side = veafCampaign.SIDES[where.side or where.zone:getOwner()]
+    return { side = side, category = Unit.Category.GROUND_UNIT, typeName = where.type or (unit and unit.type) }
+  end
+  for _, record in ipairs(veafCampaign.convoys) do
+    if record.name and (name == record.name or name:sub(1, #record.name + 1) == record.name .. " ") then
+      return { side = veafCampaign.SIDES[record.side], category = Unit.Category.GROUND_UNIT }
+    end
+  end
+  local flight = veafCampaignOps and veafCampaignOps.flightOf and veafCampaignOps.flightOf(name)
+  if flight and flight.side then
+    local helicopter = false
+    for _, entry in ipairs(veafCampaignOps.helicopters or {}) do
+      helicopter = helicopter or entry == flight
+    end
+    local category = helicopter and Unit.Category.HELICOPTER or Unit.Category.AIRPLANE
+    return { side = veafCampaign.SIDES[flight.side], category = category, typeName = flight.typeName }
+  end
+  return nil
+end
+
 --- What a kill event says, for the campaign: a player of the players' side destroyed an enemy unit.
+---
+--- The target's data table is read from `Unit.getByName`, which no longer finds a ground unit destroyed when its
+--- S_EVENT_KILL arrives: it then says neutral with no category. The raw object (`dcsTarget`) is asked next, then the
+--- campaign's own records (`recordOf`); a target that is neutral for all three, a neutral country's unit, is ignored.
 --- @param event table the S_EVENT_KILL as veafEventHandler hands it over: `dcsInitiator` the killer's
----   DCS unit, `target` a data table (`unitCoalition`, `unitCategory`)
---- @return table|nil `{ unit, player, air, category }`, `category` the target's `Unit.Category`; nil for any other kill
+---   DCS unit, `target` a data table (`unitCoalition`, `unitCategory`), `dcsTarget` the target's DCS object
+--- @return table|nil `{ unit, player, air, category, object, typeName }`, `category` the target's `Unit.Category`,
+---   `object` its DCS object, `typeName` its type when only the campaign's records know it; nil for any other kill
 function veafCampaign.readPlayerKill(event)
   local unit, player = veafCampaign.playerUnitOf(event)
   local target = event and event.target
@@ -4332,22 +4393,43 @@ function veafCampaign.readPlayerKill(event)
     return nil
   end
   local own = veafCampaign.SIDES[veafCampaign.playerSide()]
+  local object = event.dcsTarget
+  local neutral = coalition.side.NEUTRAL
   local targetSide = target.unitCoalition
   if targetSide == nil and target.getCoalition then
     targetSide = target:getCoalition()
   end
-  if unit:getCoalition() ~= own or targetSide == nil or targetSide == own or targetSide == coalition.side.NEUTRAL then
-    return nil
+  if targetSide == nil or targetSide == neutral then
+    targetSide = ask(object, "getCoalition") or targetSide
   end
   local category = target.unitCategory
   if category == nil and target.getDesc then
     category = target:getDesc().category
+  end
+  if category == nil then
+    local desc = ask(object, "getDesc")
+    category = type(desc) == "table" and desc.category or nil
+  end
+  local record = nil
+  if targetSide == nil or targetSide == neutral or category == nil then
+    record = veafCampaign.recordOf(target.unitName or ask(object, "getName"))
+    if record and (targetSide == nil or targetSide == neutral) then
+      targetSide = record.side
+    end
+    if record and category == nil then
+      category = record.category
+    end
+  end
+  if unit:getCoalition() ~= own or targetSide == nil or targetSide == own or targetSide == neutral then
+    return nil
   end
   return {
     unit = unit,
     player = player,
     air = category == Unit.Category.AIRPLANE or category == Unit.Category.HELICOPTER,
     category = category,
+    object = object,
+    typeName = record and record.typeName,
   }
 end
 

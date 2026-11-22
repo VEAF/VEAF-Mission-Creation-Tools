@@ -394,10 +394,25 @@ function veafCampaignEconomy.killStat(kill, target)
   elseif kill.category == Unit.Category.HELICOPTER then
     return "Helo"
   end
+  -- a ground unit destroyed is often no longer found by name: its DCS object is asked next, then its type's
+  -- attributes, when the campaign's records know its type (FIX-CAMPAIGN-GROUND-KILLS-UNPAID 01)
   local unit = target and target.unitName and Unit.getByName(target.unitName)
-  if hasAttribute(unit, "Infantry") then
+  local function has(attribute)
+    if unit then
+      return hasAttribute(unit, attribute)
+    end
+    if hasAttribute(kill.object, attribute) then
+      return true
+    end
+    if kill.typeName and Unit.getDescByName then
+      local ok, desc = pcall(Unit.getDescByName, kill.typeName)
+      return ok and type(desc) == "table" and type(desc.attributes) == "table" and desc.attributes[attribute] ~= nil
+    end
+    return false
+  end
+  if has("Infantry") then
     return "Infantry"
-  elseif hasAttribute(unit, "SAM related") or hasAttribute(unit, "Air Defence") then
+  elseif has("SAM related") or has("Air Defence") then
     return "SAM"
   end
   return "Ground Units"
@@ -1578,6 +1593,59 @@ function veafCampaignEconomy.buildUpgradesMenu(side)
   end
 end
 
+--- A player takes a slot: a pilot of the players' side gets his books at once, so the sitac's ranking lists every pilot
+--- who flew, with zero points if he earned nothing (FIX-CAMPAIGN-GROUND-KILLS-UNPAID 02). An enemy pilot is left out,
+--- as the ranking leaves him out; a game master or a spectator has no unit, and no event comes here.
+--- @param event table the S_EVENT_BIRTH or S_EVENT_PLAYER_ENTER_UNIT as veafEventHandler hands it over
+function veafCampaignEconomy.onPlayerEnter(event)
+  local unit, player = veafCampaign.playerUnitOf(event)
+  if not player then
+    return
+  end
+  local ok, side = pcall(unit.getCoalition, unit)
+  if ok and side == playerCoalition() then
+    booksOf(player)
+  end
+end
+
+--- Whether a player sits in a slot of either side, the unit `leaving` aside.
+--- @param leaving string|nil the name of a unit whose player is leaving it
+local function anyPlayerBut(leaving)
+  for _, side in ipairs({ coalition.side.BLUE, coalition.side.RED }) do
+    local ok, players = pcall(coalition.getPlayers, side)
+    for _, unit in ipairs(ok and type(players) == "table" and players or {}) do
+      local named, name = false, nil
+      if type(unit) == "table" and unit.getName then
+        named, name = pcall(unit.getName, unit)
+      end
+      if not (named and leaving and name == leaving) then
+        return true
+      end
+    end
+  end
+  return false
+end
+
+--- A player leaves his unit, by his will, his death or his departure: the last one closes the session's summary at
+--- once (FIX-CAMPAIGN-GROUND-KILLS-UNPAID 03). DCS pauses the mission in the same second the last player quits the
+--- server (measured 2026-11-21 on the Campagne server), and a paused mission runs no beat: the summary waiting for
+--- the next beat was never written. The beat stays the fallback.
+--- @param event table the S_EVENT_PLAYER_LEAVE_UNIT, S_EVENT_PILOT_DEAD, S_EVENT_EJECTION or S_EVENT_CRASH
+function veafCampaignEconomy.onPlayerLeave(event)
+  if veafCampaign.over or not (veafCampaignEconomy.sessionGains or veafCampaignEconomy.ledger) then
+    return
+  end
+  local _, player = veafCampaign.playerUnitOf(event)
+  local id = event and (event.type and event.type.id or event.id)
+  -- a player leaving his unit may already have no name on it; a death or an ejection is a player's only when it says so
+  if not player and id ~= world.event.S_EVENT_PLAYER_LEAVE_UNIT then
+    return
+  end
+  if not anyPlayerBut(initiatorName(event)) then
+    veafCampaignEconomy.summarizeSession("the last player left his slot")
+  end
+end
+
 --- One beat, inside veafCampaign's loop.
 function veafCampaignEconomy.beat(now)
   if veafCampaign.over then
@@ -1683,6 +1751,16 @@ function veafCampaignEconomy.initialize()
     "veafCampaignEconomy.onPilotEvent",
     { "S_EVENT_LAND", "S_EVENT_EJECTION", "S_EVENT_PILOT_DEAD", "S_EVENT_CRASH", "S_EVENT_DEAD", "S_EVENT_PLAYER_LEAVE_UNIT" },
     veafCampaignEconomy.onPilotEvent
+  )
+  veafEventHandler.addCallback(
+    "veafCampaignEconomy.onPlayerEnter",
+    { "S_EVENT_BIRTH", "S_EVENT_PLAYER_ENTER_UNIT" },
+    veafCampaignEconomy.onPlayerEnter
+  )
+  veafEventHandler.addCallback(
+    "veafCampaignEconomy.onPlayerLeave",
+    { "S_EVENT_PLAYER_LEAVE_UNIT", "S_EVENT_PILOT_DEAD", "S_EVENT_EJECTION", "S_EVENT_CRASH" },
+    veafCampaignEconomy.onPlayerLeave
   )
   veafCampaignEconomy.watchRescues()
   veafCampaignEconomy.buildRadioMenu()

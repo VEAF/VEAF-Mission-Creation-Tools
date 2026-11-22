@@ -1891,4 +1891,227 @@ function TestCampaignAssaultOrder:test_too_few_credits_send_nothing()
   luaunit.assertEquals(veafCampaignEconomy.credits, 299)
 end
 
+-- ---------------------------------------------------------------------------
+-- A ground kill whose target is already gone (FIX-CAMPAIGN-GROUND-KILLS-UNPAID 01)
+-- ---------------------------------------------------------------------------
+TestCampaignGroundKill = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+function TestCampaignGroundKill:setUp()
+  setUpSuite(self)
+  self.descByName = Unit.getDescByName
+  start({ economy = { start_credits = 0, landing_share = 0 }, air = {} })
+end
+
+function TestCampaignGroundKill:tearDown()
+  Unit.getDescByName = self.descByName
+  tearDownSuite(self)
+end
+
+--- A kill as the evening of 2026-11-21 handed it over: the target was no longer found by `Unit.getByName`, so its
+--- data table says neutral with no category; `dcsTarget` is the raw DCS object, `raw` how it answers (nil: gone).
+local function goneKill(name, raw)
+  local event = kill("Zip")
+  event.target = { unitName = name, unitCoalition = coalition.side.NEUTRAL }
+  if raw then
+    event.dcsTarget = {
+      getName = function()
+        return name
+      end,
+      getCoalition = function()
+        return raw.side
+      end,
+      getDesc = function()
+        return { category = raw.category or Unit.Category.GROUND_UNIT }
+      end,
+      getTypeName = function()
+        return raw.type or "T-72B"
+      end,
+      hasAttribute = function(_, attribute)
+        return (raw.attributes or {})[attribute] == true
+      end,
+    }
+  else
+    -- the object no longer answers anything
+    event.dcsTarget = setmetatable({}, {
+      __index = function()
+        return function()
+          error("the object is gone")
+        end
+      end,
+    })
+  end
+  return event
+end
+
+function TestCampaignGroundKill:test_a_red_vehicle_gone_by_name_is_counted_and_paid()
+  veafCampaignEconomy.onKill(goneKill("Red armor #1", { side = RED }))
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"]["Ground Units"], 1)
+  luaunit.assertEquals(#loggedLines("CREDITS Zip +10 (kill)"), 1)
+end
+
+function TestCampaignGroundKill:test_the_held_share_is_held_as_for_any_kill()
+  veafCampaign.data.dynamic.economy.landing_share = 50
+  veafCampaignEconomy.onKill(goneKill("Red armor #1", { side = RED }))
+  luaunit.assertEquals(#loggedLines("CREDITS Zip +5 (kill_held)"), 1)
+end
+
+function TestCampaignGroundKill:test_a_sam_gone_by_name_is_still_a_sam()
+  veafCampaignEconomy.onKill(goneKill("Red SAM #1", { side = RED, attributes = { ["SAM related"] = true } }))
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"].SAM, 1)
+  luaunit.assertEquals(#loggedLines("CREDITS Zip +30 (kill)"), 1)
+end
+
+function TestCampaignGroundKill:test_a_garrison_unit_found_by_the_campaign_alone_is_counted()
+  -- nothing answers any more: the campaign's index says the unit stood in Senaki, which red holds
+  Unit.getDescByName = function(typeName)
+    return { attributes = typeName == "T-72B" and { ["Ground Units"] = true } or {} }
+  end
+  veafCampaign.unitIndex["Senaki garrison #1"] = { zone = veafCampaign.zones["Senaki"], group = 1, unit = 1 }
+  veafCampaignEconomy.onKill(goneKill("Senaki garrison #1"))
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"]["Ground Units"], 1)
+  luaunit.assertEquals(#loggedLines("CREDITS Zip +10 (kill)"), 1)
+end
+
+function TestCampaignGroundKill:test_the_last_unit_of_a_zone_is_paid_when_its_death_came_first()
+  -- Zugdidi's garrison spawned; its units die one after the other, each death read before its kill: the last one
+  -- turns the zone neutral and drops its garrison before its kill is read
+  local zugdidi = veafCampaign.zones["Zugdidi"]
+  zugdidi:spawnGroup(1)
+  local names = {}
+  for index in ipairs(zugdidi.entry.garrison[1].units) do
+    table.insert(names, veafCampaign.unitName(zugdidi.entry.garrison[1], index))
+  end
+  for index, name in ipairs(names) do
+    zugdidi:onUnitLost(1, index)
+    veafCampaignEconomy.onKill(goneKill(name))
+  end
+  luaunit.assertEquals(zugdidi:getOwner(), "neutral")
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"]["Ground Units"], #names)
+end
+
+function TestCampaignGroundKill:test_a_garrison_sam_found_by_the_campaign_alone_is_a_sam()
+  Unit.getDescByName = function(typeName)
+    return { attributes = typeName == "SA-11 Buk LN 9A310M1" and { ["SAM related"] = true } or {} }
+  end
+  veafCampaign.zones["Senaki"].entry.garrison = garrison("Senaki", nil, { "SA-11 Buk LN 9A310M1" })
+  veafCampaign.unitIndex["Senaki garrison #1"] = { zone = veafCampaign.zones["Senaki"], group = 1, unit = 1 }
+  veafCampaignEconomy.onKill(goneKill("Senaki garrison #1"))
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"].SAM, 1)
+end
+
+function TestCampaignGroundKill:test_an_assault_convoy_found_by_the_campaign_alone_is_counted()
+  table.insert(veafCampaign.convoys, { name = "Senaki - Poti assault", side = "red" })
+  veafCampaignEconomy.onKill(goneKill("Senaki - Poti assault #3"))
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"]["Ground Units"], 1)
+end
+
+function TestCampaignGroundKill:test_the_hunter_counts_it_too()
+  veafCampaign.data.dynamic.hunter = { enabled = true }
+  veafCampaignOps.onKill(goneKill("Red armor #1", { side = RED }))
+  luaunit.assertEquals(veafCampaignOps.hunted["Zip"].ground, 1)
+end
+
+function TestCampaignGroundKill:test_an_air_kill_is_still_paid()
+  veafCampaignEconomy.onKill(kill("Zip", Unit.Category.AIRPLANE))
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"].Air, 1)
+end
+
+function TestCampaignGroundKill:test_a_truly_neutral_target_is_ignored()
+  veafCampaignEconomy.onKill(goneKill("Civilian car #1", { side = coalition.side.NEUTRAL }))
+  veafCampaignEconomy.onKill(goneKill("Unknown wreck #1"))
+  luaunit.assertNil(veafCampaignEconomy.sitacStats()["Zip"])
+end
+
+function TestCampaignGroundKill:test_friendly_fire_is_ignored()
+  veafCampaignEconomy.onKill(goneKill("Blue armor #1", { side = BLUE }))
+  veafCampaign.unitIndex["Kobuleti garrison #1"] = { zone = veafCampaign.zones["Kobuleti"], group = 1, unit = 1 }
+  veafCampaignEconomy.onKill(goneKill("Kobuleti garrison #1"))
+  luaunit.assertNil(veafCampaignEconomy.sitacStats()["Zip"])
+end
+
+-- ---------------------------------------------------------------------------
+-- Every pilot on the ranking, and the evening's summary (FIX-CAMPAIGN-GROUND-KILLS-UNPAID 02 and 03)
+-- ---------------------------------------------------------------------------
+TestCampaignEvening = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+function TestCampaignEvening:setUp()
+  setUpSuite(self)
+  start({ economy = { start_credits = 0, landing_share = 0 }, air = {} })
+end
+
+--- A player's aircraft, named `name`, as coalition.getPlayers and an event's `dcsInitiator` hand it over.
+local function playerAircraft(name, player, side)
+  local unit = unitAt({ x = 0 }, { player = player, side = side or BLUE })
+  unit.getName = function()
+    return name
+  end
+  return unit
+end
+
+--- An event of a player's aircraft, in the shape veafEventHandler hands it over.
+local function pilotEvent(id, unit)
+  return { type = { id = id }, initiator = { unitName = unit:getName() }, dcsInitiator = unit }
+end
+
+function TestCampaignEvening:test_a_pilot_who_took_a_slot_is_on_the_ranking_with_zero()
+  veafCampaignEconomy.onPlayerEnter(pilotEvent(world.event.S_EVENT_BIRTH, playerAircraft("Hog 1", "griffin")))
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["griffin"], { Points = 0 })
+end
+
+function TestCampaignEvening:test_a_gain_afterwards_adds_to_the_same_books()
+  veafCampaignEconomy.onPlayerEnter(pilotEvent(world.event.S_EVENT_PLAYER_ENTER_UNIT, playerAircraft("Hog 1", "Zip")))
+  veafCampaignEconomy.onKill(kill("Zip"))
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"].Points, 10)
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"]["Ground Units"], 1)
+end
+
+function TestCampaignEvening:test_an_enemy_pilot_and_an_ai_get_no_books()
+  veafCampaignEconomy.onPlayerEnter(pilotEvent(world.event.S_EVENT_BIRTH, playerAircraft("Fulcrum 1", "Ivan", RED)))
+  veafCampaignEconomy.onPlayerEnter(pilotEvent(world.event.S_EVENT_BIRTH, playerAircraft("Hog 2", nil)))
+  luaunit.assertNil(next(veafCampaignEconomy.sitacStats()))
+end
+
+function TestCampaignEvening:test_the_last_player_leaving_writes_the_summary_at_once()
+  local hog = playerAircraft("Hog 1", "Zip")
+  coalition.getPlayers = function(side)
+    return side == BLUE and { hog } or {}
+  end
+  veafCampaignEconomy.beat(100) -- a player in a slot: the session's books open
+  veafCampaignEconomy.onKill(kill("Zip"))
+  -- he quits the server from his cockpit; DCS pauses the mission at once, so no beat follows
+  veafCampaignEconomy.onPlayerLeave(pilotEvent(world.event.S_EVENT_PLAYER_LEAVE_UNIT, hog))
+  luaunit.assertEquals(#loggedLines("CREDITS SUMMARY (the last player left his slot): 10 earned by the side"), 1)
+  luaunit.assertEquals(#loggedLines("ECONOMY SUMMARY (the last player left his slot)"), 1)
+  -- said once: the beat that may come has nothing left to say
+  coalition.getPlayers = function()
+    return {}
+  end
+  veafCampaignEconomy.beat(200)
+  luaunit.assertEquals(#loggedLines("SUMMARY (nobody left in a slot)"), 0)
+end
+
+function TestCampaignEvening:test_a_player_still_in_a_slot_keeps_the_session_open()
+  local hog, viper = playerAircraft("Hog 1", "Zip"), playerAircraft("Viper 1", "Paluche")
+  coalition.getPlayers = function(side)
+    return side == BLUE and { hog, viper } or {}
+  end
+  veafCampaignEconomy.beat(100)
+  veafCampaignEconomy.onKill(kill("Zip"))
+  veafCampaignEconomy.onPlayerLeave(pilotEvent(world.event.S_EVENT_PLAYER_LEAVE_UNIT, hog))
+  veafCampaignEconomy.onPlayerLeave(pilotEvent(world.event.S_EVENT_PILOT_DEAD, hog))
+  luaunit.assertEquals(#loggedLines("SUMMARY"), 0)
+  luaunit.assertNotNil(veafCampaignEconomy.ledger)
+end
+
+function TestCampaignEvening:test_the_last_pilot_dead_writes_the_summary_too()
+  local hog = playerAircraft("Hog 1", "Zip")
+  coalition.getPlayers = function(side)
+    return side == BLUE and { hog } or {}
+  end
+  veafCampaignEconomy.beat(100)
+  veafCampaignEconomy.onKill(kill("Zip"))
+  veafCampaignEconomy.onPlayerLeave(pilotEvent(world.event.S_EVENT_PILOT_DEAD, hog))
+  luaunit.assertEquals(#loggedLines("CREDITS SUMMARY (the last player left his slot)"), 1)
+end
+
 os.exit(luaunit.LuaUnit.run())

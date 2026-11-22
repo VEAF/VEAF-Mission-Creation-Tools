@@ -47,3 +47,24 @@ So the split, if the measure calls for it, concerns only the Hawk of `BLUE-5` (a
 5. Write the result into `known-limitations.yaml` (`kind: dcs`, value and date) and regenerate `docs/agents/dcs-runtime-traps.md`.
 
 The script was written without DCS and never run: its positions may need moving off a town or a ridge.
+
+## Measured (2026-11-22 evening, David's DCS, through the bridge)
+
+**The mixed-group hypothesis is refuted: the Hawk does not fire at all, in a group of its own or not.**
+
+Bench 1, an empty Syria mission (`veaf-mesure-sam-Syria.miz`), single player then server mode: nothing fired at all, not even the NASAMS control, against an **unarmed** An-26B at 4,000 m or a **clean** Su-25T at 3,000 m passing overhead. A Hawk site alone, the same inside a 33-unit mixed group, a full Hawk with CWAR, a NASAMS with and without a route: 0 missiles fired. The search radars detected the targets; the Hawk tracking radars never came on. Likely, not proven: DCS air defence does not engage an aircraft carrying no weapon. The script of this file flies an unarmed target, so it cannot measure anything.
+
+Bench 2, a copy of the deployed campaign mission (`Campagne_Oronte.miz`, hash 3C5785A232E7, with the bridge prepended to `veaf-scripts.lua`), run in server mode with no save, so every zone drew a fresh garrison. Hatay's garrison: one group of 74 units, its Hawk with sr ×1, cwar ×2, tr ×3, pcp ×1, ln ×9. Targets: red CAS strikes from the campaign's own `veafCampaignOps.spawnFlight` (air start at Jisr al-Shughur, two Su-25 with FAB-250, UB-13 and R-60), flown at Hatay.
+
+| Hawk | Nearest pass of the armed Su-25 | Hawk missiles fired | The rest of Hatay's garrison |
+|---|---|---|---|
+| inside Hatay's garrison group (as on the server) | 3.0 km | 0 of 27 | Gepard and Avenger fired |
+| the same 16 Hawk units moved into a group of their own, same positions | 2.6 km | 0 of 27 | Gepard, Avenger, Linebacker fired (319 shots) |
+| a standard Hawk (sr, tr, pcp, 3 ln) alone, 8 km north of Hatay | about 8 km | 0 of 9 | – |
+| control: a NASAMS (radar, command post, 2 LN) alone, 8 km east of Hatay | about 8 km | **5 fired** (at the strike and at the campaign's own MiG-27K SEAD) | – |
+
+In every case the Hawk search radar was on and the tracking radars never came on. The NASAMS placed by hand fires, so the bench works with armed targets.
+
+Consequence for this ticket: splitting the Hawk into its own group changes nothing; no code change. The fix is to stop relying on the Hawk: the blue level-5 template (`generateAirDefenseGroup-BLUE-5`) and every other place that spawns a Hawk need another system. That choice is David's; written in the PRD's state.
+
+Not measured: whether the Hawk is broken in DCS for everyone, or only with these compositions; the DCS version of David's install and of the server were not compared.

@@ -40,6 +40,10 @@ The enemy's assault convoys sized for the players who can stop them (Griffin and
 
 A convoy that cannot drive onto its enemy renewed its own contact at every push, so `convoyMayLeave` kept it "in contact" for ever (Menagh, 2026-11-21). Fixed: only a shot or an enemy newly seen is a contact, and after 3 pushes that move nothing the convoy drives on. Merged into `feature/dynamic-campaign`; waits for the in-game check on the Campagne server.
 
+### [FIX-CAMPAIGN-GROUND-KILLS-UNPAID](FIX-CAMPAIGN-GROUND-KILLS-UNPAID/PRD.md) · 🧑
+
+Since 2026-11-15 a player's kill of a ground unit paid nothing and counted nothing: the kill's target was read by name after the unit was gone, so it looked neutral and `readPlayerKill` dropped it (31, 24, 13, 10 and 8 kills unpaid on 2026-11-21; only air kills paid). Fixed: the raw target is asked, then the campaign's own records; every pilot who took a slot is on the sitac's ranking; the evening's summary is written when the last player leaves his slot. Waiting for the in-game check on the Campagne server after the next redeploy.
+
 ### [FIX-CAMPAIGN-SECOND-SERVER-FLIGHT](FIX-CAMPAIGN-SECOND-SERVER-FLIGHT/PRD.md) · 🧑
 
 What the second evening of "Bouclier de l'Oronte" on the Campagne server taught (2026-11-17): red aircraft that never take off at Taftanaz, a depot that repairs itself forever (decided: a depot has buildings to destroy), deliveries that bring a whole group back, helicopters and convoys that never arrive, freezes when a zone wakes, garrisons on roofs, a heavier air defence, per-pilot credits, the Campaign menu's admin commands last. Thirteen tickets, implemented in one PR into `feature/dynamic-campaign`; waits for the PR's review, the in-game checks written in each ticket, and ticket 12's redraw of the red garrisons in the Oronte save (server empty, David's go).

@@ -262,6 +262,7 @@ Elles sont aussi fraîches que la sauvegarde : une toutes les `state_write_secon
 - `players` : chaque joueur dans un slot, des deux camps, avec son camp, son appareil et sa position (`altitude` en mètres).
 - `playerStats` : le classement, par nom de pilote. `Points` est le total des crédits qu'il a gagnés ; `Air`, `Helo`, `SAM` (toute la défense sol-air), `Ground Units`, `Infantry` et `Structure` comptent ses destructions ; `Deaths` ses morts, `Warehouse delivery` ses livraisons d'armement.
   Ces chiffres sont gardés dans la sauvegarde et repartent de zéro avec la campagne. Une capture n'est attribuée à aucun pilote : elle n'apparaît pas au classement.
+  Un pilote du camp des joueurs y figure dès qu'il prend un slot, à zéro s'il n'a encore rien gagné.
 - `ejectedPilots` : les pilotes du camp des joueurs au sol qu'attend le CSAR, IA comprise ; `lostCredits` donne les crédits qu'il transportait, perdus à l'éjection (un sauvetage ne les rend pas). Un pilote récupéré quitte la liste.
 - `missions` : le [tableau des tâches](#tasks), avec le titre que donne le menu F10 ; `description` donne l'avancement d'une tâche de supériorité aérienne ; `kind`, `zone` et `reward` en plus de Foothold.
 - `support` : les [AWACS et ravitailleurs](#support) du camp des joueurs, là où ils volent, avec leur sorte (`awacs`, `tanker_boom`, `tanker_basket`, `tanker_both`, `tanker`), leur fréquence en MHz et leur TACAN ; un appareil détruit n'a que son nom et `alive = false`.
@@ -362,6 +363,7 @@ La coalition des joueurs a un compte, sauvegardé avec la campagne : `economy.st
 Ces gains sont ceux de Foothold, éprouvés sur ses serveurs (20/11/2026).
 Une victoire d'un joueur — unité, SAM, aéronef ou bâtiment — paie en deux temps : `economy.landing_share` (50 %) en est gardé jusqu'à ce que le pilote se pose sur un aérodrome, une FARP ou un porte-avions ami, et perdu s'il s'éjecte, meurt ou s'écrase ; le reste est gagné aussitôt.
 Les deux parts vont au compte de la coalition.
+Une unité au sol détruite compte même quand DCS ne la trouve plus par son nom au moment du kill : son camp est demandé à l'objet DCS, sinon aux garnisons, convois d'assaut et appareils de la campagne.
 Les autres gains, qu'aucun pilote seul ne porte, sont payés en entier.
 
 F10 → Autres → VEAF → Campagne → **Boutique** : chaque article donne la liste des zones auxquelles il s'applique.
@@ -709,7 +711,8 @@ Pendant la mise au point, `dynamic.debug` (activé par défaut) écrit dans `dcs
 Les gains de crédits s'écrivent, eux, que `debug` soit activé ou non :
 
 - une ligne `CREDITS <pilote> +<montant> (<raison>)` par gain — `kill`, `kill_held`, `landed`, `rescue`, `warehouse` pour un pilote ; `capture`, `delivery`, `task`, `demolition` au nom de `team` ;
-- un bilan `CREDITS SUMMARY` à la fin de la mission, et dès que plus personne n'est dans un slot : ce que chacun a gagné depuis le bilan précédent, et le total du camp ;
+- un bilan `CREDITS SUMMARY` à la fin de la mission, et quand le dernier joueur quitte son slot (il le quitte, quitte le serveur depuis son cockpit, meurt, s'éjecte ou s'écrase) : ce que chacun a gagné depuis le bilan précédent, et le total du camp ;
+  DCS met la mission en pause dans la seconde où le dernier joueur quitte le serveur, d'où ce bilan écrit sur l'événement ; à défaut, il l'est au premier passage de la boucle où plus personne n'est dans un slot ;
 - au même moment, un bloc `ECONOMY SUMMARY` qui couvre la session, du premier passage de la boucle où un joueur est dans un slot jusqu'au bilan, pour régler les prix sur ce qui se gagne et se dépense vraiment :
   la durée de la session ; puis, pour les crédits des joueurs et les ressources de chaque camp (quand elles sont comptées), le solde au début et à la fin, ce qui a été gagné et ce qui a été dépensé, par sorte, chacune avec son montant et son nombre ;
   côté crédits, les gains (`kill_ground`, `kill_sam`, `kill_air`, `kill_building`, `rescue`, `capture`, `delivery`, `task`…) et les dépenses (`shop <article>`, `upgrade <renfort>`, `spawn`, `shop assault`) ;
@@ -806,6 +809,8 @@ Ces points sont écrits et testés hors de DCS, pas encore mesurés en jeu :
 - les numéros des waypoints, tels que chaque module les montre ;
 - un aérodrome neutre ou ennemi au départ, pris en vol, qui offre ses slots dynamiques au preneur (Foothold compte dessus ; pas encore mesuré sur la nôtre) ;
 - un bâtiment détruit compté au classement : il faut que DCS envoie un `S_EVENT_KILL` pour un objet statique ;
+- une unité au sol détruite par un joueur, comptée et payée : `CREDITS <pilote> +<montant> (kill_held)` dans `dcs.log` (si l'objet DCS de la cible répond encore à `getCoalition` au moment du kill, ou si la campagne doit le reprendre de ses registres, reste à mesurer) ;
+- le bilan de la soirée écrit quand le dernier joueur quitte le serveur depuis son cockpit : `grep "SUMMARY" dcs.log`, à l'heure de son départ ;
 - un renfort de zone acheté (une batterie Hawk sur Hatay) : posé dans la zone, présent après un redémarrage, et le troisième refusé ;
 - un vol SEAD acheté sur Alep : il décolle de Hatay ou de Gaziantep et engage la défense antiaérienne d'Alep, et une deuxième SEAD est refusée tant qu'il vole.
 

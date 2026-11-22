@@ -1,6 +1,6 @@
 # FIX-CAMPAIGN-GROUND-KILLS-UNPAID — a player's ground kill pays nothing and counts nothing
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 David, 2026-11-21, on the sitac's ranking of "Bouclier de l'Oronte": "le classement de la SITAC a l'air incomplet ; il manque des gens". It showed four pilots: RexAttaque 250, Paluche 90, griffin 0 with 3 deaths, Mitch 0 with 1 death.
 
@@ -43,3 +43,12 @@ The integration branch is `feature/dynamic-campaign`: one branch and one pull re
 | 01 | [A ground kill is read before its target is gone](tickets/01-read-the-target-at-the-kill.md) |
 | 02 | [Every pilot who flew is on the ranking](tickets/02-every-pilot-on-the-ranking.md) |
 | 03 | [The evening's summary is written when the last player disconnects](tickets/03-summary-when-the-last-player-disconnects.md) |
+
+## Done (2026-11-22)
+
+All three tickets are implemented and tested out of DCS (`test_veafCampaignLive.lua`: `TestCampaignGroundKill`, `TestCampaignEvening`; `test_veafEventHandler.lua`: `TestVeafEventHandlerKillTarget`).
+What is left is the in-game check of each ticket, on the Campagne server after the next redeploy:
+
+1. A player destroys a red vehicle: `dcs.log` shows `CREDITS <pilot> +<amount> (kill_held)`, then the held part after landing; the sitac's ranking shows the kill under its category.
+2. After the evening, the sitac's ranking lists every pilot who flew, compared with the `takeoff` events of `dcs.log`.
+3. The last player quits the server straight from his cockpit: `grep "SUMMARY" dcs.log` shows the `CREDITS SUMMARY` and `ECONOMY SUMMARY` blocks, timed at his departure.

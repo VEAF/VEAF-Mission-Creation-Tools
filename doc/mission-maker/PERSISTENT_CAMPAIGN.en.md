@@ -262,6 +262,7 @@ They are as fresh as the save: one every `state_write_seconds` (60 s) of simulat
 - `players`: each player in a slot, both sides, with his side, aircraft and position (`altitude` in metres).
 - `playerStats`: the ranking, by pilot name. `Points` is the total of the credits he earned; `Air`, `Helo`, `SAM` (all the ground-based air defence), `Ground Units`, `Infantry` and `Structure` count what he destroyed; `Deaths` his deaths, `Warehouse delivery` his weapon deliveries.
   These figures are kept in the save and start from zero with the campaign. A capture is credited to no pilot: it does not show in the ranking.
+  A pilot of the players' side is in it as soon as he takes a slot, at zero if he has earned nothing yet.
 - `ejectedPilots`: the players' side's pilots on the ground the CSAR waits to rescue, AI included; `lostCredits` gives the credits he carried, lost at the ejection (a rescue does not give them back). A pilot picked up leaves the list.
 - `missions`: the [task board](#tasks), with the title the F10 menu gives; `description` gives an air superiority task's progress; `kind`, `zone` and `reward` on top of Foothold's.
 - `support`: the players' side's [AWACS and tankers](#support), where they fly, with their kind (`awacs`, `tanker_boom`, `tanker_basket`, `tanker_both`, `tanker`), their frequency in MHz and their TACAN; one destroyed has only its name and `alive = false`.
@@ -362,6 +363,7 @@ The players' coalition has an account, saved with the campaign: `economy.start_c
 These rewards are Foothold's, proven on its servers (2026-11-20).
 A player's kill — a unit, a SAM, an aircraft or a building — pays in two parts: `economy.landing_share` (50 %) of it is held until the pilot lands at a friendly airfield, FARP or carrier, and lost on an ejection, a death or a crash; the rest is earned at once.
 Both parts go to the coalition's account.
+A ground unit destroyed counts even when DCS no longer finds it by name at the kill: its side is asked of the DCS object, else of the campaign's garrisons, assault convoys and aircraft.
 The other gains, which no single pilot carries, are paid whole.
 
 F10 → Other → VEAF → Campaign → **Shop**: each item lists the zones it applies to.
@@ -709,7 +711,8 @@ While the campaign is being tuned, `dynamic.debug` (on by default) writes in `dc
 The credits earned are written whether `debug` is on or not:
 
 - one line `CREDITS <pilot> +<amount> (<reason>)` per gain — `kill`, `kill_held`, `landed`, `rescue`, `warehouse` for a pilot; `capture`, `delivery`, `task`, `demolition` under `team`;
-- a `CREDITS SUMMARY` at the mission's end, and as soon as nobody is left in a slot: what each earned since the previous summary, and the side's total;
+- a `CREDITS SUMMARY` at the mission's end, and when the last player leaves his slot (he leaves it, quits the server from his cockpit, dies, ejects or crashes): what each earned since the previous summary, and the side's total;
+  DCS pauses the mission in the second the last player quits the server, hence this summary written at the event; failing that, it is written at the first beat with nobody left in a slot;
 - at the same moment, an `ECONOMY SUMMARY` block covering the session, from the first beat a player sits in a slot to the summary, to tune the prices on what is really earned and spent:
   the session's length; then, for the players' credits and each side's resources (when they are counted), the balance at the start and at the end, what was earned and what was spent, by kind, each with its amount and its count;
   for the credits, the gains (`kill_ground`, `kill_sam`, `kill_air`, `kill_building`, `rescue`, `capture`, `delivery`, `task`…) and the spending (`shop <item>`, `upgrade <upgrade>`, `spawn`, `shop assault`);
@@ -806,6 +809,8 @@ These are written and tested outside DCS, not yet measured in game:
 - the waypoint numbers, as each module shows them;
 - an airfield neutral or enemy at the start, captured in flight, offering its dynamic slots to the side that took it (Foothold relies on it; not measured on ours yet);
 - a building destroyed counted in the ranking: DCS has to send an `S_EVENT_KILL` for a static object;
+- a ground unit destroyed by a player, counted and paid: `CREDITS <pilot> +<amount> (kill_held)` in `dcs.log` (whether the target's DCS object still answers `getCoalition` at the kill, or the campaign has to take it from its records, is still to measure);
+- the evening's summary written when the last player quits the server from his cockpit: `grep "SUMMARY" dcs.log`, at the time he left;
 - a zone upgrade bought (a Hawk battery on Hatay): placed in the zone, there after a restart, and the third one refused;
 - a SEAD flight bought on Aleppo: it takes off from Hatay or Gaziantep and engages Aleppo's air defence, and a second SEAD is refused while it flies.
 

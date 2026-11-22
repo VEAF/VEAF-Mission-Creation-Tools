@@ -1,6 +1,6 @@
 # FIX-SPAWN-GROUP-FIRST-ROUTE — a spawned group with a destination gets its route 5 s after its birth, from the road
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 Left over by FIX-GROUNDAI-CLOSE-IN-REACHABLE (ticket 02, "Not done"): "`veafSpawnCore` (`_spawn group` with a destination) also gives a route in the frame of the spawn; it is outside the convoy handler and the campaign, left for a later lot." David, 2026-11-22: create the lot.
 

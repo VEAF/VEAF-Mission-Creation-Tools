@@ -903,6 +903,13 @@ ConvoyUnitHandler.DEFAULT_MAX_SLOPE = 0.35
 --- A close in that ends this close to the aim of a close in that moved nothing takes another aim, in metres.
 ConvoyUnitHandler.FAILED_AIM_RADIUS = 100
 
+--- Seconds after an order before the handler looks whether it moved the group. A group starts 2 to 4 s after its
+--- order, even with 200 waypoints (measured 2026-11, dcs-cartographie); 25 s leave a margin.
+ConvoyUnitHandler.ORDER_CHECK_DELAY = 25
+--- A group whose centre moved less than this, in metres, every vehicle below `HALTED_SPEED`, did not move on its
+--- order. Driving, it covers that in a few seconds; an estimate, to be tuned in game.
+ConvoyUnitHandler.ORDER_MOVED_MARGIN = 20
+
 --- A town masks a rally point when its centre lies this close to the line from the enemy to it.
 ConvoyUnitHandler.TOWN_COVER_RADIUS = 400
 --- The name the unarmed vehicles' group takes, after the convoy's.
@@ -1007,6 +1014,8 @@ function ConvoyUnitHandler.init(object)
   object.unreachable = {}
   -- the aims of the close ins that moved nothing, vec3s: the next close in takes another (FIX-GROUNDAI-CLOSE-IN-REACHABLE)
   object.failedAims = {}
+  -- the last order given to each of its groups, by group name: a check that belongs to an older one is dropped
+  object.orderIds = {}
   object.nextWideWatch = 0
   object.nextSmoke = 0
   -- the route a Mission Editor group was given, kept to drive on after a contact
@@ -1769,6 +1778,7 @@ function ConvoyUnitHandler:engage(now)
   self.lastPush = now
   self.futilePushes = 0
   self.lastPushDistance = nil
+  self.failedAims = {}
   self:suspendItinerary()
 
   local armed, unarmed, ownStrength = {}, {}, 0
@@ -1794,7 +1804,7 @@ function ConvoyUnitHandler:engage(now)
     unanswerable = unanswerable and threat.strength == math.huge
   end
   if veafGroundAI.convoyObjectives[self.groupName] and #armed > 0 and unanswerable then
-    veaf.goRoute(self.groupName, self:onwardRoute(group))
+    self:order(self.groupName, self:onwardRoute(group))
     self.state = ConvoyUnitHandler.STATE_DRIVING
     -- said once per engagement: every hit runs `engage` again, and it was written 15 times in a minute on 2026-11-19
     -- (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 07)
@@ -1884,6 +1894,7 @@ function ConvoyUnitHandler:detachUnarmed(units, rally, destination)
     units = definitions,
     route = { points = veafGroundAI.fallBackRoute(center, rally, destination, veafGroundAI.FALL_BACK_SPEED) },
   })
+  veafGroundAI.noteBirth(name)
   self.unarmedGroupName = name
   veafGroundAI.convoysByGroupName[name] = self
   self:sayLater(ConvoyUnitHandler.TACTICAL_MESSAGE_DELAY + 3, "groundai.convoy_unarmed_falling_back")
@@ -1920,7 +1931,9 @@ end
 --- ticket 04).
 --- @param threats table the threats' records, nearest first
 --- @param quietly boolean|nil true when closing in again: the contact was already reported
-function ConvoyUnitHandler:fight(threats, quietly)
+--- @param pushedAt number|nil the time of the push, when this is one (`pressOn`): a route that moves nothing is then
+--- known `ORDER_CHECK_DELAY` later (`pushMovedNothing`)
+function ConvoyUnitHandler:fight(threats, quietly, pushedAt)
   local threat = threats[1]
   local group = self:getGroup()
   local controller = group:getController()
@@ -1932,20 +1945,25 @@ function ConvoyUnitHandler:fight(threats, quietly)
   if objective and dist2D(from, objective) > ConvoyUnitHandler.OBJECTIVE_PRESS_DISTANCE then
     objective = nil -- too far to drive there across country: it fights like any convoy
   end
+  local function onStill(aim)
+    return pushedAt and function()
+      self:pushMovedNothing(pushedAt, aim)
+    end
+  end
   if objective then
-    veaf.goRoute(self.groupName, {
+    self:order(self.groupName, {
       routePoint(from, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
       routePoint(objective, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
-    })
+    }, onStill(objective))
   elseif distance <= ConvoyUnitHandler.ASSAULT_STANDOFF then
     controller:pushTask({ id = "Hold", params = {} })
   else
     local share = (distance - ConvoyUnitHandler.ASSAULT_STANDOFF) / distance
     local stop = { x = from.x + (threat.point.x - from.x) * share, y = 0, z = from.z + (threat.point.z - from.z) * share }
-    veaf.goRoute(self.groupName, {
+    self:order(self.groupName, {
       routePoint(from, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
       routePoint(stop, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
-    })
+    }, onStill(stop))
   end
   if not quietly then
     local bearing, range = veaf.getBearingAndRangeFromTo(from, threat.point)
@@ -1972,7 +1990,7 @@ function ConvoyUnitHandler:fallBack(groupName, rally, destination)
   local controller = group:getController()
   controller:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)
   controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.OPEN_FIRE)
-  veaf.goRoute(groupName, veafGroundAI.fallBackRoute(veaf.getAveragePosition(group), rally, destination, veafGroundAI.FALL_BACK_SPEED))
+  self:order(groupName, veafGroundAI.fallBackRoute(veaf.getAveragePosition(group), rally, destination, veafGroundAI.FALL_BACK_SPEED))
   if groupName == self.groupName then
     local threats = self:recentThreats()
     self:sayLater(
@@ -2151,7 +2169,7 @@ function ConvoyUnitHandler:pressOn(now)
     return true
   end
   veaf.loggers.get(veafGroundAI.Id):info("convoy %s: %d enemies still alive out of sight, closing in again", veaf.p(self:getName()), #alive)
-  self:fight(self:recentThreats(), true)
+  self:fight(self:recentThreats(), true, now)
   self.lastPush = now
   return true
 end
@@ -2170,6 +2188,7 @@ function ConvoyUnitHandler:pushMovesSomething(distance, seen)
     self.futilePushes = self.futilePushes + 1
   else
     self.futilePushes = 0
+    self.failedAims = {}
   end
   self.lastPushDistance = distance
   if self.futilePushes < ConvoyUnitHandler.FUTILE_PUSHES then
@@ -2181,6 +2200,7 @@ function ConvoyUnitHandler:pushMovesSomething(distance, seen)
   end
   self.futilePushes = 0
   self.lastPushDistance = nil
+  self.failedAims = {}
   self:resume()
   return false
 end
@@ -2196,6 +2216,101 @@ function veafGroundAI.isHalted(units)
     end
   end
   return true
+end
+
+--- Seconds between a group's creation and its first order: an order given in the frame a group is created is lost,
+--- 3 times out of 3, and taken 5 s later (measured 2026-11, dcs-cartographie).
+veafGroundAI.SPAWN_ORDER_DELAY = 5
+
+--- When each ground group the convoys know of was created, by group name (see `noteBirth`).
+veafGroundAI.bornAt = {}
+
+--- Remember that a group was just created, so that no order reaches it before `SPAWN_ORDER_DELAY`. A route passed
+--- inside the group's definition is not concerned: that case was not measured.
+--- @param groupName string
+function veafGroundAI.noteBirth(groupName)
+  veafGroundAI.bornAt[groupName] = timer.getTime()
+end
+
+--- Give one of the convoy's groups a route, and look `ORDER_CHECK_DELAY` later whether it moved.
+---
+--- A group created less than `SPAWN_ORDER_DELAY` ago gets it once that delay is over, unless another order came
+--- meanwhile. An order the group does not follow is said in one log line; `onStill`, when given, is called then.
+--- @param groupName string
+--- @param points table route points
+--- @param onStill function|nil called when the order moved nothing
+function ConvoyUnitHandler:order(groupName, points, onStill)
+  local id = (self.orderIds[groupName] or 0) + 1
+  self.orderIds[groupName] = id
+  local ready = (veafGroundAI.bornAt[groupName] or -math.huge) + veafGroundAI.SPAWN_ORDER_DELAY
+  if timer.getTime() < ready then
+    veaf.scheduleFunction(function()
+      if self.orderIds[groupName] == id then
+        veaf.safeCall(self.sendOrder, self, groupName, id, points, onStill)
+      end
+    end, nil, ready)
+    return
+  end
+  self:sendOrder(groupName, id, points, onStill)
+end
+
+--- The order itself, and its check scheduled.
+function ConvoyUnitHandler:sendOrder(groupName, id, points, onStill)
+  local group = veafGroundAI.livingGroup(groupName)
+  if not group then
+    return
+  end
+  veaf.goRoute(groupName, points)
+  local start = veaf.getAveragePosition(group)
+  veaf.scheduleFunction(function()
+    veaf.safeCall(self.checkOrder, self, groupName, id, start, onStill)
+  end, nil, timer.getTime() + ConvoyUnitHandler.ORDER_CHECK_DELAY)
+end
+
+--- `ORDER_CHECK_DELAY` after an order: did the group move? Its centre moved more than `ORDER_MOVED_MARGIN`, or one of
+--- its vehicles drives. A check that belongs to an older order than the group's last one, or to a convoy holding, says
+--- nothing.
+--- @param groupName string
+--- @param id number the order's
+--- @param start table the group's centre when it was given, a vec3
+--- @param onStill function|nil
+function ConvoyUnitHandler:checkOrder(groupName, id, start, onStill)
+  if self.orderIds[groupName] ~= id or self.status ~= GroundUnitHandler.STATUS_ACTIVE or self.state == ConvoyUnitHandler.STATE_HOLDING then
+    return
+  end
+  local group = veafGroundAI.livingGroup(groupName)
+  if not group then
+    return
+  end
+  if
+    dist2D(veaf.getAveragePosition(group), start) > ConvoyUnitHandler.ORDER_MOVED_MARGIN or not veafGroundAI.isHalted(group:getUnits())
+  then
+    return
+  end
+  veaf.loggers.get(veafGroundAI.Id):info(
+    "convoy %s: the order given to %s %d s ago moved nothing",
+    veaf.p(self:getName()),
+    veaf.p(groupName),
+    ConvoyUnitHandler.ORDER_CHECK_DELAY
+  )
+  if onStill then
+    onStill()
+  end
+end
+
+--- A push that moved nothing, known `ORDER_CHECK_DELAY` after it rather than at the next push two minutes later: its
+--- aim is not taken again, and the clock is wound back so the next push comes at the next beat. That push counts it
+--- among the pushes that move nothing (`pushMovesSomething`): the convoy stood still meanwhile. Nothing happens when
+--- another push came since, or when a shot was fired or taken: that is what the push was for.
+--- @param pushedAt number the push's time
+--- @param aim table the push's aim, a vec3
+function ConvoyUnitHandler:pushMovedNothing(pushedAt, aim)
+  if self.lastPush ~= pushedAt or (self.lastFireExchanged or -math.huge) >= pushedAt or self.state ~= ConvoyUnitHandler.STATE_FIGHTING then
+    return
+  end
+  table.insert(self.failedAims, aim)
+  self.lastPush = nil
+  veaf.loggers.get(veafGroundAI.Id):info("convoy %s: the push moved nothing, the next one takes another aim", veaf.p(self:getName()))
 end
 
 --- An enemy in sight, no shot either way for `STALEMATE_DELAY`, and the convoy halted: drive onto the
@@ -2245,7 +2360,9 @@ function ConvoyUnitHandler:closeIn(now, seen)
   for _, point in ipairs(path) do
     table.insert(route, routePoint(point, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED))
   end
-  veaf.goRoute(self.groupName, route)
+  self:order(self.groupName, route, function()
+    self:pushMovedNothing(now, aim)
+  end)
 end
 
 --- Nothing in sight and no shot for a while.
@@ -2355,9 +2472,9 @@ function ConvoyUnitHandler:retreat(destinationText)
   self:clearDanger()
   local speed = veafGroundAI.FALL_BACK_SPEED
   local route = { routePoint(from, "On Road", speed), routePoint(destination, "On Road", speed) }
-  veaf.goRoute(self.groupName, route)
+  self:order(self.groupName, route)
   if self:getUnarmedGroup() then
-    veaf.goRoute(
+    self:order(
       self.unarmedGroupName,
       { routePoint(veaf.getAveragePosition(self:getUnarmedGroup()), "On Road", speed), routePoint(destination, "On Road", speed) }
     )
@@ -2421,11 +2538,11 @@ function ConvoyUnitHandler:resume()
       table.insert(route, routePoint({ x = roadX, z = roadZ }, "On Road", speed))
     end
     table.insert(route, routePoint(meeting, "On Road", speed))
-    veaf.goRoute(self.groupName, route)
+    self:order(self.groupName, route)
     self.rejoinDeadline = timer.getTime() + ConvoyUnitHandler.REJOIN_TIMEOUT
     self.state = ConvoyUnitHandler.STATE_RESUMING
   else
-    veaf.goRoute(self.groupName, self:onwardRoute(group))
+    self:order(self.groupName, self:onwardRoute(group))
     self.state = ConvoyUnitHandler.STATE_DRIVING
   end
   self:say("groundai.convoy_resuming")
@@ -2487,7 +2604,7 @@ function ConvoyUnitHandler:mergeIfClose()
     -- nobody left to wait for: whoever is left drives on
     local left = group or unarmed
     if left then
-      veaf.goRoute(left:getName(), self:onwardRoute(left))
+      self:order(left:getName(), self:onwardRoute(left))
     end
     self.state = ConvoyUnitHandler.STATE_DRIVING
     return
@@ -2496,8 +2613,8 @@ function ConvoyUnitHandler:mergeIfClose()
     if timer.getTime() >= (self.rejoinDeadline or math.huge) then
       -- a truck stuck short of the column: both drive on, each on its own
       veaf.loggers.get(veafGroundAI.Id):warn("convoy %s: the unarmed vehicles did not rejoin, driving on apart", veaf.p(self:getName()))
-      veaf.goRoute(self.groupName, self:onwardRoute(group))
-      veaf.goRoute(self.unarmedGroupName, self:onwardRoute(unarmed))
+      self:order(self.groupName, self:onwardRoute(group))
+      self:order(self.unarmedGroupName, self:onwardRoute(unarmed))
       self.state = ConvoyUnitHandler.STATE_DRIVING
     end
     return
@@ -2522,6 +2639,7 @@ function ConvoyUnitHandler:mergeIfClose()
     units = definitions,
     route = { points = route },
   })
+  veafGroundAI.noteBirth(self.groupName)
   self.state = ConvoyUnitHandler.STATE_DRIVING
   veaf.loggers.get(veafGroundAI.Id):info("convoy %s merged back", veaf.p(self:getName()))
 end

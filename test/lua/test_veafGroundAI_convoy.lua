@@ -120,6 +120,7 @@ local function resetWorld()
   veafGroundAI.handlers = {}
   veafGroundAI.convoysByGroupName = {}
   veafGroundAI.convoyObjectives = {}
+  veafGroundAI.bornAt = {}
   veafGroundAI._townPoints = {}
   veaf.config.language = "en"
   -- a pilot on each side: the call for help and its smokes are for a side that has some (ticket 07)
@@ -507,6 +508,7 @@ function TestConvoyContact:test_strong_enough_it_splits_and_fights()
   luaunit.assertEquals(added.units[1].type, "M 818")
   luaunit.assertEquals(added.units[2].x, -40)
   luaunit.assertTrue(#added.route.points >= 2, "and they flee at once")
+  luaunit.assertEquals(veafGroundAI.bornAt[added.name], dcs_mocks.currentTime, "its birth noted: no order for 5 s")
   -- the armed vehicles close in, alarm red, weapons free: to 900 m of the BTR, 1.5 km north
   local options = optionsFor("Convoy-1")
   luaunit.assertEquals(options[AI.Option.Ground.id.ALARM_STATE], AI.Option.Ground.val.ALARM_STATE.RED)
@@ -998,6 +1000,36 @@ function TestConvoyWatch:tearDown()
   coalition.getPlayers = function()
     return {}
   end
+  if self._goRoute then
+    veaf.goRoute = self._goRoute
+    self._goRoute = nil
+  end
+end
+
+--- The convoy drives `metres` north 5 s after each route it is given (a group starts 2 to 4 s after its order,
+--- measured 2026-11, dcs-cartographie), and stands still otherwise.
+function TestConvoyWatch:_drivesOnEachRoute(metres)
+  local orders = {}
+  self._goRoute = veaf.goRoute
+  local goRoute = self._goRoute
+  veaf.goRoute = function(name, points)
+    if name == "Watched" then
+      table.insert(orders, timer.getTime())
+    end
+    return goRoute(name, points)
+  end
+  for _, unit in ipairs(self.units) do
+    local base = unit:getPoint()
+    unit.getPoint = function()
+      local driven = 0
+      for _, at in ipairs(orders) do
+        if timer.getTime() >= at + 5 then
+          driven = driven + metres
+        end
+      end
+      return { x = base.x + driven, y = 0, z = base.z }
+    end
+  end
 end
 
 function TestConvoyWatch:test_holding_with_nobody_of_its_side_it_drives_on_after_the_delay()
@@ -1082,6 +1114,7 @@ end
 
 function TestConvoyWatch:test_a_stalemate_in_sight_closes_in_on_the_enemy()
   local handler = self:_heldAtStandoff()
+  self:_drivesOnEachRoute(100)
   dcs_mocks.tasksSet = {}
   dcs_mocks.runScheduled(ConvoyUnitHandler.STALEMATE_DELAY - 5)
   luaunit.assertEquals(#dcs_mocks.tasksSet, 0, "not before the delay")
@@ -1091,12 +1124,14 @@ function TestConvoyWatch:test_a_stalemate_in_sight_closes_in_on_the_enemy()
   luaunit.assertEquals(stop.speed, ConvoyUnitHandler.ASSAULT_SPEED)
   luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_FIGHTING)
   luaunit.assertEquals(countMessages("back on the road"), 0)
-  -- the clock restarts after each push: the next one comes a whole delay later, not at every beat
+  -- the clock restarts after each push that moves the convoy: the next one comes a whole delay later, not at every beat
   dcs_mocks.tasksSet = {}
   dcs_mocks.runScheduled(2 * ConvoyUnitHandler.STALEMATE_DELAY - 5)
   luaunit.assertEquals(#dcs_mocks.tasksSet, 0)
   dcs_mocks.runScheduled(2 * ConvoyUnitHandler.STALEMATE_DELAY + 5)
   luaunit.assertEquals(#dcs_mocks.tasksSet, 1)
+  luaunit.assertEquals(handler.futilePushes, 0, "a push that moved the convoy is not counted")
+  luaunit.assertEquals(#dcs_mocks.findLog("moved nothing"), 0)
 end
 
 function TestConvoyWatch:test_the_kolkhida_assault_convoy_far_from_poti_closes_in_too()
@@ -1168,21 +1203,38 @@ function TestConvoyWatch:test_a_push_that_moves_nothing_is_no_contact()
   luaunit.assertEquals(engaged, 0, "the enemy first seen is a contact")
   dcs_mocks.tasksSet = {}
   dcs_mocks.runScheduled(3 * ConvoyUnitHandler.STALEMATE_DELAY + 5)
-  luaunit.assertEquals(#dcs_mocks.tasksSet, 3, "pushed three times onto the enemy")
+  luaunit.assertEquals(#dcs_mocks.tasksSet, ConvoyUnitHandler.FUTILE_PUSHES + 1, "pushed toward the enemy, then drove on")
   luaunit.assertEquals(lastRealContact(handler), engaged, "neither the pushes nor the enemy still in sight are a contact")
 end
 
 function TestConvoyWatch:test_pushes_that_move_nothing_give_up_and_drive_on()
+  -- FIX-GROUNDAI-CLOSE-IN-REACHABLE ticket 02: a push that moves nothing is known `ORDER_CHECK_DELAY` after it, and the
+  -- next one comes at the next beat, toward another aim, rather than two minutes later toward the same
   local handler, enemy = self:_heldAtStandoff()
   dcs_mocks.tasksSet = {}
+  dcs_mocks.logs = {}
   local pushes = ConvoyUnitHandler.FUTILE_PUSHES
-  dcs_mocks.runScheduled(pushes * ConvoyUnitHandler.STALEMATE_DELAY + 5)
-  luaunit.assertEquals(#dcs_mocks.tasksSet, pushes)
-  luaunit.assertEquals(lastRoutePoint("Watched").x, 500, "the last push, toward the enemy")
-  -- the next push is not given: the convoy drives on
-  dcs_mocks.runScheduled((pushes + 1) * ConvoyUnitHandler.STALEMATE_DELAY + 5)
-  luaunit.assertEquals(#dcs_mocks.tasksSet, pushes + 1)
-  luaunit.assertNotEquals(lastRoutePoint("Watched").x, 500, "back on its way, not toward the enemy")
+  dcs_mocks.runScheduled(ConvoyUnitHandler.STALEMATE_DELAY + 5)
+  luaunit.assertEquals(#dcs_mocks.tasksSet, 1, "the first push")
+  dcs_mocks.runScheduled(ConvoyUnitHandler.STALEMATE_DELAY + ConvoyUnitHandler.ORDER_CHECK_DELAY + 5)
+  luaunit.assertEquals(#dcs_mocks.findLog("the push moved nothing"), 1, "known at the check")
+  luaunit.assertEquals(#dcs_mocks.tasksSet, 2, "and pushed again at the next beat")
+  dcs_mocks.runScheduled(ConvoyUnitHandler.STALEMATE_DELAY + pushes * (ConvoyUnitHandler.ORDER_CHECK_DELAY + 5))
+  luaunit.assertEquals(#dcs_mocks.tasksSet, pushes + 1, "the pushes, then the drive on")
+  -- each push toward another aim
+  local aims = {}
+  for index = 1, pushes do
+    local points = dcs_mocks.tasksSet[index].task.params.route.points
+    aims[index] = { x = points[#points].x, z = points[#points].y }
+  end
+  for a = 1, pushes do
+    for b = a + 1, pushes do
+      luaunit.assertTrue(flat(aims[a], aims[b]) > ConvoyUnitHandler.FAILED_AIM_RADIUS, "push " .. a .. " and " .. b)
+    end
+  end
+  -- the drive on: back on its way, well before the two minutes a push used to wait
+  luaunit.assertTrue(dcs_mocks.currentTime < 2 * ConvoyUnitHandler.STALEMATE_DELAY)
+  luaunit.assertNotEquals(lastRoutePoint("Watched").x, aims[pushes].x, "back on its way, not toward the enemy")
   luaunit.assertFalse(handler:isInContact())
   -- the enemy it could not reach, still in sight, does not start the same fight again
   dcs_mocks.runScheduled((pushes + 4) * ConvoyUnitHandler.STALEMATE_DELAY)
@@ -1342,6 +1394,44 @@ function TestConvoyOrders:test_retreat_to_the_nearest_friendly_airbase()
   luaunit.assertEquals(points[#points].x, 9000, "the nearest airbase, not the carrier")
 end
 
+-- FIX-GROUNDAI-CLOSE-IN-REACHABLE ticket 02: an order given in the frame a group is created is lost, 3 times out of 3,
+-- and taken 5 s later (measured 2026-11, dcs-cartographie).
+
+function TestConvoyOrders:test_no_route_reaches_a_group_within_5_s_of_its_creation()
+  makeGroup("Column", { makeUnit("b-1", { attributes = IFV }) })
+  local handler = veafGroundAI.addConvoy("Column", "Column")
+  veafGroundAI.noteBirth("Column")
+  handler:order("Column", { { x = 1, y = 0 }, { x = 2, y = 0 } })
+  handler:order("Column", { { x = 1, y = 0 }, { x = 3, y = 0 } })
+  luaunit.assertNil(lastTaskSetOn("Column"), "not in the frame of its creation")
+  dcs_mocks.runScheduled(veafGroundAI.SPAWN_ORDER_DELAY - 1)
+  luaunit.assertNil(lastTaskSetOn("Column"))
+  dcs_mocks.runScheduled(veafGroundAI.SPAWN_ORDER_DELAY)
+  luaunit.assertEquals(#dcs_mocks.tasksSet, 1, "one order: the last one given")
+  luaunit.assertEquals(lastRoutePoint("Column").x, 3)
+  -- once the delay is over, an order goes at once
+  handler:order("Column", { { x = 1, y = 0 }, { x = 4, y = 0 } })
+  luaunit.assertEquals(lastRoutePoint("Column").x, 4)
+end
+
+function TestConvoyOrders:test_an_order_that_moves_nothing_is_said_once()
+  makeGroup("Column", { makeUnit("b-1", { attributes = IFV }) })
+  local handler = veafGroundAI.addConvoy("Column", "Column")
+  dcs_mocks.logs = {}
+  handler:order("Column", { { x = 0, y = 0 }, { x = 5000, y = 0 } })
+  dcs_mocks.runScheduled(ConvoyUnitHandler.ORDER_CHECK_DELAY - 1)
+  luaunit.assertEquals(#dcs_mocks.findLog("moved nothing"), 0, "not before the delay")
+  dcs_mocks.runScheduled(ConvoyUnitHandler.ORDER_CHECK_DELAY + 1)
+  luaunit.assertEquals(#dcs_mocks.findLog("moved nothing"), 1)
+  -- a convoy that drives is not said to be stuck
+  handler:order("Column", { { x = 0, y = 0 }, { x = 5000, y = 0 } })
+  Unit.getByName("b-1").getVelocity = function()
+    return { x = 8, y = 0, z = 0 }
+  end
+  dcs_mocks.runScheduled(2 * ConvoyUnitHandler.ORDER_CHECK_DELAY + 5)
+  luaunit.assertEquals(#dcs_mocks.findLog("moved nothing"), 1)
+end
+
 function TestConvoyOrders:test_resume_brings_the_unarmed_group_back_and_merges_it_when_close()
   local lead = makeUnit("m-1", { attributes = IFV, type = "M-2 Bradley", point = { x = 0, y = 0, z = 0 } })
   makeGroup("Column", { lead })
@@ -1370,6 +1460,7 @@ function TestConvoyOrders:test_resume_brings_the_unarmed_group_back_and_merges_i
   luaunit.assertEquals(handler.state, ConvoyUnitHandler.STATE_DRIVING)
   luaunit.assertNil(handler.unarmedGroupName)
   luaunit.assertNil(veafGroundAI.convoysByGroupName["Column unarmed"])
+  luaunit.assertEquals(veafGroundAI.bornAt["Column"], dcs_mocks.currentTime, "rebuilt: no order for 5 s")
 end
 
 function TestConvoyOrders:test_the_onward_route_of_a_spawned_convoy_goes_back_to_the_road()

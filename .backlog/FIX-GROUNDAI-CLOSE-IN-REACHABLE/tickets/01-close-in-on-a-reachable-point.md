@@ -1,6 +1,6 @@
 # 01 — `closeIn` aims at a reachable point on a checked path
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 Type: fix
 
 ## To do
@@ -14,6 +14,14 @@ Type: fix
 ## Done when
 
 A convoy in contact closes in along a path DCS can drive, or does not try; with tests.
+
+## Done
+
+- `veafGroundAI.closeInPath`: the aim is `CLOSE_IN_STANDOFF` (300 m, estimated) short of the enemy, halfway when the enemy is closer than twice that; the straight path to it is checked every `CLOSE_IN_SAMPLE_STEP` (25 m) by `reachableAlong`, which stops before water (`WATER`, `SHALLOW_WATER`) or a slope along the drive steeper than the convoy's least capable vehicle climbs. A path cut short is kept when it still brings the convoy `PUSH_PROGRESS_MARGIN` (50 m) closer; otherwise the aim turns around the enemy, at the same distance from it, by `CLOSE_IN_BEARINGS` (±20, ±40, ±60°).
+- Water stops every convoy: `Unit.getDesc` does not say whether a vehicle swims (dcs-cartographie), so "a vehicle that cannot swim" cannot be told apart; a convoy of swimmers stays on its bank too.
+- The slope: `veafGroundAI.maxSlopeOf`, the lowest `Unit.getDesc().maxSlopeAngle` of the group (a sine), `DEFAULT_MAX_SLOPE` 0.35 (estimated, the prototype's prudent value) when DCS gives none. No extra margin: a BTR-80 given 0.47 climbed 31° (measured 2026-11, dcs-cartographie).
+- `closeIn` gives one order of a few `Off Road` points, `CLOSE_IN_LEG` (200 m) apart at most. Nothing reachable: no route, one log line ("no reachable point toward an enemy … not closing in"), and the push clock restarts, so the next try comes two minutes later and counts toward `FUTILE_PUSHES`.
+- Tests: `test_veafGroundAI_convoy.lua` (a reachable enemy, a close enemy, water on the way, a slope on the way, an aim that failed, nothing reachable, the least capable vehicle; the watch with nothing reachable); the stalemate tests now expect the aim 300 m short of the enemy.
 
 ## In-game check
 

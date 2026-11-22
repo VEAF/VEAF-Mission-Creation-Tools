@@ -1,6 +1,6 @@
 # 03 — No route starts `On Road` off the road
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 Type: fix
 
 ## To do
@@ -13,6 +13,13 @@ Type: fix
 ## Done when
 
 No route of the ground AI puts an `On Road` point away from a road; with tests.
+
+## Done
+
+- `veafGroundAI.roadEntry` / `roadExit` / `roadRoute`: a point more than `ON_ROAD_TOLERANCE` (10 m, from DCS's code, not measured) from the nearest road (`land.getClosestPointOnRoads`) gets an `Off Road` leg to the road point, then `On Road` (and `On Road` to the road point, then `Off Road` to a place away from the road); with no road at all, `Off Road`.
+- Used by the fall back (`fallBackRoute`: a rally point more than 300 m from a road is no longer an `On Road` point; the friendly place either), the retreat (`_gc …, retreat`, both groups) and the resume (the armed vehicles going to fetch the unarmed ones). `onwardRoute` already went to the road first; the points of a Mission Editor route keep the action their author gave them.
+- DCS could not be run in this session: not measured, so no `known-limitations.yaml` entry; the comment says "from DCS's code, dcs-cartographie; not measured".
+- Tests: `test_veafGroundAI_convoy.lua` (an off-road position gets to the road first, a position on the road does not, no road stays off road, a rally point off the road, a retreat from off the road).
 
 ## In-game check
 

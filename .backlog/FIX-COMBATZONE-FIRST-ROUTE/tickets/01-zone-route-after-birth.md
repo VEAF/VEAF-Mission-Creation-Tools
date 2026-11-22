@@ -1,6 +1,6 @@
 # 01 — The zone's route 5 s after the birth
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 Type: fix
 
 ## To do

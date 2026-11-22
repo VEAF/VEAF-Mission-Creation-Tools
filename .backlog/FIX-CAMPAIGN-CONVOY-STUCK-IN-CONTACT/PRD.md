@@ -1,6 +1,6 @@
 # FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT — a convoy that cannot close in is never retired
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 Found while watching "Bouclier de l'Oronte" on the Campagne server, 2026-11-21; David asked for the lot the same night.
 

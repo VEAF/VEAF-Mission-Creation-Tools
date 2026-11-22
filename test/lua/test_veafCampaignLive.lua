@@ -1972,6 +1972,23 @@ function TestCampaignGroundKill:test_a_garrison_unit_found_by_the_campaign_alone
   luaunit.assertEquals(#loggedLines("CREDITS Zip +10 (kill)"), 1)
 end
 
+function TestCampaignGroundKill:test_the_last_unit_of_a_zone_is_paid_when_its_death_came_first()
+  -- Zugdidi's garrison spawned; its units die one after the other, each death read before its kill: the last one
+  -- turns the zone neutral and drops its garrison before its kill is read
+  local zugdidi = veafCampaign.zones["Zugdidi"]
+  zugdidi:spawnGroup(1)
+  local names = {}
+  for index in ipairs(zugdidi.entry.garrison[1].units) do
+    table.insert(names, veafCampaign.unitName(zugdidi.entry.garrison[1], index))
+  end
+  for index, name in ipairs(names) do
+    zugdidi:onUnitLost(1, index)
+    veafCampaignEconomy.onKill(goneKill(name))
+  end
+  luaunit.assertEquals(zugdidi:getOwner(), "neutral")
+  luaunit.assertEquals(veafCampaignEconomy.sitacStats()["Zip"]["Ground Units"], #names)
+end
+
 function TestCampaignGroundKill:test_a_garrison_sam_found_by_the_campaign_alone_is_a_sam()
   Unit.getDescByName = function(typeName)
     return { attributes = typeName == "SA-11 Buk LN 9A310M1" and { ["SAM related"] = true } or {} }

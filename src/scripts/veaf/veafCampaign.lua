@@ -612,7 +612,9 @@ veafCampaign.zones = {}
 --- The zones in the order the data table declares them, so that nothing depends on `pairs`.
 veafCampaign.zoneList = {}
 
---- Which garrison unit a DCS unit name is: `{ zone, group index, unit index }`.
+--- Which garrison unit a DCS unit name is: `{ zone, group index, unit index, side, type }`, `side` the zone's owner
+--- and `type` the unit's when it was spawned: a zone that loses its last unit turns neutral and drops its garrison,
+--- maybe before the kill's event is read (`recordOf`).
 veafCampaign.unitIndex = {}
 
 --- Which factory building a DCS static name is: `{ zone, index }` (ticket 11).
@@ -988,7 +990,7 @@ function VeafCampaignZone:spawnGroup(groupIndex, only)
         skill = "Random",
         heading = unit.heading,
       })
-      veafCampaign.unitIndex[name] = { zone = self, group = groupIndex, unit = unitIndex }
+      veafCampaign.unitIndex[name] = { zone = self, group = groupIndex, unit = unitIndex, side = self.entry.owner, type = unit.type }
     end
   end
   if #dcsUnits == 0 then
@@ -2717,7 +2719,7 @@ function veafCampaign.absorbConvoy(zone, side)
       for index, unit in ipairs(inside) do
         local point = unit:getPoint()
         table.insert(group.units, { type = unit:getTypeName(), x = point.x, z = point.z, heading = 0, alive = true })
-        veafCampaign.unitIndex[unit:getName()] = { zone = zone, group = 1, unit = index }
+        veafCampaign.unitIndex[unit:getName()] = { zone = zone, group = 1, unit = index, side = side, type = group.units[index].type }
       end
       zone.entry.garrison = { group }
       record.absorbed = typesOf(inside)
@@ -4351,10 +4353,12 @@ function veafCampaign.recordOf(name)
   end
   local where = veafCampaign.unitIndex[name]
   if where then
-    local side = veafCampaign.SIDES[where.zone:getOwner()]
+    -- the side and type it was spawned with: its zone may already be neutral, its garrison gone, when the
+    -- unit was its last and its death was read before its kill
     local group = where.zone.entry.garrison and where.zone.entry.garrison[where.group]
     local unit = group and group.units[where.unit]
-    return { side = side, category = Unit.Category.GROUND_UNIT, typeName = unit and unit.type }
+    local side = veafCampaign.SIDES[where.side or where.zone:getOwner()]
+    return { side = side, category = Unit.Category.GROUND_UNIT, typeName = where.type or (unit and unit.type) }
   end
   for _, record in ipairs(veafCampaign.convoys) do
     if record.name and (name == record.name or name:sub(1, #record.name + 1) == record.name .. " ") then

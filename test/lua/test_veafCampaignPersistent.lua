@@ -1629,7 +1629,7 @@ end
 function TestCampaignConvoyGoal:test_a_retirement_waits_until_the_convoy_has_been_left_alone()
   veafCampaign.data = persistentData({ convoy_timeout = 600 })
   veafCampaign.initialize()
-  local handler = { state = 1, lastContact = 650 }
+  local handler = { state = 1, lastFireExchanged = 650 }
   local record = convoyUnderWatch(handler)
   local quiet = veafCampaign.setting("retire_quiet_seconds")
   veafCampaign.checkConvoyGoal(record, 700)
@@ -1640,6 +1640,33 @@ function TestCampaignConvoyGoal:test_a_retirement_waits_until_the_convoy_has_bee
   luaunit.assertTrue(record.ended)
   -- decided once: one failure for the route, however long it waited
   luaunit.assertEquals(veafCampaign.failures["convoy red Kobuleti"].count, 1)
+end
+
+function TestCampaignConvoyGoal:test_a_newly_seen_enemy_keeps_the_convoy_in_play_too()
+  veafCampaign.data = persistentData({ convoy_timeout = 600 })
+  veafCampaign.initialize()
+  local record = convoyUnderWatch({ state = 3, lastSighting = 650 })
+  local quiet = veafCampaign.setting("retire_quiet_seconds")
+  veafCampaign.checkConvoyGoal(record, 700)
+  luaunit.assertNil(record.ended)
+  veafCampaign.checkConvoyGoal(record, 650 + quiet)
+  luaunit.assertTrue(record.ended)
+end
+
+-- FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT: on 2026-11-21 the assault convoy on Menagh stood still from 22:00 to the end
+-- of the evening, pushed every two minutes onto an enemy in sight that it never reached, and never fired. Its watch
+-- clock and its pushes were fresh at every check; the campaign read them as a contact and kept it for ever.
+function TestCampaignConvoyGoal:test_a_convoy_pushing_without_a_shot_is_retired_at_its_time()
+  veafCampaign.data = persistentData({ convoy_timeout = 600 })
+  veafCampaign.initialize()
+  local handler = { state = 3, lastSighting = 100, lastFireExchanged = nil }
+  local record = convoyUnderWatch(handler)
+  -- the enemy stays in sight, and a push comes every two minutes: neither is a contact
+  handler.lastContact = 697
+  handler.lastPush = 690
+  veafCampaign.checkConvoyGoal(record, 700)
+  luaunit.assertNotNil(record.retiring)
+  luaunit.assertTrue(record.ended, "left alone since its first sighting")
 end
 
 function TestCampaignConvoyGoal:test_a_convoy_waiting_to_leave_refunds_only_its_survivors()

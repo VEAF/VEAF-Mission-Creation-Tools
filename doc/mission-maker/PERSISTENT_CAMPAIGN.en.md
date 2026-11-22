@@ -301,7 +301,7 @@ Its garrison comes group by group, about `wake_units_per_beat` (10) units per be
 - **An assault convoy drives at `assault_speed` (40 km/h)**, without dispersing under fire; at its departure, `dcs.log` gives the length of its road, the time it needs and when it will be retired, then every `convoy_report_seconds` (300 s) its distance to its target and whether it moves on, stands still or turns back.
   Under aircraft it drives on; if it falls back before a stronger ground force for `fall_back_seconds` (120 s) without taking its road again, its assault is over: it is retired.
 - **A convoy that will not arrive frees its place**: once its target is its side's (a helicopter took it first), when it falls back, or after the time its road needs (half as long again as expected, `convoy_timeout`, 2,700 s, at least), it is taken off the map and the price of its survivors goes back to its side; on 2026-11-17, at 20 km/h on roads of 40 to 60 km, the 45 minutes retired every convoy before it arrived.
-  **Never in front of the players**: a convoy to retire stays in play while a player is within `wake_radius` of it, or it was hit in the last `retire_quiet_seconds` (300 s); its losses count, and only its survivors when it leaves are given back. On 2026-11-19, Aleppo's assault on Menagh vanished under a player's fire.
+  **Never in front of the players**: a convoy to retire stays in play while a player is within `wake_radius` of it, or it was in contact in the last `retire_quiet_seconds` (300 s) — a shot fired or taken, an enemy newly in sight, but not its own attempts to drive onto an enemy it does not reach; its losses count, and only its survivors when it leaves are given back. On 2026-11-19, Aleppo's assault on Menagh vanished under a player's fire.
 - **The other side is told at once** of a convoy leaving, and sees its axis on the map.
 - **Resupply**: a delivery to a damaged friendly zone brings back the dead units of its first damaged group, **paid from the side's [resource](#resources) stock** at the price their spawn would cost, cheapest first; what the stock cannot pay stays dead (a side whose resources are not counted gets the whole group back).
   Deliveries are: a "Zone supplies" crate set down in the zone, CTLD 2 troops deployed in the zone (the spy team and the JTAC teams excepted), a supply helicopter landed in it.
@@ -765,7 +765,7 @@ A `KO` line is enough to know where to look.
 | `assault_speed` | 40 | km/h: an assault convoy's speed |
 | `convoy_report_seconds` | 300 | seconds between two `dcs.log` lines on an assault convoy's progress |
 | `fall_back_seconds` | 120 | how long an assault convoy must fall back, without taking its road again, for its assault to be over |
-| `retire_quiet_seconds` | 300 | a convoy to retire leaves only after this long without contact, and with no player within `wake_radius` |
+| `retire_quiet_seconds` | 300 | a convoy to retire leaves only after this long without contact (a shot fired or taken, an enemy newly in sight), and with no player within `wake_radius` |
 | `route_failures` | 2 | helicopters or convoys failed in a row to a zone before the side gives it up |
 | `route_failure_seconds` | 3600 | how long it gives it up |
 | `helicopter` | `{red: Mi-8MT, blue: UH-1H}` | each side's helicopter type |

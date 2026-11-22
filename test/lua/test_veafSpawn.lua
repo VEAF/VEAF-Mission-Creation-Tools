@@ -4752,4 +4752,39 @@ function TestVeafSpawnConvoyArmorTypes:test_without_them_the_platoon_is_generate
   luaunit.assertEquals(self.platoons, 1)
 end
 
+-- FIX-GROUNDAI-CLOSE-IN-REACHABLE ticket 02: an order given in the frame a group is created is lost, 3 times out of 3,
+-- and taken 5 s later (measured 2026-11, dcs-cartographie).
+
+--- The routes set on the convoy's controller.
+local function routesSetOn(groupName)
+  local count = 0
+  for _, set in ipairs(dcs_mocks.tasksSet) do
+    if set.group == groupName and set.task.id == "Mission" then
+      count = count + 1
+    end
+  end
+  return count
+end
+
+function TestVeafSpawnConvoyArmorTypes:test_the_first_route_comes_5_s_after_the_convoy_is_created()
+  dcs_mocks.addGroup("Assault", {})
+  self:_spawn(nil)
+  luaunit.assertEquals(routesSetOn("Assault"), 0, "not in the frame of its creation")
+  dcs_mocks.runScheduled(veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS - 1)
+  luaunit.assertEquals(routesSetOn("Assault"), 0)
+  dcs_mocks.runScheduled(veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS)
+  luaunit.assertEquals(routesSetOn("Assault"), 1)
+  veafSpawn.spawnedConvoys["Assault"] = nil
+end
+
+function TestVeafSpawnConvoyArmorTypes:test_a_convoy_stopped_before_its_first_route_keeps_its_orders()
+  dcs_mocks.addGroup("Assault", {})
+  self:_spawn(nil)
+  -- in contact at once: the convoy watch stopped its itinerary and gave its own orders
+  veafSpawn.spawnedConvoys["Assault"].stopped = true
+  dcs_mocks.runScheduled(veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS)
+  luaunit.assertEquals(routesSetOn("Assault"), 0)
+  veafSpawn.spawnedConvoys["Assault"] = nil
+end
+
 os.exit(luaunit.LuaUnit.run())

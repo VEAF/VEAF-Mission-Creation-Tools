@@ -1,6 +1,6 @@
 # FIX-GROUNDAI-CLOSE-IN-REACHABLE — a convoy closes in on a point it can reach, and checks that it moves
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 The cause behind FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT, which treats the consequence (a push that moves nothing is not a contact). David, 2026-11-22: create the lot, from a note of the dcs-cartographie session.
 
@@ -32,3 +32,10 @@ Lands after FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT (it builds on its pushes and it
 | 01 | [`closeIn` aims at a reachable point on a checked path](tickets/01-close-in-on-a-reachable-point.md) |
 | 02 | [An order is checked 30 s later](tickets/02-check-the-order-moved-the-group.md) |
 | 03 | [No route starts `On Road` off the road](tickets/03-no-on-road-point-off-the-road.md) |
+
+## Done
+
+The three tickets, in one pull request into `feature/dynamic-campaign`; each ticket's `## Done` says what landed.
+The prototype `lua/ia-sol/` of dcs-cartographie was not brought in as is: its A* on a grid, its chassis table and its watcher are more than a close in of a kilometre needs. Its segment check (water, slope along the drive) and its order rules (one order of a few `Off Road` points, 5 s after a group's creation, a check about 20 s after an order) are what came in, under VMCT's tests.
+No `known-limitations.yaml` entry: nothing was measured in DCS by this lot; the behaviours used are cited in the code as measured or read by dcs-cartographie.
+Waits for the in-game checks written in each ticket.

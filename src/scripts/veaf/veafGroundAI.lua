@@ -885,6 +885,35 @@ ConvoyUnitHandler.DRY_STEP = 50
 --- Metres of the drive left out at its start: it starts from the column's average position, in the water when the
 --- column follows a shore, while its trucks stand on the road around it.
 ConvoyUnitHandler.DRY_START = 150
+--- How far from its enemy a close in stops, in metres: short of driving onto it, well inside the ~1.3 km at which DCS's
+--- vehicles opened fire on 2026-10-08. An enemy closer than twice this is closed in on halfway. An estimate, to be
+--- tuned in game (FIX-GROUNDAI-CLOSE-IN-REACHABLE).
+ConvoyUnitHandler.CLOSE_IN_STANDOFF = 300
+--- The bearings a close in tries, in degrees off the straight line to the enemy, in this order: the aim turns around
+--- the enemy, at the same distance from it, when the straight path is blocked.
+ConvoyUnitHandler.CLOSE_IN_BEARINGS = { 0, 20, -20, 40, -40, 60, -60 }
+--- Metres between two points where a close in's path is checked for water and slope.
+ConvoyUnitHandler.CLOSE_IN_SAMPLE_STEP = 25
+--- Metres between two waypoints of a close in. Off road, one every 100 to 500 m keeps a group within 7 to 9 m of the
+--- line on average (measured 2026-11, dcs-cartographie).
+ConvoyUnitHandler.CLOSE_IN_LEG = 200
+--- The slope a vehicle climbs when DCS does not give it, as the sine of the angle (`Unit.getDesc().maxSlopeAngle` is
+--- one). A prudent estimate, the prototype's of dcs-cartographie: a BTR-80 given 0.47 climbed 31° (measured 2026-11).
+ConvoyUnitHandler.DEFAULT_MAX_SLOPE = 0.35
+--- A close in that ends this close to the aim of a close in that moved nothing takes another aim, in metres.
+ConvoyUnitHandler.FAILED_AIM_RADIUS = 100
+
+--- Seconds after an order before the handler looks whether it moved the group. A group starts 2 to 4 s after its
+--- order, even with 200 waypoints (measured 2026-11, dcs-cartographie); 25 s leave a margin.
+ConvoyUnitHandler.ORDER_CHECK_DELAY = 25
+--- A group whose centre moved less than this, in metres, every vehicle below `HALTED_SPEED`, did not move on its
+--- order. Driving, it covers that in a few seconds; an estimate, to be tuned in game.
+ConvoyUnitHandler.ORDER_MOVED_MARGIN = 20
+
+--- An `On Road` point farther than this from a road, in metres, makes the whole route fail: "more than about 10 m"
+--- (from DCS's code, dcs-cartographie; not measured).
+ConvoyUnitHandler.ON_ROAD_TOLERANCE = 10
+
 --- A town masks a rally point when its centre lies this close to the line from the enemy to it.
 ConvoyUnitHandler.TOWN_COVER_RADIUS = 400
 --- The name the unarmed vehicles' group takes, after the convoy's.
@@ -987,6 +1016,10 @@ function ConvoyUnitHandler.init(object)
   object.lastPushDistance = nil
   -- the enemies the convoy gave up pushing onto, by unit name: seen, they start no fight; a shot from them does
   object.unreachable = {}
+  -- the aims of the close ins that moved nothing, vec3s: the next close in takes another (FIX-GROUNDAI-CLOSE-IN-REACHABLE)
+  object.failedAims = {}
+  -- the last order given to each of its groups, by group name: a check that belongs to an older one is dropped
+  object.orderIds = {}
   object.nextWideWatch = 0
   object.nextSmoke = 0
   -- the route a Mission Editor group was given, kept to drive on after a contact
@@ -1282,6 +1315,97 @@ function veafGroundAI.isDryDrive(from, to)
   return true
 end
 
+--- The steepest slope this group climbs: its least capable vehicle's, as the sine of the angle. A group takes the
+--- limits of its least capable vehicle (measured 2026-11, dcs-cartographie).
+--- @param units table DCS units
+--- @return number
+function veafGroundAI.maxSlopeOf(units)
+  local slope = math.huge
+  for _, unit in ipairs(units) do
+    local ok, desc = pcall(function()
+      return unit:getDesc()
+    end)
+    local own = ok and type(desc) == "table" and tonumber(desc.maxSlopeAngle) or ConvoyUnitHandler.DEFAULT_MAX_SLOPE
+    slope = math.min(slope, own)
+  end
+  if slope == math.huge then
+    return ConvoyUnitHandler.DEFAULT_MAX_SLOPE
+  end
+  return slope
+end
+
+--- How far a vehicle gets on the straight, off-road drive from one point to another: the last point, checked every
+--- `CLOSE_IN_SAMPLE_STEP`, before water or a slope steeper than `maxSlope`.
+---
+--- Water stops every convoy: `Unit.getDesc` does not say whether a vehicle swims, and a group with one vehicle that
+--- cannot swim goes looking for a crossing 300 to 700 m away (measured 2026-11, dcs-cartographie). The slope is the
+--- one along the drive, between two checked points.
+--- @param from table a vec3
+--- @param to table a vec3
+--- @param maxSlope number the sine of the steepest slope allowed
+--- @return table the farthest point reached, a vec3 (`from` itself when the first step fails)
+function veafGroundAI.reachableAlong(from, to, maxSlope)
+  local length = dist2D(from, to)
+  local steps = math.ceil(length / ConvoyUnitHandler.CLOSE_IN_SAMPLE_STEP)
+  local reached = { x = from.x, y = 0, z = from.z }
+  local height = land.getHeight({ x = from.x, y = from.z })
+  for step = 1, steps do
+    local t = step / steps
+    local point = { x = from.x + t * (to.x - from.x), y = 0, z = from.z + t * (to.z - from.z) }
+    local surface = land.getSurfaceType({ x = point.x, y = point.z })
+    if surface == land.SurfaceType.WATER or surface == land.SurfaceType.SHALLOW_WATER then
+      return reached
+    end
+    local pointHeight = land.getHeight({ x = point.x, y = point.z })
+    local run, rise = length / steps, math.abs(pointHeight - height)
+    if rise / math.sqrt(run * run + rise * rise) > maxSlope then
+      return reached
+    end
+    reached, height = point, pointHeight
+  end
+  return reached
+end
+
+--- The path a convoy closes in on its enemy by: a few off-road points, `CLOSE_IN_LEG` apart, to an aim short of the
+--- enemy that the convoy can reach.
+---
+--- On 2026-11-21 the convoy "Mule" was sent onto an enemy's exact point, one off-road segment of about a kilometre,
+--- every two minutes, and never moved: a route with one segment DCS judges impossible (water, slope) is not installed
+--- at all, and the group stays still with no message (from DCS's code, dcs-cartographie). So the aim is
+--- `CLOSE_IN_STANDOFF` short of the enemy, and the path to it checked (`reachableAlong`); a path cut short by water or
+--- a slope ends before it, when that still brings the convoy closer by `PUSH_PROGRESS_MARGIN`. Otherwise the aim turns
+--- around the enemy (`CLOSE_IN_BEARINGS`). An aim near one that moved nothing is not taken again.
+--- @param from table the convoy's vec3
+--- @param enemy table the enemy's vec3
+--- @param maxSlope number the sine of the steepest slope the convoy climbs (`maxSlopeOf`)
+--- @param failedAims table vec3s of the aims that moved nothing
+--- @return table|nil the points after `from`, vec3s, the aim last; nil when nothing is reachable
+function veafGroundAI.closeInPath(from, enemy, maxSlope, failedAims)
+  local distance = dist2D(from, enemy)
+  local standoff = math.min(ConvoyUnitHandler.CLOSE_IN_STANDOFF, distance / 2)
+  local back = math.atan2(from.z - enemy.z, from.x - enemy.x)
+  for _, offset in ipairs(ConvoyUnitHandler.CLOSE_IN_BEARINGS) do
+    local bearing = back + math.rad(offset)
+    local aim = { x = enemy.x + standoff * math.cos(bearing), y = 0, z = enemy.z + standoff * math.sin(bearing) }
+    local reached = veafGroundAI.reachableAlong(from, aim, maxSlope)
+    local usable = dist2D(reached, enemy) <= distance - ConvoyUnitHandler.PUSH_PROGRESS_MARGIN
+    for _, failed in ipairs(failedAims) do
+      usable = usable and dist2D(reached, failed) > ConvoyUnitHandler.FAILED_AIM_RADIUS
+    end
+    if usable then
+      local length = dist2D(from, reached)
+      local legs = math.ceil(length / ConvoyUnitHandler.CLOSE_IN_LEG)
+      local path = {}
+      for leg = 1, legs do
+        local t = leg / legs
+        table.insert(path, { x = from.x + t * (reached.x - from.x), y = 0, z = from.z + t * (reached.z - from.z) })
+      end
+      return path
+    end
+  end
+  return nil
+end
+
 --- The point a convoy falls back to: out of the enemy's sight, preferably toward a friendly place.
 ---
 --- Candidates are sampled on rings around the convoy, across the half-plane away from the enemy, and
@@ -1377,8 +1501,76 @@ end
 function veafGroundAI.fallBackRoute(from, rally, destination, speed)
   local points = { routePoint(from, "Off Road", speed), routePoint(rally, "Off Road", speed) }
   if destination then
-    table.insert(points, routePoint(rally, "On Road", speed))
-    table.insert(points, routePoint(destination, "On Road", speed))
+    local entry = veafGroundAI.roadEntry(rally, speed)
+    if entry[1].action == "Off Road" then
+      table.remove(entry, 1) -- the rally point is there already
+    end
+    for _, point in ipairs(entry) do
+      table.insert(points, point)
+    end
+    for _, point in ipairs(veafGroundAI.roadExit(destination, speed)) do
+      table.insert(points, point)
+    end
+  end
+  return points
+end
+
+--- The nearest road point to this one, a vec3, and whether this one is on it already (within `ON_ROAD_TOLERANCE`).
+--- @param point table a vec3
+--- @return table|nil the road point; nil when there is no road
+--- @return boolean
+local function nearestRoad(point)
+  local roadX, roadZ = land.getClosestPointOnRoads("roads", point.x, point.z)
+  if not (roadX and roadZ) then
+    return nil, false
+  end
+  local road = { x = roadX, y = 0, z = roadZ }
+  return road, dist2D(road, point) <= ConvoyUnitHandler.ON_ROAD_TOLERANCE
+end
+
+--- The first points of a route that drives on the road from where a group stands: `On Road` there when it is on the
+--- road, otherwise off road to the nearest road point and `On Road` from it. An `On Road` point far from any road makes
+--- the whole route fail, silently (from DCS's code, dcs-cartographie; not measured), and a fight leaves a convoy off
+--- the road. Off road only when there is no road.
+--- @param point table a vec3
+--- @param speed number metres per second
+--- @return table route points
+function veafGroundAI.roadEntry(point, speed)
+  local road, onIt = nearestRoad(point)
+  if not road then
+    return { routePoint(point, "Off Road", speed) }
+  end
+  if onIt then
+    return { routePoint(point, "On Road", speed) }
+  end
+  return { routePoint(point, "Off Road", speed), routePoint(road, "On Road", speed) }
+end
+
+--- The last points of a route that drives on the road to a place: `On Road` there when it is on the road, otherwise
+--- `On Road` to the nearest road point and off road from it (see `roadEntry`).
+--- @param point table a vec3
+--- @param speed number metres per second
+--- @return table route points
+function veafGroundAI.roadExit(point, speed)
+  local road, onIt = nearestRoad(point)
+  if not road then
+    return { routePoint(point, "Off Road", speed) }
+  end
+  if onIt then
+    return { routePoint(point, "On Road", speed) }
+  end
+  return { routePoint(road, "On Road", speed), routePoint(point, "Off Road", speed) }
+end
+
+--- A route on the road from one point to another (`roadEntry`, then `roadExit`).
+--- @param from table a vec3
+--- @param to table a vec3
+--- @param speed number metres per second
+--- @return table route points
+function veafGroundAI.roadRoute(from, to, speed)
+  local points = veafGroundAI.roadEntry(from, speed)
+  for _, point in ipairs(veafGroundAI.roadExit(to, speed)) do
+    table.insert(points, point)
   end
   return points
 end
@@ -1658,6 +1850,7 @@ function ConvoyUnitHandler:engage(now)
   self.lastPush = now
   self.futilePushes = 0
   self.lastPushDistance = nil
+  self.failedAims = {}
   self:suspendItinerary()
 
   local armed, unarmed, ownStrength = {}, {}, 0
@@ -1683,7 +1876,7 @@ function ConvoyUnitHandler:engage(now)
     unanswerable = unanswerable and threat.strength == math.huge
   end
   if veafGroundAI.convoyObjectives[self.groupName] and #armed > 0 and unanswerable then
-    veaf.goRoute(self.groupName, self:onwardRoute(group))
+    self:order(self.groupName, self:onwardRoute(group))
     self.state = ConvoyUnitHandler.STATE_DRIVING
     -- said once per engagement: every hit runs `engage` again, and it was written 15 times in a minute on 2026-11-19
     -- (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 07)
@@ -1773,6 +1966,7 @@ function ConvoyUnitHandler:detachUnarmed(units, rally, destination)
     units = definitions,
     route = { points = veafGroundAI.fallBackRoute(center, rally, destination, veafGroundAI.FALL_BACK_SPEED) },
   })
+  veafGroundAI.noteBirth(name)
   self.unarmedGroupName = name
   veafGroundAI.convoysByGroupName[name] = self
   self:sayLater(ConvoyUnitHandler.TACTICAL_MESSAGE_DELAY + 3, "groundai.convoy_unarmed_falling_back")
@@ -1809,7 +2003,9 @@ end
 --- ticket 04).
 --- @param threats table the threats' records, nearest first
 --- @param quietly boolean|nil true when closing in again: the contact was already reported
-function ConvoyUnitHandler:fight(threats, quietly)
+--- @param pushedAt number|nil the time of the push, when this is one (`pressOn`): a route that moves nothing is then
+--- known `ORDER_CHECK_DELAY` later (`pushMovedNothing`)
+function ConvoyUnitHandler:fight(threats, quietly, pushedAt)
   local threat = threats[1]
   local group = self:getGroup()
   local controller = group:getController()
@@ -1821,20 +2017,25 @@ function ConvoyUnitHandler:fight(threats, quietly)
   if objective and dist2D(from, objective) > ConvoyUnitHandler.OBJECTIVE_PRESS_DISTANCE then
     objective = nil -- too far to drive there across country: it fights like any convoy
   end
+  local function onStill(aim)
+    return pushedAt and function()
+      self:pushMovedNothing(pushedAt, aim)
+    end
+  end
   if objective then
-    veaf.goRoute(self.groupName, {
+    self:order(self.groupName, {
       routePoint(from, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
       routePoint(objective, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
-    })
+    }, onStill(objective))
   elseif distance <= ConvoyUnitHandler.ASSAULT_STANDOFF then
     controller:pushTask({ id = "Hold", params = {} })
   else
     local share = (distance - ConvoyUnitHandler.ASSAULT_STANDOFF) / distance
     local stop = { x = from.x + (threat.point.x - from.x) * share, y = 0, z = from.z + (threat.point.z - from.z) * share }
-    veaf.goRoute(self.groupName, {
+    self:order(self.groupName, {
       routePoint(from, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
       routePoint(stop, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
-    })
+    }, onStill(stop))
   end
   if not quietly then
     local bearing, range = veaf.getBearingAndRangeFromTo(from, threat.point)
@@ -1861,7 +2062,7 @@ function ConvoyUnitHandler:fallBack(groupName, rally, destination)
   local controller = group:getController()
   controller:setOption(AI.Option.Ground.id.ALARM_STATE, AI.Option.Ground.val.ALARM_STATE.RED)
   controller:setOption(AI.Option.Ground.id.ROE, AI.Option.Ground.val.ROE.OPEN_FIRE)
-  veaf.goRoute(groupName, veafGroundAI.fallBackRoute(veaf.getAveragePosition(group), rally, destination, veafGroundAI.FALL_BACK_SPEED))
+  self:order(groupName, veafGroundAI.fallBackRoute(veaf.getAveragePosition(group), rally, destination, veafGroundAI.FALL_BACK_SPEED))
   if groupName == self.groupName then
     local threats = self:recentThreats()
     self:sayLater(
@@ -2040,7 +2241,7 @@ function ConvoyUnitHandler:pressOn(now)
     return true
   end
   veaf.loggers.get(veafGroundAI.Id):info("convoy %s: %d enemies still alive out of sight, closing in again", veaf.p(self:getName()), #alive)
-  self:fight(self:recentThreats(), true)
+  self:fight(self:recentThreats(), true, now)
   self.lastPush = now
   return true
 end
@@ -2059,6 +2260,7 @@ function ConvoyUnitHandler:pushMovesSomething(distance, seen)
     self.futilePushes = self.futilePushes + 1
   else
     self.futilePushes = 0
+    self.failedAims = {}
   end
   self.lastPushDistance = distance
   if self.futilePushes < ConvoyUnitHandler.FUTILE_PUSHES then
@@ -2070,6 +2272,7 @@ function ConvoyUnitHandler:pushMovesSomething(distance, seen)
   end
   self.futilePushes = 0
   self.lastPushDistance = nil
+  self.failedAims = {}
   self:resume()
   return false
 end
@@ -2087,6 +2290,101 @@ function veafGroundAI.isHalted(units)
   return true
 end
 
+--- Seconds between a group's creation and its first order: an order given in the frame a group is created is lost,
+--- 3 times out of 3, and taken 5 s later (measured 2026-11, dcs-cartographie).
+veafGroundAI.SPAWN_ORDER_DELAY = 5
+
+--- When each ground group the convoys know of was created, by group name (see `noteBirth`).
+veafGroundAI.bornAt = {}
+
+--- Remember that a group was just created, so that no order reaches it before `SPAWN_ORDER_DELAY`. A route passed
+--- inside the group's definition is not concerned: that case was not measured.
+--- @param groupName string
+function veafGroundAI.noteBirth(groupName)
+  veafGroundAI.bornAt[groupName] = timer.getTime()
+end
+
+--- Give one of the convoy's groups a route, and look `ORDER_CHECK_DELAY` later whether it moved.
+---
+--- A group created less than `SPAWN_ORDER_DELAY` ago gets it once that delay is over, unless another order came
+--- meanwhile. An order the group does not follow is said in one log line; `onStill`, when given, is called then.
+--- @param groupName string
+--- @param points table route points
+--- @param onStill function|nil called when the order moved nothing
+function ConvoyUnitHandler:order(groupName, points, onStill)
+  local id = (self.orderIds[groupName] or 0) + 1
+  self.orderIds[groupName] = id
+  local ready = (veafGroundAI.bornAt[groupName] or -math.huge) + veafGroundAI.SPAWN_ORDER_DELAY
+  if timer.getTime() < ready then
+    veaf.scheduleFunction(function()
+      if self.orderIds[groupName] == id then
+        veaf.safeCall(self.sendOrder, self, groupName, id, points, onStill)
+      end
+    end, nil, ready)
+    return
+  end
+  self:sendOrder(groupName, id, points, onStill)
+end
+
+--- The order itself, and its check scheduled.
+function ConvoyUnitHandler:sendOrder(groupName, id, points, onStill)
+  local group = veafGroundAI.livingGroup(groupName)
+  if not group then
+    return
+  end
+  veaf.goRoute(groupName, points)
+  local start = veaf.getAveragePosition(group)
+  veaf.scheduleFunction(function()
+    veaf.safeCall(self.checkOrder, self, groupName, id, start, onStill)
+  end, nil, timer.getTime() + ConvoyUnitHandler.ORDER_CHECK_DELAY)
+end
+
+--- `ORDER_CHECK_DELAY` after an order: did the group move? Its centre moved more than `ORDER_MOVED_MARGIN`, or one of
+--- its vehicles drives. A check that belongs to an older order than the group's last one, or to a convoy holding, says
+--- nothing.
+--- @param groupName string
+--- @param id number the order's
+--- @param start table the group's centre when it was given, a vec3
+--- @param onStill function|nil
+function ConvoyUnitHandler:checkOrder(groupName, id, start, onStill)
+  if self.orderIds[groupName] ~= id or self.status ~= GroundUnitHandler.STATUS_ACTIVE or self.state == ConvoyUnitHandler.STATE_HOLDING then
+    return
+  end
+  local group = veafGroundAI.livingGroup(groupName)
+  if not group then
+    return
+  end
+  if
+    dist2D(veaf.getAveragePosition(group), start) > ConvoyUnitHandler.ORDER_MOVED_MARGIN or not veafGroundAI.isHalted(group:getUnits())
+  then
+    return
+  end
+  veaf.loggers.get(veafGroundAI.Id):info(
+    "convoy %s: the order given to %s %d s ago moved nothing",
+    veaf.p(self:getName()),
+    veaf.p(groupName),
+    ConvoyUnitHandler.ORDER_CHECK_DELAY
+  )
+  if onStill then
+    onStill()
+  end
+end
+
+--- A push that moved nothing, known `ORDER_CHECK_DELAY` after it rather than at the next push two minutes later: its
+--- aim is not taken again, and the clock is wound back so the next push comes at the next beat. That push counts it
+--- among the pushes that move nothing (`pushMovesSomething`): the convoy stood still meanwhile. Nothing happens when
+--- another push came since, or when a shot was fired or taken: that is what the push was for.
+--- @param pushedAt number the push's time
+--- @param aim table the push's aim, a vec3
+function ConvoyUnitHandler:pushMovedNothing(pushedAt, aim)
+  if self.lastPush ~= pushedAt or (self.lastFireExchanged or -math.huge) >= pushedAt or self.state ~= ConvoyUnitHandler.STATE_FIGHTING then
+    return
+  end
+  table.insert(self.failedAims, aim)
+  self.lastPush = nil
+  veaf.loggers.get(veafGroundAI.Id):info("convoy %s: the push moved nothing, the next one takes another aim", veaf.p(self:getName()))
+end
+
 --- An enemy in sight, no shot either way for `STALEMATE_DELAY`, and the convoy halted: drive onto the
 --- nearest enemy.
 ---
@@ -2095,6 +2393,10 @@ end
 --- round). Moving is what made DCS's vehicles fire on 2026-10-08 (see `fight`), so the convoy closes in,
 --- with no standoff this time; the clock restarts, and another push follows if nobody fires still. The push is no
 --- contact (`lastPush`, not `lastFireExchanged`), and pushes that move nothing end in a drive on (`pushMovesSomething`).
+---
+--- Not onto the enemy's point: to a point short of it, along a path checked for water and slope (`closeInPath`,
+--- FIX-GROUNDAI-CLOSE-IN-REACHABLE), in one order of a few off-road points. With nothing reachable the convoy does not
+--- push, and the clock restarts all the same: the push that could not be given counts as one that moved nothing.
 --- @param now number
 --- @param seen table the living enemy units in sight
 function ConvoyUnitHandler:closeIn(now, seen)
@@ -2110,17 +2412,29 @@ function ConvoyUnitHandler:closeIn(now, seen)
   if not self:pushMovesSomething(targetDistance, seen) then
     return
   end
+  self.lastPush = now
+  local path = veafGroundAI.closeInPath(from, target, veafGroundAI.maxSlopeOf(group:getUnits()), self.failedAims)
+  if not path then
+    veaf.loggers
+      .get(veafGroundAI.Id)
+      :info("convoy %s: no reachable point toward an enemy %d m away, not closing in", veaf.p(self:getName()), math.floor(targetDistance))
+    return
+  end
+  local aim = path[#path]
   veaf.loggers.get(veafGroundAI.Id):info(
-    "convoy %s: no fire exchanged for %d s, closing in on an enemy %d m away",
+    "convoy %s: no fire exchanged for %d s, closing in on an enemy %d m away, to %d m from it",
     veaf.p(self:getName()),
     ConvoyUnitHandler.STALEMATE_DELAY,
-    math.floor(targetDistance)
+    math.floor(targetDistance),
+    math.floor(dist2D(aim, target))
   )
-  veaf.goRoute(self.groupName, {
-    routePoint(from, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
-    routePoint(target, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED),
-  })
-  self.lastPush = now
+  local route = { routePoint(from, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED) }
+  for _, point in ipairs(path) do
+    table.insert(route, routePoint(point, "Off Road", ConvoyUnitHandler.ASSAULT_SPEED))
+  end
+  self:order(self.groupName, route, function()
+    self:pushMovedNothing(now, aim)
+  end)
 end
 
 --- Nothing in sight and no shot for a while.
@@ -2229,13 +2543,9 @@ function ConvoyUnitHandler:retreat(destinationText)
   self:suspendItinerary()
   self:clearDanger()
   local speed = veafGroundAI.FALL_BACK_SPEED
-  local route = { routePoint(from, "On Road", speed), routePoint(destination, "On Road", speed) }
-  veaf.goRoute(self.groupName, route)
+  self:order(self.groupName, veafGroundAI.roadRoute(from, destination, speed))
   if self:getUnarmedGroup() then
-    veaf.goRoute(
-      self.unarmedGroupName,
-      { routePoint(veaf.getAveragePosition(self:getUnarmedGroup()), "On Road", speed), routePoint(destination, "On Road", speed) }
-    )
+    self:order(self.unarmedGroupName, veafGroundAI.roadRoute(veaf.getAveragePosition(self:getUnarmedGroup()), destination, speed))
   end
   self.state = ConvoyUnitHandler.STATE_RETREATING
   self:say("groundai.convoy_retreating")
@@ -2289,18 +2599,11 @@ function ConvoyUnitHandler:resume()
     unarmed:getController():pushTask({ id = "Hold", params = {} })
     local from = veaf.getAveragePosition(group)
     local meeting = veaf.getAveragePosition(unarmed)
-    local speed = veafGroundAI.FALL_BACK_SPEED
-    local route = { routePoint(from, "Off Road", speed) }
-    local roadX, roadZ = land.getClosestPointOnRoads("roads", from.x, from.z)
-    if roadX and roadZ then
-      table.insert(route, routePoint({ x = roadX, z = roadZ }, "On Road", speed))
-    end
-    table.insert(route, routePoint(meeting, "On Road", speed))
-    veaf.goRoute(self.groupName, route)
+    self:order(self.groupName, veafGroundAI.roadRoute(from, meeting, veafGroundAI.FALL_BACK_SPEED))
     self.rejoinDeadline = timer.getTime() + ConvoyUnitHandler.REJOIN_TIMEOUT
     self.state = ConvoyUnitHandler.STATE_RESUMING
   else
-    veaf.goRoute(self.groupName, self:onwardRoute(group))
+    self:order(self.groupName, self:onwardRoute(group))
     self.state = ConvoyUnitHandler.STATE_DRIVING
   end
   self:say("groundai.convoy_resuming")
@@ -2362,7 +2665,7 @@ function ConvoyUnitHandler:mergeIfClose()
     -- nobody left to wait for: whoever is left drives on
     local left = group or unarmed
     if left then
-      veaf.goRoute(left:getName(), self:onwardRoute(left))
+      self:order(left:getName(), self:onwardRoute(left))
     end
     self.state = ConvoyUnitHandler.STATE_DRIVING
     return
@@ -2371,8 +2674,8 @@ function ConvoyUnitHandler:mergeIfClose()
     if timer.getTime() >= (self.rejoinDeadline or math.huge) then
       -- a truck stuck short of the column: both drive on, each on its own
       veaf.loggers.get(veafGroundAI.Id):warn("convoy %s: the unarmed vehicles did not rejoin, driving on apart", veaf.p(self:getName()))
-      veaf.goRoute(self.groupName, self:onwardRoute(group))
-      veaf.goRoute(self.unarmedGroupName, self:onwardRoute(unarmed))
+      self:order(self.groupName, self:onwardRoute(group))
+      self:order(self.unarmedGroupName, self:onwardRoute(unarmed))
       self.state = ConvoyUnitHandler.STATE_DRIVING
     end
     return
@@ -2397,6 +2700,7 @@ function ConvoyUnitHandler:mergeIfClose()
     units = definitions,
     route = { points = route },
   })
+  veafGroundAI.noteBirth(self.groupName)
   self.state = ConvoyUnitHandler.STATE_DRIVING
   veaf.loggers.get(veafGroundAI.Id):info("convoy %s merged back", veaf.p(self:getName()))
 end

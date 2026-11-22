@@ -93,7 +93,7 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   supply = { "red" }, -- the sides whose AI helicopters capture and resupply zones
   supply_seconds = 600,
   max_helicopters = 2,
-  helicopter_timeout = 1200,
+  helicopter_timeout = 1200, -- the least time a supply helicopter has to land; a long route gives more (helicopterTimeout)
   -- a neutral zone held by landed helicopters only, no ground unit, is taken after this long rather than
   -- `capture_seconds`: on 2026-11-16 red's Mi-8 took both neutral zones in two minutes each, before the blue
   -- convoys sent 25 to 40 minutes earlier arrived

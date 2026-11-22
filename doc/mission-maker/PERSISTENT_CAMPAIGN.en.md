@@ -318,7 +318,7 @@ Its garrison comes group by group, about `wake_units_per_beat` (10) units per be
 - **The other side is told at once** of a convoy leaving, and sees its axis on the map.
 - **Resupply**: a delivery to a damaged friendly zone brings back the dead units of its first damaged group, **paid from the side's [resource](#resources) stock** at the price their spawn would cost, cheapest first; what the stock cannot pay stays dead (a side whose resources are not counted gets the whole group back).
   Deliveries are: a "Zone supplies" crate set down in the zone, CTLD 2 troops deployed in the zone (the spy team and the JTAC teams excepted), a supply helicopter landed in it.
-- **AI helicopters**: every `supply_seconds` (600 s), a side listed in `supply` (red by default) sends a helicopter (`helicopter`, a Mi-8MT for red, a UH-1H for blue) to a neutral zone it borders, which it takes by landing there, or else to its most damaged zone, which it resupplies; `max_helicopters` (2) in the air at most, and one that has not landed after `helicopter_timeout` (1,200 s) is removed.
+- **AI helicopters**: every `supply_seconds` (600 s), a side listed in `supply` (red by default) sends a helicopter (`helicopter`, a Mi-8MT for red, a UH-1H for blue) to a neutral zone it borders, which it takes by landing there, or else to its most damaged zone, which it resupplies; `max_helicopters` (2) in the air at most, and one that has not landed in time is removed: its route's flight at 40 m/s, times 1.5, plus 5 minutes for the start-up and the landing, and at least `helicopter_timeout` (1,200 s); `dcs.log` says it when it leaves (`… leaves [Bassel Al-Assad] to resupply [Jisr al-Shughur], 57 km, timeout 41 min`). On 2026-11-22 the fixed 20 minutes removed on its way every Mi-8 sent 57 km away, and the next one left at once.
   The other side is told when it leaves, to intercept it.
   One that lands again away from its zone has failed at once, and `dcs.log` says where it landed.
   In an airfield zone it lands on the field; in any other zone (a town, a point), on the clear spot nearest the centre, within 60 % of its radius: sent to Afrin's centre, four Mi-8 turned back at once.
@@ -794,7 +794,7 @@ A `KO` line is enough to know where to look.
 | `supply` | `[red]` | the sides whose AI helicopters capture and resupply |
 | `supply_seconds` | 600 | interval between two helicopters of a side |
 | `max_helicopters` | 2 | a side's supply helicopters in the air |
-| `helicopter_timeout` | 1200 | a helicopter not landed after this long is removed |
+| `helicopter_timeout` | 1200 | the least time a helicopter has to land before it is removed; a long route gives it more (1.5 times its flight, plus 5 minutes) |
 | `helicopter_capture_seconds` | 600 | a neutral zone held by landed helicopters alone is taken after this long |
 | `helicopter_garrison` | 6 | the soldiers a capture by landed helicopters alone leaves; no vehicle |
 | `convoy_timeout` | 2700 | the least time an assault convoy has before it is taken off the map, its place freed; else half as long again as its road needs |

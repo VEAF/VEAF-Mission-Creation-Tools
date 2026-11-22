@@ -325,11 +325,37 @@ function TestCampaignHelicopters:test_landed_in_a_damaged_friendly_zone_it_reinf
   luaunit.assertEquals(record.outcome, "delivered")
 end
 
-function TestCampaignHelicopters:test_still_flying_after_the_timeout_it_has_failed()
+-- FIX-CAMPAIGN-FIFTH-SERVER-FLIGHT 04: on 2026-11-22, Bassel Al-Assad -> Jisr al-Shughur, 57 km at 40 m/s, some 24 minutes
+-- of flight: the 20-minute timeout took every supply helicopter away on its way, and sent the next on top of it
+function TestCampaignHelicopters:test_a_helicopter_s_timeout_comes_from_its_distance_floored_at_the_setting()
+  start()
+  -- 57 km at 40 m/s, times 1.5, plus 300 s for the start-up and the landing
+  luaunit.assertAlmostEquals(veafCampaignOps.helicopterTimeout(57000), 57000 / 40 * 1.5 + 300, 0.001)
+  luaunit.assertEquals(veafCampaignOps.helicopterTimeout(10000), 1200, "a short hop keeps helicopter_timeout")
+end
+
+function TestCampaignHelicopters:test_still_flying_on_a_long_route_it_is_followed_until_its_own_timeout()
+  start()
+  local record = veafCampaignOps.sendHelicopter("red", veafCampaign.zones["Poti"], "capture")
+  -- Senaki -> Poti, about 50 km
+  luaunit.assertAlmostEquals(record.timeout, 50000 / 40 * 1.5 + 300, 40)
+  flying(record.name, { x = 70000 }, true)
+  record.startedAt = 0
+  veafCampaignOps.followHelicopter(record, 1300)
+  luaunit.assertNil(record.done, "past helicopter_timeout, not past its own")
+  veafCampaignOps.followHelicopter(record, record.timeout - 1)
+  luaunit.assertNil(record.done)
+  veafCampaignOps.followHelicopter(record, record.timeout)
+  luaunit.assertEquals(record.outcome, "failed")
+  -- its departure says the distance and the timeout, so a failure reads against them
+  luaunit.assertEquals(#dcs_mocks.findLog("leaves %[Senaki%] to capture %[Poti%], %d+ km, timeout %d+ min"), 1)
+end
+
+function TestCampaignHelicopters:test_a_record_with_no_timeout_of_its_own_uses_the_setting()
   start({ helicopter_timeout = 600, air = {} })
   local record = veafCampaignOps.sendHelicopter("red", veafCampaign.zones["Poti"], "capture")
   flying(record.name, { x = 70000 }, true)
-  record.startedAt = 0
+  record.startedAt, record.timeout = 0, nil
   veafCampaignOps.followHelicopter(record, 599)
   luaunit.assertNil(record.done)
   veafCampaignOps.followHelicopter(record, 600)

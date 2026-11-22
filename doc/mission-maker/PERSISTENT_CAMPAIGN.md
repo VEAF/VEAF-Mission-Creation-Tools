@@ -318,7 +318,7 @@ Sa garnison arrive groupe par groupe, environ `wake_units_per_beat` (10) unités
 - **L'autre camp est prévenu aussitôt** du départ d'un convoi, et voit son axe sur la carte.
 - **Ravitaillement** : une livraison dans une zone amie abîmée ramène les unités mortes de son premier groupe touché, **payées sur le stock de [ressources](#resources) du camp** au prix que coûterait leur spawn, les moins chères d'abord ; ce que le stock ne peut pas payer reste mort (un camp dont les ressources ne sont pas comptées récupère tout le groupe).
   Livrent : une caisse « Zone supplies » posée dans la zone, des troupes CTLD 2 déposées dans la zone (sauf l'équipe espion et les équipes JTAC), un hélicoptère de ravitaillement posé.
-- **Hélicoptères IA** : toutes les `supply_seconds` (600 s), un camp listé dans `supply` (le rouge par défaut) envoie un hélicoptère (`helicopter`, Mi-8MT rouge, UH-1H bleu) vers une zone neutre qui le borde, qu'il prend en s'y posant, ou à défaut vers sa zone la plus abîmée, qu'il ravitaille ; `max_helicopters` (2) en vol au plus, et un hélicoptère qui ne s'est pas posé au bout de `helicopter_timeout` (1 200 s) est retiré.
+- **Hélicoptères IA** : toutes les `supply_seconds` (600 s), un camp listé dans `supply` (le rouge par défaut) envoie un hélicoptère (`helicopter`, Mi-8MT rouge, UH-1H bleu) vers une zone neutre qui le borde, qu'il prend en s'y posant, ou à défaut vers sa zone la plus abîmée, qu'il ravitaille ; `max_helicopters` (2) en vol au plus, et un hélicoptère qui ne s'est pas posé à temps est retiré : le temps de sa route à 40 m/s, une fois et demie, plus 5 minutes pour la mise en route et le poser, et au moins `helicopter_timeout` (1 200 s) ; `dcs.log` le dit à son départ (`… leaves [Bassel Al-Assad] to resupply [Jisr al-Shughur], 57 km, timeout 41 min`). Le 22/11/2026, les 20 minutes fixes retiraient en route chaque Mi-8 envoyé à 57 km, et le suivant partait aussitôt.
   L'autre camp est prévenu à son départ, pour l'intercepter.
   Un hélicoptère qui se repose loin de sa zone a échoué aussitôt, et `dcs.log` dit où il s'est posé.
   Dans une zone d'aérodrome, il se pose sur le terrain ; dans une autre zone (une ville, un point), sur l'endroit dégagé le plus proche du centre, dans les 60 % de son rayon : envoyés au centre d'Afrin, quatre Mi-8 ont fait demi-tour aussitôt.
@@ -794,7 +794,7 @@ Une ligne `KO` suffit à dire où regarder.
 | `supply` | `[red]` | les camps dont les hélicoptères IA capturent et ravitaillent |
 | `supply_seconds` | 600 | intervalle entre deux hélicoptères d'un camp |
 | `max_helicopters` | 2 | hélicoptères de ravitaillement d'un camp en vol |
-| `helicopter_timeout` | 1200 | un hélicoptère pas posé au bout de ce temps est retiré |
+| `helicopter_timeout` | 1200 | le moins de temps qu'a un hélicoptère pour se poser avant d'être retiré ; une route longue lui en donne plus (une fois et demie son vol, plus 5 minutes) |
 | `helicopter_capture_seconds` | 600 | une zone neutre tenue par des hélicoptères posés, seuls, est prise au bout de ce temps |
 | `helicopter_garrison` | 6 | les fantassins que laisse une capture par des hélicoptères posés, seuls ; aucun véhicule |
 | `convoy_timeout` | 2700 | le moins de temps qu'a un convoi d'assaut avant d'être retiré de la carte, sa place libérée ; sinon une fois et demie le temps que demande sa route |

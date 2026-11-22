@@ -1507,7 +1507,7 @@
   "campaign.dossier.guide.intel_title": "Intelligence",
   "campaign.dossier.guide.intel": "An enemy garrison stays \"strength unknown\" until reconnoitred: a low overflight, a JTAC drone, intel bought, a spy team.",
   "campaign.dossier.guide.menu_title": "The Campaign menu",
-  "campaign.dossier.guide.menu": "F10 → Other → VEAF → Campaign: situation, credits, tasks, intelligence, shop, supply network, warehouse, assaults.",
+  "campaign.dossier.guide.menu": "F10 → Other → VEAF → Campaign: situation, credits, my earnings (what you earned this session, what your aircraft holds until landing, your total and your rank), tasks, intelligence, shop, supply network, warehouse, assaults.",
   "campaign.dossier.guide.enemy_title": "What the enemy does",
   "campaign.dossier.guide.enemy": "It counter-attacks, takes and resupplies its zones by helicopter, sends CAP, strikes and bomber raids, and pays for everything with what its factories make. A fighter on a kill streak may see two fighters scrambled at him (Hunter).",
   "campaign.dossier.legend.airfield": "■ airfield",

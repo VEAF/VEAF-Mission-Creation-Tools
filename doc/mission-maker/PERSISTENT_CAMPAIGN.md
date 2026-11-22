@@ -20,7 +20,7 @@
 - **L'ennemi paie ce qu'il envoie** avec les [ressources](#resources) que font ses usines : détruire ses [usines](#zone-kinds) ou couper son [réseau d'approvisionnement](#network) finit par clouer sa CAP au sol.
 - **La carte est teintée** par camp, chaque zone tenant le [territoire](#territory) le plus proche d'elle, et le front se lit entre les deux couleurs.
 - **Chaque annonce dit qui parle** : « Commandement bleu : » (ou rouge) pour ce que fait ou subit un camp, « Renseignement : » pour ce qu'on apprend de l'ennemi — un convoi ou un hélicoptère qui part, un raid qui arrive.
-- **Le menu F10 → Autres → VEAF → Campagne** donne la situation, les crédits, les tâches, le renseignement et la boutique ; les commandes « (admin) » viennent en dernier.
+- **Le menu F10 → Autres → VEAF → Campagne** donne la situation, les crédits, [mes gains](#my-earnings), les tâches, le renseignement et la boutique ; les commandes « (admin) » viennent en dernier.
 - **La partie se termine** quand un camp ne tient plus aucune zone : victoire si c'est l'ennemi, défaite si c'est nous.
   C'est annoncé à tous, et la campagne repart de zéro au prochain chargement de la mission.
 
@@ -365,6 +365,20 @@ Une victoire d'un joueur — unité, SAM, aéronef ou bâtiment — paie en deux
 Les deux parts vont au compte de la coalition.
 Une unité au sol détruite compte même quand DCS ne la trouve plus par son nom au moment du kill : son camp est demandé à l'objet DCS, sinon aux garnisons, convois d'assaut et appareils de la campagne.
 Les autres gains, qu'aucun pilote seul ne porte, sont payés en entier.
+
+### Mes gains {#my-earnings}
+
+F10 → Autres → VEAF → Campagne → **Mes gains** → Afficher : chaque pilote lit ses propres chiffres, à lui seul.
+Dans un groupe de plusieurs slots joueurs, l'entrée a un sous-menu par pilote, à son indicatif.
+
+- **Cette session** : ce qu'il a gagné, par raison (victoires, bonus encaissé à l'atterrissage, sauvetages, livraisons d'armement).
+  La session est celle du bilan `CREDITS SUMMARY` du journal : elle repart de zéro quand plus personne n'est en slot, jamais sous un pilote en vol.
+- **À bord** : la part de ses victoires que son appareil garde jusqu'à l'atterrissage sur un terrain, une FARP ou un porte-avions ami.
+- **Campagne** : son total depuis le début de la campagne, et son rang parmi les pilotes.
+- **Tableau de chasse** : ses victoires par catégorie (avions, hélicoptères, défense sol-air, véhicules, infanterie, bâtiments), ses livraisons d'armement et ses morts, seulement ce qui n'est pas à zéro.
+- **L'équipe** : ce que les prises, les tâches et les ravitaillements du réseau ont rapporté à tout le camp pendant la session.
+
+Un pilote qui n'a encore rien gagné lit « rien encore cette session ».
 
 F10 → Autres → VEAF → Campagne → **Boutique** : chaque article donne la liste des zones auxquelles il s'applique.
 Un achat refusé (plus de cible, rien à portée) ne coûte rien.

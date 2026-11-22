@@ -1,6 +1,6 @@
 # FIX-CAMPAIGN-FIFTH-SERVER-FLIGHT — what the 22/11 afternoon on the Campagne server showed
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — the in-game checks, and ticket 02's measure in DCS
 
 The persistent campaign "Bouclier de l'Oronte" (Northern Syria, `foothold2_server`), flown on 2026-11-22 in the afternoon, after the 22/11 redeploy. David's four remarks, each read in the server's `dcs.log` and the code (2026-11-22).
 
@@ -15,9 +15,18 @@ The persistent campaign "Bouclier de l'Oronte" (Northern Syria, `foothold2_serve
 
 David, 2026-11-22: one lot, four tickets, the recommendations below. The integration branch is `feature/dynamic-campaign`: one branch and one pull request into it.
 
-| # | Ticket |
+| # | Ticket | Status |
+|---|---|---|
+| 01 | [Red strikes engage only their targets](tickets/01-strikes-engage-only-their-targets.md) | 🧑 |
+| 02 | [A garrison's SAM in a group of its own](tickets/02-garrison-sam-in-its-own-group.md) | 🧑 |
+| 03 | [The AWACS holds well behind the front](tickets/03-awacs-holds-behind-the-front.md) | 🧑 |
+| 04 | [A supply helicopter's timeout from its distance](tickets/04-helicopter-timeout-from-distance.md) | 🧑 |
+
+## State (2026-11-22)
+
+| # | Left to do |
 |---|---|
-| 01 | [Red strikes engage only their targets](tickets/01-strikes-engage-only-their-targets.md) |
-| 02 | [A garrison's SAM in a group of its own](tickets/02-garrison-sam-in-its-own-group.md) |
-| 03 | [The AWACS holds well behind the front](tickets/03-awacs-holds-behind-the-front.md) |
-| 04 | [A supply helicopter's timeout from its distance](tickets/04-helicopter-timeout-from-distance.md) |
+| 01 | in-game check: ROE OPEN_FIRE (2) on a strike's first point and a SEAD's push point |
+| 02 | DCS measure: not measured, DCS was not running; procedure and script in the ticket. The red medium-range batteries are groups of their own already: only the blue level-5 Hawk sits in the main group |
+| 03 | in-game check: `awacs_standoff` (100 km) for an AWACS, tankers unchanged; each move logged from the bullseye |
+| 04 | in-game check: a helicopter's own timeout: distance / 40 m/s × 1.5 + 300 s, floored at `helicopter_timeout` |

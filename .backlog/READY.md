@@ -4,10 +4,6 @@
 
 Lots written up and ready to take.
 
-### [FIX-CAMPAIGN-FIFTH-SERVER-FLIGHT](FIX-CAMPAIGN-FIFTH-SERVER-FLIGHT/PRD.md) · ⬜
-
-What the 22/11 afternoon on the Campagne server showed: red CAS Su-25 shooting down the AWACS (weapon free, R-60M), Hatay's Hawk never firing (a SAM inside the garrison's single mixed group, to measure first), the AWACS holding too near the front, and supply helicopters destroyed by a fixed 20 min timeout shorter than their flight. Four tickets, one PR into `feature/dynamic-campaign` (2026-11-22).
-
 ### [FEAT-SPAWN-OWNERSHIP-DESPAWN](FEAT-SPAWN-OWNERSHIP-DESPAWN/PRD.md) · ⬜
 
 Each pilot can remove from the F10 menu what his markers spawned (`-sa6`, `-armor`, `-cas`, `-convoy`, `-farp`…), all at once or one by one: the runtime records every marker-spawned group with its author, combat zones left out since they clean their own. `-destroy` stays a trusted member's command. Three tickets, eight questions with a reco each; asked by David while correcting the Open Training conduct sheet (2026-11-10).

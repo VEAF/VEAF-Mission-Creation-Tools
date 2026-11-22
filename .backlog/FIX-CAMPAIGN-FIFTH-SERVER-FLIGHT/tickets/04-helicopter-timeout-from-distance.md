@@ -1,6 +1,6 @@
 # 04 — A supply helicopter's timeout from its distance
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — the in-game check
 Type: fix
 
 ## To do
@@ -19,3 +19,12 @@ A supply helicopter is removed only once it has had the time to fly its route, a
 ## In-game check
 
 On the Campagne server: a red supply helicopter from Bassel Al-Assad lands at Jisr al-Shughur (`supply helicopter [...] landed N m from [Jisr al-Shughur]'s centre`), and no `failed` line comes before it.
+
+## Done (2026-11-22)
+
+- `veafCampaignOps.helicopterTimeout(distance)`: `distance / HELICOPTER_SPEED × 1.5 + 300`, floored at `helicopter_timeout`; 57 km gives 2,437 s (41 min), 10 km the floor.
+- `sendHelicopter` records `record.timeout` from its start to its landing spot, keeps the target awake that long, and logs `… leaves [Senaki] to capture [Poti], 50 km, timeout 37 min`.
+- `followHelicopter` fails a helicopter still flying after `record.timeout`, or `helicopter_timeout` for a record with none. Helicopter records are not saved (a restart loses the helicopters in flight), so the fallback covers only a record built before the change.
+- `veafCampaign.lua` line 2987 (`launchOffensives`) is the **convoy**'s keep-awake, not a helicopter's: it keeps using `helicopter_timeout`, as before. Left as it is, out of this ticket's fix.
+- Tests: the timeout of 57 km and of 10 km; a helicopter on a 50 km route still followed at 1,300 s and failed at its own timeout; a record with no timeout uses the setting; the departure log line.
+- Docs: the campaign page (FR/EN), `helicopter_timeout` described as the floor.

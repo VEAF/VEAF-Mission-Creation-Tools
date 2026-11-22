@@ -906,8 +906,87 @@ function VeafCampaignZone:drawGarrison(reserve, soldiers)
     return nil
   end
   self.entry.garrison = garrison
+  self:separateSam()
   veaf.loggers.get(veafCampaign.Id):info("zone [%s]: garrison drawn, %d unit(s)", self.name, self:countUnits())
   return garrison
+end
+
+--- The suffix of the group a garrison's SAM of separate pieces stands in (FEAT-CAMPAIGN-SKYNET 02).
+veafCampaign.SAM_GROUP_SUFFIX = " SAM"
+
+--- The DCS attributes of a unit type, or an empty table.
+local function attributesOf(typeName)
+  local unit = dcsUnits and dcsUnits.DcsUnitsDatabase and dcsUnits.DcsUnitsDatabase[typeName]
+  return unit and unit.attribute or {}
+end
+
+--- Whether a unit type is a missile launcher that cannot track alone: it fires on a radar of another vehicle (a Hawk
+--- launcher, a Kub's, a NASAMS's).
+--- @param typeName string
+--- @return boolean
+function veafCampaign.needsSeparateRadar(typeName)
+  local attributes = attributesOf(typeName)
+  return attributes["SAM LL"] == true and not attributes["SAM TR"]
+end
+
+--- Whether a unit type is one piece of a SAM made of separate vehicles: a launcher that needs another vehicle's radar,
+--- a radar with no weapon of its own, or a command post. Read from DCS's attributes, which are loaded with or without
+--- Skynet: a Gepard, an Avenger, a Roland ADS, a Tor carry their own radar or none, and are no piece.
+--- @param typeName string
+--- @return boolean
+function veafCampaign.isSamPiece(typeName)
+  local attributes = attributesOf(typeName)
+  if attributes["SAM CC"] or veafCampaign.needsSeparateRadar(typeName) then
+    return true
+  end
+  return (attributes["SAM SR"] or attributes["SAM TR"]) and not (attributes["AA_missile"] or attributes["AA_flak"]) or false
+end
+
+--- Move the SAM of separate pieces out of the garrison's main group into a group of its own, `<zone> SAM`: under Skynet
+--- a group goes dark whole, and the short-range weapons beside the SAM must stay with DCS's AI (FEAT-CAMPAIGN-SKYNET 02).
+--- A main group holding no launcher that needs another vehicle's radar is left as it is: a lone acquisition radar, the
+--- Dog Ear of the red groups, is no SAM. Run on a fresh draw and on a loaded save, before anything spawns: the units
+--- keep their record (type, position, heading, alive), and the split is written back with the next save.
+--- @return boolean true when units were moved
+function VeafCampaignZone:separateSam()
+  local garrison = self.entry.garrison
+  local mainName = self.name .. " garrison"
+  local main = nil
+  for _, group in ipairs(garrison or {}) do
+    if group.name == mainName then
+      main = group
+      break
+    end
+  end
+  local hasSam = false
+  for _, unit in ipairs(main and main.units or {}) do
+    if veafCampaign.needsSeparateRadar(unit.type) then
+      hasSam = true
+      break
+    end
+  end
+  if not hasSam then
+    return false
+  end
+  local samName = self.name .. veafCampaign.SAM_GROUP_SUFFIX
+  local sam = nil
+  for _, group in ipairs(garrison) do
+    if group.name == samName then
+      sam = group
+      break
+    end
+  end
+  if not sam then
+    sam = { name = samName, units = {} }
+    table.insert(garrison, sam)
+  end
+  local kept = {}
+  for _, unit in ipairs(main.units) do
+    table.insert(veafCampaign.isSamPiece(unit.type) and sam.units or kept, unit)
+  end
+  main.units = kept
+  veaf.loggers.get(veafCampaign.Id):info("zone [%s]: its SAM moved to a group of its own, [%s], %d unit(s)", self.name, samName, #sam.units)
+  return true
 end
 
 --- The groups of the zone's garrison bought in the shop (FEAT-CAMPAIGN-SHOP-UPGRADES 01), in the order they were.
@@ -1097,14 +1176,14 @@ function VeafCampaignZone:wake(why)
 end
 
 --- Put the zone's garrison in the world group by group, about `wake_units_per_beat` units per beat, its long- and
---- medium-range batteries last (ticket 06): Hama's 42 units in one go froze the server. A group is never split: a launcher in
+--- medium-range batteries and its SAM group last (ticket 06): Hama's 42 units in one go froze the server. A group is never split: a launcher in
 --- another DCS group than its radar never fires.
 --- @return number the units submitted now
 function VeafCampaignZone:startSpawning()
   self:removeReinforcementGroups()
   local queue, last = {}, {}
   for groupIndex, group in ipairs(self.entry.garrison or {}) do
-    table.insert(group.name:find("%-range SAM$") and last or queue, groupIndex)
+    table.insert(group.name:find("SAM$") and last or queue, groupIndex)
   end
   for _, groupIndex in ipairs(last) do
     table.insert(queue, groupIndex)
@@ -4532,6 +4611,9 @@ function veafCampaign.initialize()
         -- was taken (in flight or between missions) and its garrison comes out of the reserve
         local reserve = (data.mission or 1) > 1 and veafCampaign.reserveOf(zone:getOwner()) or nil
         zone:drawGarrison(reserve)
+      else
+        -- a garrison recorded before FEAT-CAMPAIGN-SKYNET 02 holds its SAM in its main group: split here, no redraw
+        zone:separateSam()
       end
       if veafCampaign.dormancyEnabled() then
         zone.awake = false -- asleep until a player comes near (ticket 02)

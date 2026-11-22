@@ -343,6 +343,140 @@ function TestVeafCampaignDraw:test_an_explicit_garrison_list_replaces_the_draw()
 end
 
 -- ---------------------------------------------------------------------------
+-- TestVeafCampaignSamGroup — a SAM of separate pieces in a group of its own (FEAT-CAMPAIGN-SKYNET 02)
+-- ---------------------------------------------------------------------------
+TestVeafCampaignSamGroup = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+--- A blue level-5 garrison's units, as `generateAirDefenseGroup-BLUE-5` and an armour platoon give them.
+local function hawkGarrison()
+  return {
+    placed("M-1 Abrams", 1, 2),
+    placed("Hawk sr", 3, 4),
+    placed("Gepard", 5, 6),
+    placed("Hawk tr", 7, 8),
+    placed("Hawk ln", 9, 10),
+    placed("M1097 Avenger", 11, 12),
+    placed("Hawk pcp", 13, 14),
+    placed("Hawk ln", 15, 16),
+  }
+end
+
+local function typesOf(group)
+  local types = {}
+  for _, unit in ipairs(group.units) do
+    table.insert(types, unit.type)
+  end
+  return types
+end
+
+--- A recorded garrison group, from a list of types.
+local function recordedGroup(name, types)
+  local group = { name = name, units = {} }
+  for index, typeName in ipairs(types) do
+    table.insert(group.units, { type = typeName, x = index, z = index, heading = 0, alive = true })
+  end
+  return group
+end
+
+function TestVeafCampaignSamGroup:test_the_pieces_of_a_sam_are_told_from_its_self_contained_vehicles()
+  for _, typeName in ipairs({ "Hawk ln", "Hawk sr", "Hawk tr", "Hawk pcp", "Hawk cwar", "Kub 2P25 ln", "NASAMS_LN_C" }) do
+    luaunit.assertTrue(veafCampaign.isSamPiece(typeName), typeName)
+  end
+  for _, typeName in ipairs({ "Gepard", "M1097 Avenger", "Roland ADS", "Tor 9A331", "2S6 Tunguska", "Strela-10M3", "Vulcan", "M-1 Abrams" }) do
+    luaunit.assertFalse(veafCampaign.isSamPiece(typeName), typeName)
+  end
+end
+
+function TestVeafCampaignSamGroup:test_a_fresh_garrison_puts_its_hawk_in_a_group_of_its_own()
+  veafCampaign.composeGarrison = function()
+    return hawkGarrison()
+  end
+  veafCampaign.data = { zones = { zoneEntry("Hatay", "blue") } }
+  veafCampaign.initialize()
+  local garrison = veafCampaign.data.zones[1].garrison
+  luaunit.assertEquals(#garrison, 2)
+  luaunit.assertEquals(garrison[1].name, "Hatay garrison")
+  luaunit.assertEquals(typesOf(garrison[1]), { "M-1 Abrams", "Gepard", "M1097 Avenger" })
+  luaunit.assertEquals(garrison[2].name, "Hatay SAM")
+  luaunit.assertEquals(typesOf(garrison[2]), { "Hawk sr", "Hawk tr", "Hawk ln", "Hawk pcp", "Hawk ln" })
+  -- each spawns as its own DCS group
+  luaunit.assertEquals(#submitted()["Hatay SAM"], 5)
+  luaunit.assertEquals(#submitted()["Hatay garrison"], 3)
+end
+
+function TestVeafCampaignSamGroup:test_a_garrison_without_such_a_sam_keeps_one_group()
+  -- a lone acquisition radar (the Dog Ear of the red groups, the Roland's radar) is no SAM of its own
+  veafCampaign.composeGarrison = function()
+    return { placed("2S6 Tunguska", 1, 2), placed("Dog Ear radar", 3, 4), placed("Roland ADS", 5, 6), placed("Roland Radar", 7, 8) }
+  end
+  veafCampaign.data = { zones = { zoneEntry("Minakh", "red") } }
+  veafCampaign.initialize()
+  local garrison = veafCampaign.data.zones[1].garrison
+  luaunit.assertEquals(#garrison, 1)
+  luaunit.assertEquals(#garrison[1].units, 4)
+end
+
+function TestVeafCampaignSamGroup:test_a_loaded_garrison_is_split_with_its_dead_and_its_positions()
+  local main = recordedGroup("Hatay garrison", { "M-1 Abrams", "Hawk sr", "Gepard", "Hawk ln", "Hawk ln" })
+  main.units[4].alive = false
+  main.units[2].heading = 2.5
+  local before = veafCampaign.garrisonPrice({ main })
+  veafCampaign.data = { zones = { zoneEntry("Hatay", "blue", { garrison = { main } }) } }
+  veafCampaign.initialize()
+  local garrison = veafCampaign.data.zones[1].garrison
+  luaunit.assertEquals(typesOf(garrison[1]), { "M-1 Abrams", "Gepard" })
+  luaunit.assertEquals(garrison[2].name, "Hatay SAM")
+  luaunit.assertEquals(garrison[2].units[1], { type = "Hawk sr", x = 2, z = 2, heading = 2.5, alive = true })
+  luaunit.assertEquals({ garrison[2].units[2].alive, garrison[2].units[3].alive }, { false, true })
+  luaunit.assertEquals(veafCampaign.garrisonPrice(garrison), before)
+  luaunit.assertEquals({ veafCampaign.zones["Hatay"]:countUnits() }, { 4, 5 })
+  -- the dead launcher is not spawned, and the living units are indexed under their new group
+  luaunit.assertEquals(#submitted()["Hatay SAM"], 2)
+  luaunit.assertEquals(veafCampaign.unitIndex["Hatay SAM #3"].group, 2)
+  luaunit.assertEquals(veafCampaign.unitIndex["Hatay garrison #2"].type, "Gepard")
+end
+
+function TestVeafCampaignSamGroup:test_a_loss_in_the_sam_group_is_recorded_against_it()
+  local main = recordedGroup("Hatay garrison", { "M-1 Abrams", "Hawk sr", "Hawk ln" })
+  veafCampaign.data = { zones = { zoneEntry("Hatay", "blue", { garrison = { main } }) } }
+  veafCampaign.initialize()
+  veafCampaign.onUnitDead(deadEvent("Hatay SAM #2"))
+  local garrison = veafCampaign.data.zones[1].garrison
+  luaunit.assertEquals({ garrison[2].units[1].alive, garrison[2].units[2].alive }, { true, false })
+  luaunit.assertEquals({ veafCampaign.zones["Hatay"]:countUnits() }, { 2, 3 })
+end
+
+function TestVeafCampaignSamGroup:test_a_garrison_already_split_is_left_alone()
+  local garrison = {
+    recordedGroup("Hatay garrison", { "M-1 Abrams", "Gepard" }),
+    recordedGroup("Hatay medium-range SAM", { "Hawk sr", "Hawk ln" }),
+    recordedGroup("Hatay SAM", { "Hawk sr", "Hawk ln" }),
+  }
+  veafCampaign.data = { zones = { zoneEntry("Hatay", "blue", { garrison = garrison }) } }
+  veafCampaign.initialize()
+  local after = veafCampaign.data.zones[1].garrison
+  luaunit.assertEquals(#after, 3)
+  luaunit.assertEquals({ #after[1].units, #after[2].units, #after[3].units }, { 2, 2, 2 })
+end
+
+function TestVeafCampaignSamGroup:test_the_sam_group_wakes_whole_after_the_main_group()
+  local main = recordedGroup("Hatay garrison", { "M-1 Abrams", "Hawk sr", "Hawk ln", "Hawk tr" })
+  local zone = VeafCampaignZone:new(zoneEntry("Hatay", "blue", { garrison = { main } }))
+  zone:separateSam()
+  -- a group bought later comes after it in the garrison, and still wakes before it
+  table.insert(zone.entry.garrison, recordedGroup("Hatay upgrade 1 gepard", { "Gepard" }))
+  zone:startSpawning()
+  local order = {}
+  for _, call in ipairs(dcs_mocks.groupsAdded) do
+    table.insert(order, call.group.name)
+  end
+  for _, groupIndex in ipairs(zone.wakeQueue or {}) do
+    table.insert(order, zone.entry.garrison[groupIndex].name)
+  end
+  luaunit.assertEquals(order[#order], "Hatay SAM")
+end
+
+-- ---------------------------------------------------------------------------
 -- TestVeafCampaignCompose — the garrison is not a CAS target group
 -- ---------------------------------------------------------------------------
 TestVeafCampaignCompose = {}

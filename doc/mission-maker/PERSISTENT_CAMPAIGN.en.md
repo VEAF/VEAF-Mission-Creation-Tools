@@ -719,6 +719,36 @@ dynamic:
 
 The reach is the one [the BARCAP](#shop) uses: measured on the missiles while a zone is awake, assumed for a zone never seen awake.
 
+## SAM sites under Skynet {#skynet}
+
+The SAM sites of both sides are commanded by [Skynet](scripts/veafSkynetIadsHelper.en.md), VEAF's air defence network: `campaign next` turns the `SKYNET` module on in `mission.yaml`, and the campaign declares each SAM group it spawns to its side's network.
+
+What a pilot sees:
+
+- a site that sees an anti-radiation missile coming often turns its radar off, then on again once the missile has gone;
+- a dark site keeps a small defence radius of its own (Skynet's "last line of defence"): it lights up when an aircraft enters that radius;
+- with no early-warning radar (EWR), and the campaign has none, a site keeps its own radar on, as before.
+
+What runs under Skynet:
+
+- a garrison's SAM made of several vehicles (a launcher that fires on another vehicle's radar, its radars, its command post): it is drawn into a group of its own, `<zone> SAM` (for instance `Hatay SAM`, the Hawk of a blue level-5 zone);
+- the long- and medium-range batteries (`<zone> long-range SAM`, `<zone> medium-range SAM`);
+- the [zone upgrades](#upgrades) that carry a missile launcher: Hawk, NASAMS, IRIS-T SLM, Patriot, Rapier.
+
+The short-range weapons (Gepard, Avenger, Stinger, Shilka, Tunguska…) stay in the garrison's main group, with DCS's AI: Skynet commands a whole group, and would turn the whole group dark with its SAM.
+A save from before this change is split the same way at load, with no new draw: each unit keeps its type, position, heading and state, and the split is written at the next save.
+The SAM group wakes whole, last, like the batteries.
+
+`dcs.log` records each declaration, with or without `debug`: `[CAMPAIGN SKYNET] [Hatay SAM] declared to blue iads`.
+A group spawned again under its name (a zone woken again, a SAM brought back by a delivery) replaces its old site in the network (`its old site replaced`).
+`skynet.enabled: false` leaves the SAM sites to DCS's AI, as before.
+
+```yaml
+dynamic:
+  skynet:
+    enabled: false
+```
+
 ## Territory {#territory}
 
 Each zone holds the part of the map nearer to it than to any other zone (its Voronoi cell), tinted on the F10 map in its side's colour, grey for a neutral zone; a dark line runs between two cells of different sides: the front, edged on each side with short slanted hatches in the side's colour, plain to see where the tint is faint.
@@ -820,6 +850,7 @@ A `KO` line is enough to know where to look.
 | `debug` | see [the debugging log](#debug-log) | `true` while testing |
 | `debug_status_seconds` | 300 | seconds between two status lines of the log |
 | `territory` | see [territory](#territory) | `enabled` (true), `margin` (70000), `hatch_spacing` (3000), `hatch_length` (2500) |
+| `skynet` | see [SAM sites under Skynet](#skynet) | `enabled` (true) |
 | `support` | see [AWACS and tankers](#support) and the [`veafSupport` module](scripts/veafSupport.en.md#settings) | `assets` (none), `margin` (30000), `retreat_margin` (50000), `seconds` (60), `advance_seconds` (1800), `min_advance` (30000), `leg` (30, nm), `awacs_standoff` (100000) |
 
 The caps are conservative by default; they will be tuned from what the servers hold.
@@ -845,6 +876,7 @@ These are written and tested outside DCS, not yet measured in game:
 - a ground unit destroyed by a player, counted and paid: `CREDITS <pilot> +<amount> (kill_held)` in `dcs.log` (whether the target's DCS object still answers `getCoalition` at the kill, or the campaign has to take it from its records, is still to measure);
 - the evening's summary written when the last player quits the server from his cockpit: `grep "SUMMARY" dcs.log`, at the time he left;
 - a zone upgrade bought (a Hawk battery on Hatay): placed in the zone, there after a restart, and the third one refused;
+- the SAM sites under Skynet: one `[CAMPAIGN SKYNET]` line per SAM group as its zone wakes, `Hatay SAM` in a group of its own, Hatay's Gepard and Avenger still firing, and a red site going dark under an anti-radiation missile, then lighting up again;
 - a SEAD flight bought on Aleppo: it takes off from Hatay or Gaziantep and engages Aleppo's air defence, and a second SEAD is refused while it flies.
 
 See also the [`veafCampaign` module reference](scripts/veafCampaign.en.md).

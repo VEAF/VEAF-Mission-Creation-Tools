@@ -1,6 +1,6 @@
 # FEAT-CAMPAIGN-SKYNET — the persistent campaign's SAM sites run under Skynet
 
-Status: ⬜ ready
+Status: 🧑 waiting-human
 
 David, 2026-11-22: "il faudrait activer Skynet sur la mission de campagne". Asked while looking for why Hatay's Hawk does not fire (FIX-CAMPAIGN-FIFTH-SERVER-FLIGHT 02); Skynet is not that cause — it is not running in the campaign —, this lot is a feature of its own.
 
@@ -29,3 +29,7 @@ One branch and one pull request into `feature/dynamic-campaign`.
 | 01 | [Skynet on in the campaign mission](tickets/01-skynet-on-in-the-campaign.md) |
 | 02 | [A garrison's SAM in a group of its own](tickets/02-garrison-sam-in-its-own-group.md) |
 | 03 | [The campaign declares its SAM groups to Skynet](tickets/03-campaign-declares-its-sams.md) |
+
+## Done
+
+Code, tests and docs of the three tickets, one PR into `feature/dynamic-campaign`. Waiting: the in-game checks of each ticket on the Campagne server, after the control session rebuilds and redeploys.

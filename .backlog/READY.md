@@ -4,10 +4,6 @@
 
 Lots written up and ready to take.
 
-### [FEAT-CAMPAIGN-SKYNET](FEAT-CAMPAIGN-SKYNET/PRD.md) · ⬜
-
-The persistent campaign's SAM sites run under Skynet, both sides: Skynet on in the campaign mission, each multi-unit SAM (the blue level-5 Hawk) in a group of its own with saves split at load, and the campaign declaring every SAM group it spawns with `veafSkynet.integrateMissionSpawn`. No EWR added. Three tickets, one PR into `feature/dynamic-campaign` (David, 2026-11-22).
-
 ### [FEAT-SPAWN-OWNERSHIP-DESPAWN](FEAT-SPAWN-OWNERSHIP-DESPAWN/PRD.md) · ⬜
 
 Each pilot can remove from the F10 menu what his markers spawned (`-sa6`, `-armor`, `-cas`, `-convoy`, `-farp`…), all at once or one by one: the runtime records every marker-spawned group with its author, combat zones left out since they clean their own. `-destroy` stays a trusted member's command. Three tickets, eight questions with a reco each; asked by David while correcting the Open Training conduct sheet (2026-11-10).

@@ -226,19 +226,26 @@ function veafReactiveZone.pickGroups(groups, number, bias)
   return groups
 end
 
---- Like `pickGroups`, but drawn without replacement: a group is never picked twice, and the draw stops
---- when the list is exhausted. A QRA tier saying "2 of [MiG-29, Su-27]" means both, not the same pair
---- twice — which, for an editor group respawned by name, is that pair once
---- (FEAT-OPPOSITION-SCALES-WITH-PLAYERS). The air waves keep `pickGroups`: their `number` may exceed
---- the list on purpose.
+--- Like `pickGroups`, but drawn by rounds without replacement: within a round a group is never picked
+--- twice, so a QRA tier saying "2 of [MiG-29, Su-27]" sends both, never the same pair twice
+--- (FEAT-OPPOSITION-SCALES-WITH-PLAYERS).
+--- When `number` exceeds the list, a new round starts over the whole list: "4 of [A, B]" sends A and B
+--- twice each. Every drawn group is cloned under a new name (`deployEditorGroup`), so a group drawn
+--- twice does take off twice — v5 sent 4 groups there, and a converted mission keeps that strength
+--- (#1308).
 function veafReactiveZone.pickDistinctGroups(groups, number, bias)
   if type(groups) == "table" and type(number) == "number" and type(bias) == "number" then
-    local remaining = {}
-    for _, group in ipairs(groups) do
-      table.insert(remaining, group)
-    end
     local result = {}
-    while #result < number and #remaining > 0 do
+    if #groups == 0 then
+      return result
+    end
+    local remaining = {}
+    while #result < number do
+      if #remaining == 0 then
+        for _, group in ipairs(groups) do
+          table.insert(remaining, group)
+        end
+      end
       local index = math.min(math.max(math.random(1, #remaining) + bias, 1), #remaining)
       table.insert(result, table.remove(remaining, index))
     end

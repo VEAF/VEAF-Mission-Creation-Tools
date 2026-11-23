@@ -43,6 +43,7 @@ from veaf_libs.config_override import find_unknown_segments, read_corpus
 from veaf_libs.conversion_profile import incompatible_modules_enabled
 from veaf_libs.dcs_countries import describe_country_id
 from veaf_libs.i18n import t
+from veaf_libs.lua_syntax import LuaSyntaxError, check_lua_syntax
 from veaf_libs.mission_table import CATEGORIES, indexed
 from veaf_libs.yaml_validator import check_yaml_syntax, collect_module_issues
 
@@ -915,7 +916,7 @@ def _check_radio_lua_functions(folder: Path, yaml_data: dict) -> list[Validation
 
 
 def _check_custom_scripts(folder: Path, yaml_data: dict) -> list[ValidationIssue]:
-    """Each ``custom_scripts.scripts[].path`` must exist on disk (else the build can't embed it)."""
+    """Each ``custom_scripts.scripts[].path`` must exist on disk and be valid Lua 5.1."""
     cs = yaml_data.get("custom_scripts")
     if not isinstance(cs, dict):
         return []
@@ -924,8 +925,19 @@ def _check_custom_scripts(folder: Path, yaml_data: dict) -> list[ValidationIssue
         path = item.get("path") if isinstance(item, dict) else item
         if not path:
             continue
-        if not (folder / str(path)).is_file():
+        script = folder / str(path)
+        if not script.is_file():
             issues.append(ValidationIssue(ERROR, t("validate.custom_script_missing", path=path)))
+            continue
+        # A file that does not parse ships and silently fails to load in DCS (#1303).
+        try:
+            check_lua_syntax(script.read_text(encoding="utf-8", errors="replace"))
+        except LuaSyntaxError as exc:
+            issues.append(
+                ValidationIssue(
+                    ERROR, t("validate.custom_script_not_valid_lua", path=path, line=exc.line, reason=exc.reason)
+                )
+            )
     return issues
 
 

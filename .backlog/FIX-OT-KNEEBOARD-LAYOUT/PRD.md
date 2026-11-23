@@ -1,6 +1,6 @@
 # FIX-OT-KNEEBOARD-LAYOUT — the kneeboard pages of an Open Training
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Origin: the eight Open Trainings regenerated with VMCT 6.37.0 and their recon photos (2026-11-17/18), on branches `feat/kneeboard-6.37.0` of the OT repositories; the pages `build_mission_briefing` writes with `kneeboard_only`.
 

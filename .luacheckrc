@@ -60,7 +60,7 @@ globals = {
   -- Community scripts
   "mist", "ctld", "CTLD", "csar", "CSAR", "SkynetIADS", "AIRBOSS",
   -- CTLD 2 managers: the engine's public surface, replacing the v1 ctld.* globals
-  "CTLDZoneManager", "CTLDBeaconManager", "CTLDJTACManager", "CTLDCrateManager",
+  "CTLDZoneManager", "CTLDBeaconManager", "CTLDJTACManager", "CTLDCrateManager", "CTLDTroopManager",
   -- CTLD 2 config singleton: veaf.isCtldReady() reads its isLoaded flag to tell a started
   -- engine from one still parked on ctld.dontInitialize
   "CTLDConfig",
@@ -69,13 +69,13 @@ globals = {
   "SkynetIADSAbstractRadarElement",
   -- VEAF module namespaces (camelCase — the module-level table, e.g. veafCombatMission = {})
   "veaf", "veafAircraftSpawn", "veafAirbase", "veafAirbaseRunway", "veafAirbases",
-  "veafAirWaves", "veafAssets", "veafAssist", "veafCacheManager", "veafCampaign", "veafCarrierOperations",
+  "veafAirWaves", "veafAssets", "veafAssist", "veafCacheManager", "veafCampaign", "veafCampaignEconomy", "veafCampaignLogistics", "veafCampaignOps", "veafCarrierOperations",
   "veafCasMission", "veafCombatLog", "veafCombatMission", "veafCombatZone", "veafCommands",
   "veafEventHandler", "veafGeo", "veafGrass", "veafGroundAI",
   "veafI18n", "veafInterpreter", "veafMarkers", "veafMath", "veafMissileGuardian",
   "veafMissionDb", "veafMove",
   "veafNamedPoints", "veafOpposition", "veafQraManager", "veafRadio", "veafReactiveZone", "veafRecorder", "veafRemote",
-  "veafSanctuary", "veafScheduler", "veafSecurity", "veafShortcuts",
+  "veafSanctuary", "veafScheduler", "veafSecurity", "veafShortcuts", "veafSupport",
   "veafSkynet", "veafSkynetMonitor",
   "veafDcsSpawner", "veafSpawn", "veafSpawnableAircraftsEditor",
   "veafSunTimes", "veafTime", "veafTransportMission", "veafUnits",

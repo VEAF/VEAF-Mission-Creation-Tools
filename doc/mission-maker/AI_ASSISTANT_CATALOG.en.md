@@ -763,10 +763,10 @@ Avoid putting the same picture on both sides: a player whose side the briefing d
 
 ### Make a mission's briefing {#mission-briefing}
 
-*Folder (built) · ⭐* — The AI writes the scenario's words (title, context, objectives, known threats, flow); the tool reads everything else in the built mission — date, weather, bullseye, flights, support, flight plan, the presets in the cockpits, each target's coordinates — and writes `docs/briefing.pptx` on the VEAF template, an overview map and one zoom per objective in `docs/maps/`, and puts those maps in the DCS briefing (blue and neutral).
+*Folder (built) · ⭐* — The AI writes the scenario's words (title, context, objectives, known threats, flow); the tool reads everything else in the built mission — date, weather, bullseye, flights, support, flight plan, the presets in the cockpits, each target's coordinates — and writes `docs/<mission>_briefing.pptx` on the VEAF template, an overview map and one zoom per objective in `docs/maps/`, and puts those maps in the DCS briefing (blue and neutral).
 No script: an AI with no command line on your PC (Claude Desktop in chat mode) does it too.
 Build the mission first, and run it again after every change: it replaces its own pictures.
-The PPTX imports into Google Slides. `docs/briefing.pdf` is written beside it — the same pages, maps and words with a layout of its own, no PowerPoint or other program needed on your PC. The tool also warns the AI when a waypoint number of its text does not match the route, and when its French text lacks its accents.
+The PPTX imports into Google Slides. `docs/<mission>_briefing.pdf` is written beside it — the same pages, maps and words with a layout of its own, no PowerPoint or other program needed on your PC. The tool also warns the AI when a waypoint number of its text does not match the route, and when its French text lacks its accents.
 OpenStreetMap background, or OpenTopoMap (relief) for a desert or a low-level mission; without the network, the maps are drawn on a plain background.
 The pictures go into every built `.miz`, each weather variant included, and the **kneeboard** of every aircraft gets the maps drawn for its page, a flight card (points, heading and distance of each leg, highest ground; not the frequencies, already in the cockpits' presets) and the targets.
 The overview takes the page's whole width, framed on the route, the objectives and the threats, turned when that holds it tighter (an arrow shows north), its key drawn inside; each zoom carries an inset placing it on the overview.
@@ -777,6 +777,8 @@ The AI can also give the package's **code words** (a page in the deck and on the
 **The kneeboard alone**, for an Open Training: its README is already the full briefing and its briefing pictures are its own, so the tool writes the kneeboard pages and nothing else — no PPTX, no PDF, no DCS briefing picture.
 It opens on **text sheets** the AI writes (the mission, the conduct on the server, the useful commands with their security tier), then the overview map, a zoom per combat zone with its recon photos, and the zone list giving the F10 menu path that starts each one and its coordinates.
 The text sheets also go at the head of an objective mission's kneeboard.
+**A bilingual mission**, built in French and in English (`build_variants` with a FR and an EN profile), has a briefing in each language: after every build, the AI runs the briefing once in the mission's language, then once in English (or French) with the words translated.
+Each run writes only into the `.miz` of its language; the second leaves the folder and the mission's PPTX as they are, and writes `docs/<mission>_briefing.en.pptx`, its PDF and its maps in `docs/maps/en/`.
 
 > 💬 *"Make the mission's briefing, topo background."*
 

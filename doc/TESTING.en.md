@@ -183,6 +183,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafMarkers.lua` | Marker event handling |
 | `test_veafEventHandler.lua` | Event dispatch, handler registration |
 | `test_veafSkynetIadsHelper.lua` | Skynet IADS integration helpers |
+| `test_veafSkynetSetupWarnings.lua` | Skynet set-up warnings: off screen by default, always in `dcs.log` |
 | `test_veafSkynetIadsHelper_spotter.lua` | Spotter network: detection, radio graph, propagation, hand-over to Skynet |
 | `test_veafSkynetIadsMonitor.lua` | Skynet monitor state |
 | `test_veafGroundAI.lua` | Ground AI behavior flags |
@@ -195,8 +196,14 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafAircraftSpawn.lua` | Aircraft spawned with a role: the `-cap` contract, reading a route, zone defense (`zone_defense`) |
 | `test_veafAwacsEscort.lua` | `-awacs` (race-track, Skynet, datalink) and `-escort` (the `Escort` task, the airplane nearest the marker, the F10 "Escort me" entry) |
 | `test_veafSanctuary.lua` | Sanctuary zone detection |
+| `test_veafSupport.lua` | AWACS and tankers held out of reach, without shuttling |
 | `test_veafMissileGuardian.lua` | Missile intercept logic |
 | `test_veafCampaign.lua` | Multi-mission campaign: garrisons drawn, recorded, and their losses |
+| `test_veafCampaignPersistent.lua` | Persistent campaign: save read back, victory, defeat, reset, sleeping zones, reinforcement, counter-attacks, CTLD 2 deliveries, self-check |
+| `test_veafCampaignLive.lua` | Persistent campaign: supply helicopters, enemy air, Hunter, credits, shop, tasks, intelligence, spy team, ranking figures |
+| `test_veafCampaignV15.lua` | Persistent campaign V1.5: factories and depots, resources and production, supply network, paid spawns, sappers, weapon stocks, bombers, territory |
+| `test_veafCampaignSitac.lua` | Persistent campaign: the state file's `sitac` block for the web map (positions, kinds, counts, connections, convoys, sides; players, ranking, ejected pilots, tasks, AWACS and tankers), ignored by the reload |
+| `test_campaignEconomySim.lua` | Persistent campaign: the economy simulator plays the Oronte campaign with the real code and keeps the average team's pacing (first CAP, Hawk) and red's (SEAD); see [Testing the balance](mission-maker/PERSISTENT_CAMPAIGN.en.md#economy-simulator) |
 | `test_veafCasMission.lua` | CAS threat package generation |
 | `test_veafCasMission_menu.lua` | Fixed CAS MISSION menu: no entry added or removed during a mission, answers with no mission running |
 | `test_veafTransportMission.lua` | Transport mission setup |

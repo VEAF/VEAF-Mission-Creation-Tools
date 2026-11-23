@@ -736,10 +736,10 @@ class TestBullseyeInjection(unittest.TestCase):
 
     # ── the waypoint itself ─────────────────────────────────────────────────
 
-    def test_the_waypoint_is_a_turning_point_at_altitude(self) -> None:
-        """A navigation reference, not a leg: a fly-over at low level would route a flight through it."""
+    def test_the_waypoint_is_a_turning_point_on_the_ground(self) -> None:
+        """A navigation reference, not a leg; on the ground, where a pod slaved to the steerpoint looks."""
         points = self._inject(self._worker(), self._group("blue"), [self._leg()])
         bullseye = next(p for p in points if p["name"] == "BULLSEYE")
         self.assertEqual(bullseye["type"], "Turning Point")
         self.assertEqual(bullseye["action"], "Turning Point")
-        self.assertGreater(bullseye["alt"], 1000)
+        self.assertEqual((bullseye["alt"], bullseye["alt_type"]), (0, "RADIO"))

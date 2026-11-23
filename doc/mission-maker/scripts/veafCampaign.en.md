@@ -55,3 +55,13 @@ One loop for the whole module, no timer per zone.
 `<Saved Games>\DCS\Missions\Saves\<campaign>\mission-NN.state`, a Lua table (`return { … }`) that `veaf-tools campaign apply` reads back.
 It needs `io` and `lfs` in the mission scripting environment; `os` is used when it is there, not required.
 See [the state file](../CAMPAIGN.en.md#state-file).
+
+---
+
+## Persistent mode {#persistent}
+
+With `mode: persistent` in `campaign.yaml`, the same module runs a campaign as **one mission** that saves itself to `<Saved Games>\DCS\Missions\Saves\<campaign>\persistent.state`, reloads it at start, ends in victory or defeat, and starts afresh after.
+Its zones sleep away from the players, its front moves on its own, and it starts three more modules of its own: `veafCampaignLogistics` (resources, supply network, paid spawns, sappers, weapon stocks), `veafCampaignOps` (supply helicopters, enemy air, Hunter, bombers) and `veafCampaignEconomy` (credits, shop, tasks, intelligence).
+The module itself places the factories' buildings and tints the territory on the map.
+The radio menu gains **Credits**, **Tasks**, **Intel**, **Shop**, **Supply network**, **Warehouse**, **Self-check (admin)** and **Reset the campaign (admin)**.
+See [Persistent campaign](../PERSISTENT_CAMPAIGN.en.md).

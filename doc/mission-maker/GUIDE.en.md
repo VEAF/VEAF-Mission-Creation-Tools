@@ -528,7 +528,7 @@ The build tells you how many it added.
 
 | Command | What it does |
 |---------|-------------|
-| `prepare` | Initialises/refreshes a mission folder from the default scaffold; `--template minimal\|standard\|full\|custom` generates a `mission.yaml` with the matching module set (`custom` = pick modules interactively); `--list-templates` to list them. `--theatre <name>` also generates a synthetic blank mission for that DCS map into `src/mission/` (no DCS round-trip needed to start); `--list-theatres` to list the supported maps. The generated file carries the same documented preamble as `convert-v5` (YAML syntax guide, `global_log_level:`, `mission:`, `security:`, `pipeline:`) |
+| `prepare` | Initialises/refreshes a mission folder from the default scaffold; `--template minimal\|standard\|full\|custom` generates a `mission.yaml` with the matching module set (`custom` = pick modules interactively); `--list-templates` to list them. `--theatre <name>` also generates a synthetic blank mission for that DCS map into `src/mission/` (no DCS round-trip needed to start), and puts that map's airfields (those with a TACAN first) on the second radio of the shipped `src/presets.yaml`, whose plan is otherwise the Caucasus one — a plan already changed is left alone, and the build warns about any channel named after another map's airfield; `--list-theatres` to list the supported maps. The generated file carries the same documented preamble as `convert-v5` (YAML syntax guide, `global_log_level:`, `mission:`, `security:`, `pipeline:`) |
 | `build` | Builds the mission from `src/` — injects VEAF triggers, outputs a `.miz`. Also validates the `mission.yaml` references to the Mission Editor (trigger zones, groups, units, airfields) and prints a **prominent end-of-build summary** of any that are missing — **without blocking** (the `.miz` is built anyway, so you can fix them in the Mission Editor and iterate). A COMBATZONE **operation**'s `zone_name` is not checked (it's only a label, not a required trigger zone) |
 | `validate` | Lints the mission folder **before** build — reports config errors and runtime risks without building (exit non-zero on error; `--strict` fails on warnings too) |
 | `ctld-upgrade` | Brings `ctld-config.yaml` up to the CTLD catalogue the tools vendor: adds the missing settings at their default, without changing yours nor touching your lists — only a list CTLD added after your file's version, like the Fat Cow's, is written in ([details](build-messages/modules.en.md#validate-ctld-catalogue-gap)) |
@@ -885,6 +885,16 @@ Two cases where that is not what happens:
 | units named `logistic #001` … `#020` | a Mission Editor zone named `LGZ_…` (any number of them) |
 | zones named `pickzone #001` … `#020` | a Mission Editor zone named `TRZ_…` |
 | `ctld.initialize(configurationCallback)` in `mission-script.lua` | nothing to write: the build generates CTLD's start-up |
+
+!!! note "CTLD 2.1.0: three v1 behaviours are back by default"
+    The tools ship CTLD 2.1.0 since 6.39.0. Three defaults change from CTLD 2.0.0:
+
+    - **Dropped groups act on their own.** Dropped troops and vehicles go for the nearest enemy within `maximumSearchDistance` (4000 m), otherwise walk to a random point within `maximumMoveDistance` (2000 m). Set both to `0` to keep them where they are dropped.
+    - **What CTLD creates can be driven** (Combined Arms players, game masters). `spawnedUnitsPlayerCanDrive: false` gives back the 2.0.0 behaviour.
+    - **A `troopZones` or `wpZones` entry marked `no` stays inactive** until it is activated.
+
+    An existing `ctld-config.yaml` keeps its values: `validate` reports the new settings, `ctld-upgrade` writes them at their default.
+    A SAM system's group is now named `<type>_CTLD_AA_<id>`: adapt a mission script that looked for the old name.
 
 !!! warning "Missions built with veaf-tools 6.14.0 or earlier: rebuild them"
     Those versions did not write the line that starts CTLD. In game this shows up as **no CTLD

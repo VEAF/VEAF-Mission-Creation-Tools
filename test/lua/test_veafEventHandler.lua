@@ -296,4 +296,43 @@ function TestVeafEventHandlerRegistration:test_the_events_map_is_still_rebuilt_e
   luaunit.assertNotNil(veafEventHandler.knownEvents["S_EVENT_BIRTH"])
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafEventHandlerKillTarget (FIX-CAMPAIGN-GROUND-KILLS-UNPAID 01)
+-- ---------------------------------------------------------------------------
+TestVeafEventHandlerKillTarget = {}
+
+function TestVeafEventHandlerKillTarget:setUp()
+  self.remote = veafRemote
+  veafRemote = veafRemote or {
+    getRemoteUserFromUnit = function()
+      return nil
+    end,
+  }
+  self.callbacks = veafEventHandler.callbacks
+  veafEventHandler.callbacks = {}
+  veafEventHandler.initialize()
+end
+
+function TestVeafEventHandlerKillTarget:tearDown()
+  veafRemote = self.remote
+  veafEventHandler.callbacks = self.callbacks
+end
+
+function TestVeafEventHandlerKillTarget:test_a_target_gone_by_name_comes_through_raw()
+  -- a ground unit destroyed is no longer found by `Unit.getByName` when its S_EVENT_KILL arrives
+  local received = nil
+  veafEventHandler.addCallback("kill", { "S_EVENT_KILL" }, function(event)
+    received = event
+  end)
+  local raw = {
+    getName = function()
+      return "Gone armor #1"
+    end,
+  }
+  veafEventHandler.eventHandler:onEvent({ id = 28, time = 0, target = raw })
+  luaunit.assertEquals(received.target.unitCoalition, coalition.side.NEUTRAL)
+  luaunit.assertNil(received.target.unitCategory)
+  luaunit.assertIs(received.dcsTarget, raw)
+end
+
 os.exit(luaunit.LuaUnit.run())

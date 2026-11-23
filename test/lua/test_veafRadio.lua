@@ -1458,6 +1458,45 @@ function TestVeafRadioIncrementalRender:_depthOf(label)
   end
 end
 
+--- Labels added to DCS, in the order they were added, the "Next page" links included.
+function TestVeafRadioIncrementalRender:_addedLabels()
+  local labels = {}
+  for _, call in ipairs(self.calls) do
+    if call.kind == "addCommand" or call.kind == "addSubMenu" then
+      table.insert(labels, call.args[1])
+    end
+  end
+  return labels
+end
+
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT ticket 11: the Campaign menu's "(admin)" commands sorted by label,
+-- commands before submenus, and stayed on page 1
+function TestVeafRadioIncrementalRender:test_a_sort_last_entry_comes_after_the_submenus_on_the_last_page()
+  local menu = self:_paginatedMenu(veafRadio.MENU_PAGE_SIZE)
+  self.builder:addMenu("Shop", menu)
+  local admin = self.builder:addCommand("Auto-check (admin)", menu, function() end)
+  admin.sortLast = true
+  self.builder:rebuild()
+  local labels = self:_addedLabels()
+  luaunit.assertEquals(labels[#labels], "Auto-check (admin)")
+  luaunit.assertEquals(labels[#labels - 1], "Shop")
+  luaunit.assertEquals(self:_depthOf("Auto-check (admin)"), 3, "on the second page")
+end
+
+function TestVeafRadioIncrementalRender:test_a_sort_last_entry_leaves_its_page_when_others_come_after_it()
+  local menu = self.builder:addMenu("Zones", nil)
+  local admin = self.builder:addCommand("Auto-check (admin)", menu, function() end)
+  admin.sortLast = true
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_depthOf("Auto-check (admin)"), 2)
+  -- the menu grows past a page: a regular entry keeps its page, the admin one moves to the end
+  for i = 1, veafRadio.MENU_PAGE_SIZE do
+    self.builder:addCommand(string.format("cmd%02d", i), menu, function() end)
+  end
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_depthOf("Auto-check (admin)"), 3)
+end
+
 function TestVeafRadioIncrementalRender:test_an_emptied_page_is_dropped()
   -- 25 entries: page 1 holds cmd01..cmd09, page 2 cmd10..cmd18, page 3 the rest
   local menu = self:_paginatedMenu(25)

@@ -984,7 +984,10 @@ function veafAircraftSpawn.spawnAirplaneGroup(groupData, roleName, params)
     return nil
   end
   local spot = { x = leader.x, y = leader.alt, z = leader.y }
-  local route, state = role.buildRoute({ spot = spot, params = params or {} })
+  -- a caller starting the flight on the ground hands its take-off point; a role that knows one keeps it
+  -- as its first waypoint (zone_defense) and builds its patrol after it
+  params = params or {}
+  local route, state = role.buildRoute({ spot = spot, params = params, takeoffPoint = params.takeoffPoint })
   state = state or {}
   if not route then
     return nil, state

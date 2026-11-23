@@ -142,6 +142,34 @@ def test_assets_plain_information_uses_quoted_string():
 
 
 # ---------------------------------------------------------------------------
+# SUPPORT — the AWACS and tankers held out of reach (FEAT-DYNAMIC-CAMPAIGN ticket 20)
+# ---------------------------------------------------------------------------
+
+
+def test_support_is_configured_then_started_after_move():
+    yaml_data: dict = {
+        "lua_modules": {"SUPPORT": {"enabled": True, "assets": ["AWACS Magic", "Tanker Arco"], "margin": 40000}}
+    }
+    lua = generate_config_lua(yaml_data)
+    configure = lua.index('veafSupport.configure({assets = {"AWACS Magic", "Tanker Arco"}, margin = 40000})')
+    assert lua.index("veafSupport.initialize()") > configure
+    assert lua.index("veafMove.initialize()") < configure, "MOVE comes with it and starts first"
+
+
+def test_support_passes_the_awacs_standoff_on():
+    """FIX-CAMPAIGN-FIFTH-SERVER-FLIGHT 03: how far an AWACS holds from every threat, whatever its reach."""
+    lua = generate_config_lua(
+        {"lua_modules": {"SUPPORT": {"enabled": True, "assets": ["AWACS Magic"], "awacs_standoff": 120000}}}
+    )
+    assert 'veafSupport.configure({assets = {"AWACS Magic"}, awacs_standoff = 120000})' in lua
+
+
+def test_support_refuses_an_unknown_setting():
+    with pytest.raises(ValueError, match="unknown setting `orbit`"):
+        generate_config_lua({"lua_modules": {"SUPPORT": {"enabled": True, "assets": ["AWACS"], "orbit": 1}}})
+
+
+# ---------------------------------------------------------------------------
 # External modules — CTLD
 # ---------------------------------------------------------------------------
 
@@ -649,6 +677,18 @@ def test_an_unreadable_last_line_of_defence_number_warns_and_does_not_kill_the_b
     assert "last_line_of_defence_persistence_s" in caplog.text
     assert "veafSkynet.LastLineOfDefencePersistence" not in lua
     assert "veafSkynet.initialize(" in lua
+
+
+def test_skynet_setup_warnings_can_be_put_back_on_screen():
+    """#1296: off by default in the Lua, so the line is written only when the key is given."""
+    lua_on = generate_config_lua({"external_modules": {"skynet": {"enabled": True, "setup_warnings_on_screen": True}}})
+    assert "veafSkynet.SetupWarningsOnScreen = true" in lua_on
+    lua_absent = generate_config_lua({"external_modules": {"skynet": {"enabled": True}}})
+    assert "SetupWarningsOnScreen" not in lua_absent
+
+
+def test_mission_yaml_template_documents_the_setup_warnings_key():
+    assert "setup_warnings_on_screen" in generate_mission_yaml_template()
 
 
 def test_mission_yaml_template_documents_the_last_line_of_defence():

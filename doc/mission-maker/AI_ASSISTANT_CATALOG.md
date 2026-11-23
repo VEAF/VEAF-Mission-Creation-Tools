@@ -785,10 +785,10 @@ deux fois le même fichier réutilise le premier.
 
 ### Fabriquer le briefing d'une mission {#mission-briefing}
 
-*Dossier (construit) · ⭐* — L'IA écrit les mots du scénario (titre, contexte, objectifs, menaces connues, déroulement) ; l'outil lit tout le reste dans la mission construite — date, météo, bullseye, flights, soutien, plan de vol, presets des cockpits, coordonnées de chaque cible — et produit `docs/briefing.pptx` au gabarit VEAF, une carte de situation et un zoom par objectif dans `docs/maps/`, et met ces cartes dans le briefing DCS (bleu et neutre).
+*Dossier (construit) · ⭐* — L'IA écrit les mots du scénario (titre, contexte, objectifs, menaces connues, déroulement) ; l'outil lit tout le reste dans la mission construite — date, météo, bullseye, flights, soutien, plan de vol, presets des cockpits, coordonnées de chaque cible — et produit `docs/<mission>_briefing.pptx` au gabarit VEAF, une carte de situation et un zoom par objectif dans `docs/maps/`, et met ces cartes dans le briefing DCS (bleu et neutre).
 Aucun script : une IA sans accès à ton PC en ligne de commande (Claude Desktop en mode discussion) le fait aussi.
 Construis la mission d'abord, et relance-le après chaque changement : il remplace ses propres images.
-Le PPTX s'importe dans Google Slides. `docs/briefing.pdf` est écrit à côté : mêmes pages, mêmes cartes, mêmes mots, avec sa propre mise en page, sans PowerPoint ni autre programme sur ton PC. L'outil prévient aussi l'IA quand un numéro de waypoint de son texte ne correspond pas à la route, et quand son texte français n'a pas ses accents.
+Le PPTX s'importe dans Google Slides. `docs/<mission>_briefing.pdf` est écrit à côté : mêmes pages, mêmes cartes, mêmes mots, avec sa propre mise en page, sans PowerPoint ni autre programme sur ton PC. L'outil prévient aussi l'IA quand un numéro de waypoint de son texte ne correspond pas à la route, et quand son texte français n'a pas ses accents.
 Fond de carte OpenStreetMap, ou OpenTopoMap (relief) pour un désert ou une mission à basse altitude ; sans réseau, les cartes sont dessinées sur un fond uni.
 Les images vont dans chaque `.miz` construit, variantes météo comprises, et le **kneeboard** de chaque appareil reçoit les cartes dessinées pour sa page, une carte de vol (points, cap et distance de chaque branche, relief le plus haut ; pas les fréquences, déjà dans les presets des cockpits) et les cibles.
 La carte de situation prend toute la largeur de la page, cadrée sur la route, les objectifs et les menaces, tournée quand elle y gagne (une flèche indique le nord), sa légende dessinée dedans ; chaque zoom porte un encart qui le situe sur elle.
@@ -799,6 +799,8 @@ L'IA peut aussi donner les **mots-codes** du package (une page dans le deck et d
 **Le kneeboard seul**, pour une Open Training : son README est déjà le briefing complet et ses images de briefing sont les siennes, alors l'outil n'écrit que les pages du kneeboard — ni PPTX, ni PDF, ni image de briefing DCS.
 Il commence par des **fiches de texte** que l'IA écrit (la mission, la conduite sur le serveur, les commandes utiles avec leur niveau de sécurité), puis la carte d'ensemble, un zoom par zone de combat avec ses photos de reconnaissance, et la liste des zones avec le chemin du menu F10 qui démarre chacune et ses coordonnées.
 Les fiches de texte se mettent aussi en tête du kneeboard d'une mission à objectifs.
+**Une mission bilingue**, construite en français et en anglais (`build_variants` avec un profil FR et un profil EN), a un briefing dans chaque langue : après chaque build, l'IA lance le briefing une fois dans la langue de la mission, puis une fois en anglais (ou en français) avec les mots traduits.
+Chaque passage n'écrit que dans les `.miz` de sa langue ; le second laisse le dossier et le PPTX de la mission tels quels, et écrit `docs/<mission>_briefing.en.pptx`, son PDF et ses cartes dans `docs/maps/en/`.
 
 > 💬 *« Fais le briefing de la mission, fond topo. »*
 

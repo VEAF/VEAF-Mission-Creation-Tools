@@ -148,6 +148,7 @@ mission:
 | `name` | string | — | Non | Nom de la mission affiché dans les menus et les logs, **et nom du `.miz` construit** — voir la note de nommage ci-dessous |
 | `export_path` | string \| null | `null` | Non | Surcharge le chemin d'export DCS Saved Games |
 | `era` | string | *déduit* | Non | `MODERN` \| `COLD_WAR` \| `WW2` — affecte les groupes disponibles au spawn. **Absent, il est déduit à chaque build** depuis le contenu de la mission de base : un type d'unité WW2 ou une année ≤ 1945 donne `WW2`, une année ≤ 1991 `COLD_WAR`, sinon `MODERN` (`era_detector.py`). La valeur déduite n'est **pas** écrite dans votre `mission.yaml` — elle est recalculée ; renseignez la clé pour la figer. |
+| `date_suffix` | booléen | `true` | Non | `false` : le `.miz` construit s'appelle `<nom>.miz`, sans date — voir la note de nommage ci-dessous |
 | `silence_atc_on_all_airbases` | booléen | `false` | Non | Option globale : coupe l'ATC DCS sur tous les aérodromes (émet `veaf.silenceAtcOnAllAirbases()`). `convert-v5` la migre depuis un appel actif et annote sa provenance |
 | `language` | string | *langue des outils* | Non | Langue des messages VEAF affichés en jeu (`fr` \| `en`) ; émise dans `veaf-config.lua` comme `veaf.config.language` et lue par `veaf.t()`. Si absent, le build utilise la langue des outils (`--lang` > `VEAF_LANG` > config utilisateur > locale OS > `en`) |
 | `third_party_mods` | liste de strings | `[]` | Non | Mods DCS **tiers** (avions payants/communautaires) à rendre **non bloquants** : leurs identifiants sont retirés de la table `requiredModules` du `.miz` au build, si bien qu'un pilote qui ne possède pas le mod peut quand même **charger** la mission (le slot correspondant est simplement indisponible). La liste est **unie** à une liste VEAF par défaut couvrant les mods courants (Hercules, UH-60L, A-4E-C, T-45, AM2, SU-30/FlankerEx, Bronco-OV-10A) — n'y déclarer que les mods non déjà pris en charge. À ne pas confondre avec les *Modules* VEAF (bloc `modules:`, qui sont des capacités, pas des add-ons DCS) |
@@ -159,6 +160,9 @@ mission:
 `mission.name` devient le nom du fichier construit : `<nom>_<AAAAMMJJ>.miz`, plus un suffixe
 `_<VARIANTE>` si [`build_variants:`](#build-variants) est utilisé. Donnez plutôt un nom
 terminé par `.miz` et il est repris **tel quel**, sans date.
+
+Pour garder le nom dans le dossier de la mission sans la date, posez `date_suffix: false` : le build écrit `<nom>.miz`.
+C'est ce que fait une [campagne persistante](mission-maker/PERSISTENT_CAMPAIGN.md#mission-file) qui nomme son fichier : un serveur qui remplace le fichier à chaque redéploiement garde le même nom.
 
 C'est important parce que **l'outillage serveur lit le nom du fichier**. Sur les serveurs VEAF,
 l'extension RealWeather de [DCSServerBot](https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot)
@@ -219,7 +223,8 @@ Les Open Training VEAF ouvrent 5 slots par rôle et par camp, véhicules pilotab
 #### `forced_options` : les options imposées à tous les joueurs {#forced-options}
 
 Le panneau *Options de mission* de l'éditeur impose à chaque joueur certaines options, quels que soient ses propres réglages : étiquettes, vue de la carte F10, vues externes, turbulence de sillage…
-Le bloc les fixe à chaque build, dans la table `forcedOptions` de la mission :
+Le bloc les fixe à chaque build, dans la table `forcedOptions` de la mission.
+Une mission créée par VMCT part déjà avec le trafic civil coupé, sans oiseaux et sans pannes aléatoires, comme les Foothold VEAF ; le bloc reprend la main sur ces trois-là aussi :
 
 ```yaml
 mission:
@@ -395,6 +400,12 @@ modules:
 | `spotter_radio_range_km` | nombre | `20` | Portée d'un relais radio, en kilomètres |
 | `spotter_propagation_speed_kmh` | nombre | `3600` | Vitesse de l'alerte sur le réseau, en km/h (période d'un bond = portée ÷ vitesse) |
 | `spotter_view` | `"off"` \| `"on"` \| `"radio"` | `"off"` | Vue carte F10 du réseau de guetteurs ; `"radio"` pose l'interrupteur dans le menu F10. Mettre entre guillemets : YAML lit un `on`/`off` nu comme un booléen |
+| `last_line_of_defence` | booléen | `true` | Un site éteint garde un rayon court et s'y allume seul — voir [Dernière ligne de défense](mission-maker/scripts/veafSkynetIadsHelper.md#last-line-of-defence) |
+| `last_line_of_defence_min_radius_km` | nombre | `10` | Borne basse de ce rayon, en kilomètres |
+| `last_line_of_defence_max_radius_km` | nombre | `15` | Borne haute de ce rayon, en kilomètres |
+| `last_line_of_defence_persistence_s` | nombre | `45` | Durée pendant laquelle le site reste allumé après le dernier passage, en secondes |
+| `coverage_refresh_interval_s` | nombre | `10` | Intervalle entre deux balayages du graphe de couverture, en secondes (`0` = jamais) |
+| `setup_warnings_on_screen` | booléen | `false` | Afficher à l'écran de tous les joueurs les avertissements de mise en place de Skynet. Ils vont toujours dans `dcs.log` |
 
 #### Champs de `modules.CSAR`
 
@@ -589,6 +600,8 @@ modules:
 | `SKYNET_MONITOR` | veafSkynetMonitor | — |
 | `I18N` | veafI18n | — |
 
+Les clés propres à un module sont décrites sur sa page. Deux exemples souvent cherchés ici : `WEATHER.welcomeBrief` coupe le message d'accueil à la prise de slot ([Accueil à la prise de slot](mission-maker/scripts/veafWeather.md#welcome-brief)) ; le `radio_menu_coalition` d'une zone de combat choisit le camp à qui son menu F10 est proposé ([À qui le menu F10 est-il proposé ?](mission-maker/scripts/veafCombatZone.md#f10-menu-audience)).
+
 ---
 
 ### `modules.RADIO.user_menus` — menus radio F10 en YAML
@@ -653,7 +666,7 @@ Voir les pages respectives pour le schéma complet :
 ### `custom_scripts:` {#custom-scripts}
 
 Déclare les scripts Lua custom présents dans `src/scripts/` qui ne font pas partie du jeu standard VEAF v6.  
-Un script déclaré ici est inclus dans le `.miz` **sans** déclencher de warning. Par défaut, un trigger DCS de chargement est généré automatiquement pour lui ; positionner `generate_load_trigger: false` désactive ce trigger (utile quand le script est chargé manuellement depuis `mission-script.lua`).
+Un script déclaré ici est inclus dans le `.miz` **sans** déclencher de warning. `validate` et le build vérifient qu'il est du Lua 5.1 valide : DCS refuserait sinon le fichier entier, sans rien afficher. Par défaut, un trigger DCS de chargement est généré automatiquement pour lui ; positionner `generate_load_trigger: false` désactive ce trigger (utile quand le script est chargé manuellement depuis `mission-script.lua`).
 
 | Champ | Type | Défaut | Description |
 |-------|------|---------|-------------|

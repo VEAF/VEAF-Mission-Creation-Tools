@@ -532,7 +532,7 @@ Le build vous dit combien il en a ajouté.
 
 | Commande | Ce qu'elle fait |
 |----------|----------------|
-| `prepare` | Initialise/rafraîchit un dossier de mission depuis le scaffold par défaut ; `--template minimal\|standard\|full\|custom` génère un `mission.yaml` avec le jeu de modules correspondant (`custom` = choix interactif) ; `--list-templates` pour les lister. `--theatre <nom>` génère aussi une mission vierge synthétique pour cette carte DCS dans `src/mission/` (sans passer par DCS pour démarrer) ; `--list-theatres` pour lister les cartes supportées. Le fichier généré inclut le même préambule documenté que `convert-v5` (guide de syntaxe YAML, `global_log_level:`, `mission:`, `security:`, `pipeline:`) |
+| `prepare` | Initialise/rafraîchit un dossier de mission depuis le scaffold par défaut ; `--template minimal\|standard\|full\|custom` génère un `mission.yaml` avec le jeu de modules correspondant (`custom` = choix interactif) ; `--list-templates` pour les lister. `--theatre <nom>` génère aussi une mission vierge synthétique pour cette carte DCS dans `src/mission/` (sans passer par DCS pour démarrer), et met les aérodromes de cette carte (ceux qui ont un TACAN d'abord) sur la deuxième radio du `src/presets.yaml` livré, dont le plan est sinon celui du Caucase — un plan déjà modifié est laissé tel quel, et le build avertit de tout canal nommé d'après un aérodrome d'une autre carte ; `--list-theatres` pour lister les cartes supportées. Le fichier généré inclut le même préambule documenté que `convert-v5` (guide de syntaxe YAML, `global_log_level:`, `mission:`, `security:`, `pipeline:`) |
 | `build` | Construit la mission depuis `src/` — injecte les triggers VEAF, produit un `.miz`. Valide au passage les références de `mission.yaml` vers le Mission Editor (zones de déclenchement, groupes, unités, aérodromes) et affiche un **récapitulatif bien visible en fin de build** pour les références absentes — **sans bloquer** (le `.miz` est généré quand même, pour que vous puissiez corriger dans le Mission Editor et itérer). Le `zone_name` d'une **opération** COMBATZONE n'est pas vérifié (ce n'est qu'un libellé, pas une trigger zone requise) |
 | `validate` | Vérifie le dossier de mission **avant** le build — signale les erreurs de config et les risques runtime sans builder (sortie non nulle en cas d'erreur ; `--strict` échoue aussi sur les avertissements) |
 | `ctld-upgrade` | Met `ctld-config.yaml` au niveau du catalogue CTLD livré avec les outils : ajoute les réglages absents à leur valeur par défaut, sans changer les vôtres ni toucher à vos listes — seule une liste que CTLD a ajoutée après la version de votre fichier, comme celles de la Fat Cow, est écrite ([détail](build-messages/modules.md#validate-ctld-catalogue-gap)) |
@@ -889,6 +889,16 @@ Deux cas où ce n'est pas ce qui se passe :
 | unités nommées `logistic #001` … `#020` | une zone de l'éditeur nommée `LGZ_…` (nombre illimité) |
 | zones nommées `pickzone #001` … `#020` | une zone de l'éditeur nommée `TRZ_…` |
 | `ctld.initialize(configurationCallback)` dans `mission-script.lua` | rien à écrire : le build génère le démarrage de CTLD |
+
+!!! note "CTLD 2.1.0 : trois comportements de la v1 reviennent par défaut"
+    Les outils livrent CTLD 2.1.0 depuis la 6.39.0. Trois défauts changent par rapport à CTLD 2.0.0 :
+
+    - **Les groupes déposés agissent seuls.** Troupes et véhicules déposés vont vers l'ennemi le plus proche dans `maximumSearchDistance` (4000 m), sinon marchent vers un point au hasard dans `maximumMoveDistance` (2000 m). Mettez les deux à `0` pour qu'ils restent où ils sont déposés.
+    - **Ce que CTLD crée se conduit** (joueurs Combined Arms, game masters). `spawnedUnitsPlayerCanDrive: false` rend le comportement de 2.0.0.
+    - **Une zone `troopZones` ou `wpZones` marquée `no` reste inactive** jusqu'à son activation.
+
+    Un `ctld-config.yaml` existant garde ses valeurs : `validate` signale les nouveaux réglages, `ctld-upgrade` les écrit à leur valeur par défaut.
+    Le groupe d'un système SAM s'appelle désormais `<type>_CTLD_AA_<id>` : adaptez un script de mission qui cherchait l'ancien nom.
 
 !!! warning "Missions construites avec veaf-tools 6.14.0 ou antérieur : reconstruisez-les"
     Ces versions n'écrivaient pas la ligne qui démarre CTLD. Dans le jeu, cela se voit ainsi :

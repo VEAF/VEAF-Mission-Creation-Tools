@@ -254,7 +254,7 @@ veafRadio.addCommandToSubmenu("Deck status", carrierMenu, deckStatus, "CVN-74")
 
 The `USAGE_ForAll` commands under it are posted for each of those groups, with their parameters unchanged.
 A filter that raises hides the menu and leaves a line in the log; it does not stop the rebuild.
-A fourth argument restricts the menu to one coalition as well.
+A fourth argument restricts the menu to one coalition as well, at any depth: even under a per-pilot menu, a blue-only menu is never shown to a red group.
 
 ### A submenu per pilot
 
@@ -272,6 +272,7 @@ end
 
 A pilot alone in his group gets the commands directly, without the level named after him.
 The menu takes the same group filter as `addSubMenuForGroups`.
+The submenu carries the name the VEAF server hook knows for the player; without the hook, the player's name in DCS, and failing that the unit's callsign.
 
 ### Commands follow the pilots present
 
@@ -280,6 +281,21 @@ When a pilot leaves his slot, dies, ejects or crashes, he is forgotten, the menu
 A message addressed to a unit that no longer exists is shown to nobody, instead of going to every player.
 
 ---
+
+## Removing a root menu {#remove-root-menu}
+
+Each module keeps the menu it adds at the root in a variable, its **handle**:
+`veaf.ctldRootPath` (CTLD), `veafAssets.rootPath`, `veafAssist.rootPath`, `veafCampaign.rootPath`, `veafCarrierOperations.rootPath`, `veafCasMission.rootPath`, `veafCombatMission.rootPath`, `veafCombatZone.rootPath`, `veafMissileGuardian.rootPath`, `veafMove.rootPath`, `veafNamedPoints.rootPath`, `veafOpposition.rootPath`, `veafSpawn.rootPath`, `veafTransportMission.rootPath`, `veafWeather.rootPath`.
+
+To remove one of these menus, pass its handle to `delSubmenu`, then rebuild the menu:
+
+```lua
+veafRadio.delSubmenu(veaf.ctldRootPath)
+veafRadio.refreshRadioMenu()
+```
+
+Pass the handle, not the title: `delSubmenu` also takes a title, but the title changes with the mission's language, and a title that no longer matches removes nothing, with no error.
+Remove the menu **after** the module has built it: at its `initialize()`, or at `veaf.ctld_initialize()` for CTLD.
 
 ## Low-level API
 

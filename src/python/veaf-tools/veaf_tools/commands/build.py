@@ -58,7 +58,9 @@ def _resolve_output_mission(
       current directory).
     - A bare mission name yields ``<sanitized-name>_<date>.miz`` anchored in
       *p_mission_folder* (absolute). When the argument is the default and a
-      ``mission.yaml`` is present, its ``mission.name`` field supplies the name.
+      ``mission.yaml`` is present, its ``mission.name`` field supplies the name,
+      and ``mission.date_suffix: false`` drops the ``_<date>``
+      (FEAT-CAMPAIGN-MISSION-FILE: a server that replaces the file keeps its name).
 
     Anchoring a bare-name output in the mission folder keeps the path absolute so
     every pipeline step (build, presets, weather, …) agrees on its location.
@@ -73,6 +75,7 @@ def _resolve_output_mission(
         A tuple of (output mission path, mission base name).
     """
     name_source: str = mission_name_or_file or default_mission_file
+    dated = True
 
     # When the default is used, prefer the mission.yaml name if available.
     if name_source == default_mission_file:
@@ -81,8 +84,10 @@ def _resolve_output_mission(
             validate_yaml_file(mission_yaml_path)
             with mission_yaml_path.open("r", encoding="utf-8") as fh:
                 peek_yaml: dict = yaml.safe_load(fh) or {}
-            if yaml_name := (peek_yaml.get("mission") or {}).get("name"):
+            yaml_mission = peek_yaml.get("mission") or {}
+            if yaml_name := yaml_mission.get("name"):
                 name_source = str(yaml_name)
+                dated = yaml_mission.get("date_suffix") is not False
 
     # An explicit .miz file is used directly; a bare name becomes
     # "<name>_<date>.miz" inside the mission folder.
@@ -94,7 +99,8 @@ def _resolve_output_mission(
     if not safe_name:
         logger.warning(t("cmd.build.invalid_mission_name", name=repr(name_source)))
         safe_name = "mission"
-    p_output_mission = p_mission_folder / f"{safe_name}_{datetime.now().strftime('%Y%m%d')}.miz"
+    date_part = f"_{datetime.now().strftime('%Y%m%d')}" if dated else ""
+    p_output_mission = p_mission_folder / f"{safe_name}{date_part}.miz"
     return p_output_mission, safe_name
 
 

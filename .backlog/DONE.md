@@ -6,6 +6,26 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-BRIEFING-PER-LANGUAGE](FEAT-BRIEFING-PER-LANGUAGE/PRD.md) · ✅
+
+A `language` parameter for `build_mission_briefing`, writing only the archives of that language, so a bilingual mission (the demo's `_FR` and `_EN`) gets its briefing and kneeboard pages in each language. One ticket; asked from the demo's kneeboard step (2026-10-26), done 2026-11-23.
+
+### [FIX-CONVERT-V5-PARITY](FIX-CONVERT-V5-PARITY/PRD.md) · ✅
+
+A converted v5 mission behaves as it did in v5 or says what changed (#1300-#1303): a v5-parity configuration, a conversion that cannot finish writes nothing, `VEAF_DYNAMIC_MISSIONPATH` on the mission folder, `custom_scripts` syntax checked. Four tickets; opened 2026-11-23.
+
+### [FIX-BFR-PORT-FINDINGS](FIX-BFR-PORT-FINDINGS/PRD.md) · ✅
+
+What BFR's port of SeaShepherd, Bluestorm and SandBlast found in the runtime and the docs (#1296-#1299, #1304-#1306, #1308): Skynet set-up warnings off the players' screens, a coalition that holds under a per-pilot parent, the player's name on a per-pilot menu, a QRA draw that keeps its count, and the docs. Five tickets; opened 2026-11-23.
+
+### [CHORE-VENDOR-CTLD-2-1-0](CHORE-VENDOR-CTLD-2-1-0/PRD.md) · ✅
+
+CTLD `2.1.0` vendored for 6.39.0, with the fixes BFR asked for: dropped groups act on their own again, players can drive what CTLD creates, inactive troop and waypoint zones stay inactive, nothing is lost when DCS refuses a pack or an unpack. Catalogue `2.3.0` → `2.5.0` with three new settings (`maximumMoveDistance`, `spawnedUnitsPlayerCanDrive`, `forbidUnpackInLogisticZone`).
+
+### [FIX-OT-KNEEBOARD-LAYOUT](FIX-OT-KNEEBOARD-LAYOUT/PRD.md) · ✅
+
+The kneeboard pages of an Open Training, as the eight OTs regenerated with 6.37.0 showed them: a long title wrapped instead of running off the page, the "Commandes" sheet on one page, a zone's one recon photo under its zoom rather than on a half-empty page, the caption in DDM, and a zone entry never cut between two pages.
+
 ### [FIX-BUILD-EXE-SMOKE](FIX-BUILD-EXE-SMOKE/PRD.md) · ✅
 
 A build that produces a `veaf-tools` executable which cannot start now fails: `--collect-submodules` sees the source tree whatever interpreter runs PyInstaller, and every built executable is started once before the build hands back. Found preparing 6.38.0, where a build run outside Poetry exited 0 with a dead executable (#1314).
@@ -21,6 +41,10 @@ Forests read from a DCS map's `.surface5` file without the game, and `veaf-tools
 ### [FEAT-SPAWN-OWNERSHIP-DESPAWN](FEAT-SPAWN-OWNERSHIP-DESPAWN/PRD.md) · ✅
 
 Each pilot can remove from the F10 menu what his markers spawned (`-sa6`, `-armor`, `-cas`, `-convoy`, `-farp`…), all at once or one by one: the runtime records every marker-spawned group with its author, combat zones left out since they clean their own. `-destroy` stays a trusted member's command. Three tickets, eight questions with a reco each; asked by David while correcting the Open Training conduct sheet (2026-11-10). Done 2026-11-16: `veafCommands` hands marker handlers a watched collection, `veafSpawnOwnership.lua` files each marker's groups under its author and builds SPAWN › Next page › My spawns › [name] (remove all, or one marker), `-cas` passes its marker id; pilot guide, veafSpawn page, OT sheets and demo step (VEAF/VEAF-Demo-Mission-v6#14). Left: one look in game that the marker author matches the slot's player name.
+
+### [FIX-COMBATZONE-FIRST-ROUTE](FIX-COMBATZONE-FIRST-ROUTE/PRD.md) · ✅
+
+A group a combat zone spawns from a VEAF command gets its route from the zone's hook in its creation frame, where DCS drops it; give it through `veafSpawn.giveFirstRoute`, 5 s later. Left over by FIX-SPAWN-GROUP-FIRST-ROUTE (2026-11-22). Merged into `feature/dynamic-campaign` (#1332). Done 2026-11-22: checked in game, the command group drove off 5 to 10 s after the zone's activation and followed its route north.
 
 ### [FIX-BUILD-NAME-AND-OT-PLACEMENT](FIX-BUILD-NAME-AND-OT-PLACEMENT/PRD.md) · ✅
 

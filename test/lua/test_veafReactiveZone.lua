@@ -216,8 +216,53 @@ function TestReactiveZonePick:test_a_distinct_draw_never_repeats_a_group()
   luaunit.assertEquals(picked, { "a", "b", "c" })
 end
 
-function TestReactiveZonePick:test_a_distinct_draw_stops_at_the_size_of_the_list()
-  luaunit.assertEquals(#veafReactiveZone.pickDistinctGroups({ "a", "b" }, 5, 0), 2)
+--- Counts how often each group comes out of `runs` draws, with Lua's own generator.
+local function countDraws(groups, number, runs)
+  dcs_mocks.useRealRandom()
+  local draws = {}
+  for _ = 1, runs do
+    local picked = veafReactiveZone.pickDistinctGroups(groups, number, 0)
+    local counts = {}
+    for _, group in ipairs(picked) do
+      counts[group] = (counts[group] or 0) + 1
+    end
+    table.insert(draws, { size = #picked, counts = counts })
+  end
+  dcs_mocks.reset()
+  return draws
+end
+
+function TestReactiveZonePick:test_a_draw_as_big_as_the_list_gives_each_group_once()
+  for _, draw in ipairs(countDraws({ "a", "b" }, 2, 200)) do
+    luaunit.assertEquals(draw.size, 2)
+    luaunit.assertEquals(draw.counts, { a = 1, b = 1 })
+  end
+end
+
+function TestReactiveZonePick:test_a_draw_bigger_than_the_list_keeps_its_count()
+  -- #1308: in v5 each drawn group was cloned, so "4 of [A, B]" sent 4 groups. A new round over the
+  -- whole list keeps that count, each group coming out at most once per round.
+  for _, draw in ipairs(countDraws({ "a", "b" }, 4, 200)) do
+    luaunit.assertEquals(draw.size, 4)
+    luaunit.assertEquals(draw.counts, { a = 2, b = 2 })
+  end
+  for _, draw in ipairs(countDraws({ "a", "b" }, 5, 200)) do
+    luaunit.assertEquals(draw.size, 5)
+    luaunit.assertTrue(draw.counts.a >= 2 and draw.counts.b >= 2)
+  end
+end
+
+function TestReactiveZonePick:test_a_draw_smaller_than_the_list_never_repeats()
+  for _, draw in ipairs(countDraws({ "a", "b", "c", "d" }, 3, 200)) do
+    luaunit.assertEquals(draw.size, 3)
+    for _, count in pairs(draw.counts) do
+      luaunit.assertEquals(count, 1)
+    end
+  end
+end
+
+function TestReactiveZonePick:test_a_draw_from_an_empty_list_is_empty()
+  luaunit.assertEquals(veafReactiveZone.pickDistinctGroups({}, 3, 0), {})
 end
 
 function TestReactiveZonePick:test_a_distinct_draw_leaves_the_list_untouched()

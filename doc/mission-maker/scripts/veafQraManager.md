@@ -103,7 +103,7 @@ modules:
 | `groups_by_enemy_count` | objet[] | `[]` | Non | Règles de scramble proportionnel |
 | `groups_by_enemy_count[].enemy_count` | entier | — | Oui | Nombre d'intrus activant cette règle |
 | `groups_by_enemy_count[].groups` | string[] | — | Oui | Pool de noms de groupes ou de commandes VEAF, comme `simple_groups` |
-| `groups_by_enemy_count[].random_pick` | entier | — | Non | Combien de groupes **tirer** dans le pool, sans remise : jamais deux fois le même groupe, jamais plus que la liste n'en contient. **Absent : tous les groupes du palier décollent.** Le palier retenu est le plus grand dont `enemy_count` ne dépasse pas le nombre d'intrus, dans quelque ordre que les paliers soient écrits |
+| `groups_by_enemy_count[].random_pick` | entier | — | Non | Combien de groupes **tirer** dans le pool, sans remise : jamais deux fois le même groupe tant que la liste n'est pas épuisée. Un nombre plus grand que la liste repart pour un tour : « 4 parmi [A, B] » fait décoller A et B deux fois chacun, comme en v5. **Absent : tous les groupes du palier décollent.** Le palier retenu est le plus grand dont `enemy_count` ne dépasse pas le nombre d'intrus, dans quelque ordre que les paliers soient écrits |
 | `delay_before_rearming` | entier | `0` | Non | Secondes avant réinitialisation après départ des intrus |
 | `delay_before_activating` | entier | `0` | Non | Secondes après le démarrage avant mise en ligne |
 | `rearm_while_occupied` | booléen | `false` | Non | Une QRA détruite se réarme **même si des intrus sont encore dans sa zone**. Sans cette clé, elle attend que la zone soit vide — avec plusieurs joueurs sur l'objectif, presque jamais |

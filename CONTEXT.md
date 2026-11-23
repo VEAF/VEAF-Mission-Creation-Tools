@@ -295,6 +295,35 @@ logistics zones, spent on garrisons drawn after a capture and on repairs.
 What happens between two missions by fixed rules — logistics feeding the reserves, repairs,
 counter-attacks — as opposed to the enemy's intent, decided when building the next mission.
 
+## Persistent campaign
+
+**Persistent campaign**:
+A campaign played as one mission that runs on a server, saves itself and reloads where it stopped,
+in the spirit of Foothold but on VMCT alone (`mode: persistent`, `FEAT-DYNAMIC-CAMPAIGN`); it ends when
+one side holds no zone, and starts afresh.
+_Avoid_: dynamic mission, Foothold (that is the community mission VEAF runs)
+
+**Dormant zone**:
+A zone of a persistent campaign whose garrison is not in the world because no player is near it; its
+record keeps every unit, dead or alive, and it comes back exactly as it was.
+_Avoid_: suspended zone, despawned zone
+
+**Sortie**:
+An AI flight or convoy the campaign sends on its own: a counter-attack convoy, a supply helicopter, a
+CAP, a CAS or SEAD strike, a Hunter.
+
+**Delivery**:
+What brings a damaged friendly zone's first damaged group back to full strength: a "Zone supplies"
+crate, CTLD troops, or a supply helicopter landed in the zone.
+
+**Task**:
+One of the few jobs the task board offers the players' side, drawn from the situation, with a map
+mark and a credit reward.
+
+**Reveal**:
+A while during which the players' side knows an enemy zone's garrison — by overflight, JTAC drone,
+bought intel or spy team; otherwise it reads "strength unknown".
+
 ## Script loading
 
 **Static loading**:

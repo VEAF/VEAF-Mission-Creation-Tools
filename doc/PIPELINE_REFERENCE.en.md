@@ -312,6 +312,7 @@ A waypoint has a **key** (`<WAYPOINT_NAME>`) and a `name:`. A plan refers to it 
 A plan lists its waypoints as a list of keys. The older mapping form — `HOLDING_POINT: "HOLDING_POINT"` — still loads, but **only its keys are read**: the value is ignored, so `POTI: "POTI_LOW"` flies to `POTI`. The build warns when a value names another waypoint.
 
 The build also appends a `BULLSEYE` waypoint, at the mission's own bullseye, to every flight plan: do not declare one.
+It stands on the ground (0 m above it, `RADIO`), where a targeting pod or a weapon slaved to the steerpoint looks; it was at 20,000 ft `BARO` until 2026-11-17.
 
 ### Matching priority
 

@@ -44,6 +44,10 @@ It works for any module of `modules:`, and for `SKYNET`, `CTLD` and `CSAR`.
 For `CTLD`, your scripts must then call `veaf.ctld_initialize()`, not CTLD v1's `ctld.initialize()`: it is what starts CTLD 2 with its menu and the airbase logistics; `convert v5` therefore never hands CTLD to the mission.
 `veaf.initialize()` skips such a module too, if your layer uses it.
 
+Also declare `initialized_by_mission` for a module one of whose functions your layer **overrides**.
+`veaf-config.lua` loads before your scripts: a module it starts calls the original function, with no error, before your override exists.
+Example: a layer that wraps `veaf.getCarrierATCdata` declares `CARRIER` with `initialized_by_mission: true`, then calls `veafCarrierOperations.initialize(true, false)` after its override (`false`: no operations loop).
+
 ## Functions a layer of your own can use {#functions}
 
 | need | v6 |
@@ -97,13 +101,13 @@ A layer that read CTLD v1's internals goes through its events and its managers:
 
 | CTLD v1 read | CTLD 2 |
 |---|---|
-| `ctld.builtFOBS`, `buildTimeFOB` | events `OnFOBDeployed`, `OnFOBDestroyed`; `CTLDFOBManager.getInstance():getFOBsForCoalition(coalition)`; the build delay is in `ctld-config.yaml` |
+| `ctld.builtFOBS`, `buildTimeFOB` | events `OnFOBDeployed`, `OnFOBDestroyed`; `CTLDFOBManager.getInstance():getFOBsForCoalition(coalition)`; building is a fixed 120 s scene, with no setting |
 | `ctld.pickupZones` | `CTLDZoneManager.getInstance():getTroopZonesForCoalition(coalition)`, `getTroopZoneAtPoint(point, coalition)`; event `OnTroopZoneUpdated` |
 | `ctld.logisticUnits` | `CTLDZoneManager.getInstance():getLogisticZonesForCoalition(coalition)`, `getLogisticZoneAtPoint(point, coalition)`; event `OnLogisticZoneUpdated` |
 | `ctld.completeAASystems` | events `OnAASystemDeployed`, `OnAASystemRepaired`, `OnAASystemRearmed` |
 | `ctld.addCallback` (player actions) | `EventDispatcher.getInstance():subscribe(name, callback)` on `OnTroopsDeployed`, `OnCrateLoaded`, `OnCrateUnpacked`, `OnVehicleLoaded`, `OnVehicleUnloaded`, `OnJTACSpawned`… |
 
-CTLD 2.0.0-rc13 publishes 47 events; their list is in `CTLD.lua` (`EventDispatcher:publish`).
+CTLD 2.1.0 publishes 51 events; their list is in `CTLD.lua` (`EventDispatcher:publish`).
 Each subscriber receives a table describing the action (`carrierUnitName`, `player`, `fob.name`…).
 VMCT adds no interface of its own until a BFR need is not covered by those events.
 

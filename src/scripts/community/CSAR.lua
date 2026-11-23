@@ -1147,6 +1147,14 @@ function csar.checkWoundedGroupStatus(_argument)
     end
 
     local _woundedLeader = _woundedGroup[1]
+    if _woundedLeader == nil then
+      -- VEAF: the survivor is gone, picked up or destroyed (an admin's `_destroy`): the KIA check below says
+      -- which to the helicopters and forgets him; indexing him raised (2026-11-16, CSAR.lua:1150 on Privé 1)
+      if _heliUnit ~= nil then
+        csar.checkGroupNotKIA(_woundedGroup, _woundedGroupName, _heliUnit, _heliName)
+      end
+      return
+    end
     local _lookupKeyHeli = _heliName .. "_" .. _woundedLeader:getID() --lookup key for message state tracking
 
     if _heliUnit == nil then

@@ -148,6 +148,7 @@ mission:
 | `name` | string | — | No | Mission name shown in menus and logs, **and the name of the built `.miz`** — see the naming note below |
 | `export_path` | string \| null | `null` | No | Override DCS Saved Games export path |
 | `era` | string | *inferred* | No | `MODERN` \| `COLD_WAR` \| `WW2` — affects available spawn groups. **When absent it is inferred at every build** from the base mission's content: a WW2 unit type or a year ≤ 1945 gives `WW2`, a year ≤ 1991 `COLD_WAR`, otherwise `MODERN` (`era_detector.py`). The inferred value is **not** written back into your `mission.yaml` — it is recomputed; set the key to pin it. |
+| `date_suffix` | boolean | `true` | No | `false`: the built `.miz` is `<name>.miz`, with no date — see the naming note below |
 | `silence_atc_on_all_airbases` | boolean | `false` | No | Mission-wide option: mute DCS ATC at every airbase (emits `veaf.silenceAtcOnAllAirbases()`). `convert-v5` migrates it from an active call and annotates its provenance |
 | `language` | string | *tools' language* | No | Language of in-game VEAF messages (`fr` \| `en`); emitted into `veaf-config.lua` as `veaf.config.language` and read by `veaf.t()`. When omitted, the build uses the tools' language (`--lang` > `VEAF_LANG` > user config > OS locale > `en`) |
 | `third_party_mods` | list of strings | `[]` | No | **Third-party** DCS mods (paid/community aircraft) to make **non-blocking**: their ids are removed from the `.miz`'s `requiredModules` table at build, so a pilot who does not own the mod can still **load** the mission (that slot is simply unavailable). The list is **unioned** with a VEAF default list covering the common mods (Hercules, UH-60L, A-4E-C, T-45, AM2, SU-30/FlankerEx, Bronco-OV-10A) — only declare mods not already handled. Not to be confused with VEAF *Modules* (the `modules:` block, which are capabilities, not DCS add-ons) |
@@ -159,6 +160,9 @@ mission:
 `mission.name` becomes the built file name: `<name>_<YYYYMMDD>.miz`, plus a `_<VARIANT>` suffix
 when [`build_variants:`](#build-variants) is used. Give a name ending in `.miz` instead and the
 name is taken **verbatim**, with no date.
+
+To keep the name in the mission folder without the date, set `date_suffix: false`: the build writes `<name>.miz`.
+A [persistent campaign](mission-maker/PERSISTENT_CAMPAIGN.en.md#mission-file) that names its file does this: a server that replaces the file at each redeploy keeps the same name.
 
 That matters because **server-side tooling reads the file name**. On the VEAF servers, the
 RealWeather extension of [DCSServerBot](https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot)
@@ -217,7 +221,8 @@ The VEAF Open Training missions open 5 slots per role and per side, with vehicle
 #### `forced_options`: the options enforced on every player {#forced-options}
 
 The editor's *Mission options* panel enforces some options on every player, whatever their own settings: labels, F10 map view, external views, wake turbulence…
-The block sets them at every build, in the mission's `forcedOptions` table:
+The block sets them at every build, in the mission's `forcedOptions` table.
+A mission created by VMCT already starts with civil traffic off, no birds and no random failures, as the VEAF Foothold missions; the block takes over those three too:
 
 ```yaml
 mission:
@@ -393,6 +398,12 @@ modules:
 | `spotter_radio_range_km` | number | `20` | How far one unit can relay, in kilometres |
 | `spotter_propagation_speed_kmh` | number | `3600` | How fast an alert crosses the network, in km/h (hop period = range / speed) |
 | `spotter_view` | `"off"` \| `"on"` \| `"radio"` | `"off"` | F10 map view of the spotter network; `"radio"` puts the switch in the F10 menu. Quote it: YAML reads a bare `on`/`off` as a boolean |
+| `last_line_of_defence` | boolean | `true` | A dark site keeps a short radius of its own and lights up inside it — see [Last line of defence](mission-maker/scripts/veafSkynetIadsHelper.en.md#last-line-of-defence) |
+| `last_line_of_defence_min_radius_km` | number | `10` | Lower bound of that radius, in kilometres |
+| `last_line_of_defence_max_radius_km` | number | `15` | Upper bound of that radius, in kilometres |
+| `last_line_of_defence_persistence_s` | number | `45` | How long the site stays lit after the last pass, in seconds |
+| `coverage_refresh_interval_s` | number | `10` | Interval between two sweeps of the coverage graph, in seconds (`0` = never) |
+| `setup_warnings_on_screen` | boolean | `false` | Show Skynet's set-up warnings on every player's screen. They always go to `dcs.log` |
 
 #### `modules.CSAR` fields
 
@@ -586,6 +597,8 @@ modules:
 | `SKYNET_MONITOR` | veafSkynetMonitor | — |
 | `I18N` | veafI18n | — |
 
+Keys specific to a module are described on its page. Two examples often looked for here: `WEATHER.welcomeBrief` turns off the welcome message on taking a slot ([Welcome brief on taking a slot](mission-maker/scripts/veafWeather.en.md#welcome-brief)); a combat zone's `radio_menu_coalition` chooses which side is offered its F10 menu ([Who is offered the F10 menu?](mission-maker/scripts/veafCombatZone.en.md#f10-menu-audience)).
+
 ---
 
 ### `modules.RADIO.user_menus` — F10 radio menus in YAML
@@ -650,7 +663,7 @@ See the respective module pages for full schema:
 ### `custom_scripts:` {#custom-scripts}
 
 Declares custom Lua scripts present in `src/scripts/` that are not part of the standard VEAF v6 set.  
-A declared script is included in the `.miz` **without** triggering a warning. By default a DCS load trigger is generated for it automatically; setting `generate_load_trigger: false` disables that trigger (useful when the script is loaded manually from `mission-script.lua`).
+A declared script is included in the `.miz` **without** triggering a warning. `validate` and the build check that it is valid Lua 5.1: DCS would otherwise refuse the whole file, with nothing on screen. By default a DCS load trigger is generated for it automatically; setting `generate_load_trigger: false` disables that trigger (useful when the script is loaded manually from `mission-script.lua`).
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|

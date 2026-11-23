@@ -254,7 +254,7 @@ veafRadio.addCommandToSubmenu("État du pont", menuPA, etatDuPont, "CVN-74")
 
 Les commandes `USAGE_ForAll` qu'il contient sont posées pour chacun de ces groupes, avec leurs paramètres inchangés.
 Un filtre qui lève une erreur cache le menu et laisse une ligne dans le journal ; il n'interrompt pas la reconstruction.
-Un quatrième argument restreint en plus le menu à une coalition.
+Un quatrième argument restreint en plus le menu à une coalition, à n'importe quelle profondeur : même placé sous un menu par pilote, un menu réservé aux bleus n'est jamais montré à un groupe rouge.
 
 ### Un sous-menu par pilote
 
@@ -272,6 +272,7 @@ end
 
 Un pilote seul dans son groupe reçoit les commandes directement, sans le niveau à son nom.
 Le menu accepte le même filtre de groupes que `addSubMenuForGroups`.
+Le sous-menu porte le nom que le hook serveur VEAF connaît pour le joueur ; sans ce hook, le nom du joueur dans DCS, et à défaut l'indicatif de l'unité.
 
 ### Les commandes suivent les pilotes présents
 
@@ -280,6 +281,21 @@ Quand un pilote quitte son slot, meurt, s'éjecte ou s'écrase, il est oublié, 
 Un message adressé à une unité qui n'existe plus n'est montré à personne, au lieu de partir vers tous les joueurs.
 
 ---
+
+## Retirer un menu racine {#remove-root-menu}
+
+Chaque module garde le menu qu'il pose à la racine dans une variable, sa **poignée** :
+`veaf.ctldRootPath` (CTLD), `veafAssets.rootPath`, `veafAssist.rootPath`, `veafCampaign.rootPath`, `veafCarrierOperations.rootPath`, `veafCasMission.rootPath`, `veafCombatMission.rootPath`, `veafCombatZone.rootPath`, `veafMissileGuardian.rootPath`, `veafMove.rootPath`, `veafNamedPoints.rootPath`, `veafOpposition.rootPath`, `veafSpawn.rootPath`, `veafTransportMission.rootPath`, `veafWeather.rootPath`.
+
+Pour retirer un de ces menus, passez sa poignée à `delSubmenu`, puis reconstruisez le menu :
+
+```lua
+veafRadio.delSubmenu(veaf.ctldRootPath)
+veafRadio.refreshRadioMenu()
+```
+
+Passez la poignée, pas le titre : `delSubmenu` accepte aussi un titre, mais le titre change avec la langue de la mission, et un titre qui ne correspond plus ne retire rien, sans erreur.
+Retirez le menu **après** que le module l'a construit : à son `initialize()`, ou à `veaf.ctld_initialize()` pour CTLD.
 
 ## API bas niveau
 

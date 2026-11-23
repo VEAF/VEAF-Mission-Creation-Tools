@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, NamedTuple
 
 import pytest
+from mission_briefing.mission_briefing_worker import briefing_files
 from objective_mission_fixture import objective_mission
 from offline import offline
 from veaf_mission_mcp.actions import register_default_actions
@@ -52,7 +53,7 @@ def built(tmp_path_factory: pytest.TempPathFactory) -> Built:
 def test_the_action_runs_through_the_catalog(built: Built) -> None:
     """The wiring, not the worker: what the assistant actually calls."""
     tmp_path, _, result = built
-    assert Path(result["deck"]) == tmp_path / "docs" / "briefing.pptx" and Path(result["deck"]).is_file()
+    assert Path(result["deck"]) == briefing_files(tmp_path)[0] and Path(result["deck"]).is_file()
     # with the flight plan's two step sheets (FEAT-OBJECTIVE-BRIEFING-QUALITY 05) and the combat area
     assert result["pages"] == 12
     assert [Path(path).name for path in result["maps"]] == ["overview.png", "combat-area.png", "objective-khobi.png"]
@@ -217,7 +218,7 @@ def test_kneeboard_only_with_sheets_writes_the_kneeboard_alone(catalog: ActionCa
     assert result["deck"] is None and result["pdf"] is None
     assert result["pictures"] == [] and result["maps"] == []
     assert result["kneeboard"][:3] == ["01-briefing-sheet-1.jpg", "02-briefing-sheet-2.jpg", "03-briefing-overview.jpg"]
-    assert not (tmp_path / "docs" / "briefing.pptx").exists()
+    assert not list((tmp_path / "docs").glob("*briefing.pptx"))
 
 
 def test_the_sheets_are_checked_for_accents(catalog: ActionCatalog, tmp_path: Path) -> None:
@@ -229,3 +230,15 @@ def test_the_sheets_are_checked_for_accents(catalog: ActionCatalog, tmp_path: Pa
         "build_mission_briefing", {"mission_path": str(tmp_path), **PARAMS, "kneeboard_only": True, "sheets": sheets}
     )
     assert any(warning.startswith("sheet Conduite:") and "accent" in warning for warning in result["warnings"])
+
+
+def test_the_language_reaches_the_worker_and_the_schema_declares_it(catalog: ActionCatalog, tmp_path: Path) -> None:
+    """FEAT-BRIEFING-PER-LANGUAGE 01: the demo mission looks for `"language"` in the schema before passing it."""
+    schema = catalog.describe_action("build_mission_briefing").parameters_schema
+    assert schema["properties"]["language"]["enum"] == ["fr", "en"]
+    objective_mission(tmp_path)
+    result = catalog.run_action(
+        "build_mission_briefing", {"mission_path": str(tmp_path), **PARAMS, "language": "en", "kneeboard_only": True}
+    )
+    assert result["archives"] == []
+    assert any("No built mission in English" in warning for warning in result["warnings"])

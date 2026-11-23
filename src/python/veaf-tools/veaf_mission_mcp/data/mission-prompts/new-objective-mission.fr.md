@@ -253,6 +253,7 @@ validé un scénario, pas un à-peu-près.
   **Avec des hélicoptères, peu de turbulence et un vent modéré** — sur le vent que DCS *simule*, pas sur le réglage. `set_weather` prend le vent voulu à 10 m au-dessus d'un terrain de référence et écrit le réglage qui le donne ; sa réponse (`simulated_wind`, et `inspect_built_mission` après le build) donne le vent par couche. La règle : de 0 à 600 m au-dessus de chaque départ, objectif et point de route des hélicos, le vent simulé reste à 20 kt au plus, et pas plus de 15 kt au-dessus du vent au sol à cet endroit — `set_weather`, `inspect_built_mission` et `veaf-tools dcs mission-check` alertent sinon. Turbulence proche de 0. Le 29/10/2026, la météo réelle a rendu les AH-64 de *Marteau du Golan* presque impilotables ; le 31/10, 17 kt réglés au sol sont devenus 24 kt au sol et 36 kt à 1 000 ft.
   **Le vent du briefing est le vent simulé**, lu couche par couche dans la réponse de `set_weather` ou d'`inspect_built_mission` — jamais le réglage recopié. Une rotation du vent en altitude se règle avec `wind_veer` (30° au plus), jamais avec un vent d'altitude opposé à celui du sol : DCS fait entre les deux une couche sans vent.
 - **Langue** : `mission.language: fr` et briefing en français, sauf mention contraire.
+  **Mission bilingue** (`build_variants` avec un profil FR et un profil EN) : après chaque build, appelle `build_mission_briefing` une fois dans la langue de la mission, puis une fois par autre langue avec `language` (`fr`, `en`) et les mots du scénario traduits. Chaque appel n'écrit que les `.miz` de sa langue ; celui dans une autre langue que la mission laisse le dossier et son deck tels quels et écrit `docs/<mission>_briefing.<langue>.pptx` et `docs/maps/<langue>/`.
 - `silence_atc_on_all_airbases: true`.
 - **Sécurité** : explique-la avant de demander, l'utilisateur ne peut pas choisir sans.
   Elle verrouille les commandes F10 et par marqueur sensibles : spawn, téléportation, destruction.
@@ -466,7 +467,7 @@ Point d'étape bref après chaque étape : ce qui est fait, pas ce que tu t'appr
 - **La fiche Mission Maker** (`docs/fiche-mission-maker.md`), séparée du briefing : ce que la mission fait toute seule ; chaque commande F10 qui lui revient avec son **chemin exact** (« VEAF > ZONES DE COMBAT > Batterie SA-6 > Désactiver la zone ») et son effet ; un tableau « selon qui est là » (personne en BARCAP, personne en SEAD, moins de 6 pilotes, beaucoup de pilotes) ; ce qu'il faut vérifier avant la soirée.
   Ne présente une commande comme vérifiée que si elle l'a été en jeu.
 
-- **PPTX et PDF** dans `docs/` (`docs/briefing.pptx`, `docs/briefing.pdf`), le modèle
+- **PPTX et PDF** dans `docs/` (`docs/<mission>_briefing.pptx`, `docs/<mission>_briefing.pdf`), le modèle
   de la section 3, page pour page ; le PPTX est la source de la version **Google Slides** (import dans
   Drive). Garde des polices que Slides connaît (Calibri, Cambria, Arial), et regarde le rendu converti
   s'il est déposé.
@@ -488,7 +489,7 @@ Point d'étape bref après chaque étape : ce qui est fait, pas ce que tu t'appr
   les cockpits (le plan de fréquences), coordonnées de chaque cible posée et altitude du sol dessous —
   sans grille d'altitude pour le théâtre, la colonne reste vide et l'action le signale : c'est un
   point ouvert. Lis ses `warnings`.
-- **Le PDF** (`docs/briefing.pdf`) est écrit par la même action, avec les pages, les cartes et les mots
+- **Le PDF** (`docs/<mission>_briefing.pdf`) est écrit par la même action, avec les pages, les cartes et les mots
   du deck, quoi que le PC contienne : n'installe rien et n'écris aucun convertisseur (une IA qui a
   installé LibreOffice par `winget` a perdu quinze minutes et laissé une installation à moitié faite).
   Sa mise en page est la sienne (DejaVu Sans, pas Calibri) et une page dont le texte déborde en fait une

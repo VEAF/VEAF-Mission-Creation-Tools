@@ -185,6 +185,7 @@ def build_briefing(params: dict[str, Any]) -> dict[str, Any]:
         recon_folder=Path(params["recon_folder"]) if params.get("recon_folder") else None,
         kneeboard_replace=params.get("kneeboard_replace") is True,
         kneeboard_only=params.get("kneeboard_only") is True,
+        language=str(params["language"]) if params.get("language") else None,
     )
     return {
         "deck": str(report.deck) if report.deck else None,

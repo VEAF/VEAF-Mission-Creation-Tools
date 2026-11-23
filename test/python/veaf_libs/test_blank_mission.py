@@ -104,6 +104,17 @@ class TestGenerateBlankMission:
         assert list(mission.iter_groups()) == []
 
 
+def test_a_new_mission_switches_off_civil_traffic_birds_and_random_failures() -> None:
+    """As the Foothold missions: something VEAF always switches off (David, 2026-11-16)."""
+    text = blank_mission.generate_blank_mission("caucasus")["mission"].decode("utf-8")
+    block = text[text.index('["forcedOptions"]') :]
+    block = block[: block.index("}")]
+
+    assert '["civTraffic"] = ""' in block
+    assert '["birds"] = 0' in block
+    assert '["accidental_failures"] = false' in block
+
+
 def test_a_theatre_typed_in_any_case_gets_its_dcs_spelling() -> None:
     from veaf_libs.blank_mission import canonical_theatre_name
 

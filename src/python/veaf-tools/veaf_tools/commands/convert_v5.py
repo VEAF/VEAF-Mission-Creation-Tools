@@ -2,6 +2,7 @@ from pathlib import Path
 
 import typer
 from mission_builder import PIPELINE_CANDIDATES, ConversionReport, V5Converter, promote_mission_to_v6
+from mission_builder.v5_converter import PathTooLongError
 from rich.table import Table
 from veaf_libs.paths import resolve_path
 
@@ -92,13 +93,20 @@ def convert_v5(
             )
         return _icao_value
 
-    report: ConversionReport = converter.convert(
-        mission_folder=p_folder,
-        overwrite_mission_yaml=overwrite_yaml,
-        backup=not no_backup,
-        convert_pipeline=not no_convert_pipeline,
-        icao_callback=icao_cb if not no_convert_pipeline else None,
-    )
+    try:
+        report: ConversionReport = converter.convert(
+            mission_folder=p_folder,
+            overwrite_mission_yaml=overwrite_yaml,
+            backup=not no_backup,
+            convert_pipeline=not no_convert_pipeline,
+            icao_callback=icao_cb if not no_convert_pipeline else None,
+        )
+    except PathTooLongError as too_long:
+        # Refused before anything was written (#1301): the folder is still the v5 mission.
+        console.print(
+            f"[bold red]{t('convert_v5.command.path_too_long', path=too_long.path, length=too_long.length, limit=too_long.limit)}[/bold red]"
+        )
+        raise typer.Exit(code=1) from None
 
     # ── Console output ────────────────────────────────────────────────────────
     console.print(f"\n[bold cyan]{t('convert_v5.command.folder_label')}[/bold cyan] {p_folder}")
@@ -221,7 +229,16 @@ def convert_v5(
     if not no_promote:
         report.promotion_attempted = True
         console.print(f"[bold cyan]{t('convert_v5.promote.start')}[/bold cyan]")
-        promotion = promote_mission_to_v6(p_folder, version=VERSION, silent=True)
+        try:
+            promotion = promote_mission_to_v6(p_folder, version=VERSION, silent=True)
+        except OSError as error:
+            # A copy that fails half-way (a path too long for Windows, a locked file) used to end in a
+            # traceback after mission.yaml was written, and the folder then built as if converted
+            # (#1301). Remove the marker this run wrote; the build refuses backup_v5/ without it.
+            if report.mission_yaml_generated and not report.mission_yaml_existed:
+                (p_folder / "mission.yaml").unlink(missing_ok=True)
+            console.print(f"[bold red]{t('convert_v5.command.promotion_failed', error=error)}[/bold red]")
+            raise typer.Exit(code=1) from None
         if promotion.promoted:
             backup_rel = (
                 promotion.backup_path.relative_to(p_folder)

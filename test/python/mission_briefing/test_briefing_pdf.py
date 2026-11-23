@@ -68,7 +68,7 @@ def report(folder: Path):
 
 
 def test_the_briefing_gives_a_pdf_beside_the_deck(report, folder: Path) -> None:
-    assert report.pdf == folder / "docs" / "briefing.pdf"
+    assert report.pdf == report.deck.with_suffix(".pdf")
     assert report.pdf.read_bytes().startswith(b"%PDF")
     assert report.pdf_pages >= report.pages
     assert len(PdfReader(str(report.pdf)).pages) == report.pdf_pages
@@ -101,6 +101,25 @@ def test_a_page_with_a_map_carries_its_image(tmp_path: Path) -> None:
     assert "Détruire le nœud." in reader.pages[1].extract_text()
 
 
+def test_a_legend_dot_is_drawn_in_its_owner_colour(tmp_path: Path) -> None:
+    """David, 2026-11-17: the "Tenu par les bleus / rouges / Neutre" dots of the dossier's maps were all black."""
+    from campaign_manager.briefing_deck import map_notes
+    from campaign_manager.strategic_map import OWNER_COLOURS, MapReport
+
+    image = tmp_path / "map.png"
+    Image.new("RGB", (300, 200), (200, 220, 200)).save(image)
+    out = tmp_path / "legend.pdf"
+    notes = map_notes(MapReport(path=image, offline=False))
+    write_pdf(out, Cover("T", "S", "D", "Sommaire", ["1. Carte"]), [MapSheet("1. Carte", image, notes)])
+    stream = PdfReader(str(out)).pages[1].get_contents().get_data().decode("latin-1")
+    fills = {
+        tuple(round(float(value) * 255) for value in match)
+        for match in re.findall(r"([\d.]+) ([\d.]+) ([\d.]+) rg", stream)
+    }
+    for owner in ("blue", "red", "neutral"):
+        assert OWNER_COLOURS[owner] in fills, owner
+
+
 def test_a_very_long_paragraph_runs_on_to_a_new_page_instead_of_overflowing(tmp_path: Path) -> None:
     from campaign_manager.briefing_deck import Block, Page
 
@@ -111,3 +130,40 @@ def test_a_very_long_paragraph_runs_on_to_a_new_page_instead_of_overflowing(tmp_
     pages = write_pdf(out, Cover("T", "S", "D", "Sommaire", []), [page])
     assert pages > 2
     assert "Ligne 119" in _pdf_text(out)
+
+
+def test_the_pdf_has_a_bookmark_per_section_and_opens_on_them(tmp_path: Path) -> None:
+    """David, 2026-11-17: a table of contents in the viewer's bookmarks; a page that runs on gets none of its own."""
+    from campaign_manager.briefing_deck import Block, Page
+    from veaf_libs.i18n import language, t
+
+    image = tmp_path / "map.png"
+    Image.new("RGB", (300, 200), (200, 220, 200)).save(image)
+    out = tmp_path / "toc.pdf"
+    with language("fr"):
+        write_pdf(
+            out,
+            Cover("OPÉRATION X", "Sous-titre", "17/11/2026", "Sommaire", ["1. Situation", "2. Carte"]),
+            [
+                Page("1. Situation", [Block(None, ("Texte.",))]),
+                Page(t("campaign.deck.continued", title="1. Situation"), [Block(None, ("Suite.",))]),
+                MapSheet("2. Carte", image, []),
+            ],
+        )
+    reader = PdfReader(str(out))
+    assert [item.title for item in reader.outline] == ["OPÉRATION X", "1. Situation", "2. Carte"]
+    assert reader.page_mode == "/UseOutlines"
+
+
+def test_a_page_s_foot_note_stays_on_its_page(tmp_path: Path) -> None:
+    """The dossier's air-defence note went alone on a page of its own (David, 2026-11-17)."""
+    from campaign_manager.briefing_deck import Block, Page
+
+    out = tmp_path / "note.pdf"
+    pages = write_pdf(
+        out,
+        Cover("T", "S", "D", "Sommaire", []),
+        [Page("1. Défenses", [Block("Ennemies", ("Hama : probable.",))], note="Cercles : portée estimée à 75 km.")],
+    )
+    assert pages == 2
+    assert "Cercles" in PdfReader(str(out)).pages[1].extract_text()

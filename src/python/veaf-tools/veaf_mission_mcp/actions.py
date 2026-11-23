@@ -1799,10 +1799,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ActionSpec(
             name="campaign_briefing",
             description=(
-                "Write the coming mission's strategic briefing deck (missions/mission-NN/"
-                "briefing-campagne.pptx, VEAF briefing template, imports into Google Slides) and its "
+                "Write the coming mission's strategic briefing deck (missions/mission-NN/<operation>_mission-NN_"
+                "briefing-campagne.pptx and its PDF, VEAF briefing template, imports into Google Slides) and its "
                 "strategic map; once the mission is BUILT (a .miz in missions/mission-NN/mission), also its "
-                "own MISSION briefing (briefing-mission.pptx, returned in `mission_deck`): general "
+                "own MISSION briefing (<operation>_mission-NN_briefing-mission.pptx, returned in `mission_deck`): general "
                 "situation, ATO, tactical map and one zoom per objective, mission flow, frequency plan, "
                 "objective coordinates -- read from the built mission (flights, support, carrier, QRA, "
                 "date, time, weather), so build first, and call it again after any change to the mission. "
@@ -2207,7 +2207,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ActionSpec(
             name="build_mission_briefing",
             description=(
-                "WRITE a one-shot mission's VEAF BRIEFING with no script: docs/briefing.pptx (the objective "
+                "WRITE a one-shot mission's VEAF BRIEFING with no script: docs/<mission>_briefing.pptx (the objective "
                 "mission template, page for page, in the mission's language; Drive imports it into Google "
                 "Slides), docs/maps/ (an overview and one zoom per objective, on OpenStreetMap or OpenTopoMap "
                 "tiles, plus a COMBAT AREA map framed on the objectives and threats), and the same maps as the DCS "
@@ -2230,14 +2230,18 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "pitch?, x?, y?, altitude_m?, order?} goes after its objective's zoom, two to a slide and to a "
                 "kneeboard page, captioned; the result's recon lists them. "
                 "Call it again after any change and a rebuild: it replaces its own pictures. It writes "
-                "docs/briefing.pdf too (the deck's pages and words, its own layout, no Office needed; pdf_pages) "
+                "docs/<mission>_briefing.pdf too (the deck's pages and words, its own layout, no Office needed; pdf_pages) "
                 "and warns about a W<n> the route does not carry, and about French text written without its "
                 "accents. When mission.yaml declares an operation, its tasks are the main objectives, the other "
                 "objectives secondary, and a chained zone (a counter-attack) is in neither list. With flights, the "
                 "frequency plan and the kneeboard flight card are those of the aircraft the flights fly, one block "
                 "per radio plan. map_offline = no tiles could be downloaded. KNEEBOARD ONLY (kneeboard_only): the "
                 "kneeboard and nothing else, for an Open Training; sheets of free text (title + paragraphs) come first "
-                "in the kneeboard, in either mode."
+                "in the kneeboard, in either mode. BILINGUAL MISSION (build_variants with a FR and an EN profile): "
+                "after every build, call it once in the mission's language, then once per other language with "
+                "`language` and the words in that language; each call writes only the .miz of its language (read "
+                "from their veaf-config.lua), and a call in another language than the mission's leaves the folder "
+                "and the mission's deck alone (docs/<mission>_briefing.<language>.pptx, docs/maps/<language>/)."
             ),
             parameters_schema={
                 "type": "object",
@@ -2452,6 +2456,16 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         ),
                     },
                     "side": {"type": "string", "enum": ["blue", "red"], "description": "The players' side."},
+                    "language": {
+                        "type": "string",
+                        "enum": ["fr", "en"],
+                        "description": (
+                            "The briefing's language, the mission's (mission.language) when omitted: the deck, the "
+                            "maps and the kneeboard are written in it, and only the built .miz of that language "
+                            "(veaf.config.language of their veaf-config.lua) get its pages. In another language than "
+                            "the mission's, src/mission/ and the mission's deck are left alone."
+                        ),
+                    },
                 },
                 "required": ["mission_path", "title"],
             },

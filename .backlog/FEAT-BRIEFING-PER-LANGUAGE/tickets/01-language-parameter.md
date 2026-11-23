@@ -1,6 +1,6 @@
 # 01 — A `language` parameter, writing only the archives of that language
 
-Status: ⬜ ready
+Status: ✅ done
 
 `build_mission_briefing` gains an optional `language` (`fr`, `en`), defaulting to the mission's (`mission.language` of `mission.yaml`, as today).
 
@@ -15,3 +15,7 @@ The order a bilingual mission follows is then: build, then one call in the missi
 Tests: two calls on a folder holding a French and an English variant → each archive carries its own language's pages (read back from the JPEG members or the deck's text), the folder's pages are the mission's language, the second call removes no page of the first; a call in a language no archive has warns and writes nothing into an archive.
 
 Done when: the tests pass, the action's schema and description say it, the catalogue page (`doc/mission-maker/AI_ASSISTANT_CATALOG*.md`, `#mission-briefing`) and the objective prompt say how to brief a bilingual mission, and the demo mission's batch (VEAF/VEAF-Demo-Mission-v6, `tools/batches/11-briefing.json`) runs as it is.
+
+Delivered (2026-11-23): as written, with two differences from the text above.
+The deck has been named after the mission since 2026-11-17, so the other language's deck is `docs/<mission>_briefing.<language>.pptx` (and `.pdf`).
+Its maps go into `docs/maps/<language>/` rather than `docs/maps/*.<language>.png`: the file names stay those of the mission's language, so an archive's pictures keep their names and `mapResource` keys in both languages.

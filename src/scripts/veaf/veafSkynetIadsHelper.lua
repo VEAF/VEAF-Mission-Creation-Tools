@@ -123,6 +123,11 @@ veafSkynet.LastLineOfDefencePersistence = 45
 --- Seconds between two sweeps of the radar coverage graph. Zero switches the sweep off.
 veafSkynet.CoverageRefreshInterval = 10
 
+--- Whether Skynet's set-up warnings ("WARNING: ..." for a group it cannot find, among others) are
+--- shown on screen. Skynet shows them to **every** player for 4 s, so on a PvE server a red site's name
+--- reached the blue players (#1296). Off by default; the warnings always go to dcs.log.
+veafSkynet.SetupWarningsOnScreen = false
+
 veafSkynet.SkynetElementStates = {
   Autonomous = 0,
   Live = 1,
@@ -1701,6 +1706,26 @@ local function initializeIADS(networkName, coa, inRadio, debug)
   veafSkynet.delayedActivate(networkName)
 end
 
+--- Sets where Skynet's set-up warnings go, on a freshly created IADS (#1296).
+--
+-- @param iads table the Skynet IADS just created
+function veafSkynet.applySetupWarningsSettings(iads)
+  local logger = iads and iads.logger
+  if not logger or not logger.debugOutput or not logger.printOutput then
+    return
+  end
+  logger.debugOutput.warnings = veafSkynet.SetupWarningsOnScreen == true
+  -- An instance field shadows the class method: every warning reaches dcs.log, then Skynet's own
+  -- printOutput decides about the screen from the flag set above.
+  local printOutput = logger.printOutput
+  logger.printOutput = function(self, output, typeWarning)
+    if typeWarning == true then
+      veaf.loggers.get(veafSkynet.Id):warn("Skynet: %s", veaf.lp(output))
+    end
+    return printOutput(self, output, typeWarning)
+  end
+end
+
 --- Hand the Skynet 3.5.0 settings to a freshly created IADS, and check they were taken.
 --
 -- Called at creation rather than at initialization: `setLastLineOfDefenceRadius` clears every radius
@@ -1800,6 +1825,7 @@ local function createNetwork(networkName, coa, loadUnits, UserAdd)
       local iads = SkynetIADS:create(networkName)
       iads.coalitionID = coa
       if iads then
+        veafSkynet.applySetupWarningsSettings(iads)
         veafSkynet.applyLastLineOfDefenceSettings(iads, networkName)
         if not veafSkynet.structure[networkName] then
           veaf.loggers.get(veafSkynet.Id):trace("network is new")

@@ -42,7 +42,7 @@ def test_its_briefing_deck_generates_from_a_fresh_copy(tmp_path: Path) -> None:
         t("campaign.issue.no_built_mission", folder=worker.mission_folder(1) / "mission")
     ]
     assert report is not None and report.prose
-    assert report.path == folder / "missions" / "mission-01" / "briefing-campagne.pptx"
+    assert report.path == folder / "missions" / "mission-01" / "Cote-d-Ebene_mission-01_briefing-campagne.pptx"
 
 
 def test_the_example_is_valid_without_a_single_warning() -> None:
@@ -83,3 +83,65 @@ print(#veafCampaign.zoneList, drawn, #dcs_mocks.groupsAdded > 0)
     assert result.returncode == 0, result.stderr
     # every zone but neutral Poti draws its starting garrison with the real CAS generators
     assert result.stdout.split() == ["12", "11", "true"]
+
+
+PERSISTENT = REPO / "src" / "defaults" / "campaign-folder-persistent"
+
+
+def test_the_persistent_example_is_valid_without_a_single_warning() -> None:
+    campaign, issues = load_campaign(PERSISTENT / CAMPAIGN_FILE)
+    assert issues == []
+    assert campaign is not None
+    assert (campaign.mode, len(campaign.zones)) == ("persistent", 11)
+    assert {zone.name: zone.kind for zone in campaign.zones if zone.kind} == {
+        "Ozurgeti": "factory",
+        "Supsa": "depot",
+        "Samtredia": "depot",
+        "Tkibuli": "factory",
+    }
+
+
+def test_the_persistent_example_starts_asleep_with_its_live_play(tmp_path: Path) -> None:
+    shutil.copy(PERSISTENT / CAMPAIGN_FILE, tmp_path / CAMPAIGN_FILE)
+    template = tmp_path / "template"
+    for relative, content in generate_blank_mission("Caucasus").items():
+        path = template / "src" / "mission" / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+    (template / "mission.yaml").write_text("mission:\n  name: Georgian Front\n", encoding="utf-8")
+    worker = CampaignWorker(tmp_path)
+    assert worker.init() == []
+    issues, report = worker.next()
+    # a blank template has no AWACS nor tanker yet: said, and nothing else (FEAT-DYNAMIC-CAMPAIGN ticket 20)
+    assert [issue.message for issue in issues] == [
+        t("campaign.issue.support_asset_missing", name=name, template="template")
+        for name in ("AWACS Magic", "Tanker Arco", "Tanker Texaco")
+    ]
+    assert report is not None
+    data = yaml.safe_load((report.folder / DATA_FILE).read_text(encoding="utf-8"))
+    lua = generate_config_lua({"lua_modules": {"CAMPAIGN": {"enable": True}}}, campaign_data=data)
+    data_line = next(line for line in lua.splitlines() if "veafCampaign.data = " in line)
+    src = (REPO / "src" / "scripts" / "veaf").as_posix()
+    mocks = (REPO / "test" / "lua").as_posix()
+    result = run_lua(
+        f"""
+dofile("{mocks}/dcs_mocks.lua")
+for _, m in ipairs({{"veaf","veafI18n","veafScheduler","veafMath","veafGeo","veafMissionDb","veafDcsSpawner",
+  "dcsUnits","veafUnits","veafCasMission","veafEventHandler","veafRadio","veafNamedPoints"}}) do dofile("{src}/" .. m .. ".lua") end
+veafAircraftSpawn = {{ roles = {{}} }}
+for _, m in ipairs({{"veafCampaign","veafCampaignOps","veafCampaignEconomy","veafCampaignLogistics"}}) do dofile("{src}/" .. m .. ".lua") end
+Airbase.getByName = function(name) return {{ getPoint = function() return {{ x = 1, y = 0, z = 2 }} end, getID = function() return 1 end }} end
+{data_line.strip()}
+assert(veafCampaign.initialize())
+local drawn = 0
+for _, zone in ipairs(veafCampaign.zoneList) do
+  if zone.entry.garrison then drawn = drawn + 1 end
+end
+print(#veafCampaign.zoneList, drawn, #dcs_mocks.groupsAdded, veafCampaignEconomy.credits, #veafCampaign.beatHooks,
+  #dcs_mocks.staticsAdded, veafCampaignLogistics.stock("red"))
+"""
+    )
+    assert result.returncode == 0, result.stderr
+    # ten garrisons drawn, none spawned (every zone asleep), the logistics, the sorties and the economy
+    # started; the two factories' and the two depots' buildings are in the world, statics that cost no AI
+    assert result.stdout.split() == ["11", "10", "0", "500", "3", "12", "1000"]

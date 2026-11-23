@@ -4,10 +4,6 @@
 
 Lots written up and ready to take.
 
-### [FEAT-BRIEFING-PER-LANGUAGE](FEAT-BRIEFING-PER-LANGUAGE/PRD.md) · ⬜
-
-A `language` parameter for `build_mission_briefing`, writing only the archives of that language, so a bilingual mission (the demo's `_FR` and `_EN`) gets its briefing and kneeboard pages in each language. One ticket; asked from the demo's kneeboard step (2026-10-26).
-
 ### [FEAT-CLEAR-GROUND-COVERAGE](FEAT-CLEAR-GROUND-COVERAGE/PRD.md) · ⬜
 
 Widen the shipped clear-ground catalogues to the places missions are built — round airfields, towns, road axes — under a weight ceiling per theatre. Needs a survey flown in DCS, so David's time; split from FIX-DEMO-VIDEO-FINDINGS (2026-10-23).
@@ -23,3 +19,5 @@ Claude acting in a running mission while the squadron flies — spawn, destroy, 
 ### [POC-DCS-DYNAMIC-WEATHER](POC-DCS-DYNAMIC-WEATHER/PRD.md) · ⬜
 
 Measure DCS's dynamic weather on our server before using it in persistent campaigns: does it change during a mission, do clients see the same, what a restart gives. A test mission flown by two clients on Privé 2; answers go to the DCS traps and the campaign page. Until then, persistent campaigns take the bot's real weather (David, 2026-11-17).
+
+

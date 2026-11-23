@@ -248,7 +248,7 @@ class TestAtoSupport:
         (support,) = [table for table in page.tables if table.heading == "Moyens de soutien"]
         assert support.columns[-1] == "Niveau"
         assert support.rows == (
-            ("Texaco 1-1", "ravitailleur", "KC-135", "290.1 MHz", "60Y", "FL180"),
+            ("Texaco 1-1", "ravitailleur (boom)", "KC-135", "290.1 MHz", "60Y", "FL180"),
             ("Abu Nada", "JTAC", "Code 1511", "FM 35.55", "—", "—"),
         )
 

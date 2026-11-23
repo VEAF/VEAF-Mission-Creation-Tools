@@ -39,8 +39,8 @@ Caucasus/
     ├── mission-01/
     │   ├── mission/         the mission folder of mission 1
     │   ├── mission-01.state the state file the mission wrote
-    │   ├── briefing-campagne.pptx / carte-strategique.png
-    │   ├── briefing-mission.pptx / carte-tactique.png / zoom-<zone>.png
+    │   ├── <operation>_mission-NN_briefing-campagne.pptx / .pdf / carte-strategique.png
+    │   ├── <operation>_mission-NN_briefing-mission.pptx / .pdf / carte-tactique.png / zoom-<zone>.png
     │   ├── debriefing.fr.txt / debriefing.en.txt
     │   ├── campaign-state.before.yaml
     │   └── campaign-state.after.yaml
@@ -139,10 +139,33 @@ A size class is a set of parameters of the CAS generators: the garrison has as m
 
 | shipped class | `size` | `defense` | `armor` | long-range SAM | units (average, min – max) |
 |---|---|---|---|---|---|
-| `outpost` | 1 | 1 | 1 | no | 23 (12 – 36) |
-| `airfield` | 1 | 3 | 2 | yes | 51 (35 – 74), of which ≈ 20 for the SAM |
+| `outpost` | 1 | 3 | 1 | no | not measured yet (23, from 12 to 36, at defence 1) |
+| `airfield` | 1 | 5 | 2 | no | not measured yet (≈ 31 at defence 3) |
 
-Measured over 40 draws on 2026-10-06; the example campaign thus has about 470 ground units.
+The figures in brackets come from 40 draws on 2026-10-06, before the air defence went up.
+Since 2026-11-18 an airfield draws an air defence group of level 4 or 5 (SA-8, SA-15, Tunguska in the modern era; since 2026-11-22, a Tor M2 in place of an SA-15 and a Pantsir in place of a Tunguska one time in two) — **a single one** since 2026-11-19: two groups of level 5 gave Aleppo 32 units and 121 missiles — and an outpost one group of about level 3 (Strela-10, Strela-1); before, an airfield had only short-range infrared SAMs and an outpost a Shilka.
+A campaign that wants a lighter defence lowers it with `size_classes:`, for instance `airfield: { defense: 3 }`.
+
+A long-range SAM belongs to a zone, not to its class: `long_range_sam: true` on the zone adds the battery (about 20 units) to its garrison.
+Until 2026-11-17 every airfield zone drew one, and on the first evening of a persistent campaign two SA-5 17 nautical miles apart covered the whole front.
+`campaign validate` refuses more than `long_range_sams.per_side` (2) zones of a side with one, and two of a side closer than `long_range_sams.min_spacing` (120 km); keep them for the key points of the network.
+
+```yaml
+long_range_sams: { per_side: 2, min_spacing: 120000 }
+zones:
+  - { name: Kutaisi, at: { airfield: Kutaisi }, size: airfield, side: red, long_range_sam: true }
+```
+
+A medium-range SAM is added the same way, with `medium_range_sam: true` on the zone (or on a size class): an SA-11, an SA-6 or an SA-3 for red in the modern era, an SA-6 or an SA-3 in the cold war; a Hawk or a NASAMS for blue, a Hawk in the cold war.
+Red had none before 2026-11-22: short range everywhere, and one long-range battery where a zone asks for it.
+`campaign validate` refuses more than `medium_range_sams.per_side` (3) per side, and two of a side closer than `medium_range_sams.min_spacing` (60 km); both values are estimates, to tune after an evening.
+A zone may have both batteries.
+
+```yaml
+medium_range_sams: { per_side: 3, min_spacing: 60000 }
+zones:
+  - { name: Hama, at: { airfield: Hama }, size: airfield, side: red, medium_range_sam: true }
+```
 
 `size` runs from 1 to 5, `defense` and `armor` from 0 to 5, as for a `_cas` marker.
 A new class must set `size`, `defense` and `armor`.
@@ -175,7 +198,7 @@ Its side is told it leaves and sees its axis on the F10 map at once: a line in i
 The other side hears of it as intelligence `rules.intel_seconds` later (1,200 s, 20 minutes, by default; 0: at once): the message ("an enemy column is leaving Senaki towards Poti") and the same line on its map come together, and a convoy destroyed before then is never reported.
 Once there, it holds the zone like any ground unit and takes it after `capture_seconds`: its survivors in the zone become the garrison, with no second draw from the reserve.
 The units that took the zone are the ones that become its garrison: "in the zone" is what DCS's search over the zone's circle finds, which reaches a few percent beyond its radius — a convoy halted right at the edge, 2,040 m from the centre of a 2,000 m zone, takes it and keeps it.
-Blue players also send them from the **Campaign → Assaults** menu, from a blue zone to a neighbour that is not, at the mission's security level.
+Blue players also send them from the **Campaign → Assaults** menu, from a blue zone to a neighbour that is not, at the mission's security level; in a [persistent campaign](PERSISTENT_CAMPAIGN.en.md#shop) it is a purchase in credits, open to every pilot.
 `rules.assault_convoys: false` turns the rule off; the menu stays.
 
 ## The state file {#state-file}
@@ -264,7 +287,7 @@ The DCS briefing shows the mission's date, time and weather; the mission briefin
 
 A DCSServerBot server with RealWeather or MizEdit active **replaces the date, time and weather** of every mission it serves, a campaign's included: on *Kolkhida*, mission 1 flew on 8 October, under Kutaisi's sky capped at 3,000 m, instead of the CAVOK 1 June the briefing announced.
 An `ICAO_xxxx` suffix in a mission's name only picks the weather station: without it, the bot takes the one of its own configuration.
-That is why `campaign next` names the mission `Campaign_<campaign>_Mission_<NN>_<title>_NoMizedit` (see [what `campaign next` sets](#squadron-settings)).
+That is why `campaign next` names the mission `Campaign_<campaign>_Mission_<NN>_<title>_NoMizedit` (see [what `campaign next` sets](#squadron-settings)); a [persistent campaign](PERSISTENT_CAMPAIGN.en.md#build), whose weather the server sets, does not.
 What to ask of the server's administrators, on the instance serving the campaign: that **MizEdit skip every mission whose name contains `_NoMizedit`** (`filter: '^(?!.*_NoMizedit)'`), and that **RealWeather be switched off at the instance level**, where it has no filter — the MizEdit preset keeps applying it to the other missions.
 The build appends its date after the name (`…_NoMizedit_20261015.miz`): the filter looks for the marker anywhere.
 
@@ -272,7 +295,7 @@ The build appends its date after the name (`…_NoMizedit_20261015.miz`): the fi
 
 On every run, `campaign next` writes into the mission's `mission.yaml`:
 
-- **its name**, `Campaign_<campaign>_Mission_<NN>_<title>_NoMizedit`: the title is the mission's in `briefing.yaml`, once designed, in ASCII letters, digits and dashes; no title yet, no title part. The name never contains `ICAO_`.
+- **its name**, `Campaign_<campaign>_Mission_<NN>_<title>_NoMizedit`: the title is the mission's in `briefing.yaml`, once designed, in ASCII letters, digits and dashes; no title yet, no title part. The name never contains `ICAO_`. A persistent campaign can fix it, with no date, with [`mission_file`](PERSISTENT_CAMPAIGN.en.md#mission-file).
 - **`silence_atc_on_all_airbases: true`**, as on the other VEAF missions, unless the key is already there: a value set to `false` on purpose is kept.
 - **the server's security**: it removes `security.disabled` and the passwords. A pilot listed in the server's `veaf-pilots.txt` passes by his level, with no password. It is a **test copy** that runs with security off, never the campaign: *Kolkhida*'s template had it, and the squadron flew mission 1 with every protected command open.
 
@@ -281,7 +304,7 @@ On every run, `campaign next` writes into the mission's `mission.yaml`:
 `campaign next` writes the mission's `src/waypoints.yaml` from its objectives, instead of keeping the template's example: one waypoint per zone the mission's tasks name in `briefing.yaml` (else the campaign's objectives), at the zone's centre, in the tasks' order, for the players' side.
 
 - **On the ground**, for planes and helicopters alike (`RADIO`, 0 m): the objective is on the ground, and that is where a targeting pod or a weapon slaved to the steerpoint looks. Planes and helicopters share the waypoint; the mission briefing writes "ground".
-- **The name** is the zone's first word, in capitals and without accents: *Khobi depot* becomes `KHOBI`. Two zones starting with the same word keep their whole names (`SENAKI_NORTH`).
+- **The name** is the zone's first word, in capitals and without accents: *Khobi depot* becomes `KHOBI`. A leading article of one or two letters is skipped: *Al-Safira* becomes `SAFIRA`. Two zones starting with the same word keep their whole names (`SENAKI_NORTH`).
 - **The build adds `BULLSEYE`** to every flight plan.
 
 Once edited, the file is yours: it carries the fingerprint of what `campaign next` wrote, and a second `campaign next` rewrites it only while that fingerprint matches.
@@ -290,9 +313,15 @@ The file's format is described in the [pipeline reference](../PIPELINE_REFERENCE
 
 ## The campaign briefing deck {#briefing-deck}
 
-`campaign next` also writes, in `missions/mission-NN/`, the **campaign's strategic briefing** as a PPTX (`briefing-campagne.pptx`) and its map (`carte-strategique.png`).
+A [persistent campaign](PERSISTENT_CAMPAIGN.en.md#theatre-dossier) gets its theatre dossier and its kneeboard pages instead of this deck and the mission briefing.
+
+`campaign next` also writes, in `missions/mission-NN/`, the **campaign's strategic briefing** as a PPTX (`<operation>_mission-NN_briefing-campagne.pptx`) and its map (`carte-strategique.png`).
 It is a situation brief after the VEAF briefing template — 16:9, white, bold title top left — that imports as it is into Google Slides.
 `.\veaf-tools.exe campaign briefing <folder>` regenerates it at any time, for instance after touching up the text.
+
+Each briefing file is named after the operation (`operation:` in `briefing.yaml`, else the campaign's name) and the mission's number: `Kolkhida_mission-02_briefing-campagne.pptx`.
+
+Every PowerPoint briefing is also written as a **PDF** beside it, under the same name (`<operation>_mission-NN_briefing-campagne.pdf`, `<operation>_mission-NN_briefing-mission.pdf`, `<operation>_dossier-de-theatre.pdf`): the same pages in the same order, readable without PowerPoint. The tool draws it itself with its own font and asks nothing of the machine: it is not a pixel copy of the slides, and a long page may run on to the next.
 
 | Page | Where it comes from |
 |---|---|
@@ -357,7 +386,7 @@ Without the network, the map is drawn on a plain background and the deck says so
 
 ## The mission briefing {#mission-briefing}
 
-Next to the campaign briefing, each mission has its **mission briefing**: `missions/mission-NN/briefing-mission.pptx`, after the VEAF mission briefing, with its tactical map (`carte-tactique.png`) and one zoom per objective (`zoom-<zone>.png`).
+Next to the campaign briefing, each mission has its **mission briefing**: `missions/mission-NN/<operation>_mission-NN_briefing-mission.pptx`, after the VEAF mission briefing, with its tactical map (`carte-tactique.png`) and one zoom per objective (`zoom-<zone>.png`).
 It is read from the **built** mission: `campaign briefing` writes it as soon as a `.miz` exists in `missions/mission-NN/mission` (at its root or in `build/`), and says how to get one otherwise.
 Run `campaign briefing` again after every change to the mission.
 

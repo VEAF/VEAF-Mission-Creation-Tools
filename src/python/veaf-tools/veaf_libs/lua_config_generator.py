@@ -76,6 +76,7 @@ _MODULE_INIT_ORDER: list[str] = [
     "ASSETS",
     "AIRWAVES",
     "MOVE",
+    "SUPPORT",  # after MOVE, whose moveTanker it uses; the campaign hands it its hooks later
     "SANCTUARY",
     "WEATHER",
     "REMOTE",
@@ -302,6 +303,7 @@ MODULE_CATEGORIES: dict[str, list[str]] = {
     "Features": [
         "ASSETS",
         "MOVE",
+        "SUPPORT",
         "GRASS",
         "SANCTUARY",
         "WEATHER",
@@ -394,6 +396,7 @@ def _normalize_module_cfg(value: object) -> dict:
 _MODULE_LIST_KEYS: dict[str, str] = {
     "AIRWAVES": "airwave_zones",
     "ASSETS": "assets",
+    "SUPPORT": "assets",
     "COMBATZONE": "combat_zones",
     "QRA": "definitions",
     "SANCTUARY": "sanctuary_zones",
@@ -469,6 +472,7 @@ _MODULE_DEPS: dict[str, list[str]] = {
     "SPAWN": ["UNITS"],
     # Features
     "ASSETS": ["RADIO", "SPAWN"],
+    "SUPPORT": ["MOVE"],
     "MOVE": ["SPAWN", "COMMANDS"],
     "GRASS": ["SPAWN"],
     "INTERPRETER": ["RADIO", "COMMANDS"],
@@ -752,6 +756,48 @@ def _build_id_to_var() -> dict[str, str]:
     return result
 
 
+#: The settings of the SUPPORT module `mission.yaml` may give, and what each must be.
+SUPPORT_SETTINGS: tuple[str, ...] = (
+    "margin",
+    "retreat_margin",
+    "seconds",
+    "advance_seconds",
+    "min_advance",
+    "leg",
+    "sam_reach_floor",
+    "awacs_standoff",
+)
+
+
+def _emit_support_settings(mod_cfg: dict, var_name: str) -> list[str]:
+    """Render `veafSupport.configure({...})` from the SUPPORT block of `mission.yaml`.
+
+    Args:
+        mod_cfg: The module's block.
+        var_name: The module's Lua table.
+
+    Returns:
+        The lines; ``assets`` is a list of group names, the other settings numbers.
+
+    Raises:
+        ValueError: A setting is unknown or not a positive number, or an asset is no name.
+    """
+    parts: list[str] = []
+    assets = mod_cfg.get("assets") or []
+    if not isinstance(assets, list) or not all(isinstance(name, str) and name.strip() for name in assets):
+        raise ValueError("SUPPORT: `assets` must be a list of group names")
+    parts.append("assets = {" + ", ".join(_emit_lua_string(name) for name in assets) + "}")
+    for key, value in mod_cfg.items():
+        if key in ("enabled", "enable", "assets", "init", INITIALIZED_BY_MISSION_KEY):
+            continue
+        if key not in SUPPORT_SETTINGS:
+            raise ValueError(f"SUPPORT: unknown setting `{key}`; expected assets, {', '.join(SUPPORT_SETTINGS)}")
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+            raise ValueError(f"SUPPORT: `{key}` must be a positive number, not {value!r}")
+        parts.append(f"{key} = {_to_lua_scalar(value)}")
+    return [f"    {var_name}.configure({{" + ", ".join(parts) + "})"]
+
+
 def _emit_module_body(
     lines: list[str],
     mod_id: str,
@@ -823,6 +869,10 @@ def _emit_module_body(
                     parts.append(f"coalition = coalition.side.{side}")
                 lines.append("        {" + ", ".join(parts) + "},")
             lines.append("    }")
+        lines.append(f"    {var_name}.initialize()")
+
+    elif mod_id == "SUPPORT":
+        lines.extend(_emit_support_settings(mod_cfg, var_name))
         lines.append(f"    {var_name}.initialize()")
 
     elif mod_id == "CAMPAIGN":
@@ -2579,6 +2629,11 @@ def generate_config_lua(
             skynet_block.append(
                 f"    veafSkynet.CoverageRefreshInterval = {_to_lua_scalar(_whole_if_it_can_be(coverage_s))}"
             )
+        # Skynet's set-up warnings reach every player's screen (#1296): the Lua keeps them off by
+        # default, so the line is written only when the key is given, under the same rule as above.
+        if "setup_warnings_on_screen" in skynet_cfg:
+            sw = "true" if skynet_cfg["setup_warnings_on_screen"] else "false"
+            skynet_block.append(f"    veafSkynet.SetupWarningsOnScreen = {sw}")
         if _initialized_by_mission(skynet_cfg):
             _emit_initialized_by_mission(lines, "SKYNET")
         else:
@@ -2779,6 +2834,7 @@ def generate_mission_yaml_template(
                 "  #   last_line_of_defence_max_radius_km: 15",
                 "  #   last_line_of_defence_persistence_s: 45   # how long it stays lit after the last pass",
                 "  #   coverage_refresh_interval_s: 10          # how often the radar coverage graph is swept (0 = never)",
+                "  #   setup_warnings_on_screen: false          # Skynet's set-up warnings on every player's screen (always in dcs.log)",
             ]
         elif upper == "CTLD":
             # CTLD 2's own configuration is the mission's ctld-config.yaml (ADR 0016), so it takes no

@@ -376,6 +376,45 @@ or a red base with slots nobody asked for, is an inconsistency.
   search radar left, they come closer (David, 2026-10-22: *Kolkhida* mission 3 kept them 135 nm from a
   blind S-300). The briefing says where they are and why they moved.
 
+**A persistent campaign** (`mode: persistent`) also follows these, learnt on its first server evening
+(*Bouclier de l'Oronte*, Syria, 2026-11-16), each with what broke without it. `campaign validate` warns
+about most of them: a warning there is a defect to fix before the server, not a remark.
+- **The radio plan is David's, and the theatre's** (2026-11-17). VHF: channel 1 "Home Base" (each pilot
+  sets it to the field he took off from), then the players' side's airfields, with this theatre's
+  frequencies, then the VEAF flights on their VHF frequency (a flight on a tanker's UHF still talks on the VHF). UHF: the AWACS, the tankers, one common air-to-ground frequency "Air-Sol", then the VEAF
+  flights (Archer, Arctic, Ninja, Pinder, Bengal, Blade…). No carriers unless the mission has them, no
+  range of another map, nothing of the Caucasus off the Caucasus. `campaign next` writes this plan when it
+  creates the mission folder, from the zones and the support groups of the template: put the AWACS and the
+  tankers in the template first. The Syria campaign flew with Batumi, Beslan and Kutaisi on its kneeboards.
+- **An AWACS and two tankers in the template, a boom and a basket** (David, 2026-11-17: a KC-135 for the
+  F-16 and A-10, a KC-135MPRS or a KC-130 for the F/A-18 and AV-8B; `campaign validate` warns when one is
+  missing), each with an orbit (`add_air_group` with an air start, then
+  `edit_route`: a second point, the `awacs` or `tanker` task, `set_unlimited_fuel`, a race-track `orbit`),
+  their channels in `src/presets.yaml`, declared in `modules.ASSETS`, named in `dynamic.support.assets`
+  (the campaign then holds each out of the enemy's air defence and moves it as it changes) and both tankers
+  in `dynamic.economy.tanker`, a list (the shop sells each apart). Place their first orbit over your own rear.
+  The evening flew with neither, and the shop had no tanker.
+- **A zone on an airfield is declared on it** (`at: { airfield: … }`), never at coordinates beside it,
+  short strips included: Menagh, 2.3 km from Minakh's airfield, stayed neutral while DCS gave the airfield
+  to blue. A depot or a factory of its own (`kind:`) may stand beside one.
+- **Long-range SAMs at a few key points only**: `long_range_sam: true` on the zones that deserve one — a
+  large rear base, a factory, a depot — two a side at most, 120 km apart (`long_range_sams`). The size
+  class no longer draws one. An SA-5's reach measured in game is 240 km: two of them 17 nm apart covered the
+  whole front and shot an A-10 down far from any warning.
+- **Real defaults, and say what the AI can afford**: the stock (`resources.start`, 1,000), a factory's
+  output (180 an hour) and the reserve keep the enemy flying an evening; lowering them grounds it.
+- **No fixed weather**: a persistent campaign's mission carries no `_NoMizedit` and `campaign_next` fixes no date,
+  time nor weather — the server's MizEdit preset (RealWeather) sets them at each load. Do not set them by hand.
+- **The AWACS and the tankers are held by the `SUPPORT` module** (`veafSupport`), which `campaign_next` turns on
+  in `mission.yaml` from `dynamic.support`: do not move their orbits by hand.
+- **Axes of effort, not objectives**: a persistent campaign has no mission of the day. Write its priorities
+  in `briefing.yaml` under `axes:` (a title and a text each), indicative; `campaign_next` turns them, the
+  network and the air defences into a theatre dossier (`<operation>_dossier-de-theatre.pptx`) and kneeboard pages (map,
+  zone table, radio plan, cheat sheet), in place of the campaign and mission decks.
+- **A campaign already running keeps what its save drew**: a garrison change (a long-range SAM taken off,
+  a zone moved onto its airfield) shows on the server after a reset of the campaign, or on the zones the
+  save does not hold yet. Say so to whoever deploys it.
+
 **Combat content.**
 - A **training range close to a blue base** (Kobuleti next to Batumi on Caucasus): three nested
   levels through `includes:` — inert statics, light AAA, realistic short-range defense.

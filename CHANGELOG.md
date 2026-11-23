@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.39.0] — 2026-11-23
+
 ### Added
 
 - **Each pilot reads his earnings in game** (FEAT-CAMPAIGN-PILOT-EARNINGS-MENU): in a persistent campaign, F10 → Other → VEAF → Campaign → My earnings → Show tells the caller alone what he earned this session by reason, the credits his aircraft holds until it lands at a friendly airfield, FARP or carrier, his campaign total and rank among the pilots, his kills by category and his deaths, and what captures, tasks and network deliveries brought the whole team. "This session" is the period of the log's `CREDITS SUMMARY`, which restarts only once nobody is left in a slot. In a group of several player slots, each pilot has his own submenu. The theatre dossier's player guide lists the entry. On 2026-11-21 nobody could tell, without the log, that one pilot had earned every personal credit of the evening.

@@ -76,6 +76,7 @@ _MODULE_INIT_ORDER: list[str] = [
     "ASSETS",
     "AIRWAVES",
     "MOVE",
+    "SUPPORT",  # after MOVE, whose moveTanker it uses; the campaign hands it its hooks later
     "SANCTUARY",
     "WEATHER",
     "REMOTE",
@@ -302,6 +303,7 @@ MODULE_CATEGORIES: dict[str, list[str]] = {
     "Features": [
         "ASSETS",
         "MOVE",
+        "SUPPORT",
         "GRASS",
         "SANCTUARY",
         "WEATHER",
@@ -394,6 +396,7 @@ def _normalize_module_cfg(value: object) -> dict:
 _MODULE_LIST_KEYS: dict[str, str] = {
     "AIRWAVES": "airwave_zones",
     "ASSETS": "assets",
+    "SUPPORT": "assets",
     "COMBATZONE": "combat_zones",
     "QRA": "definitions",
     "SANCTUARY": "sanctuary_zones",
@@ -469,6 +472,7 @@ _MODULE_DEPS: dict[str, list[str]] = {
     "SPAWN": ["UNITS"],
     # Features
     "ASSETS": ["RADIO", "SPAWN"],
+    "SUPPORT": ["MOVE"],
     "MOVE": ["SPAWN", "COMMANDS"],
     "GRASS": ["SPAWN"],
     "INTERPRETER": ["RADIO", "COMMANDS"],
@@ -752,6 +756,48 @@ def _build_id_to_var() -> dict[str, str]:
     return result
 
 
+#: The settings of the SUPPORT module `mission.yaml` may give, and what each must be.
+SUPPORT_SETTINGS: tuple[str, ...] = (
+    "margin",
+    "retreat_margin",
+    "seconds",
+    "advance_seconds",
+    "min_advance",
+    "leg",
+    "sam_reach_floor",
+    "awacs_standoff",
+)
+
+
+def _emit_support_settings(mod_cfg: dict, var_name: str) -> list[str]:
+    """Render `veafSupport.configure({...})` from the SUPPORT block of `mission.yaml`.
+
+    Args:
+        mod_cfg: The module's block.
+        var_name: The module's Lua table.
+
+    Returns:
+        The lines; ``assets`` is a list of group names, the other settings numbers.
+
+    Raises:
+        ValueError: A setting is unknown or not a positive number, or an asset is no name.
+    """
+    parts: list[str] = []
+    assets = mod_cfg.get("assets") or []
+    if not isinstance(assets, list) or not all(isinstance(name, str) and name.strip() for name in assets):
+        raise ValueError("SUPPORT: `assets` must be a list of group names")
+    parts.append("assets = {" + ", ".join(_emit_lua_string(name) for name in assets) + "}")
+    for key, value in mod_cfg.items():
+        if key in ("enabled", "enable", "assets", "init", INITIALIZED_BY_MISSION_KEY):
+            continue
+        if key not in SUPPORT_SETTINGS:
+            raise ValueError(f"SUPPORT: unknown setting `{key}`; expected assets, {', '.join(SUPPORT_SETTINGS)}")
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or value <= 0:
+            raise ValueError(f"SUPPORT: `{key}` must be a positive number, not {value!r}")
+        parts.append(f"{key} = {_to_lua_scalar(value)}")
+    return [f"    {var_name}.configure({{" + ", ".join(parts) + "})"]
+
+
 def _emit_module_body(
     lines: list[str],
     mod_id: str,
@@ -823,6 +869,10 @@ def _emit_module_body(
                     parts.append(f"coalition = coalition.side.{side}")
                 lines.append("        {" + ", ".join(parts) + "},")
             lines.append("    }")
+        lines.append(f"    {var_name}.initialize()")
+
+    elif mod_id == "SUPPORT":
+        lines.extend(_emit_support_settings(mod_cfg, var_name))
         lines.append(f"    {var_name}.initialize()")
 
     elif mod_id == "CAMPAIGN":

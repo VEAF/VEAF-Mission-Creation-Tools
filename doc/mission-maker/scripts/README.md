@@ -81,6 +81,7 @@ Les modules qui ne sont pas initialisés (`initialize()`) ne consomment aucune r
 | Module | Fichier | Rôle |
 |--------|---------|------|
 | [veafSanctuary](veafSanctuary.md) | `veafSanctuary.lua` | Zones protégées qui détruisent automatiquement les unités intruses |
+| [veafSupport](veafSupport.md) | `veafSupport.lua` | AWACS et ravitailleurs tenus hors des défenses ennemies, déplacés et annoncés |
 | [veafMissileGuardian](veafMissileGuardian.md) | `veafMissileGuardian.lua` | Intercepte des missiles entrants spécifiques pour protéger des ressources |
 
 ---

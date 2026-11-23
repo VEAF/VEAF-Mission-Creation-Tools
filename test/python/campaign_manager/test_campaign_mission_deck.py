@@ -14,11 +14,12 @@ from campaign_fixture import CARRIER_XY, PROSE, VALID, built_mission, mission_te
 from campaign_manager.briefing_prose import BriefingProse, parse_prose
 from campaign_manager.campaign_manager import initial_state, parse_campaign
 from campaign_manager.campaign_worker import CampaignWorker
-from campaign_manager.mission_deck import MISSION_DECK_FILE, mission_deck, objective_zones
+from campaign_manager.mission_deck import mission_deck, objective_zones
 from campaign_manager.mission_pages import altitude as _altitude
 from campaign_manager.mission_picture import MissionPicture, Waypoint, read_mission_picture
 from campaign_manager.models import CampaignDefinition
 from campaign_manager.tactical_map import render_objective_map, render_tactical_map
+from deck_pdf_check import assert_pdf_matches_deck
 from geographiclib.geodesic import Geodesic  # type: ignore[import-untyped]
 from PIL import Image
 from pptx import Presentation
@@ -180,8 +181,8 @@ class TestTheObjectives:
         assert [zone.name for zone in objective_zones(campaign, None)] == ["Senaki", "Gudauta depot"]
 
 
-def _deck(tmp_path: Path) -> list[list[str]]:
-    campaign = _campaign()
+def _deck(tmp_path: Path, campaign: CampaignDefinition | None = None) -> list[list[str]]:
+    campaign = campaign or _campaign()
     with language("fr"):
         report = mission_deck(
             campaign,
@@ -192,7 +193,7 @@ def _deck(tmp_path: Path) -> list[list[str]]:
             cache_dir=tmp_path,
             fetch=_offline,
         )
-    assert report.path == tmp_path / "mission-01" / MISSION_DECK_FILE
+    assert report.path == tmp_path / "mission-01" / "Kolkhida_mission-01_briefing-mission.pptx"
     assert all(path.is_file() for path in report.maps)
     return [
         [shape.text_frame.text for shape in slide.shapes if shape.has_text_frame]
@@ -272,7 +273,7 @@ class TestTheDeck:
         planes, helicopters = page[1].split("\nHélicoptères\n")
         assert planes.startswith("Avions\n")
         assert f"1. POTI : {poti} — 10\u00a0000 ft BARO" in planes
-        assert "3. BULLSEYE : " in planes and "20\u00a0000 ft BARO" in planes
+        assert "3. BULLSEYE : " in planes and planes.endswith("sol")  # on the ground (ticket 20)
         assert f"1. POTI : {poti} — 500 ft AGL" in helicopters
         assert "2. KHOBI : " in helicopters
 
@@ -326,6 +327,55 @@ class TestTheWorker:
         built_mission(worker.mission_folder(1) / "mission")
         issues, report = worker.briefing()
         assert report is not None, issues
-        assert report.mission_deck == worker.mission_folder(1) / MISSION_DECK_FILE
+        assert report.mission_deck is not None and report.mission_deck.name.endswith(
+            "_mission-01_briefing-mission.pptx"
+        )
         assert report.mission_deck.is_file()
         assert not any("build" in issue.message for issue in issues)
+
+
+class TestAPersistentCampaign:
+    """Found on the Syria campaign (2026-11-16): its mission deck read "1/10" and "no enemy air activity"."""
+
+    @staticmethod
+    def _campaign(**dynamic: object) -> CampaignDefinition:
+        raw = copy.deepcopy(VALID)
+        raw["campaign"].update(mode="persistent", objectives=[])
+        if dynamic:
+            raw["dynamic"] = dynamic
+        campaign, issues = parse_campaign(raw)
+        assert campaign is not None, issues
+        return campaign
+
+    def test_the_cover_counts_no_mission(self, tmp_path: Path) -> None:
+        cover = "\n".join(_deck(tmp_path, self._campaign())[0])
+        assert "KOLKHIDA" in cover
+        assert "1/8" not in cover
+
+    def test_the_enemy_air_force_is_announced_from_its_bases(self, tmp_path: Path) -> None:
+        deck = _deck(tmp_path, self._campaign())
+        flow = "\n".join("\n".join(slide) for slide in deck if "Déroulement" in slide[0])
+        assert "Aviation ennemie active" in flow
+        assert "au départ de ses bases : Senaki" in flow
+
+    def test_no_bomber_raid_announced_when_the_campaign_has_none(self, tmp_path: Path) -> None:
+        deck = _deck(tmp_path, self._campaign(bombers={"enabled": False}))
+        flow = "\n".join("\n".join(slide) for slide in deck if "Déroulement" in slide[0])
+        assert "Aviation ennemie active" in flow
+        assert "bombardiers" not in flow
+
+
+def test_a_pdf_of_the_same_pages_beside_the_mission_deck(tmp_path: Path) -> None:
+    """David, 2026-11-17: every briefing written as a PowerPoint is written as a PDF too."""
+    campaign = _campaign()
+    with language("fr"):
+        report = mission_deck(
+            campaign,
+            initial_state(campaign),
+            _prose(campaign),
+            _picture(tmp_path),
+            tmp_path / "mission-01",
+            cache_dir=tmp_path,
+            fetch=_offline,
+        )
+    assert_pdf_matches_deck(report.path, report.pdf)

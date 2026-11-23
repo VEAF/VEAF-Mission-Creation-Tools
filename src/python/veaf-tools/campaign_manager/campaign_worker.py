@@ -19,6 +19,7 @@ from veaf_libs.mission_validator import ERROR, WARNING, ValidationIssue
 
 from campaign_manager.briefing_deck import DeckReport, campaign_deck
 from campaign_manager.briefing_prose import BriefingProse, load_prose
+from campaign_manager.campaign_checks import campaign_warnings
 from campaign_manager.campaign_manager import initial_state, load_campaign, load_state, save_state, validate_state
 from campaign_manager.debriefing import debriefing_text
 from campaign_manager.mission_conditions import folder_date
@@ -26,6 +27,9 @@ from campaign_manager.mission_deck import MissionDeckReport, mission_deck
 from campaign_manager.mission_picture import find_built_mission, read_mission_picture
 from campaign_manager.models import CampaignDefinition, CampaignState, Objective
 from campaign_manager.next_mission import BRIEFING_LANGUAGES, NextMissionReport, prepare_next_mission
+from campaign_manager.objective_waypoints import flight_plan_numbers
+from campaign_manager.theatre_dossier import theatre_dossier
+from campaign_manager.theatre_kneeboard import kneeboard_pages, write_kneeboard
 from campaign_manager.turn_manager import (
     evaluate_objectives,
     merge_state_file,
@@ -126,6 +130,9 @@ class CampaignWorker:
         campaign, issues = load_campaign(self.campaign_file)
         if campaign is None:
             return issues, None
+        if campaign.mode == "persistent":
+            # one mission that saves and reloads itself: there is no "between two missions" to play
+            return [*issues, ValidationIssue(ERROR, t("campaign.issue.persistent_no_apply"))], None
         if not self.state_file.exists():
             return [*issues, ValidationIssue(ERROR, t("campaign.issue.not_started", path=self.state_file))], None
         current, state_issues = load_state(self.state_file)
@@ -195,14 +202,23 @@ class CampaignWorker:
         mismatch = validate_state(campaign, state)
         if mismatch:
             return issues + mismatch, None
+        issues = issues + campaign_warnings(campaign, self.folder)
         folder = self.mission_folder(state.mission + 1) / MISSION_SUBFOLDER
         # the tasks name the zones the waypoints go to; a defect in briefing.yaml is the deck's to report
         prose, prose_issues = load_prose(self.folder, campaign.missions, state.mission + 1)
-        page = (
-            prose.missions.get(state.mission + 1) if prose and not any(i.level == ERROR for i in prose_issues) else None
-        )
+        usable = prose is not None and not any(i.level == ERROR for i in prose_issues)
+        page = prose.missions.get(state.mission + 1) if prose and usable else None
         try:
-            report = prepare_next_mission(campaign, state, self.folder, folder, players=players, page=page)
+            report = prepare_next_mission(
+                campaign,
+                state,
+                self.folder,
+                folder,
+                players=players,
+                page=page,
+                # a persistent campaign written with `axes:` has no page, and still its operation and axes
+                prose=prose if page or (campaign.mode == "persistent" and usable) else None,
+            )
         except FileNotFoundError as error:
             return [*issues, ValidationIssue(ERROR, str(error))], None
         # the deck comes with the folder; neither a defect in briefing.yaml nor a failure to draw it
@@ -212,13 +228,30 @@ class CampaignWorker:
         except (OSError, KeyError, ValueError) as error:
             deck_issues, deck = [ValidationIssue(WARNING, t("campaign.issue.deck_failed", error=error))], None
         issues += [ValidationIssue(WARNING, issue.message) for issue in deck_issues]
+        if campaign.mode == "persistent":
+            # the kneeboard's map and zone table, written again at every run (refreshing them from the server's save
+            # is a later lot)
+            try:
+                write_kneeboard(
+                    folder,
+                    kneeboard_pages(
+                        campaign,
+                        state,
+                        folder,
+                        flight_plan_numbers(campaign, folder),
+                        cache_dir=self.tile_cache,
+                        fetch=self.tile_fetch,
+                    ),
+                )
+            except (OSError, KeyError, ValueError) as error:
+                issues.append(ValidationIssue(WARNING, t("campaign.issue.kneeboard_failed", error=error)))
         return issues, replace(
             report, deck=deck.path if deck else None, mission_deck=deck.mission_deck if deck else None
         )
 
     def briefing(self) -> tuple[list[ValidationIssue], DeckReport | None]:
-        """Write the coming mission's briefings: ``missions/mission-NN/briefing-campagne.pptx``, and
-        ``briefing-mission.pptx`` once the mission has been built.
+        """Write the coming mission's briefings: ``missions/mission-NN/<operation>_mission-NN_briefing-campagne.pptx``,
+        and ``…_briefing-mission.pptx`` once the mission has been built, each with its PDF.
 
         Returns:
             Every issue found — a mission not built yet is a warning saying how to build it —, and the
@@ -237,17 +270,36 @@ class CampaignWorker:
             return issues + mismatch, None
         deck_issues, report = self._deck(campaign, state)
         folder = self.mission_folder(state.mission + 1) / MISSION_SUBFOLDER
-        if report is not None and find_built_mission(folder) is None:
+        # the theatre dossier needs no built mission: only the episodic mission deck reads one
+        if report is not None and campaign.mode != "persistent" and find_built_mission(folder) is None:
             deck_issues = [*deck_issues, ValidationIssue(WARNING, t("campaign.issue.no_built_mission", folder=folder))]
         return issues + deck_issues, report
 
     def _deck(
         self, campaign: CampaignDefinition, state: CampaignState
     ) -> tuple[list[ValidationIssue], DeckReport | None]:
-        """Generate the deck from `briefing.yaml`, unless that file has an error."""
+        """Generate the deck from `briefing.yaml`, unless that file has an error.
+
+        A persistent campaign gets its theatre dossier instead of the campaign and mission decks.
+        """
         prose, issues = load_prose(self.folder, campaign.missions, state.mission + 1)
         if any(issue.level == ERROR for issue in issues):
             return issues, None
+        if campaign.mode == "persistent":
+            mission_folder = self.mission_folder(state.mission + 1) / MISSION_SUBFOLDER
+            dossier = theatre_dossier(
+                campaign,
+                state,
+                prose,
+                self.mission_folder(state.mission + 1),
+                flight_plan_numbers(campaign, mission_folder),
+                mission_folder=mission_folder,
+                cache_dir=self.tile_cache,
+                fetch=self.tile_fetch,
+            )
+            return issues, DeckReport(
+                path=dossier.path, map=dossier.network_map, pages=dossier.pages, prose=prose is not None
+            )
         report = campaign_deck(
             campaign,
             state,
@@ -289,6 +341,7 @@ class CampaignWorker:
         campaign, issues = load_campaign(self.campaign_file)
         if campaign is None:
             return issues
+        issues = issues + campaign_warnings(campaign, self.folder)
         coming = 1
         if self.state_file.exists():
             state, state_issues = load_state(self.state_file)

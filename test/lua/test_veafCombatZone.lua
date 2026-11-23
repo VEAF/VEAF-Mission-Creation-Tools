@@ -10,8 +10,11 @@ dofile(src .. "/veafGeo.lua")
 dofile(src .. "/veafMissionDb.lua")
 dofile(src .. "/veafDcsSpawner.lua")
 dofile(src .. "/veafI18n.lua")
--- the command hook leaves an aircraft with a role alone (FEAT-AIRCRAFT-ROLES)
-dofile(src .. "/veafAircraftSpawn.lua")
+dofile(src .. "/dcsUnits.lua")
+dofile(src .. "/veafGrass.lua")
+-- the command hook leaves an aircraft with a role alone (FEAT-AIRCRAFT-ROLES), and gives the others their route
+-- through `veafSpawn.giveFirstRoute` (FIX-COMBATZONE-FIRST-ROUTE); `veafSpawn.lua` loads `veafAircraftSpawn.lua`
+dofile(src .. "/veafSpawn.lua")
 dofile(src .. "/veafCombatZone.lua")
 
 -- The assertions below pin the English wording; messages are now localized
@@ -1708,6 +1711,8 @@ end
 TestVeafCombatZoneDelayedCommand = {}
 
 function TestVeafCombatZoneDelayedCommand:setUp()
+  dcs_mocks.reset()
+  veafSpawn.firstRouteIds = {}
   self.z = VeafCombatZone:new()
   self.z:setMissionEditorZoneName("DelayZone")
   self.z:setFriendlyName("Delay Zone")
@@ -1732,8 +1737,9 @@ function TestVeafCombatZoneDelayedCommand:setUp()
 
   self._goRoute = veaf.goRoute
   self.routed = {}
-  veaf.goRoute = function(groupName, route)
-    table.insert(self.routed, groupName)
+  -- `veafSpawn.giveFirstRoute` hands over the group object, the zone used to hand over its name
+  veaf.goRoute = function(group, route)
+    table.insert(self.routed, { group = type(group) == "string" and group or group:getName(), route = route })
   end
 end
 
@@ -1756,20 +1762,67 @@ function TestVeafCombatZoneDelayedCommand:test_a_delayed_group_is_registered_whe
   luaunit.assertEquals(self.z:getSpawnedGroups(), { "DelayedSAM" })
 end
 
-function TestVeafCombatZoneDelayedCommand:test_a_delayed_group_is_sent_on_its_route()
-  self.el:setRoute({ wp1 = { x = 1, z = 2 } })
+-- FIX-COMBATZONE-FIRST-ROUTE: the hook runs in the frame the group is created, where DCS loses a route order (3 times
+-- out of 3, dcs-cartographie, 2026-11); the route goes through `veafSpawn.giveFirstRoute`, 5 s later.
+function TestVeafCombatZoneDelayedCommand:test_a_delayed_group_gets_its_route_5_s_after_its_birth()
+  local route = { wp1 = { x = 1, z = 2 } }
+  self.el:setRoute(route)
+  dcs_mocks.addGroup("DelayedSAM", {})
   self.z:spawnElement(self.el, true)
   veaf.collectSpawnedGroup(self._captured, "DelayedSAM")
-  luaunit.assertEquals(self.routed, { "DelayedSAM" })
+  luaunit.assertEquals(self.routed, {}, "not in the frame of its creation")
+  dcs_mocks.runScheduled(veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS - 1)
+  luaunit.assertEquals(self.routed, {})
+  dcs_mocks.runScheduled(veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS)
+  luaunit.assertEquals(self.routed, { { group = "DelayedSAM", route = route } })
+end
+
+-- The zone switched off during those 5 s destroys its group; the route waiting for it is not given to the wreck.
+function TestVeafCombatZoneDelayedCommand:test_a_group_destroyed_with_its_zone_before_its_route_gets_none()
+  self.el:setRoute({ wp1 = { x = 1, z = 2 } })
+  local gone = false
+  dcs_mocks.addGroup("DelayedSAM", {
+    isExist = function()
+      return not gone
+    end,
+    destroy = function()
+      gone = true
+    end,
+  })
+  self.z:spawnElement(self.el, true)
+  veaf.collectSpawnedGroup(self._captured, "DelayedSAM")
+  self.z.enableJunkCleanup = false -- the junk sweep needs a trigger zone, beside the point here
+  self.z:desactivate()
+  luaunit.assertTrue(gone, "the zone destroyed its group")
+  dcs_mocks.runScheduled(veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS)
+  luaunit.assertEquals(self.routed, {})
+end
+
+-- A command that carries a route of its own schedules it first (`executeCommand`), then records the group, which runs
+-- the zone's hook: the zone's route is the last order, and wins, as it did when it was given at once.
+function TestVeafCombatZoneDelayedCommand:test_the_zone_route_wins_over_a_route_passed_with_the_command()
+  local zoneRoute = { wp1 = { x = 1, z = 2 } }
+  self.el:setRoute(zoneRoute)
+  dcs_mocks.addGroup("RoutedSAM", {})
+  veafInterpreter.execute = function(command, position, coa, route, spawnedGroups)
+    veafSpawn.giveFirstRoute("RoutedSAM", { wp1 = { x = 9, z = 9 } })
+    veaf.collectSpawnedGroup(spawnedGroups, "RoutedSAM")
+    return true
+  end
+  self.z:spawnElement(self.el, true)
+  dcs_mocks.runScheduled(veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS)
+  luaunit.assertEquals(self.routed, { { group = "RoutedSAM", route = zoneRoute } })
 end
 
 --- FEAT-AIRCRAFT-ROLES ticket 04: a `-cap` in a combat zone keeps the patrol its role gave it; the
 --- marker's route would replace it.
 function TestVeafCombatZoneDelayedCommand:test_an_aircraft_with_a_role_keeps_its_own_route()
   self.el:setRoute({ wp1 = { x = 1, z = 2 } })
+  dcs_mocks.addGroup("ZoneCAP", {})
   veafAircraftSpawn.groupRoles["ZoneCAP"] = "cap"
   self.z:spawnElement(self.el, true)
   veaf.collectSpawnedGroup(self._captured, "ZoneCAP")
+  dcs_mocks.runScheduled(veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS)
   veafAircraftSpawn.groupRoles["ZoneCAP"] = nil
   luaunit.assertEquals(self.routed, {})
   luaunit.assertEquals(self.z:getSpawnedGroups(), { "ZoneCAP" }, "it still belongs to the zone")

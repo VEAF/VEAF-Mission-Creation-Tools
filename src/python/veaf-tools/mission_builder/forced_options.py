@@ -4,7 +4,8 @@ DCS keeps, in the mission table's ``forcedOptions``, the options a mission impos
 whatever their own settings say — labels, F10 map view, external views, wake turbulence… — the
 *Mission options* panel of the Mission Editor. It stores them flat, DCS key → value
 (``["labels"] = 0``, ``["optionsView"] = "optview_onlyallies"``), read in 107 real missions on
-2026-10-19. ``blank_mission.py`` writes an empty table, and nothing else in VMCT could fill it.
+2026-10-19. ``blank_mission.py`` starts a new mission with civil traffic, birds and random failures off
+(``DEFAULT_FORCED_OPTIONS``, 2026-11-16); this block is how a mission maker sets the rest.
 
 The names below follow the editor's labels; the DCS keys, the coded values and the list of
 enforceable options come from ``MissionEditor/modules/Options/optionsDb.lua`` (DCS 2.9.30, every

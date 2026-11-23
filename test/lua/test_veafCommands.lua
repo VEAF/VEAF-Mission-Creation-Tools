@@ -488,4 +488,63 @@ function TestVeafCommandsMarkerSpawnListener:test_a_script_command_is_not_heard(
   luaunit.assertIs(received.groups, interpreterGroups)
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafCommandsMarkerPolicy — a mission restricts some markers (FEAT-DYNAMIC-CAMPAIGN, 2026-11-16)
+-- ---------------------------------------------------------------------------
+TestVeafCommandsMarkerPolicy = {}
+
+function TestVeafCommandsMarkerPolicy:setUp()
+  resetHandlers()
+  dcs_mocks.reset()
+  self.savedChecks = veafCommands.SECURITY_CHECKS
+  self.ran = {}
+  local ran = self.ran
+  veafCommands.registerCommandHandler(function()
+    table.insert(ran, "handled")
+    return true
+  end, 10, "OPEN")
+  veafCommands.markerPolicy = function(text)
+    return ({ ["-cas"] = "disabled", ["-shell"] = "ADMIN" })[text]
+  end
+end
+
+function TestVeafCommandsMarkerPolicy:tearDown()
+  veafCommands.SECURITY_CHECKS = self.savedChecks
+  veafCommands.markerPolicy = nil
+end
+
+function TestVeafCommandsMarkerPolicy:test_a_disabled_marker_is_consumed_never_run_and_told()
+  luaunit.assertTrue(veafCommands.dispatchMarker(pos, { text = "-cas", idx = 1, coalition = coalition.side.BLUE }))
+  luaunit.assertEquals(self.ran, {})
+  luaunit.assertEquals(#dcs_mocks.messages, 1)
+end
+
+function TestVeafCommandsMarkerPolicy:test_a_reserved_marker_runs_for_its_level_only()
+  veafCommands.SECURITY_CHECKS = {
+    ADMIN = function()
+      return false
+    end,
+    OPEN = function()
+      return true
+    end,
+  }
+  luaunit.assertTrue(veafCommands.dispatchMarker(pos, { text = "-shell", idx = 1 }))
+  luaunit.assertEquals(self.ran, {})
+  veafCommands.SECURITY_CHECKS.ADMIN = function()
+    return true
+  end
+  luaunit.assertTrue(veafCommands.dispatchMarker(pos, { text = "-shell", idx = 1 }))
+  luaunit.assertEquals(self.ran, { "handled" })
+end
+
+function TestVeafCommandsMarkerPolicy:test_a_marker_the_policy_does_not_name_is_left_to_its_module()
+  luaunit.assertTrue(veafCommands.dispatchMarker(pos, { text = "-smoke", idx = 1 }))
+  luaunit.assertEquals(self.ran, { "handled" })
+end
+
+function TestVeafCommandsMarkerPolicy:test_the_interpreter_is_never_asked()
+  veafCommands.execute(pos, "-cas", coalition.side.BLUE)
+  luaunit.assertEquals(self.ran, { "handled" })
+end
+
 os.exit(luaunit.LuaUnit.run())

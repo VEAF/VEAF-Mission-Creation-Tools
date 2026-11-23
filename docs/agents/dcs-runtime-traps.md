@@ -482,6 +482,27 @@ DCS reports as `RUNWAY`) therefore places vehicles on runways, taxiways and park
 **What to do:** To keep something off an airfield, refuse the `RUNWAY` surface for each unit's own position
 (`veafCampaign.isOnConcrete`), not only for the group's anchor: a group spreads its units around it.
 
+### AI groups starting hot on Senaki-Kolkhi's open stands deadlock on the taxiway {#ai-groups-deadlock-on-senaki-open-stands}
+
+Measured **2026-11-16**.
+
+Senaki-Kolkhi's free stands with the lowest `Term_Index`, 2 to 6, are open stands (`Term_Type` 104)
+lined on the strip that leads to the runway threshold; 7 to 69 are mostly shelters (68). DCS seats
+a group added by script on the stand its unit's `parking` asks for. Measured through dcs-bridge:
+
+| Stands | Result |
+|---|---|
+| 2-6 imposed: 2 MiG-29A, 2 MiG-27K, 1 Tu-22M3, three groups | deadlocked on the strip |
+| none imposed (DCS chooses): MiG-29A on 2 and 4, Tu-22M3 on 6, MiG-27K in shelters 14/15 | the MiG-27K leave; the MiG-29A and the Tu-22M3 deadlocked 7 min and more |
+| MiG-29A in shelters 15/16, Tu-22M3 alone on 6 | all take off |
+
+Nothing is raised or logged: the aircraft just stop, 70 m apart.
+
+**What to do:** Seat fighters in shelters first and keep the open stands for aircraft too large for a shelter
+(`getParking` gives no stand size, so they are listed by type). The campaign does so since then.
+
+*What it cost:* The dynamic campaign's raid package (BARCAP, SEAD, bomber) never left Senaki.
+
 ### A client helicopter placed on an aircraft stand is seated elsewhere when the player takes the slot {#client-helicopter-on-an-aircraft-stand-is-seated-elsewhere}
 
 Measured **2026-10-10**.
@@ -622,6 +643,21 @@ three launches in one DCS session, the first `math.random(1000000)` after `veaf.
 **What to do:** Nothing to do: rely on `math.random`. Do not write code that seeds it, or that needs the same
 sequence twice — a replay cannot be forced.
 
+### DCS removes an AI aircraft about 3 minutes after its `ai abort mission`, with no death event {#aborted-ai-aircraft-removed-after-three-minutes}
+
+Measured **2026-11-17**.
+
+On the persistent campaign's second server evening (Syria), red aircraft spawned at Taftanaz never moved and
+aborted on the ground. In the server's Tacview recording the MiG-29 #2 of three CAPs aborted at 21:05:41 and
+were removed at 21:08:41; the Tu-22M3 aborted at 21:29:53 and was removed at 21:32:53. `dcs.log` holds no
+`crash`, `dead` or `kill` for them: the group simply stops existing.
+
+**What to do:** Do not read "the group no longer exists" as "shot down": tell it from a death event seen on one of its units.
+The campaign's raid and helicopter followers say "destroyed" or "gone" since FIX-CAMPAIGN-SECOND-SERVER-FLIGHT
+ticket 09.
+
+*What it cost:* A raid that never took off was logged "destroyed", and the evening's debrief counted it as shot down.
+
 ## Air defence {#air-defence}
 
 ### A SAM site with no early-warning radar is not dark — it is permanently lit {#sam-without-ewr-is-lit}
@@ -728,6 +764,20 @@ the Mission Editor does when the CAP task is chosen. `create_cap_mission` writes
 
 *What it cost:* The on-demand CAPs `create_cap_mission` built before FIX-SCRATCH-MISSION-FINDINGS ticket 17 carried
 an `Orbit` alone: they patrolled and never fought.
+
+### An SA-5 reaches 240 km in DCS: one long-range battery covers a whole front {#sa5-reach-is-240-km}
+
+Measured **2026-11-16**.
+
+The `rangeMaxAltMax` DCS gives the SA-5's 5V28 missile, read by the persistent campaign on the batteries of
+Aleppo and Kuweires (Syria), is 240 km: from Aleppo it reaches Incirlik. On the campaign's first evening two
+of them 17 nm apart fired four missiles at an A-10C working near Menagh and shot it down; the players had
+been told "long-range air defence likely, type unconfirmed". A long-range battery drawn in every airfield
+zone put the whole front under that umbrella.
+
+**What to do:** Give long-range SAMs to a few key zones only (`long_range_sam: true`, two a side at most, 120 km apart:
+`long_range_sams`), keep them out of reach of the players' bases and tanker tracks, and say in the briefing
+where they are.
 
 ## Players, roles and the map {#players}
 
@@ -861,6 +911,51 @@ sides; a red slot goes under the generic country CJTF Red, which accepts any air
 
 *What it cost:* A test mission on 2026-08-18 put the player in a Su-25T slot they had disabled: "I can pick it but I
 do not slot, I stay on the map view."
+
+### The CSAR survivor of a shot-down aircraft is an immortal ground unit of its side, which every enemy search finds {#csar-survivor-is-an-immortal-ground-unit}
+
+Measured **2026-11-16**.
+
+With the CSAR module's defaults (`csar.immortalcrew`, `csar.invisiblecrew`, `enableForAI`, `enableForRED`, all
+true), every pilot shot down, AI included, leaves a "Wounded Pilot #<id>" soldier of his side on the ground:
+immortal, unseen by the AI, and rescuable only by his own side. `world.searchObjects` and `coalition.getGroups`
+return him like any ground unit. On the persistent campaign's first evening (Syria, Menagh) a red survivor
+kept a neutral zone contested and a blue convoy halted for more than ten minutes; only an admin's `_destroy`
+removed him, after which CSAR raised `CSAR.lua:1150: attempt to index local '_woundedLeader' (a nil value)`.
+
+**What to do:** Ask `veaf.isCombatant(unit)` before counting a unit as an enemy: it is false for a group of
+`csar.woundedGroups`, or a "Downed Pilot #" / "Wounded Pilot #" name. The campaign's capture and wake-up and
+the convoy watch do since FEAT-DYNAMIC-CAMPAIGN ticket 20, and CSAR forgets a survivor destroyed without a pickup.
+
+### DCS hands an airfield to the side whose ground units come near it, whatever the scripts decide {#airbase-captured-by-nearby-ground-units}
+
+Measured **2026-11-16**.
+
+Minakh's airfield (Syria), neutral, went blue as a blue convoy drove to the campaign zone of Menagh 2.3 km
+away, while the zone itself stayed neutral under its own capture rule: two capture systems on two neighbouring
+objects. The airfield's automatic capture is on unless a script turns it off.
+
+**What to do:** `Airbase.autoCapture(airbase, false)` on every airfield a script owns; a persistent campaign does it on every
+airfield of the map since FEAT-DYNAMIC-CAMPAIGN ticket 20. Whether a capture by `Airbase.setCoalition` moves
+the dynamic slots and the warehouse is still to be measured.
+
+### A ground unit destroyed is no longer found by `Unit.getByName` when its `S_EVENT_KILL` arrives {#kill-target-gone-by-name}
+
+Measured **2026-11-21**.
+
+On the Campagne server, from 20:17 to 22:20 UTC, `dcs.log` held 86 kills by five players attacking ground
+targets (griffin 31 in an AH-64D, Zip 24, Mitch 13, Paluche 10, Angrydad54 8) and not one `CREDITS` line for
+them; the 8 kills of aircraft and helicopters by a sixth player were all paid. A handler that reads the kill's target by name, as `veafEventHandler` did, finds
+nothing for a vehicle destroyed: its side reads neutral and its category nil. An aircraft shot down is still
+found while it falls. Whether the raw `event.target` object still answers `getCoalition` at that moment is
+to measure.
+
+**What to do:** Keep the raw object (`veafEventHandler` hands it as `dcsTarget` since FIX-CAMPAIGN-GROUND-KILLS-UNPAID) and ask
+it under `pcall`; when it no longer answers, take the side from the mission's own records of the unit (the
+persistent campaign looks up its garrisons, assault convoys and aircraft by name).
+
+*What it cost:* From 2026-11-15 to 2026-11-21 the persistent campaign paid no player's ground kill and counted none on its
+ranking: the pilots who only attacked ground targets were missing from it.
 
 ## Radio and frequencies {#radio}
 
@@ -1046,6 +1141,22 @@ the latter (`VeafCampaignZone:groundHolders`). Expect a few percent of slack bey
 distance: the convoy took Poti, was not found in it, and a 24-unit garrison was drawn from blue's
 reserve under it (`a-captured-zone-may-draw-a-garrison-under-its-convoy`).
 
+### A ground group sent off road to a point in the water, or across it, drives in and drowns {#ground-vehicles-drive-into-water-off-road}
+
+Measured **2026-11-16**.
+
+A blue assault convoy met a red one by Poti, on the dynamic test campaign. The ground AI split its
+unarmed vehicles off and sent them, `Off Road`, to a rally point chosen away from the enemy and out
+of its sight. The point lay in the lagoon north of the town: the trucks drove straight in and drowned
+(David's F10 capture). DCS neither refuses the waypoint nor routes around the water, and logs
+nothing.
+
+**What to do:** Before giving a ground group an off-road waypoint, check the straight line to it with
+`land.getSurfaceType`, every 50 m, end included: `WATER` or `SHALLOW_WATER` anywhere, pick another
+point. The convoy ground AI does so since then (`veafGroundAI.isDryDrive`).
+
+*What it cost:* A whole column of trucks lost without a shot, in front of the players.
+
 ### A ground group ordered "On Road" where no road leads stands still, with no message {#on-road-route-with-no-path-stands-still}
 
 Measured **2026-10-28**.
@@ -1089,6 +1200,21 @@ FIX-BUNDLE-LOCAL-LIMIT. In a hand-written `mission-script.lua`, keep state in a 
 
 *What it cost:* *Kolkhida* mission 1, rebuilt from `develop` the afternoon it was to be flown, loaded no VEAF
 module; no test had ever run the concatenated bundle.
+
+### Inside DCS, a file write or close that worked can return nothing {#io-write-that-worked-can-answer-nothing}
+
+Measured **2026-11-16**.
+
+Standard Lua 5.1 answers `file:write` with the file and `file:close` with `true`, and `nil` plus a
+message on failure. Inside a DCS mission, on 2026-11-16, a persistent campaign's save checked both
+answers for truth and logged every save as failed — `cannot write the campaign state … : nil`, no
+error message at all — while the file it wrote was there, whole (32 kB). Which of the two calls
+answered nothing was not isolated.
+
+**What to do:** Treat as a failure only an error message or an explicit `false`, never a missing answer.
+
+*What it cost:* The campaign's state file itself was never written, only its temporary: every reload fell back on
+the temporary, and the self-check's save line read KO. Fixed in FEAT-DYNAMIC-CAMPAIGN's V1.5.
 
 ### `weapon:getTarget()` can return an object with no `isExist` method {#weapon-gettarget-object-with-no-isexist}
 

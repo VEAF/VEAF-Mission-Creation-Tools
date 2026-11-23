@@ -41,6 +41,10 @@ LIBRARY_MODULES: frozenset[str] = frozenset({"AIRSPAWN", "GEO", "I18N", "MATH", 
 #: initialised after it (FEAT-OPPOSITION-SCALES-WITH-PLAYERS), so it holds no place in the order.
 ROOT_BLOCK_MODULES: frozenset[str] = frozenset({"OPPOSITION"})
 
+#: Modules another module starts: ``veafCampaign.initialize`` starts the persistent campaign's logistics, sorties
+#: and economy (FEAT-DYNAMIC-CAMPAIGN), so the mission's configuration only ever names ``CAMPAIGN``.
+STARTED_BY_A_MODULE: frozenset[str] = frozenset({"CAMPAIGNECO", "CAMPAIGNLOG", "CAMPAIGNOPS"})
+
 #: Modules known to initialise themselves at load time, on purpose. Both are read from the top
 #: level of other modules' files, so waiting for an init pass would be too late.
 SELF_INITIALISING: frozenset[str] = frozenset({"EVENTS", "MISSIONDB"})
@@ -110,10 +114,11 @@ class TestRegistryMatchesGenerator(unittest.TestCase):
         orphans = {mid for mid, f in self.facts.items() if not f["registers"] and mid not in self.ordered}
         self.assertEqual(
             orphans,
-            set(LIBRARY_MODULES) | set(ROOT_BLOCK_MODULES),
+            set(LIBRARY_MODULES) | set(ROOT_BLOCK_MODULES) | set(STARTED_BY_A_MODULE),
             "a module belonging to neither mechanism is never initialised. Register it, give it a "
-            "place in _MODULE_INIT_ORDER, declare it a library in LIBRARY_MODULES, or, when a root "
-            "block of mission.yaml starts it, in ROOT_BLOCK_MODULES.",
+            "place in _MODULE_INIT_ORDER, declare it a library in LIBRARY_MODULES, when a root "
+            "block of mission.yaml starts it in ROOT_BLOCK_MODULES, or when another module starts it "
+            "in STARTED_BY_A_MODULE.",
         )
 
     def test_self_initialising_modules_are_the_declared_ones(self) -> None:

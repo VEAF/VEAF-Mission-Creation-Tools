@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 import pytest
-from mission_briefing.mission_briefing_worker import PICTURE_PREFIX, build_mission_briefing
+from mission_briefing.mission_briefing_worker import PICTURE_PREFIX, briefing_files, build_mission_briefing
 from mission_briefing.models import BriefingContent, BriefingReport, Objective, Threat
 from mission_tools.miz_tools import read_miz, write_miz
 from objective_mission_fixture import KHOBI_ZONE, objective_mission
@@ -86,7 +86,7 @@ def built(tmp_path_factory: pytest.TempPathFactory) -> Built:
 class TestTheDeck:
     def test_the_nine_pages_of_the_template_in_the_missions_language(self, built: Built) -> None:
         report = built.report
-        assert report.deck == built.folder / "docs" / "briefing.pptx"
+        assert report.deck == briefing_files(built.folder)[0]
         slides = _slides(report.deck)
         assert "Marteau de Khobi" in slides[0][0] or "Marteau de Khobi" in "\n".join(slides[0])
         titles = [slide[0] for slide in slides[1:]]

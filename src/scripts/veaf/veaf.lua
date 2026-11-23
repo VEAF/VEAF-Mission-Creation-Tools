@@ -3939,6 +3939,49 @@ function veaf.isUnitAlive(unit)
   return unit and unit:isExist() and unit:isActive()
 end
 
+--- The names CSAR.lua gives the survivor it puts on the ground after an ejection: its group, then its unit.
+veaf.CSAR_NAME_PREFIXES = { "Downed Pilot #", "Wounded Pilot #" }
+
+--- Whether an object is a CSAR survivor: a group of the CSAR module's registry (`csar.woundedGroups`), or,
+--- when that cannot be read, a group or unit carrying the names the module gives them.
+--- @param object table a DCS unit
+--- @return boolean
+function veaf.isCsarPilot(object)
+  local okGroup, groupName = pcall(function()
+    local group = object:getGroup()
+    return group and group:getName()
+  end)
+  groupName = okGroup and groupName or nil
+  if groupName and csar and type(csar.woundedGroups) == "table" and csar.woundedGroups[groupName] then
+    return true
+  end
+  local okName, unitName = pcall(function()
+    return object:getName()
+  end)
+  for _, name in pairs({ groupName or false, okName and unitName or false }) do
+    if type(name) == "string" then
+      for _, prefix in ipairs(veaf.CSAR_NAME_PREFIXES) do
+        if name:sub(1, #prefix) == prefix then
+          return true
+        end
+      end
+    end
+  end
+  return false
+end
+
+--- Whether an object found near something counts as an enemy there: anything but a CSAR survivor.
+---
+--- The CSAR module's defaults make the pilot of every aircraft shot down, AI included, an immortal soldier
+--- the AI cannot see (`csar.immortalcrew`, `csar.invisiblecrew`), and the other side cannot rescue him. On
+--- 2026-11-16 one of them, red, kept the zone of Menagh contested and a blue convoy halted for ten minutes,
+--- until an admin destroyed him. Every VEAF script that looks for enemies asks this.
+--- @param object table a DCS unit
+--- @return boolean
+function veaf.isCombatant(object)
+  return object ~= nil and not veaf.isCsarPilot(object)
+end
+
 function veaf.getUnitLifeRelative(unit)
   if unit and veaf.isUnitAlive(unit) then
     local unitLife = unit:getLife()

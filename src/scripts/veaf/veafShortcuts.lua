@@ -367,7 +367,23 @@ end
 --- 2026-08-25.
 ---
 --- @param requesterCoalition number|nil la coalition du demandeur ; a defaut on retombe sur `coalition`
-function VeafAlias:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route, requesterCoalition)
+--- `scripted` says a script asked rather than a person; when nil, a bypassed security means it, as before.
+--- It travels apart from `bypassSecurity` because a batch alias bypasses the check it has already made for
+--- the person who dropped it: what it spawns is still that person's, and paid (FEAT-DYNAMIC-CAMPAIGN ticket 14).
+function VeafAlias:execute(
+  remainingCommand,
+  position,
+  coalition,
+  markId,
+  bypassSecurity,
+  spawnedGroups,
+  route,
+  requesterCoalition,
+  scripted
+)
+  if scripted == nil then
+    scripted = bypassSecurity
+  end
   local function logDebug(message)
     veaf.loggers.get(veafShortcuts.Id):debug(message)
     return true
@@ -405,7 +421,17 @@ function VeafAlias:execute(remainingCommand, position, coalition, markId, bypass
 
   if
     logDebug("checking in veafShortcuts")
-    and veafShortcuts.executeCommand(position, command, coalition, markId, _bypassSecurity, spawnedGroups, route)
+    and veafShortcuts.executeCommand(
+      position,
+      command,
+      coalition,
+      markId,
+      _bypassSecurity,
+      spawnedGroups,
+      route,
+      requesterCoalition,
+      scripted
+    )
   then
     return true
   elseif
@@ -426,8 +452,8 @@ function VeafAlias:execute(remainingCommand, position, coalition, markId, bypass
       nil,
       route,
       nil,
-      nil,
-      bypassSecurity
+      requesterCoalition, -- who to answer: a refused paid spawn tells the pilot who asked (FEAT-DYNAMIC-CAMPAIGN ticket 14)
+      scripted
     )
   then
     return true
@@ -728,8 +754,12 @@ function veafShortcuts.ExecuteAlias(
   bypassSecurity,
   spawnedGroups,
   route,
-  requesterCoalition
+  requesterCoalition,
+  scripted
 )
+  if scripted == nil then
+    scripted = bypassSecurity
+  end
   veaf.loggers.get(veafShortcuts.Id):debug(
     string.format(
       "veafShortcuts.ExecuteAlias([%s],[%s],[%s],[%s],[%s])",
@@ -772,7 +802,8 @@ function veafShortcuts.ExecuteAlias(
       for index, textToExecute in ipairs(alias:getBatchAliases()) do
         -- Le demandeur descend aussi dans le lot : c'est exactement le cas de `-arty1`, qui pose une
         -- batterie puis lui attache un pilote automatique dans la meme foulee.
-        veafShortcuts.executeCommand(position, textToExecute, coalition, markId, true, spawnedGroups, route, requesterCoalition)
+        -- the password is checked: `true` bypasses it, and `scripted` says whether a person dropped the batch
+        veafShortcuts.executeCommand(position, textToExecute, coalition, markId, true, spawnedGroups, route, requesterCoalition, scripted)
       end
     else
       -- `VeafAlias:execute` calls each module's `executeCommand` directly, past the dispatcher that enforces
@@ -806,11 +837,11 @@ function veafShortcuts.ExecuteAlias(
       if nDelay then
         veaf.scheduleFunction(
           VeafAlias.execute,
-          { alias, remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route, requesterCoalition },
+          { alias, remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route, requesterCoalition, scripted },
           timer.getTime() + nDelay
         )
       else
-        alias:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route, requesterCoalition)
+        alias:execute(remainingCommand, position, coalition, markId, bypassSecurity, spawnedGroups, route, requesterCoalition, scripted)
       end
     end
     return true
@@ -853,7 +884,17 @@ end
 -- Event handler functions.
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, markId, bypassSecurity, spawnedGroups, route, requesterCoalition)
+function veafShortcuts.executeCommand(
+  eventPos,
+  eventText,
+  eventCoalition,
+  markId,
+  bypassSecurity,
+  spawnedGroups,
+  route,
+  requesterCoalition,
+  scripted
+)
   veaf.loggers.get(veafShortcuts.Id):debug("veafShortcuts.executeCommand(eventText=[%s])", eventText)
 
   -- Check if marker has a text and contains an alias
@@ -909,7 +950,8 @@ function veafShortcuts.executeCommand(eventPos, eventText, eventCoalition, markI
         bypassSecurity,
         spawnedGroups,
         route,
-        requesterCoalition
+        requesterCoalition,
+        scripted
       )
     end
     return false
@@ -1196,6 +1238,13 @@ function veafShortcuts.buildDefaultList()
       :setName("-nasams_b")
       :setDescription("NASAMS battery with 120B (US by default)")
       :setVeafCommand("_spawn group, name nasams_b, country USA, skynet true, spacing 1, radius 0")
+      :setBypassSecurity(false)
+  )
+  veafShortcuts.AddAlias(
+    VeafAlias:new()
+      :setName("-iristslm")
+      :setDescription("IRIS-T SLM battery (US by default)")
+      :setVeafCommand("_spawn group, name iristslm, country USA, skynet true, spacing 1, radius 0")
       :setBypassSecurity(false)
   )
   veafShortcuts.AddAlias(
@@ -2076,6 +2125,16 @@ function veafShortcuts.executeCommandFromRemote(parameters)
         veaf.loggers.get(veafShortcuts.Id):trace(string.format("_lat=%s", veaf.p(_lat)))
         veaf.loggers.get(veafShortcuts.Id):trace(string.format("_lon=%s", veaf.p(_lon)))
       end
+    end
+    -- a mission's marker policy holds for a pilot's command from afar as for his marker (a persistent
+    -- campaign, FEAT-DYNAMIC-CAMPAIGN): the pilot's name stands for the marker, as veafSecurity reads it
+    if
+      _alias
+      and veafCommands
+      and veafCommands.allowedByPolicy
+      and not veafCommands.allowedByPolicy({ text = _alias, idx = _pilot.name, coalition = _coa })
+    then
+      return true
     end
     if _alias then
       if _lat and _lon then

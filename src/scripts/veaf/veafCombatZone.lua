@@ -1992,7 +1992,9 @@ function VeafCombatZone:spawnElement(zoneElement, now)
         end
         local route = zoneElement:getRoute()
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("got route"))
-        veaf.goRoute(newGroup, route)
+        -- This hook runs in the frame the group is created, where DCS loses a route order: the route goes 5 s later,
+        -- and is the last order, so it wins over a route the command gave (FIX-COMBATZONE-FIRST-ROUTE).
+        veafSpawn.giveFirstRoute(newGroup, route)
         veaf.loggers.get(veafCombatZone.Id):trace(string.format("sent group on its way"))
       end)
       local command = zoneElement:getVeafCommand() .. ", czName " .. self:getMissionEditorZoneName()

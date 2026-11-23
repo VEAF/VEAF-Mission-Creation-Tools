@@ -102,6 +102,12 @@ def _coalition(name: str, bullseye: dict[str, float]) -> dict[str, Any]:
     return {"name": name, "bullseye": {"x": bullseye["x"], "y": bullseye["y"]}, "country": {}, "nav_points": {}}
 
 
+#: The options a new mission imposes on every player, as the VEAF Foothold missions do: no civil traffic,
+#: no birds, no random failure (David, 2026-11-16: "something we always switch off"). A mission maker
+#: changes them in the Mission Editor, or overrides them with `mission.forced_options`.
+DEFAULT_FORCED_OPTIONS: dict[str, Any] = {"civTraffic": "", "birds": 0, "accidental_failures": False}
+
+
 def _mission_skeleton(theatre: dict[str, Any]) -> dict[str, Any]:
     """Compose the generic mission table with a theatre's constants (empty of groups)."""
     bullseye = theatre["bullseye"]
@@ -162,7 +168,7 @@ def _mission_skeleton(theatre: dict[str, Any]) -> dict[str, Any]:
                 "observer": {"blue": 0, "neutrals": 0, "red": 0},
             },
         },
-        "forcedOptions": {},
+        "forcedOptions": dict(DEFAULT_FORCED_OPTIONS),
         "failures": {},
         "goals": {},
         "drawings": {

@@ -81,6 +81,7 @@ Modules that are not `initialize()`d consume no resources and create no radio me
 | Module | File | What it does |
 |--------|------|--------------|
 | [veafSanctuary](veafSanctuary.en.md) | `veafSanctuary.lua` | Protected zones that automatically destroy intruding units |
+| [veafSupport](veafSupport.en.md) | `veafSupport.lua` | AWACS and tankers held out of the enemy's air defence, moved and announced |
 | [veafMissileGuardian](veafMissileGuardian.en.md) | `veafMissileGuardian.lua` | Intercepts specific incoming missiles to protect assets |
 
 ---

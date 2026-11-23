@@ -166,6 +166,32 @@ def _select_custom_modules() -> set[str] | None:
     return set(selected)
 
 
+def _plan_presets_for_theatre(folder: Path, theatre: str) -> None:
+    """Put the theatre's airfields on the shipped plan's second radio, in place of the Caucasus ones.
+
+    The shipped ``src/presets.yaml`` is the Caucasus Open Training's plan; `prepare --theatre Syria` laid it
+    down as it was, and the Syria campaign flew with Batumi and Kutaisi on its kneeboards (2026-11-16). A plan
+    the mission maker changed is left alone (see `plan_for_theatre`).
+
+    Args:
+        folder: The mission folder.
+        theatre: The theatre as `--theatre` names it.
+    """
+    from presets_injector.airfield_channels_manager import plan_for_theatre
+    from veaf_libs.blank_mission import canonical_theatre_name
+
+    presets_path = folder / "src" / "presets.yaml"
+    if not presets_path.is_file():
+        return
+    with open(presets_path, encoding="utf-8", newline="") as handle:
+        text = handle.read()
+    updated = plan_for_theatre(text, canonical_theatre_name(theatre))
+    if updated != text:
+        with open(presets_path, "w", encoding="utf-8", newline="") as handle:
+            handle.write(updated)
+        console.print(t("cmd.prepare.presets_for_theatre", theatre=theatre))
+
+
 @app.command(help=t("cmd.prepare.help"), no_args_is_help=True)
 def prepare(
     mission_folder: str | None = typer.Argument(".", help=t("cmd.prepare.opt.mission_folder")),
@@ -321,6 +347,7 @@ def prepare(
                     dest.parent.mkdir(parents=True, exist_ok=True)
                     dest.write_bytes(content)
                 console.print(t("cmd.prepare.theatre_applied", theatre=theatre))
+            _plan_presets_for_theatre(p_mission_folder, theatre)
 
         # Print summary
         console.print(t("cmd.prepare.done"))

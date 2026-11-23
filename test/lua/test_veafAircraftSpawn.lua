@@ -568,4 +568,35 @@ function TestAircraftSpawnZoneDefense:test_a_parked_interceptor_takes_off_then_p
   luaunit.assertEquals(action.params, { goToWaypointIndex = 2, fromWaypointIndex = 3 })
 end
 
+-- ============================================================================
+-- A group built from its type that starts on the ground keeps its take-off point (FEAT-DYNAMIC-CAMPAIGN)
+-- ============================================================================
+TestAircraftSpawnAirplaneTakeoff = {}
+
+function TestAircraftSpawnAirplaneTakeoff:setUp()
+  dcs_mocks.reset()
+  captureSchedules(self)
+  registerLiveGroup("red cap Senaki")
+end
+
+function TestAircraftSpawnAirplaneTakeoff:tearDown()
+  veaf.scheduleFunction = self._originalSchedule
+  dcs_mocks.reset()
+end
+
+function TestAircraftSpawnAirplaneTakeoff:test_zone_defense_takes_off_then_patrols()
+  local takeoff = { type = "TakeOffParkingHot", action = "From Parking Area Hot", x = 10, y = 20, alt = 30, airdromeId = 23, speed = 0 }
+  veafAircraftSpawn.spawnAirplaneGroup({
+    country = 0,
+    name = "red cap Senaki",
+    units = { { x = 10, y = 20, alt = 30, type = "MiG-29A", name = "red cap Senaki #1", parking = 7, payload = {} } },
+  }, "zone_defense", { zone = { x = 40000, y = 30000, radius = 15000 }, takeoffPoint = takeoff })
+  local points = submittedRoute()
+  luaunit.assertEquals(#points, 3)
+  luaunit.assertEquals({ points[1].type, points[1].airdromeId }, { "TakeOffParkingHot", 23 })
+  -- the patrol climbs to its altitude after the take-off, it does not stay at the field's height
+  luaunit.assertEquals(points[2].alt, veafAircraftSpawn.DEFAULT_PATROL_ALTITUDE)
+  luaunit.assertEquals(dcs_mocks.groupsAdded[1].group.units[1].parking, 7)
+end
+
 os.exit(luaunit.LuaUnit.run())

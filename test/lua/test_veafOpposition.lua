@@ -375,4 +375,102 @@ function TestVeafOpposition:test_the_command_is_for_senior_pilots()
   luaunit.assertEquals(entry.keyphrase, "_opposition")
 end
 
+-- FEAT-CAMPAIGN-CONVOYS-FOLLOW-STRIKERS 01: the players who can stop a convoy
+
+--- The `desc` of each weapon family, as the game files describe them (see `armedForGround`).
+local WEAPONS = {
+  GBU12 = { category = Weapon.Category.BOMB, guidance = Weapon.GuidanceType.LASER },
+  MK82 = { category = Weapon.Category.BOMB },
+  HYDRA = { category = Weapon.Category.ROCKET },
+  MAVERICK = { category = Weapon.Category.MISSILE, missileCategory = Weapon.MissileCategory.OTHER, guidance = Weapon.GuidanceType.TV },
+  HELLFIRE = { category = Weapon.Category.MISSILE, missileCategory = Weapon.MissileCategory.OTHER, guidance = Weapon.GuidanceType.LASER },
+  APKWS = { category = Weapon.Category.MISSILE, missileCategory = Weapon.MissileCategory.OTHER, guidance = Weapon.GuidanceType.LASER },
+  HARM = {
+    category = Weapon.Category.MISSILE,
+    missileCategory = Weapon.MissileCategory.OTHER,
+    guidance = Weapon.GuidanceType.RADAR_PASSIVE,
+  },
+  AIM120 = { category = Weapon.Category.MISSILE, missileCategory = Weapon.MissileCategory.AAM, guidance = Weapon.GuidanceType.RADAR_ACTIVE },
+  AIM9 = { category = Weapon.Category.MISSILE, missileCategory = Weapon.MissileCategory.AAM, guidance = Weapon.GuidanceType.IR },
+  GUN = { category = Weapon.Category.SHELL },
+}
+
+--- A unit carrying a load: `{ "GBU12", ... }`, two of each, or `{ { "GBU12", 0 } }` for a count.
+local function _carrying(load, point, coalitionId)
+  local unit = {
+    isExist = function()
+      return true
+    end,
+    getPoint = function()
+      return point or { x = 0, y = 0, z = 0 }
+    end,
+    getCoalition = function()
+      return coalitionId or coalition.side.BLUE
+    end,
+  }
+  function unit:getAmmo()
+    local ammo = {}
+    for _, item in ipairs(load) do
+      local name, count = item, 2
+      if type(item) == "table" then
+        name, count = item[1], item[2]
+      end
+      local desc = { typeName = name }
+      for key, value in pairs(WEAPONS[name]) do
+        desc[key] = value
+      end
+      table.insert(ammo, { count = count, desc = desc })
+    end
+    return ammo
+  end
+  return unit
+end
+
+function TestVeafOpposition:test_bombs_rockets_and_air_to_ground_missiles_can_stop_a_convoy()
+  for _, load in ipairs({
+    { "GBU12" },
+    { "MK82" },
+    { "HYDRA" },
+    { "MAVERICK" },
+    { "HELLFIRE" },
+    { "APKWS" },
+    { "HARM", "MK82" },
+    { "AIM9", "HYDRA" },
+  }) do
+    luaunit.assertTrue(veafOpposition.armedForGround(_carrying(load)), table.concat(load, "+"))
+  end
+end
+
+function TestVeafOpposition:test_air_to_air_anti_radiation_and_guns_cannot()
+  for _, load in ipairs({ { "AIM120", "AIM9" }, { "HARM" }, { "AIM120", "HARM" }, { "GUN" }, {}, { { "GBU12", 0 } } }) do
+    local names = {}
+    for _, item in ipairs(load) do
+      table.insert(names, type(item) == "table" and (item[1] .. " x" .. item[2]) or item)
+    end
+    luaunit.assertFalse(veafOpposition.armedForGround(_carrying(load)), table.concat(names, "+"))
+  end
+end
+
+function TestVeafOpposition:test_a_unit_that_cannot_say_its_ammo_cannot_stop_a_convoy()
+  local unit = _carrying({})
+  unit.getAmmo = function()
+    error("gone")
+  end
+  luaunit.assertFalse(veafOpposition.armedForGround(unit))
+  luaunit.assertFalse(veafOpposition.armedForGround({}))
+end
+
+function TestVeafOpposition:test_the_ground_attack_players_of_a_coalition()
+  local striker, fighter, helicopter = _carrying({ "MK82" }), _carrying({ "AIM120" }), _carrying({ "HELLFIRE" })
+  local redStriker = _carrying({ "MK82" })
+  coalition.getPlayers = function(side)
+    if side == coalition.side.BLUE then
+      return { striker, fighter, helicopter }
+    end
+    return { redStriker }
+  end
+  luaunit.assertEquals(veafOpposition.groundAttackPlayers(coalition.side.BLUE), { striker, helicopter })
+  luaunit.assertEquals(veafOpposition.groundAttackPlayers(coalition.side.RED), { redStriker })
+end
+
 os.exit(luaunit.LuaUnit.run())

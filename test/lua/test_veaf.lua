@@ -5022,4 +5022,57 @@ function TestVeafInitializeSkipsMissionModules:test_a_module_initialized_by_the_
   luaunit.assertEquals(self.started, { "MINE" })
 end
 
+-- ---------------------------------------------------------------------------
+-- TestVeafIsCombatant — a CSAR pilot is never an enemy (FEAT-DYNAMIC-CAMPAIGN ticket 20)
+-- ---------------------------------------------------------------------------
+TestVeafIsCombatant = {}
+
+--- A unit of a group, as DCS hands it over.
+local function unitNamed(name, groupName)
+  return {
+    getName = function()
+      return name
+    end,
+    getGroup = function()
+      return {
+        getName = function()
+          return groupName
+        end,
+      }
+    end,
+  }
+end
+
+function TestVeafIsCombatant:tearDown()
+  csar = nil
+end
+
+function TestVeafIsCombatant:test_a_tank_is_a_combatant()
+  luaunit.assertTrue(veaf.isCombatant(unitNamed("Senaki garrison #3", "Senaki garrison")))
+end
+
+function TestVeafIsCombatant:test_a_csar_pilot_is_none_by_his_name()
+  -- the names CSAR.lua gives its survivors, when the module's registry cannot be read
+  luaunit.assertFalse(veaf.isCombatant(unitNamed("Wounded Pilot #201080", "Downed Pilot #201080")))
+  luaunit.assertFalse(veaf.isCombatant(unitNamed("someone", "Downed Pilot #7")))
+end
+
+function TestVeafIsCombatant:test_a_csar_pilot_is_none_by_the_registry()
+  csar = { woundedGroups = { ["renamed survivor"] = { side = 1 } } }
+  luaunit.assertFalse(veaf.isCombatant(unitNamed("renamed survivor #1", "renamed survivor")))
+end
+
+function TestVeafIsCombatant:test_an_object_dcs_released_is_read_as_a_combatant()
+  -- the predicate only ever removes a CSAR crew: an object it cannot read stays what the caller says
+  local released = {
+    getName = function()
+      error("released")
+    end,
+    getGroup = function()
+      error("released")
+    end,
+  }
+  luaunit.assertTrue(veaf.isCombatant(released))
+end
+
 os.exit(luaunit.LuaUnit.run())

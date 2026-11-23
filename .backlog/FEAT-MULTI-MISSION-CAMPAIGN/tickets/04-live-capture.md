@@ -3,7 +3,7 @@
 Status: 🧑 waiting-human
 
 Shared brick, moved here from `FEAT-DYNAMIC-CAMPAIGN` ticket 03 (David, 2026-10-06: capture happens during the flight).
-The rule, Foothold's reading and the reasons are in [that ticket](../../FEAT-DYNAMIC-CAMPAIGN/tickets/03-capture.md); summarized:
+Foothold's reading of the rule is in [note 01 §6–§7 of the Foothold analysis](../../FEAT-DYNAMIC-CAMPAIGN/foothold-analysis/01-zones-capture-map.md) (the ticket that first held it was rewritten on 2026-11-15); summarized:
 
 - Only a **neutral** zone can be captured (its garrison destroyed, ticket 02).
 - The module loop checks each neutral zone for ground presence (`world.searchObjects` over the zone): any ground unit of one side — CTLD 2 troops or vehicles, a convoy, a `_spawn` group, a Combined Arms vehicle — and a **landed** helicopter; aircraft in flight never count; a CTLD 2 crate counts through its events.

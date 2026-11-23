@@ -464,7 +464,7 @@ Brief status after each step: what is done, not what you are about to do.
 - **The Mission Maker sheet** (`docs/fiche-mission-maker.md`), apart from the briefing: what the mission does on its own; every F10 command that is theirs with its **exact path** ("VEAF > COMBAT ZONES > SA-6 battery > Deactivate zone") and its effect; a table "depending on who is there" (nobody on BARCAP, nobody on SEAD, fewer than 6 pilots, many pilots); what to check before the evening.
   Present a command as checked only when it was, in game.
 
-- **PPTX and PDF** in `docs/` (`docs/briefing.pptx`, `docs/briefing.pdf`), the section 3
+- **PPTX and PDF** in `docs/` (`docs/<mission>_briefing.pptx`, `docs/<mission>_briefing.pdf`), the section 3
   template, page for page; the PPTX is the source of the **Google Slides** version (Drive import).
   Keep fonts Slides knows (Calibri, Cambria, Arial), and look at the converted render if it is
   uploaded.
@@ -486,7 +486,7 @@ Brief status after each step: what is done, not what you are about to do.
   cockpits (the frequency plan), each placed target's coordinates and the ground's altitude under it —
   with no elevation grid for the theatre, the column stays empty and the action says so: it is an
   open point. Read its `warnings`.
-- **The PDF** (`docs/briefing.pdf`) is written by the same action, with the deck's pages, maps and
+- **The PDF** (`docs/<mission>_briefing.pdf`) is written by the same action, with the deck's pages, maps and
   words, whatever the PC holds: install nothing and write no converter (an AI that installed LibreOffice
   by `winget` lost fifteen minutes and left a half install). Its layout is its own (DejaVu Sans, not
   Calibri) and a page whose text runs on makes a page more: the result's `pdf_pages` says. Someone who

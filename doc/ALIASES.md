@@ -62,6 +62,7 @@ Le niveau tiré est lui-même décalé de ±1 une fois sur cinq dans chaque sens
 | `-rolandnoew` | Batterie Roland sans EWR (US) |
 | `-nasams` | Batterie NASAMS avec AIM-120C (US) |
 | `-nasams_b` | Batterie NASAMS avec AIM-120B (US) |
+| `-iristslm` | Batterie IRIS-T SLM (US), du pack Currenthill livré avec DCS |
 | `-hawk` | Batterie Hawk (US) |
 | `-patriot` | Batterie Patriot (US) |
 | `-stinger` | Escouade MANPAD Stinger (US) |

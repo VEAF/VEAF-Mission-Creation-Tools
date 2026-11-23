@@ -177,7 +177,7 @@ class TestAgainstTheVendoredCatalogue:
         assert sorted(changed) == sorted(
             [
                 '-configVersion: "2.0.0"',
-                '+configVersion: "2.3.0"',
+                '+configVersion: "2.5.0"',
                 "+  enableParachuteDrop: true",
                 "+  crateDropExtraDistance: 2",
                 "+  crateSpawnGap: 0.5",
@@ -342,7 +342,7 @@ class TestListsNewerThanTheMission:
         since = _vendored_since()
         upgraded = upgrade_to_catalogue(_as_2_2_0(catalogue), catalogue, since)
         document = yaml.safe_load(upgraded)
-        assert document["configVersion"] == "2.3.0"
+        assert document["configVersion"] == "2.5.0"
         assert document["mm_facing"]["fatCowLoadouts"] == yaml.safe_load(catalogue)["mm_facing"]["fatCowLoadouts"]
         assert find_catalogue_gap(upgraded, catalogue, since) is None
 
@@ -366,3 +366,46 @@ class TestListsNewerThanTheMission:
         engine = tmp_path / "CTLD.lua"
         engine.write_text('ctld = {}\nctld.VERSION = "2.0.0-rc13"\n', encoding="utf-8")
         assert read_list_since(engine) == {}
+
+
+_CTLD_2_1_0_SETTINGS = (
+    ("mm_facing", "forbidUnpackInLogisticZone", False),
+    ("mm_facing", "maximumMoveDistance", 2000),
+    ("mm_facing", "spawnedUnitsPlayerCanDrive", True),
+)
+
+
+def _as_2_3_0(catalogue: str) -> str:
+    """The vendored catalogue as a mission scaffolded against 2.3.0 holds it: no CTLD 2.1.0 setting."""
+    ruamel = YAML()
+    ruamel.preserve_quotes = True
+    document = ruamel.load(apply_veaf_overrides(catalogue))
+    document["configVersion"] = "2.3.0"
+    for section, key, _ in _CTLD_2_1_0_SETTINGS:
+        del document[section][key]
+    stream = io.StringIO()
+    ruamel.dump(document, stream)
+    return stream.getvalue()
+
+
+class TestTheCtld210Settings:
+    """CTLD 2.1.0 (catalogue 2.5.0) adds three settings a 2.0.0-rc17 configuration does not hold."""
+
+    def test_the_vendored_catalogue_holds_them_at_their_default(self) -> None:
+        document = yaml.safe_load(_vendored_catalogue())
+        for section, key, default in _CTLD_2_1_0_SETTINGS:
+            assert document[section][key] == default
+
+    def test_a_2_3_0_file_misses_them(self) -> None:
+        catalogue = _vendored_catalogue()
+        gap = find_catalogue_gap(_as_2_3_0(catalogue), catalogue, _vendored_since())
+        assert gap is not None
+        assert gap.missing == tuple((section, key) for section, key, _ in _CTLD_2_1_0_SETTINGS)
+
+    def test_the_upgrade_writes_them_and_closes_the_gap(self) -> None:
+        catalogue = _vendored_catalogue()
+        since = _vendored_since()
+        document = yaml.safe_load(upgrade_to_catalogue(_as_2_3_0(catalogue), catalogue, since))
+        for section, key, default in _CTLD_2_1_0_SETTINGS:
+            assert document[section][key] == default
+        assert find_catalogue_gap(yaml.safe_dump(document), catalogue, since) is None

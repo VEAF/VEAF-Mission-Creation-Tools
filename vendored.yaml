@@ -60,10 +60,12 @@ artifacts:
   # 2026-08-26 and we stayed on rc7 for seventeen days across three weekly runs, in silence, on
   # the one artefact VEAF writes itself and updates most often. Hence `prereleases`, and the
   # `tag_pattern` that keeps the `dev` release — rewritten on every master build — out of it.
+  # Stable releases started with 2.0.0 (2026-11-07); `prereleases` stays on because VMCT also takes
+  # release candidates, and the `dev` pre-release still needs the pattern to stay out.
   # See docs/adr/0016-ctld2-sidecar-configuration.md.
   - id: ctld
     source: https://github.com/VEAF/CTLD
-    pinned: "2.0.0-rc17"
+    pinned: "2.1.0"
     vendoring: verbatim
     path: src/scripts/community/CTLD.lua
     manual_steps: "(verbatim) re-download the CTLD.lua asset from the matching VEAF/CTLD release."
@@ -71,7 +73,7 @@ artifacts:
       - {
           kind: github-release,
           repo: VEAF/CTLD,
-          pinned: "published-v2.0.0-rc17",
+          pinned: "published-v2.1.0",
           prereleases: true,
           tag_pattern: "^published-v",
         }

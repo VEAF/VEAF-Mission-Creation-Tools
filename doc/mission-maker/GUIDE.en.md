@@ -886,6 +886,16 @@ Two cases where that is not what happens:
 | zones named `pickzone #001` … `#020` | a Mission Editor zone named `TRZ_…` |
 | `ctld.initialize(configurationCallback)` in `mission-script.lua` | nothing to write: the build generates CTLD's start-up |
 
+!!! note "CTLD 2.1.0: three v1 behaviours are back by default"
+    The tools ship CTLD 2.1.0 since 6.39.0. Three defaults change from CTLD 2.0.0:
+
+    - **Dropped groups act on their own.** Dropped troops and vehicles go for the nearest enemy within `maximumSearchDistance` (4000 m), otherwise walk to a random point within `maximumMoveDistance` (2000 m). Set both to `0` to keep them where they are dropped.
+    - **What CTLD creates can be driven** (Combined Arms players, game masters). `spawnedUnitsPlayerCanDrive: false` gives back the 2.0.0 behaviour.
+    - **A `troopZones` or `wpZones` entry marked `no` stays inactive** until it is activated.
+
+    An existing `ctld-config.yaml` keeps its values: `validate` reports the new settings, `ctld-upgrade` writes them at their default.
+    A SAM system's group is now named `<type>_CTLD_AA_<id>`: adapt a mission script that looked for the old name.
+
 !!! warning "Missions built with veaf-tools 6.14.0 or earlier: rebuild them"
     Those versions did not write the line that starts CTLD. In game this shows up as **no CTLD
     entry in the radio menu**, and the first `-fob` raises a script error in the DCS log

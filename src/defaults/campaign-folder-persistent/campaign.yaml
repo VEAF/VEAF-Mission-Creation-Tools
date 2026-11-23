@@ -63,6 +63,7 @@ dynamic:
   save_seconds: 60
   wake_radius: 60000
   ground_wake_radius: 10000
+  infantry_radius: 600   # a drawn garrison's infantry holds one position this near the zone's centre (metres)
   reach_wake_margin: 20000
   front_depth: 40000
   takeoff_threat_range: 40000
@@ -94,6 +95,7 @@ dynamic:
   network:
     hop_seconds: 600
     isolated_seconds: 3600
+    threat_radius: 5000   # no repair while an enemy convoy stands this near the zone's centre (metres)
   demolition:
     troops: Sappers
   warehouse:

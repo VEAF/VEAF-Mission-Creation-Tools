@@ -90,6 +90,9 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   max_convoys = 3,
   players_per_convoy = 4,
   defended_radius = 30000,
+  -- metres from a zone's centre within which a drawn garrison's infantry holds its one position: each section at its
+  -- own point of a 2 to 3 km zone could not be found (David, 2026-11-22, FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT 06)
+  infantry_radius = 600,
   supply = { "red" }, -- the sides whose AI helicopters capture and resupply zones
   supply_seconds = 600,
   max_helicopters = 2,
@@ -154,6 +157,8 @@ veafCampaign.DYNAMIC_DEFAULTS = {
   factory = { buildings = 3, per_hour = 180, types = { "Workshop A", "Tech combine", "Tech hangar A" } },
   -- `under_fire_seconds`: a delivery waits this long after the zone's last loss: on 2026-11-17 Aleppo, attacked by
   -- a player's helicopter, was reinforced every 5 minutes and the players' Shilka was back 2 minutes after its death
+  -- `threat_radius`: nor while an enemy convoy stands this near the zone's centre: on 2026-11-22 Menagh was repaired in a
+  -- lull of its losses with the red assault 1.1 to 4.3 km out, and destroyed again at once
   -- a depot is a set of buildings (David, 2026-11-17): all destroyed, it is an ordinary node for `depot_rebuild_seconds`,
   -- long enough to take the zone (the convoy timeout, until an evening measures better)
   network = {
@@ -162,6 +167,7 @@ veafCampaign.DYNAMIC_DEFAULTS = {
     depot_store = 4,
     max_deliveries = 3,
     under_fire_seconds = 600,
+    threat_radius = 5000,
     depot_buildings = 3,
     depot_types = { "Warehouse", "Fuel tank", "Tank" },
     depot_rebuild_seconds = 2700,
@@ -764,10 +770,33 @@ end
 --- Compose and place a garrison from `veafCasMission`'s unit generators: infantry sections, armour
 --- platoons, air defence groups, in the numbers `generateCasGroup` draws for the same size.
 ---
+--- Metres around the infantry's position within which each of its sections stands.
+veafCampaign.INFANTRY_SPREAD = 150
+
+--- The one position a drawn garrison's infantry holds: a point within `radius` of the zone's centre, off the concrete
+--- and the buildings, tried up to `GARRISON_PLACEMENT_TRIES` times (FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT 06).
+--- @param center table the zone's centre, a vec3
+--- @param radius number metres, `infantry_radius`
+--- @return table|nil a vec3, or nil when none was found: the sections then take the whole zone, as before
+function veafCampaign.infantryAnchor(center, radius)
+  for _ = 1, veafCampaign.GARRISON_PLACEMENT_TRIES do
+    local position = veaf.findPointInZone(center, radius, false)
+    if not position then
+      return nil
+    end
+    local point = { x = position.x, y = 0, z = position.z or position.y }
+    if not (veafCampaign.isOnConcrete(point) or veafCampaign.isOnBuilding(point)) then
+      return point
+    end
+  end
+  return nil
+end
+
 --- Not `generateCasGroup` itself, for two reasons measured on 2026-10-06 (40 draws per setting): it
 --- always adds a transport company of 10 to 15 lorries, which a garrison has no use for — 15 to 42 of
 --- the 28 to 119 units it gives — and it spreads them over `(size + spacing) * 350` m, whatever the
---- zone's radius. Here they stand within the zone.
+--- zone's radius. Here they stand within the zone, and the infantry sections together, around one position within
+--- `infantry_radius` of the centre (`infantryAnchor`).
 --- @param name string the group name, used as the prefix of the generated ones
 --- @param center table the zone's centre, a vec3
 --- @param radius number the zone's radius, in metres
@@ -780,8 +809,14 @@ function veafCampaign.composeGarrison(name, center, radius, size, side)
     veafCampaign.placeGarrisonGroup(group, center, radius, units)
   end
   local sections = math.random(math.max(1, size.size - 2), size.size + 1)
+  local anchor = veafCampaign.infantryAnchor(center, veafCampaign.setting("infantry_radius"))
   for index = 1, sections do
-    place(veafCasMission.generateInfantryGroup(name .. " - Infantry Section " .. index, size.defense, size.armor, side))
+    local section = veafCasMission.generateInfantryGroup(name .. " - Infantry Section " .. index, size.defense, size.armor, side)
+    if anchor then
+      veafCampaign.placeGarrisonGroup(section, anchor, veafCampaign.INFANTRY_SPREAD, units)
+    else
+      place(section)
+    end
   end
   if size.armor > 0 then
     local platoons = math.random(math.max(1, size.size - 2), size.size + 1)

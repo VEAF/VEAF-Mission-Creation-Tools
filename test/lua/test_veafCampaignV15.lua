@@ -835,6 +835,48 @@ function TestCampaignNetwork:test_a_delivery_waits_while_the_zone_is_under_fire(
   luaunit.assertEquals(#veafCampaignLogistics.deliveries, 0)
 end
 
+-- FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT 02: on 2026-11-22 Menagh was repaired in a lull of its losses while the red assault
+-- convoy stood 1.1 to 4.3 km out, and destroyed again at once
+local function enemyConvoyAt(name, side, point)
+  table.insert(veafCampaign.convoys, { name = name, side = side, from = "Poti", to = "Senaki", sent = {}, absorbed = {} })
+  dcs_mocks.addGroup(name, {
+    getUnits = function()
+      return { unitAt(point, { type = "M-2 Bradley" }) }
+    end,
+  })
+end
+
+function TestCampaignNetwork:test_a_delivery_waits_while_an_enemy_convoy_stands_at_the_gates()
+  network()
+  local senaki = veafCampaign.zones["Senaki"]
+  senaki.entry.garrison = garrison("Senaki", { 1 })
+  veafCampaignLogistics.dispatchDeliveries(0)
+  local center = senaki:getCenter()
+  enemyConvoyAt("assault", "blue", { x = center.x + 2200, z = center.z })
+  dcs_mocks.logs = {}
+  veafCampaignLogistics.arriveDeliveries(1200)
+  veafCampaignLogistics.arriveDeliveries(1300)
+  luaunit.assertTrue(senaki:garrisonDamaged(), "no repair under the enemy's guns, though nothing was lost lately")
+  luaunit.assertEquals(#veafCampaignLogistics.deliveries, 1, "kept, not lost")
+  luaunit.assertEquals(#dcs_mocks.findLog("the red supply for %[Senaki%] waits: an enemy convoy 2.2 km away"), 1, "said once")
+  -- the convoy gone, the repair arrives
+  veafCampaign.convoys[#veafCampaign.convoys].ended = true
+  veafCampaignLogistics.arriveDeliveries(1400)
+  luaunit.assertFalse(senaki:garrisonDamaged())
+end
+
+function TestCampaignNetwork:test_an_enemy_convoy_beyond_the_threat_radius_holds_nothing()
+  network()
+  local senaki = veafCampaign.zones["Senaki"]
+  senaki.entry.garrison = garrison("Senaki", { 1 })
+  veafCampaignLogistics.dispatchDeliveries(0)
+  local center = senaki:getCenter()
+  enemyConvoyAt("far", "blue", { x = center.x + veafCampaign.setting("network", "threat_radius") + 500, z = center.z })
+  enemyConvoyAt("friend", "red", { x = center.x + 500, z = center.z })
+  veafCampaignLogistics.arriveDeliveries(1200)
+  luaunit.assertFalse(senaki:garrisonDamaged())
+end
+
 -- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 09: "lost: the zone is no longer theirs" said of Aleppo, still red, whole again
 function TestCampaignNetwork:test_a_delivery_with_nothing_to_repair_goes_back_to_the_stock()
   network()

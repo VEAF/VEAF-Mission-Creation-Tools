@@ -890,6 +890,16 @@ Deux cas où ce n'est pas ce qui se passe :
 | zones nommées `pickzone #001` … `#020` | une zone de l'éditeur nommée `TRZ_…` |
 | `ctld.initialize(configurationCallback)` dans `mission-script.lua` | rien à écrire : le build génère le démarrage de CTLD |
 
+!!! note "CTLD 2.1.0 : trois comportements de la v1 reviennent par défaut"
+    Les outils livrent CTLD 2.1.0 depuis la 6.39.0. Trois défauts changent par rapport à CTLD 2.0.0 :
+
+    - **Les groupes déposés agissent seuls.** Troupes et véhicules déposés vont vers l'ennemi le plus proche dans `maximumSearchDistance` (4000 m), sinon marchent vers un point au hasard dans `maximumMoveDistance` (2000 m). Mettez les deux à `0` pour qu'ils restent où ils sont déposés.
+    - **Ce que CTLD crée se conduit** (joueurs Combined Arms, game masters). `spawnedUnitsPlayerCanDrive: false` rend le comportement de 2.0.0.
+    - **Une zone `troopZones` ou `wpZones` marquée `no` reste inactive** jusqu'à son activation.
+
+    Un `ctld-config.yaml` existant garde ses valeurs : `validate` signale les nouveaux réglages, `ctld-upgrade` les écrit à leur valeur par défaut.
+    Le groupe d'un système SAM s'appelle désormais `<type>_CTLD_AA_<id>` : adaptez un script de mission qui cherchait l'ancien nom.
+
 !!! warning "Missions construites avec veaf-tools 6.14.0 ou antérieur : reconstruisez-les"
     Ces versions n'écrivaient pas la ligne qui démarre CTLD. Dans le jeu, cela se voit ainsi :
     **pas de menu CTLD dans le menu radio**, et le premier `-fob` provoque une erreur de script

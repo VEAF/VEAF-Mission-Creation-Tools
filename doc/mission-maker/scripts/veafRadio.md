@@ -254,7 +254,7 @@ veafRadio.addCommandToSubmenu("État du pont", menuPA, etatDuPont, "CVN-74")
 
 Les commandes `USAGE_ForAll` qu'il contient sont posées pour chacun de ces groupes, avec leurs paramètres inchangés.
 Un filtre qui lève une erreur cache le menu et laisse une ligne dans le journal ; il n'interrompt pas la reconstruction.
-Un quatrième argument restreint en plus le menu à une coalition.
+Un quatrième argument restreint en plus le menu à une coalition, à n'importe quelle profondeur : même placé sous un menu par pilote, un menu réservé aux bleus n'est jamais montré à un groupe rouge.
 
 ### Un sous-menu par pilote
 
@@ -272,6 +272,7 @@ end
 
 Un pilote seul dans son groupe reçoit les commandes directement, sans le niveau à son nom.
 Le menu accepte le même filtre de groupes que `addSubMenuForGroups`.
+Le sous-menu porte le nom que le hook serveur VEAF connaît pour le joueur ; sans ce hook, le nom du joueur dans DCS, et à défaut l'indicatif de l'unité.
 
 ### Les commandes suivent les pilotes présents
 

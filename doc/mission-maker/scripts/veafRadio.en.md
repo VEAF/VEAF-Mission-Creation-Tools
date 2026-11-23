@@ -254,7 +254,7 @@ veafRadio.addCommandToSubmenu("Deck status", carrierMenu, deckStatus, "CVN-74")
 
 The `USAGE_ForAll` commands under it are posted for each of those groups, with their parameters unchanged.
 A filter that raises hides the menu and leaves a line in the log; it does not stop the rebuild.
-A fourth argument restricts the menu to one coalition as well.
+A fourth argument restricts the menu to one coalition as well, at any depth: even under a per-pilot menu, a blue-only menu is never shown to a red group.
 
 ### A submenu per pilot
 
@@ -272,6 +272,7 @@ end
 
 A pilot alone in his group gets the commands directly, without the level named after him.
 The menu takes the same group filter as `addSubMenuForGroups`.
+The submenu carries the name the VEAF server hook knows for the player; without the hook, the player's name in DCS, and failing that the unit's callsign.
 
 ### Commands follow the pilots present
 

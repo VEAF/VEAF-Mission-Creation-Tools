@@ -369,4 +369,84 @@ function TestRadioPilots:test_a_per_pilot_menu_under_a_pilot_menu_asks_its_filte
   luaunit.assertEquals(self:_groupLabels(1), { "LANDING", "Alpha", "Grades", "Show", "Bravo" })
 end
 
+-- -----------------------------------------------------------------------
+-- FIX-BFR-PORT-FINDINGS 02 — a coalition holds under a per-group parent (#1298)
+-- -----------------------------------------------------------------------
+
+function TestRadioPilots:test_a_blue_menu_under_a_per_pilot_menu_is_not_shown_to_red()
+  birth("blue unit", 1, "Alpha")
+  veafRadio.humanGroups[1].coalition = coalition.side.BLUE
+  birth("red unit", 2, "Bravo")
+  veafRadio.humanGroups[2].coalition = coalition.side.RED
+  local landing = veafRadio.addSubMenuPerPilot("Landing", self.root)
+  local blueOnly = veafRadio.addSubMenuForGroups("Blue ops", landing, nil, coalition.side.BLUE)
+  self.builder:addCommand("Launch", blueOnly, noop, nil, veafRadio.USAGE_ForGroup)
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_groupLabels(1), { "LANDING", "Blue ops", "Launch" })
+  luaunit.assertEquals(self:_groupLabels(2), { "LANDING" })
+end
+
+function TestRadioPilots:test_a_filtered_menu_without_coalition_under_a_per_pilot_menu_is_unchanged()
+  birth("blue unit", 1, "Alpha")
+  veafRadio.humanGroups[1].coalition = coalition.side.BLUE
+  birth("red unit", 2, "Bravo")
+  veafRadio.humanGroups[2].coalition = coalition.side.RED
+  local landing = veafRadio.addSubMenuPerPilot("Landing", self.root)
+  veafRadio.addSubMenuForGroups("Ops", landing, function()
+    return true
+  end)
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_groupLabels(1), { "LANDING", "Ops" })
+  luaunit.assertEquals(self:_groupLabels(2), { "LANDING", "Ops" })
+end
+
+-- -----------------------------------------------------------------------
+-- FIX-BFR-PORT-FINDINGS 03 — the per-pilot label is the player's name (#1304)
+-- -----------------------------------------------------------------------
+
+--- A pilot takes a slot on a server without the VEAF hook: no `unitPilotName`, the DCS callsign only.
+local function birthWithoutHook(unitName, groupId, callsign, playerName)
+  dcs_mocks.addUnit(unitName, {
+    getPlayerName = function()
+      return playerName
+    end,
+  })
+  veafRadio.onBirthEvent({
+    type = { id = world.event.S_EVENT_PLAYER_ENTER_UNIT, name = "S_EVENT_PLAYER_ENTER_UNIT" },
+    initiator = { unitName = unitName, unitGroupId = groupId, unitCallsign = callsign },
+  })
+end
+
+function TestRadioPilots:test_without_the_hook_the_pilot_menu_carries_the_player_name()
+  birthWithoutHook("unit A", 1, "Enfield11", "Alpha")
+  birthWithoutHook("unit B", 1, "Enfield12", "Bravo")
+  veafRadio.addSubMenuPerPilot("Landing", self.root)
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_groupLabels(1), { "LANDING", "Alpha", "Bravo" })
+end
+
+function TestRadioPilots:test_without_a_player_name_the_pilot_menu_keeps_the_callsign()
+  birthWithoutHook("unit A", 1, "Enfield11", nil)
+  birthWithoutHook("unit B", 1, "Enfield12", "")
+  veafRadio.addSubMenuPerPilot("Landing", self.root)
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_groupLabels(1), { "LANDING", "Enfield11", "Enfield12" })
+end
+
+function TestRadioPilots:test_the_hook_name_wins_over_the_player_name()
+  dcs_mocks.addUnit("unit A", {
+    getPlayerName = function()
+      return "DCS name"
+    end,
+  })
+  veafRadio.onBirthEvent({
+    type = { id = world.event.S_EVENT_PLAYER_ENTER_UNIT, name = "S_EVENT_PLAYER_ENTER_UNIT" },
+    initiator = { unitName = "unit A", unitGroupId = 1, unitCallsign = "Hook name", unitPilotName = "Hook name" },
+  })
+  birthWithoutHook("unit B", 1, "Enfield12", "Bravo")
+  veafRadio.addSubMenuPerPilot("Landing", self.root)
+  self.builder:rebuild()
+  luaunit.assertEquals(self:_groupLabels(1), { "LANDING", "Bravo", "Hook name" })
+end
+
 os.exit(luaunit.LuaUnit.run())

@@ -805,6 +805,36 @@ _PIPELINE_STEPS_BY_V5_CANDIDATE: dict[str, str] = {
     "weather": "weather",
 }
 
+
+def _yaml_holds_entries(path: Path) -> bool:
+    """Tell whether a YAML file holds at least one list entry, at any depth.
+
+    A converted ``dynamic-slot-templates.yaml`` with no template is written as empty categories,
+    which says the v5 mission had none.
+
+    Args:
+        path: The file to read.
+
+    Returns:
+        ``True`` when the file exists, parses and holds a non-empty list somewhere.
+    """
+    if not path.is_file():
+        return False
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError:
+        return False
+    stack: list[Any] = [data]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, list):
+            if node:
+                return True
+        elif isinstance(node, dict):
+            stack.extend(node.values())
+    return False
+
+
 #: A v5 mission editor's warehouses granting dynamic slots somewhere.
 _DYNAMIC_SPAWN_RE = re.compile(r'\["dynamicSpawn"\]\s*=\s*true')
 
@@ -1595,7 +1625,13 @@ class V5Converter:
         editor_warehouses = (
             warehouses_file.read_text(encoding="utf-8", errors="ignore") if warehouses_file.is_file() else ""
         )
-        if _DYNAMIC_SPAWN_RE.search(editor_warehouses):
+        templates_file = report.mission_folder / "src" / "dynamic-slot-templates.yaml"
+        if _yaml_holds_entries(templates_file):
+            # Converted from the v5 settings.lua, which v5 injected: keep it.
+            lines.append(
+                f"  dynamic_slot_templates: true  {t('converter.yaml.pipeline.detected', file='src/dynamic-slot-templates.yaml')}"
+            )
+        elif _DYNAMIC_SPAWN_RE.search(editor_warehouses):
             lines.append(f"  dynamic_slot_templates: true  {t('converter.yaml.pipeline.dynamic_slots_found')}")
         else:
             off("dynamic_slot_templates", t("converter.yaml.pipeline.not_in_v5"))

@@ -133,6 +133,25 @@ class TestPipelineParity(unittest.TestCase):
             self.assertIs(data["pipeline"]["dynamic_slot_templates"], True)
             self.assertIs(data["pipeline"]["warehouses"], False)
 
+    def test_templates_converted_from_v5_keep_the_step(self) -> None:
+        """v5 injected the templates its settings.lua held: the converted ones stay on."""
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            _make_folder(folder, "-- nothing\n")
+            (folder / "src" / "dynamic-slot-templates.yaml").write_text(
+                "plane:\n  blue:\n    - name: F-16 Template\n", encoding="utf-8"
+            )
+            data, _, _ = _convert(folder)
+            self.assertIs(data["pipeline"]["dynamic_slot_templates"], True)
+
+    def test_an_empty_converted_templates_file_does_not_keep_the_step(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            folder = Path(td)
+            _make_folder(folder, "-- nothing\n")
+            (folder / "src" / "dynamic-slot-templates.yaml").write_text("plane: {}\nhelicopter: {}\n", encoding="utf-8")
+            data, _, _ = _convert(folder)
+            self.assertIs(data["pipeline"]["dynamic_slot_templates"], False)
+
 
 class TestLanguageAndExports(unittest.TestCase):
     def test_the_language_is_always_written(self) -> None:

@@ -1752,6 +1752,22 @@ function veafCampaign.captureSeconds(byHelicopter)
   return veafCampaign.data.capture_seconds or veafCampaign.CAPTURE_SECONDS
 end
 
+--- What a player reads of a running capture: the time left until the zone is taken, `4 min 30 s`, `8 min`, `45 s`,
+--- never below zero. The map and the situation used to show the time held so far, which said nothing of when it ends
+--- (FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT ticket 01).
+--- @param capture table the zone's `entry.capture`: `side`, `seconds` held, `byHelicopter`
+--- @return string
+function veafCampaign.captureTimeLeft(capture)
+  local left = math.max(0, math.ceil(veafCampaign.captureSeconds(capture.byHelicopter) - (capture.seconds or 0)))
+  local minutes, seconds = math.floor(left / 60), left % 60
+  if minutes == 0 then
+    return string.format("%d s", seconds)
+  elseif seconds == 0 then
+    return string.format("%d min", minutes)
+  end
+  return string.format("%d min %d s", minutes, seconds)
+end
+
 --- Advance the capture of a neutral zone by one beat. One side alone runs the clock; both sides stop
 --- it; nobody left cancels it; the clock reaching `capture_seconds` captures the zone.
 --- @param elapsed number seconds since the last check
@@ -1786,6 +1802,7 @@ function VeafCampaignZone:checkCapture(elapsed)
   end
   capture.seconds = capture.seconds + elapsed
   local byHelicopter = not groundForces[veafCampaign.SIDES[side]]
+  capture.byHelicopter = byHelicopter or nil
   if capture.seconds >= veafCampaign.captureSeconds(byHelicopter) then
     -- a token garrison, like the longer delay, belongs to the persistent campaign's helicopter captures
     self:capturedBy(side, byHelicopter and veafCampaign.isPersistent() and "helicopter" or nil)
@@ -1904,7 +1921,7 @@ function VeafCampaignZone:mapLabel()
       "campaign.map_label_capture",
       veafCampaign.zoneTitle(self.name),
       veaf.t("campaign.side." .. capture.side),
-      math.floor(capture.seconds or 0)
+      veafCampaign.captureTimeLeft(capture)
     )
   end
   if self.entry.owner == "neutral" then
@@ -3296,7 +3313,7 @@ function veafCampaign.situationText(side)
     end
     local capture = zone.entry.capture
     if capture then
-      line = line .. veaf.t("campaign.situation.capture", veaf.t("campaign.side." .. capture.side), math.floor(capture.seconds or 0))
+      line = line .. veaf.t("campaign.situation.capture", veaf.t("campaign.side." .. capture.side), veafCampaign.captureTimeLeft(capture))
     end
     table.insert(lines, line)
   end

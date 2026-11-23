@@ -611,6 +611,21 @@ function TestCampaignResources:test_landed_helicopters_alone_take_a_zone_slower(
   luaunit.assertEquals(veafCampaign.captureSeconds(false), veafCampaign.data.capture_seconds or veafCampaign.CAPTURE_SECONDS)
 end
 
+function TestCampaignResources:test_a_helicopter_capture_counts_down_from_its_own_delay()
+  -- FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT ticket 01
+  start()
+  veaf.config.language = "en"
+  local poti = veafCampaign.zones["Poti"]
+  poti:becomeNeutral()
+  poti.sidesPresent = function()
+    return { [coalition.side.BLUE] = "a landed helicopter" }, {}
+  end
+  poti:checkCapture(120)
+  luaunit.assertTrue(poti.entry.capture.byHelicopter)
+  luaunit.assertStrContains(poti:mapLabel(), "taken in 8 min")
+  luaunit.assertStrContains(veafCampaign.situationText(), "taken in 8 min")
+end
+
 function TestCampaignResources:test_the_ai_starts_with_enough_to_last_an_evening()
   -- 2026-11-16: red ran dry after 1 h 20 with 500 points, 30 an hour and 120 a factory
   luaunit.assertEquals(veafCampaign.DYNAMIC_DEFAULTS.resources.start, 1000)

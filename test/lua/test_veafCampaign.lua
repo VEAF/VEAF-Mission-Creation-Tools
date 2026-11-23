@@ -926,7 +926,21 @@ end
 function TestVeafCampaignMap:test_a_capture_in_progress_shows_on_the_label()
   veafCampaign.zones["Poti"].entry.capture = { side = "blue", seconds = 40 }
   veafCampaign.zones["Poti"]:draw()
-  luaunit.assertEquals(self.texts[#self.texts].text, "Poti — blue capture in progress (40 s)")
+  luaunit.assertEquals(self.texts[#self.texts].text, "Poti — blue capture in progress, taken in 1 min 20 s")
+end
+
+function TestVeafCampaignMap:test_a_capture_counts_down_to_its_end()
+  -- FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT ticket 01: the map showed how long the capture had run, not how long it had left
+  veafCampaign.data.capture_seconds = 600
+  veafCampaign.zones["Poti"].entry.capture = { side = "blue", seconds = 120 }
+  veafCampaign.zones["Poti"]:draw()
+  luaunit.assertEquals(self.texts[#self.texts].text, "Poti — blue capture in progress, taken in 8 min")
+  veafCampaign.zones["Poti"].entry.capture = { side = "blue", seconds = 555 }
+  veafCampaign.zones["Poti"]:draw()
+  luaunit.assertEquals(self.texts[#self.texts].text, "Poti — blue capture in progress, taken in 45 s")
+  veafCampaign.zones["Poti"].entry.capture = { side = "blue", seconds = 650 }
+  veafCampaign.zones["Poti"]:draw()
+  luaunit.assertEquals(self.texts[#self.texts].text, "Poti — blue capture in progress, taken in 0 s", "never below zero")
 end
 
 function TestVeafCampaignMap:test_the_module_runs_one_loop_for_all_its_zones()
@@ -970,7 +984,7 @@ function TestVeafCampaignMenu:test_the_situation_in_english()
     veafCampaign.situationText(),
     table.concat({
       "Campaign Caucasus Front — mission 2 of 10",
-      "- Senaki: red, garrison 67%, blue capture in progress (30 s)",
+      "- Senaki: red, garrison 67%, blue capture in progress, taken in 1 min 30 s",
       "- Kobuleti: blue, garrison 100%",
       "Objectives:",
       "- capture Senaki, Kutaisi",
@@ -983,7 +997,7 @@ function TestVeafCampaignMenu:test_the_situation_in_french()
   veaf.config.language = "fr"
   local text = veafCampaign.situationText()
   luaunit.assertStrContains(text, "Campagne Caucasus Front — mission 2 sur 10")
-  luaunit.assertStrContains(text, "- Senaki : rouge, garnison 67 %, capture bleu en cours (30 s)")
+  luaunit.assertStrContains(text, "- Senaki : rouge, garnison 67 %, capture bleu en cours, prise dans 1 min 30 s")
   luaunit.assertStrContains(text, "- prendre Senaki, Kutaisi")
 end
 

@@ -17,10 +17,11 @@ import re
 import shutil
 import tempfile
 import unicodedata
+import zipfile
 from dataclasses import replace
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 from campaign_manager.briefing_deck import (
     _BLUE,
@@ -69,7 +70,8 @@ from pptx.util import Emu
 from presets_injector.presets_manager import KNEEBOARD_CALIBRATION_PATH
 from veaf_libs.clear_ground_survey import airfield_positions
 from veaf_libs.coordinates import to_ddm, to_dms, xy_to_latlon
-from veaf_libs.i18n import current_language, language, t
+from veaf_libs.i18n import current_language, t
+from veaf_libs.i18n import language as speaking
 from veaf_libs.magnetic import grid_heading_to_magnetic, ground_distance, magnetic_bearing
 from veaf_libs.map_tiles import OSM, Fetch, TileSource
 from veaf_libs.mgrs import target_coordinates
@@ -138,11 +140,13 @@ DECK_FILE = Path("docs") / "briefing.pptx"
 PDF_FILE = Path("docs") / "briefing.pdf"
 
 
-def briefing_files(folder: Path) -> tuple[Path, Path]:
+def briefing_files(folder: Path, tag: str = "") -> tuple[Path, Path]:
     """The deck and its PDF, named after the mission: ``docs/<mission>_briefing.pptx`` (David, 2026-11-17).
 
     Args:
         folder: The mission folder, whose ``mission.yaml`` gives the name.
+        tag: The language of a briefing in another language than the mission's, before the extension:
+            ``docs/<mission>_briefing.en.pptx`` (FEAT-BRIEFING-PER-LANGUAGE 01); empty for the mission's own.
 
     Returns:
         The deck's path and the PDF's; ``docs/briefing.pptx`` and ``.pdf`` when the mission has no name.
@@ -152,13 +156,51 @@ def briefing_files(folder: Path) -> tuple[Path, Path]:
     path = folder / "mission.yaml"
     mission = (load_yaml(path).get("mission") if path.is_file() else None) or {}
     name = _name_part(str(mission.get("name") or ""))
-    if not name:
-        return folder / DECK_FILE, folder / PDF_FILE
-    return folder / "docs" / f"{name}_briefing.pptx", folder / "docs" / f"{name}_briefing.pdf"
+    deck = folder / DECK_FILE if not name else folder / "docs" / f"{name}_briefing.pptx"
+    if tag:
+        deck = deck.with_name(f"{deck.stem}.{tag}.pptx")
+    return deck, deck.with_suffix(".pdf")
 
 
 #: The maps, in the mission folder.
 MAPS_FOLDER = Path("docs") / "maps"
+
+#: The languages a briefing is written in: the tools' catalogues.
+BRIEFING_LANGUAGES = ("fr", "en")
+
+#: The language names a warning gives.
+_LANGUAGE_NAMES = {"fr": "French", "en": "English"}
+
+#: The member a profile's build writes the in-game language into, and the line that says it.
+_ARCHIVE_CONFIG = f"{DEFAULT_SCRIPTS_LOCATION}/veaf-config.lua"
+_ARCHIVE_LANGUAGE = re.compile(r"""veaf\.config\.language\s*=\s*["']([A-Za-z_-]+)["']""")
+
+
+def _language_code(text: str) -> str:
+    """A language as the tools compare it: ``"FR"``, ``"fr-FR"`` and ``"fr"`` are one (`set_language`'s rule)."""
+    return text.strip().lower()[:2]
+
+
+def archive_language(miz: Path, default: str) -> str:
+    """The language a built `.miz` speaks: its `veaf-config.lua`'s ``veaf.config.language``.
+
+    A bilingual mission is built once per profile (`build_variants`), and each profile's build writes its
+    language there (FEAT-BRIEFING-PER-LANGUAGE 01).
+
+    Args:
+        miz: The built archive.
+        default: The language of an archive that does not say it: the mission's.
+
+    Returns:
+        The language code, two lower-case letters.
+    """
+    if _ARCHIVE_CONFIG not in list_members(miz):
+        return default
+    with zipfile.ZipFile(miz) as archive:
+        text = archive.read(_ARCHIVE_CONFIG).decode("utf-8", errors="replace")
+    found = _ARCHIVE_LANGUAGE.search(text)
+    return _language_code(found.group(1)) if found else default
+
 
 #: The folder the build writes the weather variants into, beside its own `.miz`.
 VARIANTS_FOLDER = "missions"
@@ -1035,11 +1077,16 @@ def _write_pictures(
     kneeboard: dict[str, bytes],
     replace_others: bool = False,
     pictures_too: bool = True,
+    folder_too: bool = True,
 ) -> tuple[list[str], list[str], list[str]]:
     """Put the maps and the kneeboard pages in the mission folder and every built `.miz`, backed up first.
 
     Without ``pictures_too`` only the kneeboard is written: the mission's briefing pictures, this tool's
     from an earlier run included, are left as they are (FEAT-OPEN-TRAINING-KNEEBOARD 01).
+
+    Without ``folder_too`` only the archives are written: a briefing in another language than the mission's
+    leaves `src/mission/` alone, or the next build would carry its pages into every archive
+    (FEAT-BRIEFING-PER-LANGUAGE 01).
 
     Returns:
         The resource keys, in display order, the other side's pictures found, and the kneeboard pages that
@@ -1049,7 +1096,8 @@ def _write_pictures(
     pictures = {f"{PICTURE_PREFIX}{path.stem}": f"briefing-{path.stem}.jpg" for path in maps}
 
     other: list[str] = []
-    if pictures_too:
+    moved: list[str] = []
+    if pictures_too and folder_too:
         mission = load_folder_mission(folder)
         previous = {
             str(v) for k, v in (mission.map_resource_content or {}).items() if str(k).startswith(PICTURE_PREFIX)
@@ -1062,12 +1110,15 @@ def _write_pictures(
         for name, data in files.items():
             (l10n / name).write_bytes(data)
         save_folder_mission(mission, folder)
-    moved = _write_kneeboard_folder(folder, kneeboard, replace_others)
+    if folder_too:
+        moved = _write_kneeboard_folder(folder, kneeboard, replace_others)
 
     for miz in archives:
         built = read_miz(miz)
         if pictures_too:
-            _list_pictures(built, pictures, side)
+            listed_other = _list_pictures(built, pictures, side)
+            if not folder_too:
+                other = other or listed_other
         additional: dict[str, Any] = {f"{DEFAULT_SCRIPTS_LOCATION}/{name}": data for name, data in files.items()}
         additional.update({f"{KNEEBOARD_FOLDER}/{name}": data for name, data in kneeboard.items()})
         if pictures_too and f"{DEFAULT_SCRIPTS_LOCATION}/mapResource" not in list_members(miz):
@@ -1112,6 +1163,7 @@ def _kneeboard_pages(
     recon: dict[str, list[ReconPhoto]],
     ground: GroundPicture | None = None,
     open_training: bool = False,
+    maps_root: Path | None = None,
 ) -> tuple[dict[str, bytes], bool]:
     """The briefing for the knee: the maps drawn for the 2:3 page, the flight card, the targets.
 
@@ -1128,13 +1180,14 @@ def _kneeboard_pages(
             list becomes the zone list, one position per zone (its centre) under the task that says how to start
             it from the F10 menu, where every unit took 19 pages on the Caucasus OT (FEAT-OPEN-TRAINING-KNEEBOARD 03).
             A zone's one recon photo is drawn under its zoom rather than on a page of its own.
+        maps_root: Where the maps are drawn, `docs/maps/` when omitted; the kneeboard's go into its `kneeboard/`.
 
     Returns:
         Page file name -> JPEG, in the order the kneeboard shows them; and whether a map had to do without its
         background, which `kneeboard_only` reports since it draws no other map.
     """
     theatre = picture.theatre
-    maps_folder = folder / MAPS_FOLDER / "kneeboard"
+    maps_folder = (maps_root or folder / MAPS_FOLDER) / "kneeboard"
     origin = _attack_origin(picture, starts)
     turn = (
         None  # no attack axis over twenty-odd zones: each map turns to its tightest frame
@@ -1240,6 +1293,7 @@ def build_mission_briefing(
     recon_folder: Path | None = None,
     kneeboard_replace: bool = False,
     kneeboard_only: bool = False,
+    language: str | None = None,
 ) -> BriefingReport:
     """Write a one-shot mission's briefing deck and maps, and put the maps in its DCS briefing.
 
@@ -1259,6 +1313,10 @@ def build_mission_briefing(
             mission's own left as they are; no flight card, and a zone list (each objective's task, then its
             centre) in place of the target list (``open_training`` of `_kneeboard_pages`). For an Open
             Training, whose README is the full briefing (FEAT-OPEN-TRAINING-KNEEBOARD 01).
+        language: The briefing's language, the mission's (`mission.language`) when omitted. Only the archives
+            of that language are written (`archive_language`); a language other than the mission's leaves
+            `src/mission/` and the mission's deck alone and writes `docs/<mission>_briefing.<language>.pptx`
+            and `.pdf` and `docs/maps/<language>/` (FEAT-BRIEFING-PER-LANGUAGE 01).
 
     Returns:
         The deck, its page count, the maps, the pictures' keys, the `.miz` read, and the warnings; no deck,
@@ -1266,17 +1324,32 @@ def build_mission_briefing(
 
     Raises:
         ValueError: If the mission is not built, an objective names no trigger zone of the mission, or
-            ``kneeboard_only`` is asked with no kneeboard.
+            ``kneeboard_only`` is asked with no kneeboard, or ``language`` is not one of `BRIEFING_LANGUAGES`.
     """
+    if language is not None and language not in BRIEFING_LANGUAGES:
+        raise ValueError(f"language {language!r}: expected one of {', '.join(BRIEFING_LANGUAGES)}.")
     if kneeboard_only and not kneeboard:
         raise ValueError("kneeboard_only writes the kneeboard and nothing else: it cannot go with kneeboard=False.")
     miz = find_built_mission(folder)
     if miz is None:
         raise ValueError(f"No built mission in {folder}: run build_mission first, the briefing reads the built .miz.")
-    with language(_mission_language(folder)):
+    own = _language_code(_mission_language(folder))
+    spoken = language or own
+    with speaking(spoken):
         recon = folder / (recon_folder if recon_folder is not None else RECON_FOLDER)
         return _build(
-            folder, miz, content, side, source, cache_dir, fetch, kneeboard, recon, kneeboard_replace, kneeboard_only
+            folder,
+            miz,
+            content,
+            side,
+            source,
+            cache_dir,
+            fetch,
+            kneeboard,
+            recon,
+            kneeboard_replace,
+            kneeboard_only,
+            Spoken(spoken, own),
         )
 
 
@@ -1327,6 +1400,7 @@ def _write_deck_and_pdf(
     scratch: Path,
     combat: TacticalMapReport | None = None,
     recon: dict[str, list[ReconPhoto]] | None = None,
+    tag: str = "",
 ) -> tuple[int, int]:
     """Write the deck and the PDF of the same pages; return their page counts."""
     deck = Presentation()
@@ -1355,7 +1429,7 @@ def _write_deck_and_pdf(
             sheets.append(PhotoSheet(recon_title, pair))
     for item in closing:
         _write_item(deck, item, sheets)
-    out, pdf = briefing_files(folder)
+    out, pdf = briefing_files(folder, tag)
     out.parent.mkdir(parents=True, exist_ok=True)
     deck.save(str(out))
     cover = Cover(
@@ -1378,6 +1452,31 @@ def _moved_warning(moved: list[str]) -> list[str]:
     ]
 
 
+class Spoken(NamedTuple):
+    """The language a briefing is written in, and the mission's own (FEAT-BRIEFING-PER-LANGUAGE 01)."""
+
+    language: str
+    mission: str
+
+    @property
+    def tag(self) -> str:
+        """What a briefing in another language than the mission's puts in its files' names; empty otherwise."""
+        return "" if self.language == self.mission else self.language
+
+
+def _archives_in(folder: Path, miz: Path, spoken: Spoken, warnings: list[str]) -> list[Path]:
+    """The built archives of the briefing's language; a warning when there is none."""
+    archives = [
+        path for path in built_archives(folder, miz) if archive_language(path, spoken.mission) == spoken.language
+    ]
+    if not archives:
+        name = _LANGUAGE_NAMES.get(spoken.language, spoken.language)
+        warnings.append(
+            f"No built mission in {name}: is the {spoken.language.upper()} profile built? No archive was written."
+        )
+    return archives
+
+
 def _build(
     folder: Path,
     miz: Path,
@@ -1390,7 +1489,9 @@ def _build(
     recon_folder: Path,
     kneeboard_replace: bool = False,
     kneeboard_only: bool = False,
+    spoken: Spoken | None = None,
 ) -> BriefingReport:
+    spoken = spoken or Spoken(current_language(), current_language())
     built = read_miz(miz)
     table = built.mission_content or {}
     picture = read_mission_picture(miz, side, folder)
@@ -1418,17 +1519,29 @@ def _build(
     recon, recon_warnings = load_recon(recon_folder, [area.zone for _, area in areas])
     warnings += recon_warnings
 
-    maps_folder = folder / MAPS_FOLDER
+    maps_folder = folder / MAPS_FOLDER / spoken.tag if spoken.tag else folder / MAPS_FOLDER
+    archives = _archives_in(folder, miz, spoken, warnings)
     tiles: dict[str, Any] = {"cache_dir": cache_dir, "fetch": fetch, "source": source, "side": side}
     if kneeboard_only:
         # an Open Training has no flight plan: its dynamic-slot templates' routes made a flight card nobody flies
         bare = replace(picture, flight_plans=[])
         named = [(objective, replace(area, label=objective.title)) for objective, area in areas]
         pages, offline = _kneeboard_pages(
-            folder, bare, named, threats, starts, tiles, content, recon, ground, open_training=True
+            folder,
+            bare,
+            named,
+            threats,
+            starts,
+            tiles,
+            content,
+            recon,
+            ground,
+            open_training=True,
+            maps_root=maps_folder,
         )
-        archives = built_archives(folder, miz)
-        _, _, moved = _write_pictures(folder, archives, [], side, pages, kneeboard_replace, pictures_too=False)
+        _, _, moved = _write_pictures(
+            folder, archives, [], side, pages, kneeboard_replace, pictures_too=False, folder_too=not spoken.tag
+        )
         warnings += _moved_warning(moved)
         if offline:
             warnings.append("Map tiles could not be downloaded: the maps stand on a plain background.")
@@ -1532,15 +1645,21 @@ def _build(
             Path(scratch),
             combat,
             recon,
+            spoken.tag,
         )
-    out, pdf = briefing_files(folder)
+    out, pdf = briefing_files(folder, spoken.tag)
 
     maps = [overview.path, *([combat.path] if combat else []), *(zoom.path for zoom in zooms)]
     pages = (
-        _kneeboard_pages(folder, picture, areas, threats, starts, tiles, content, recon, ground)[0] if kneeboard else {}
+        _kneeboard_pages(folder, picture, areas, threats, starts, tiles, content, recon, ground, maps_root=maps_folder)[
+            0
+        ]
+        if kneeboard
+        else {}
     )
-    archives = built_archives(folder, miz)
-    keys, other, moved = _write_pictures(folder, archives, maps, side, pages, kneeboard_replace and kneeboard)
+    keys, other, moved = _write_pictures(
+        folder, archives, maps, side, pages, kneeboard_replace and kneeboard, folder_too=not spoken.tag
+    )
     warnings += _moved_warning(moved)
     if other:
         warnings.append(

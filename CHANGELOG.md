@@ -144,6 +144,7 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - A folder whose deepest file would pass the Windows path limit once backed up is refused before anything is written; a promotion that fails ends in a message and exit code 1 instead of a traceback, and removes the `mission.yaml` it wrote; `mission build` refuses a folder with `backup_v5/` and no `mission.yaml`.
   - `VEAF_DYNAMIC_MISSIONPATH` is the mission folder, not the folder the `.miz` is written to.
   - `validate` and the build check that every `custom_scripts` file is valid Lua 5.1.
+- **A bilingual mission gets a briefing in each language** (FEAT-BRIEFING-PER-LANGUAGE): `build_mission_briefing` takes an optional `language` (`fr`, `en`, the mission's by default) and writes its pictures and kneeboard pages only into the built `.miz` of that language, read from their `veaf-config.lua`; a call in another language than the mission's leaves `src/mission/` and the mission's deck alone and writes `docs/<mission>_briefing.<language>.pptx`, its PDF and `docs/maps/<language>/`. A call that matches no archive warns and writes none.
 
 ## [6.38.0] — 2026-11-19
 

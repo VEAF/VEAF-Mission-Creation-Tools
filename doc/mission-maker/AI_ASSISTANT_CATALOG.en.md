@@ -777,6 +777,8 @@ The AI can also give the package's **code words** (a page in the deck and on the
 **The kneeboard alone**, for an Open Training: its README is already the full briefing and its briefing pictures are its own, so the tool writes the kneeboard pages and nothing else — no PPTX, no PDF, no DCS briefing picture.
 It opens on **text sheets** the AI writes (the mission, the conduct on the server, the useful commands with their security tier), then the overview map, a zoom per combat zone with its recon photos, and the zone list giving the F10 menu path that starts each one and its coordinates.
 The text sheets also go at the head of an objective mission's kneeboard.
+**A bilingual mission**, built in French and in English (`build_variants` with a FR and an EN profile), has a briefing in each language: after every build, the AI runs the briefing once in the mission's language, then once in English (or French) with the words translated.
+Each run writes only into the `.miz` of its language; the second leaves the folder and the mission's PPTX as they are, and writes `docs/<mission>_briefing.en.pptx`, its PDF and its maps in `docs/maps/en/`.
 
 > 💬 *"Make the mission's briefing, topo background."*
 

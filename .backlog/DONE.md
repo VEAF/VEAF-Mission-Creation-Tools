@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-BRIEFING-PER-LANGUAGE](FEAT-BRIEFING-PER-LANGUAGE/PRD.md) · ✅
+
+A `language` parameter for `build_mission_briefing`, writing only the archives of that language, so a bilingual mission (the demo's `_FR` and `_EN`) gets its briefing and kneeboard pages in each language. One ticket; asked from the demo's kneeboard step (2026-10-26), done 2026-11-23.
+
 ### [FIX-CONVERT-V5-PARITY](FIX-CONVERT-V5-PARITY/PRD.md) · ✅
 
 A converted v5 mission behaves as it did in v5 or says what changed (#1300-#1303): a v5-parity configuration, a conversion that cannot finish writes nothing, `VEAF_DYNAMIC_MISSIONPATH` on the mission folder, `custom_scripts` syntax checked. Four tickets; opened 2026-11-23.

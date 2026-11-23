@@ -176,6 +176,11 @@ _ARCHIVE_CONFIG = f"{DEFAULT_SCRIPTS_LOCATION}/veaf-config.lua"
 _ARCHIVE_LANGUAGE = re.compile(r"""veaf\.config\.language\s*=\s*["']([A-Za-z_-]+)["']""")
 
 
+def _language_code(text: str) -> str:
+    """A language as the tools compare it: ``"FR"``, ``"fr-FR"`` and ``"fr"`` are one (`set_language`'s rule)."""
+    return text.strip().lower()[:2]
+
+
 def archive_language(miz: Path, default: str) -> str:
     """The language a built `.miz` speaks: its `veaf-config.lua`'s ``veaf.config.language``.
 
@@ -187,14 +192,14 @@ def archive_language(miz: Path, default: str) -> str:
         default: The language of an archive that does not say it: the mission's.
 
     Returns:
-        The language code, lower case.
+        The language code, two lower-case letters.
     """
     if _ARCHIVE_CONFIG not in list_members(miz):
         return default
     with zipfile.ZipFile(miz) as archive:
         text = archive.read(_ARCHIVE_CONFIG).decode("utf-8", errors="replace")
     found = _ARCHIVE_LANGUAGE.search(text)
-    return found.group(1).lower() if found else default
+    return _language_code(found.group(1)) if found else default
 
 
 #: The folder the build writes the weather variants into, beside its own `.miz`.
@@ -1328,7 +1333,7 @@ def build_mission_briefing(
     miz = find_built_mission(folder)
     if miz is None:
         raise ValueError(f"No built mission in {folder}: run build_mission first, the briefing reads the built .miz.")
-    own = _mission_language(folder)
+    own = _language_code(_mission_language(folder))
     spoken = language or own
     with speaking(spoken):
         recon = folder / (recon_folder if recon_folder is not None else RECON_FOLDER)

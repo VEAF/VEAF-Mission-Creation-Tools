@@ -117,6 +117,22 @@ class TestArchiveLanguage:
         _set_language(miz, "en")
         assert archive_language(miz, "fr") == "en"
 
+    def test_a_regional_or_upper_case_code_is_its_two_letters(self, tmp_path: Path) -> None:
+        """`set_language` reads "FR" and "fr-FR" as "fr": a mission so written must still match its archives."""
+        with offline(tmp_path):
+            miz = objective_mission(tmp_path)
+        _set_language(miz, "EN-gb")
+        assert archive_language(miz, "fr") == "en"
+
+    def test_a_mission_language_in_upper_case_still_writes_its_archives(self, tmp_path: Path) -> None:
+        with offline(tmp_path):
+            miz = objective_mission(tmp_path)
+            _set_language(miz, "FR")
+            path = tmp_path / "mission.yaml"
+            path.write_text(path.read_text(encoding="utf-8").replace("language: fr", "language: FR"), encoding="utf-8")
+            report = _build(tmp_path, FRENCH, kneeboard_only=True)
+        assert report.archives == [miz]
+
     def test_an_archive_without_the_line_is_in_the_mission_language(self, tmp_path: Path) -> None:
         with offline(tmp_path):
             miz = objective_mission(tmp_path)

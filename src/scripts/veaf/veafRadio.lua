@@ -573,6 +573,15 @@ function veafRadio.RadioMenuBuilder._sameValue(a, b, depth)
   return true
 end
 
+--- (internal) The key of an entry: its parent's key, its audience (everyone, a coalition, a group), its kind and its
+--- label. The kind is part of the key: a submenu turned into a command of the same label must leave through the
+--- end-of-rebuild removal, children first, never through the inline replacement in _render, which parks only one id.
+function veafRadio.RadioMenuBuilder:_keyOf(kind, groupId, coalitionSide, label, parentPath)
+  local parentKey = parentPath and self._keysByPath[parentPath] or ""
+  local audience = groupId and ("G" .. groupId) or (coalitionSide and ("C" .. coalitionSide)) or "A"
+  return parentKey .. "\n" .. audience .. ":" .. kind .. ":" .. tostring(label)
+end
+
 --- (internal) Renders one DCS entry, or reuses the one rendered last time.
 --- An entry is keyed by its parent, its audience (everyone, a coalition, a group) and its label;
 --- a command is reused only when its callback and parameters are unchanged too.
@@ -581,11 +590,7 @@ function veafRadio.RadioMenuBuilder:_render(kind, groupId, coalitionSide, label,
   self._rendered = self._rendered or {}
   self._keysByPath = self._keysByPath or {}
   local parentKey = parentPath and self._keysByPath[parentPath] or ""
-  local audience = groupId and ("G" .. groupId) or (coalitionSide and ("C" .. coalitionSide)) or "A"
-  -- The kind is part of the key: a submenu turned into a command of the same label must leave
-  -- through the end-of-rebuild removal, children first, never through the inline replacement below,
-  -- which parks only one id.
-  local key = parentKey .. "\n" .. audience .. ":" .. kind .. ":" .. tostring(label)
+  local key = self:_keyOf(kind, groupId, coalitionSide, label, parentPath)
   -- The same label twice under one parent is two entries in DCS.
   if self._seen and self._seen[key] then
     local n = 2
@@ -624,6 +629,12 @@ function veafRadio.RadioMenuBuilder:_render(kind, groupId, coalitionSide, label,
   end
   self._stats = self._stats or { added = 0, removed = 0 }
   self._stats.added = self._stats.added + 1
+  -- DCS lists a menu's entries in the order they were created: one created now goes below the "Next page" of
+  -- its page, if that link is already there (see _renewNextPageIfOvertaken).
+  if parentPath then
+    self._createdUnder = self._createdUnder or {}
+    self._createdUnder[parentPath] = true
+  end
   local parentEntry = parentKey ~= "" and self._rendered[parentKey]
   self._rendered[key] = {
     key = key,
@@ -1099,6 +1110,9 @@ function veafRadio.RadioMenuBuilder:_buildChildren(node, dcsMenu, coalitionSide,
   -- find their entries again by title (delCommand, delSubmenu).
   local currentDcsMenu = dcsMenu
   for page = 1, lastPage do
+    if currentDcsMenu and self._createdUnder then
+      self._createdUnder[currentDcsMenu] = nil
+    end
     for _, item in ipairs(items) do
       if pageOf[item.id] == page then
         if item.kind == "command" then
@@ -1116,8 +1130,41 @@ function veafRadio.RadioMenuBuilder:_buildChildren(node, dcsMenu, coalitionSide,
     end
     if page < lastPage then
       -- A page of a scoped menu must be scoped too, or the overflow would be world-visible.
-      currentDcsMenu = self:_render("menu", scope and scope.groupId, coalitionSide, veaf.t("radio.next_page"), currentDcsMenu)
+      local groupId = scope and scope.groupId
+      self:_renewNextPageIfOvertaken(groupId, coalitionSide, currentDcsMenu)
+      currentDcsMenu = self:_render("menu", groupId, coalitionSide, veaf.t("radio.next_page"), currentDcsMenu)
     end
+  end
+end
+
+--- (internal) "Next page" is the last entry of its page (FIX-RADIO-NEXT-PAGE-IN-F10). DCS lists a menu's entries in
+--- the order they were created, so an entry created on a page whose "Next page" link already exists shows below it:
+--- a per-group entry rendered when its pilot joins, under a link rendered for everyone before (the Campaign menu
+--- and its shop, Campagne server, 2026-11-22), or an entry recreated because its parameters changed. Then the link
+--- goes, with the pages under it, children first and every id parked, and the caller renders it again, after the
+--- page's entries. A page where nothing was created keeps its link and what follows untouched.
+function veafRadio.RadioMenuBuilder:_renewNextPageIfOvertaken(groupId, coalitionSide, pagePath)
+  if not (pagePath and self._createdUnder and self._createdUnder[pagePath]) then
+    return
+  end
+  self._createdUnder[pagePath] = nil
+  local linkKey = self:_keyOf("menu", groupId, coalitionSide, veaf.t("radio.next_page"), pagePath)
+  local link = self._rendered and self._rendered[linkKey]
+  if not link then
+    return
+  end
+  local prefix = linkKey .. "\n"
+  local gone = { link }
+  for key, entry in pairs(self._rendered) do
+    if key:sub(1, #prefix) == prefix then
+      table.insert(gone, entry)
+    end
+  end
+  table.sort(gone, function(a, b)
+    return a.depth > b.depth
+  end)
+  for _, entry in ipairs(gone) do
+    self:_removeEntry(entry)
   end
 end
 

@@ -122,6 +122,16 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **A group a combat zone spawns from a VEAF command drives off** (FIX-COMBATZONE-FIRST-ROUTE): a combat zone element that is a VEAF command (`#command=`) with a route got that route from the zone in the very frame its group was created, where DCS drops an order, and the group stayed where it spawned. It now gets it 5 s after it appears, like a group spawned by marker; nothing is given to a group destroyed meanwhile (its zone deactivated), the zone's route still wins over a route the command carried, and an aircraft flying a role keeps its own. This reaches every mission with combat zones, the Open Trainings included.
 - **What the fifth evening on the Campagne server showed** (FIX-CAMPAIGN-FIFTH-SERVER-FLIGHT): a red CAS or SEAD strike opens fire only on the targets its task names (ROE open fire, not weapons free), since a Su-25 weapons free shot the AWACS down with its R-60M; an AWACS held by the SUPPORT module stays at least `awacs_standoff` (100 km, a new setting) from every enemy zone whatever its reach, where a zone with MANPADS alone let it hold 35 km away, while the tankers keep holding as near the front as the reach allows, and each move logs the orbit from the bullseye; a supply helicopter is given the time its route needs (1.5 times its flight at 40 m/s plus 5 minutes, at least `helicopter_timeout`), where the fixed 20 minutes removed every Mi-8 sent 57 km away and sent the next on top of it.
 
+### Changed
+
+- **The persistent campaign ships with VMCT, and what it changed for every mission** (merge of `feature/dynamic-campaign`): the campaign modules are in every mission's scripts and stay idle without a campaign (`veafCampaign` finds no campaign data and does nothing; `veafSupport` holds no asset until `SUPPORT.assets` names some). What a mission with no campaign gets, from the entries above:
+  - Ground convoys (`veafGroundAI`): no rally point in the water, pushes that move nothing end in a drive on, a close in stops short of the enemy on a point the convoy can reach and is checked 25 s later, and no route starts `On Road` off the road.
+  - A group spawned with a destination or a route, by marker, command or combat zone, gets it 5 s after its creation instead of losing it.
+  - The generated air defence of a modern mission, the Open Trainings' CAS included, draws a Tor M2 or a Pantsir S1 one time in two.
+  - A new mission starts with civil traffic, birds and random failures off; the BULLSEYE waypoint is on the ground.
+  - A one-shot mission's briefing is written as `docs/<mission>_briefing.pptx` and `.pdf`, with bookmarks.
+  - `prepare --theatre` puts that map's airfields on the radio plan.
+
 ## [6.38.0] — 2026-11-19
 
 ### Fixed

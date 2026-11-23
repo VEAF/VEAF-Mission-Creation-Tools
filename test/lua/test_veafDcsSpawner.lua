@@ -1261,6 +1261,30 @@ function TestVeafGroupSpawnChain:test_a_respawn_keeps_the_editor_cold_at_start()
   luaunit.assertTrue(spawned().units[1].coldAtStart)
 end
 
+-- FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT ticket 05: the campaign's AWACS bought back after a loss answered nothing, every
+-- call failing in DCS's speech with "Callname -1 not found for AWACS Magic-1": the mission record carried no callsign,
+-- so the respawn submitted none. A western aircraft's callsign is a table, an eastern one's a number.
+function TestVeafGroupSpawnChain:test_a_respawn_keeps_the_editor_callsign()
+  local magic = { [1] = 1, [2] = 1, [3] = 1, name = "Magic11" }
+  env.mission.coalition.blue.country[1].plane = {
+    group = {
+      {
+        name = "AWACS Magic",
+        groupId = 8,
+        units = { { name = "AWACS Magic-1", unitId = 4, type = "E-3A", x = 1000, y = 2000, alt = 9000, callsign = magic } },
+      },
+    },
+  }
+  env.mission.coalition.blue.country[1].vehicle.group[1].units[1].callsign = 101
+  veafMissionDb.buildSnapshot()
+
+  VeafGroupSpawn:new():forGroup("AWACS Magic"):respawn()
+  luaunit.assertEquals(spawned().units[1].callsign, magic)
+
+  VeafGroupSpawn:new():forGroup("Convoy"):respawn()
+  luaunit.assertEquals(spawned().units[1].callsign, 101)
+end
+
 function TestVeafGroupSpawnChain:test_a_respawn_of_an_editor_unit_left_warm_is_warm()
   VeafGroupSpawn:new():forGroup("Convoy"):at({ x = 5000, y = 0, z = 6000 }):respawn()
 

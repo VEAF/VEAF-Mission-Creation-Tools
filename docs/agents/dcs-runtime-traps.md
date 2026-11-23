@@ -1047,6 +1047,23 @@ says so (see `radio-presets-beyond-capacity`).
 
 *What it cost:* Four Open Trainings unflyable in the Kiowa, 2026-11-10.
 
+### An aircraft spawned without a callsign is created without error, then never answers on the radio {#aircraft-spawned-without-callsign-is-mute}
+
+Measured **2026-11-22**.
+
+`coalition.addGroup` accepts an aircraft unit with no `callsign` field. Nothing goes wrong at the spawn; every
+radio call to it fails later in DCS's speech, one `dcs.log` line per call:
+`Error in wMessage::buildSpeech(), event = wMsgLeaderPicture … Callname -1 not found for AWACS Magic-1 !`
+(also `wMsgLeaderVectorToNearestBandit`, `wMsgAWACSClean`). Read on the Campagne server from 2026-11-21 22:00
+UTC and all of 2026-11-22, after the campaign's AWACS was bought back from the shop: VEAF's mission records
+carried no callsign, so `veafAssets.respawn` submitted none.
+
+**What to do:** Submit the editor's callsign with each aircraft unit: a table for a western aircraft
+(`{ [1] = 1, [2] = 1, [3] = 1, name = "Magic11" }`), a number for an eastern one. VEAF's mission records carry it
+since FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT, so a respawn or a teleport of a Mission Editor group keeps it.
+
+*What it cost:* The campaign's AWACS answered no picture, bogey dope or "clean" for two evenings.
+
 ## Ground AI {#ground-ai}
 
 ### A convoy under fire drives on, and its `getDetectedTargets` can stay empty {#a-convoy-drives-through-an-ambush}

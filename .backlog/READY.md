@@ -4,9 +4,13 @@
 
 Lots written up and ready to take.
 
+### [FIX-RADIO-NEXT-PAGE-IN-F10](FIX-RADIO-NEXT-PAGE-IN-F10/PRD.md) · ⬜
+
+Several radio menus show "Page suivante" in F9 and another entry in F10 (Campagne server, 2026-11-22): reproduce, list the menus, fix the cause in `veafRadio` so "Next page" is always the last entry of a page. One ticket, every mission concerned; split out of FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT (2026-11-23).
+
 ### [FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT](FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT/PRD.md) · ⬜
 
-What the 22/11 evening on the Campagne server showed: the capture timer counting up, a repair let through with an enemy convoy at the gates, that convoy sitting two hours "in contact", Menagh to rename Minakh (campaign data), "Next page" in F9, a respawned AWACS that lost its callsign and says nothing, scattered infantry. Seven tickets, one PR into `develop` (2026-11-23); the Fat Cow remark belongs to `VEAF/CTLD`.
+What the 22/11 evening on the Campagne server showed: the capture timer counting up, a repair let through with an enemy convoy at the gates, that convoy sitting two hours "in contact", Menagh to rename Minakh (campaign data), a respawned AWACS that lost its callsign and says nothing, scattered infantry. Six tickets, one PR into `develop` (2026-11-23); the radio menus went to FIX-RADIO-NEXT-PAGE-IN-F10, the Fat Cow remark belongs to `VEAF/CTLD`.
 
 ### [FEAT-CLEAR-GROUND-COVERAGE](FEAT-CLEAR-GROUND-COVERAGE/PRD.md) · ⬜
 

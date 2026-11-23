@@ -1,4 +1,4 @@
-# 06 — A respawned AWACS keeps its callsign
+# 05 — A respawned AWACS keeps its callsign
 
 Status: ⬜ ready
 Type: fix

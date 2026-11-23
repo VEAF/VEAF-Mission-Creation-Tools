@@ -1,4 +1,4 @@
-# 05 — "Next page" always in F10
+# 01 — "Next page" always in F10
 
 Status: ⬜ ready
 Type: fix

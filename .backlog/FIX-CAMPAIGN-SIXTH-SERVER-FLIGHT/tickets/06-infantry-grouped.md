@@ -1,4 +1,4 @@
-# 07 — A zone's infantry grouped near its centre
+# 06 — A zone's infantry grouped near its centre
 
 Status: ⬜ ready
 Type: feature

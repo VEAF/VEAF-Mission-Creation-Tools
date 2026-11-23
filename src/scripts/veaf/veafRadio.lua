@@ -151,8 +151,7 @@ function veafRadio.onBirthEvent(event)
       -- The server hook's name is the player's; anything else may be the DCS callsign, and the menu
       -- asks DCS for the player's name when it renders (#1304).
       local hasPlayerName = event and event.initiator and event.initiator.unitPilotName ~= nil
-      local unitObject =
-        { name = unitName, spawned = true, groupId = groupId, callsign = callsign, hasPlayerName = hasPlayerName }
+      local unitObject = { name = unitName, spawned = true, groupId = groupId, callsign = callsign, hasPlayerName = hasPlayerName }
       veafRadio.humanUnits[unitName] = {}
       veafRadio.humanUnits[unitName].spawned = true
       veafRadio.humanUnits[unitName] = unitObject

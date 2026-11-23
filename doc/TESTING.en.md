@@ -183,6 +183,7 @@ luaunit.assertIsTrue(ok, err)
 | `test_veafMarkers.lua` | Marker event handling |
 | `test_veafEventHandler.lua` | Event dispatch, handler registration |
 | `test_veafSkynetIadsHelper.lua` | Skynet IADS integration helpers |
+| `test_veafSkynetSetupWarnings.lua` | Skynet set-up warnings: off screen by default, always in `dcs.log` |
 | `test_veafSkynetIadsHelper_spotter.lua` | Spotter network: detection, radio graph, propagation, hand-over to Skynet |
 | `test_veafSkynetIadsMonitor.lua` | Skynet monitor state |
 | `test_veafGroundAI.lua` | Ground AI behavior flags |

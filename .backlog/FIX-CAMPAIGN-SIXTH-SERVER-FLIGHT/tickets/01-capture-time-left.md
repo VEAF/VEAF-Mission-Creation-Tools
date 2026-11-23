@@ -21,7 +21,7 @@ On the Campagne server: a neutral zone being taken shows a countdown on the F10 
 ## Done (2026-11-23)
 
 - `veafCampaign.captureTimeLeft(capture)`: `captureSeconds(byHelicopter) - capture.seconds`, rounded up, never below zero, as `4 min 30 s`, `8 min` or `45 s`.
-  `checkCapture` records `capture.byHelicopter` (saved with the capture), so a capture by landed helicopters alone counts down from `helicopter_capture_seconds`.
+  `checkCapture` sets `capture.byHelicopter` at every beat (not saved: the save keeps `side` and `seconds`), so a capture by landed helicopters alone counts down from `helicopter_capture_seconds`.
 - `campaign.map_label_capture` and `campaign.situation.capture` (FR/EN): "capture bleu en cours, prise dans 4 min 30 s" / "blue capture in progress, taken in 4 min 30 s".
   The French keeps the side word the campaign's other lines use (`bleu`, `rouge`).
 - The `campaign.check.capture` line of the self-check (admin) keeps the elapsed time: it is a debug readout, next to the zone's presence log.

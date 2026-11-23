@@ -103,7 +103,7 @@ Une couche qui lisait l'intérieur de CTLD v1 passe par ses événements et ses 
 | `ctld.completeAASystems` | événements `OnAASystemDeployed`, `OnAASystemRepaired`, `OnAASystemRearmed` |
 | `ctld.addCallback` (gestes des joueurs) | `EventDispatcher.getInstance():subscribe(nom, fonction)` sur `OnTroopsDeployed`, `OnCrateLoaded`, `OnCrateUnpacked`, `OnVehicleLoaded`, `OnVehicleUnloaded`, `OnJTACSpawned`… |
 
-CTLD 2.0.0-rc13 publie 47 événements ; leur liste est dans `CTLD.lua` (`EventDispatcher:publish`).
+CTLD 2.1.0 publie 51 événements ; leur liste est dans `CTLD.lua` (`EventDispatcher:publish`).
 Chaque abonné reçoit une table qui décrit le geste (`carrierUnitName`, `player`, `fob.name`…).
 VMCT n'ajoute pas d'interface tant qu'un besoin de BFR n'est pas couvert par ces événements.
 

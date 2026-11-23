@@ -103,7 +103,7 @@ A layer that read CTLD v1's internals goes through its events and its managers:
 | `ctld.completeAASystems` | events `OnAASystemDeployed`, `OnAASystemRepaired`, `OnAASystemRearmed` |
 | `ctld.addCallback` (player actions) | `EventDispatcher.getInstance():subscribe(name, callback)` on `OnTroopsDeployed`, `OnCrateLoaded`, `OnCrateUnpacked`, `OnVehicleLoaded`, `OnVehicleUnloaded`, `OnJTACSpawned`… |
 
-CTLD 2.0.0-rc13 publishes 47 events; their list is in `CTLD.lua` (`EventDispatcher:publish`).
+CTLD 2.1.0 publishes 51 events; their list is in `CTLD.lua` (`EventDispatcher:publish`).
 Each subscriber receives a table describing the action (`carrierUnitName`, `player`, `fob.name`…).
 VMCT adds no interface of its own until a BFR need is not covered by those events.
 

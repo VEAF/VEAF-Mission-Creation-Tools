@@ -282,6 +282,21 @@ A message addressed to a unit that no longer exists is shown to nobody, instead 
 
 ---
 
+## Removing a root menu {#remove-root-menu}
+
+Each module keeps the menu it adds at the root in a variable, its **handle**:
+`veaf.ctldRootPath` (CTLD), `veafAssets.rootPath`, `veafAssist.rootPath`, `veafCampaign.rootPath`, `veafCarrierOperations.rootPath`, `veafCasMission.rootPath`, `veafCombatMission.rootPath`, `veafCombatZone.rootPath`, `veafMissileGuardian.rootPath`, `veafMove.rootPath`, `veafNamedPoints.rootPath`, `veafOpposition.rootPath`, `veafSpawn.rootPath`, `veafTransportMission.rootPath`, `veafWeather.rootPath`.
+
+To remove one of these menus, pass its handle to `delSubmenu`, then rebuild the menu:
+
+```lua
+veafRadio.delSubmenu(veaf.ctldRootPath)
+veafRadio.refreshRadioMenu()
+```
+
+Pass the handle, not the title: `delSubmenu` also takes a title, but the title changes with the mission's language, and a title that no longer matches removes nothing, with no error.
+Remove the menu **after** the module has built it: at its `initialize()`, or at `veaf.ctld_initialize()` for CTLD.
+
 ## Low-level API
 
 For finer control, build the menu tree directly:

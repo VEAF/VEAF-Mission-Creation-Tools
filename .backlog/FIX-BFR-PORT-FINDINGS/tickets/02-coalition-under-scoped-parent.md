@@ -1,6 +1,6 @@
 # 02 — A node's coalition holds under a per-group parent
 
-Status: ⬜ ready
+Status: ✅ done
 
 Issue: [#1298](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1298).
 

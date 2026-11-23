@@ -1,6 +1,6 @@
 # 03 — The per-pilot label falls back to the player's name
 
-Status: ⬜ ready
+Status: ✅ done
 
 Issue: [#1304](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1304).
 

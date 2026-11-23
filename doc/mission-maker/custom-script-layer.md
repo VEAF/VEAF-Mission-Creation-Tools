@@ -44,6 +44,10 @@ Elle vaut pour tout module de `modules:`, et pour `SKYNET`, `CTLD` et `CSAR`.
 Pour `CTLD`, vos scripts doivent alors appeler `veaf.ctld_initialize()`, pas le `ctld.initialize()` de CTLD v1 : c'est lui qui démarre CTLD 2 avec son menu et la logistique des aérodromes ; `convert v5` ne confie donc jamais CTLD à la mission.
 `veaf.initialize()` saute aussi un tel module, si votre couche s'en sert.
 
+Déclarez aussi `initialized_by_mission` pour un module dont votre couche **surcharge une fonction**.
+`veaf-config.lua` se charge avant vos scripts : un module qu'il démarre appelle la fonction d'origine, sans erreur, avant que votre surcharge existe.
+Exemple : une couche qui enveloppe `veaf.getCarrierATCdata` déclare `CARRIER` avec `initialized_by_mission: true`, puis appelle `veafCarrierOperations.initialize(true, false)` après sa surcharge (`false` : pas de boucle des opérations).
+
 ## Les fonctions qui servent à une couche maison {#functions}
 
 | besoin | v6 |
@@ -97,7 +101,7 @@ Une couche qui lisait l'intérieur de CTLD v1 passe par ses événements et ses 
 
 | lecture CTLD v1 | CTLD 2 |
 |---|---|
-| `ctld.builtFOBS`, `buildTimeFOB` | événements `OnFOBDeployed`, `OnFOBDestroyed` ; `CTLDFOBManager.getInstance():getFOBsForCoalition(coalition)` ; le délai de construction est dans `ctld-config.yaml` |
+| `ctld.builtFOBS`, `buildTimeFOB` | événements `OnFOBDeployed`, `OnFOBDestroyed` ; `CTLDFOBManager.getInstance():getFOBsForCoalition(coalition)` ; la construction est une scène fixe de 120 s, sans réglage |
 | `ctld.pickupZones` | `CTLDZoneManager.getInstance():getTroopZonesForCoalition(coalition)`, `getTroopZoneAtPoint(point, coalition)` ; événement `OnTroopZoneUpdated` |
 | `ctld.logisticUnits` | `CTLDZoneManager.getInstance():getLogisticZonesForCoalition(coalition)`, `getLogisticZoneAtPoint(point, coalition)` ; événement `OnLogisticZoneUpdated` |
 | `ctld.completeAASystems` | événements `OnAASystemDeployed`, `OnAASystemRepaired`, `OnAASystemRearmed` |

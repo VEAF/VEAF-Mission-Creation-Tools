@@ -282,6 +282,21 @@ Un message adressé à une unité qui n'existe plus n'est montré à personne, a
 
 ---
 
+## Retirer un menu racine {#remove-root-menu}
+
+Chaque module garde le menu qu'il pose à la racine dans une variable, sa **poignée** :
+`veaf.ctldRootPath` (CTLD), `veafAssets.rootPath`, `veafAssist.rootPath`, `veafCampaign.rootPath`, `veafCarrierOperations.rootPath`, `veafCasMission.rootPath`, `veafCombatMission.rootPath`, `veafCombatZone.rootPath`, `veafMissileGuardian.rootPath`, `veafMove.rootPath`, `veafNamedPoints.rootPath`, `veafOpposition.rootPath`, `veafSpawn.rootPath`, `veafTransportMission.rootPath`, `veafWeather.rootPath`.
+
+Pour retirer un de ces menus, passez sa poignée à `delSubmenu`, puis reconstruisez le menu :
+
+```lua
+veafRadio.delSubmenu(veaf.ctldRootPath)
+veafRadio.refreshRadioMenu()
+```
+
+Passez la poignée, pas le titre : `delSubmenu` accepte aussi un titre, mais le titre change avec la langue de la mission, et un titre qui ne correspond plus ne retire rien, sans erreur.
+Retirez le menu **après** que le module l'a construit : à son `initialize()`, ou à `veaf.ctld_initialize()` pour CTLD.
+
 ## API bas niveau
 
 Pour un contrôle plus fin, construire l'arbre de menus directement :

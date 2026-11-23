@@ -313,7 +313,7 @@ Convertit un dossier de mission VEAF v5 au format v6.
 | `--no-backup` | `boolean` | `false` | Ne crée pas de copie .bak de missionConfig.lua avant la migration. |
 | `--no-convert-pipeline` | `boolean` | `false` | Ignore la conversion automatique des fichiers de configuration pipeline v5 (préréglages, waypoints, météo, groupes aériens). Ces fichiers seront listés comme nécessitant une conversion manuelle. |
 | `--no-promote` | `boolean` | `false` | Ne pas promouvoir src/mission/ en v6 (ignorer le build de base + extraction). |
-| `--report-file` | `str` | *(aucun)* | Enregistre le rapport de conversion dans un fichier Markdown. Par défaut : <dossier_mission>/convert-v5-report.md. |
+| `--report-file` | `str` | *(aucun)* | Enregistre le rapport de conversion dans un fichier Markdown. Par défaut : <dossier_mission>/backup_v5/convert-v5-report.md. |
 | `--icao` | `str` | `` | Code ICAO de l'aérodrome pour les étapes real-weather du pipeline (ex. UGGG). Évite la saisie interactive. |
 | `--verbose` | `boolean` | `false` | Si activé, affiche des informations de débogage détaillées. |
 | `--pause` | `boolean` | `false` | Si activé, le script attend que l'utilisateur appuie sur une touche avant de quitter. |

@@ -398,6 +398,12 @@ modules:
 | `spotter_radio_range_km` | number | `20` | How far one unit can relay, in kilometres |
 | `spotter_propagation_speed_kmh` | number | `3600` | How fast an alert crosses the network, in km/h (hop period = range / speed) |
 | `spotter_view` | `"off"` \| `"on"` \| `"radio"` | `"off"` | F10 map view of the spotter network; `"radio"` puts the switch in the F10 menu. Quote it: YAML reads a bare `on`/`off` as a boolean |
+| `last_line_of_defence` | boolean | `true` | A dark site keeps a short radius of its own and lights up inside it — see [Last line of defence](mission-maker/scripts/veafSkynetIadsHelper.en.md#last-line-of-defence) |
+| `last_line_of_defence_min_radius_km` | number | `10` | Lower bound of that radius, in kilometres |
+| `last_line_of_defence_max_radius_km` | number | `15` | Upper bound of that radius, in kilometres |
+| `last_line_of_defence_persistence_s` | number | `45` | How long the site stays lit after the last pass, in seconds |
+| `coverage_refresh_interval_s` | number | `10` | Interval between two sweeps of the coverage graph, in seconds (`0` = never) |
+| `setup_warnings_on_screen` | boolean | `false` | Show Skynet's set-up warnings on every player's screen. They always go to `dcs.log` |
 
 #### `modules.CSAR` fields
 
@@ -590,6 +596,8 @@ modules:
 | `REMOTE` | veafRemote | — |
 | `SKYNET_MONITOR` | veafSkynetMonitor | — |
 | `I18N` | veafI18n | — |
+
+Keys specific to a module are described on its page. Two examples often looked for here: `WEATHER.welcomeBrief` turns off the welcome message on taking a slot ([Welcome brief on taking a slot](mission-maker/scripts/veafWeather.en.md#welcome-brief)); a combat zone's `radio_menu_coalition` chooses which side is offered its F10 menu ([Who is offered the F10 menu?](mission-maker/scripts/veafCombatZone.en.md#f10-menu-audience)).
 
 ---
 

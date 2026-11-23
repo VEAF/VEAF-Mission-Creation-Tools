@@ -1,6 +1,6 @@
 # 01 — Skynet set-up warnings off the players' screens
 
-Status: ⬜ ready
+Status: ✅ done
 
 Issue: [#1296](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1296).
 

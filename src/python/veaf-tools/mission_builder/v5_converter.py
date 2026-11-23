@@ -21,6 +21,7 @@ from __future__ import annotations
 import difflib
 import re
 import shutil
+import sys
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -716,6 +717,61 @@ def _ctld_csar_settings(mr: object, upper: str) -> dict:
     return getattr(mr, attr, None) or {}
 
 
+class PathTooLongError(Exception):
+    """A path the conversion would create exceeds what the system can write (#1301).
+
+    Raised before anything is written, so the folder stays as it was.
+
+    Attributes:
+        path: The longest path the conversion would create.
+        length: Its length, in characters.
+        limit: The longest length the system accepts.
+    """
+
+    def __init__(self, path: Path, length: int, limit: int) -> None:
+        super().__init__(f"{path} ({length} > {limit})")
+        self.path = path
+        self.length = length
+        self.limit = limit
+
+
+def _path_limit() -> int | None:
+    """Return the longest path the system writes, or ``None`` when it sets no practical limit.
+
+    Windows without long-path support stops at ``MAX_PATH`` (260 characters, the terminating null
+    included), and that is what a mission maker's machine and its PowerShell run with.
+
+    Returns:
+        259 on Windows, ``None`` elsewhere.
+    """
+    return 259 if sys.platform == "win32" else None
+
+
+def _longest_backup_path(folder: Path) -> tuple[Path, int] | None:
+    """Return the longest path a file of the mission gets once copied under ``backup_v5/``.
+
+    The conversion and the promotion copy ``src/`` there, deepest files included: the placeholder of a
+    ``KNEEBOARD/<type>/IMAGES/`` folder is what failed in #1301.
+
+    Args:
+        folder: The v5 mission folder.
+
+    Returns:
+        ``(path, length)`` of the longest one, or ``None`` when ``src/`` holds no file.
+    """
+    longest: tuple[Path, int] | None = None
+    source = folder / "src"
+    if not source.is_dir():
+        return None
+    for path in source.rglob("*"):
+        if path.is_file():
+            target = folder / "backup_v5" / path.relative_to(folder)
+            length = len(str(target.absolute()))
+            if longest is None or length > longest[1]:
+                longest = (target, length)
+    return longest
+
+
 def _v5_mission_names(folder: Path, name: str) -> bool:
     """Tell whether a v5 mission names a script where it loads scripts from.
 
@@ -950,6 +1006,13 @@ class V5Converter:
             weather version that uses ``realweather: true``.  When ``None``,
             a ``TODO`` placeholder is inserted.
         """
+        # Step 0 — Refuse a folder whose deepest file cannot be backed up, before writing anything:
+        # a conversion that dies half-way leaves a folder that looks converted (#1301).
+        limit = _path_limit()
+        longest = _longest_backup_path(mission_folder) if limit is not None else None
+        if limit is not None and longest is not None and longest[1] > limit:
+            raise PathTooLongError(longest[0], longest[1], limit)
+
         report = ConversionReport(mission_folder=mission_folder, version=self._version)
 
         # Step 1 — Scan

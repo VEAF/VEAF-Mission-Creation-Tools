@@ -1358,6 +1358,23 @@ class MissionBuilderWorker(BaseWorker):
         trig["flag"][1] = True
         trig["funcStartup"][1] = "if mission.trig.conditions[1]() then mission.trig.actions[1]() end"
 
+    @staticmethod
+    def _refuse_half_converted_folder(mission_folder: Path) -> None:
+        """Stop the build of a folder whose `convert v5` did not finish (#1301).
+
+        Such a folder has a ``backup_v5/`` and no ``mission.yaml``. Built with the default
+        ``mission.yaml``, it gave a ``.miz`` and exit code 0, and a failed conversion passed for a
+        good one.
+
+        Args:
+            mission_folder: The folder being built.
+
+        Raises:
+            typer.Abort: When the folder is half-converted (through ``logger.error``).
+        """
+        if (mission_folder / "backup_v5").is_dir() and not (mission_folder / "mission.yaml").exists():
+            logger.error(t("builder.half_converted", folder=mission_folder))
+
     def _ensure_default_mission_yaml(self, scripts_path_override: str | Path | None) -> None:
         """Copy the default mission.yaml into the mission folder if it is missing.
 
@@ -1372,6 +1389,7 @@ class MissionBuilderWorker(BaseWorker):
         mission_yaml_path = self.mission_folder / "mission.yaml"
         if mission_yaml_path.exists():
             return
+        self._refuse_half_converted_folder(self.mission_folder)
         scripts_root = (
             Path(scripts_path_override) if scripts_path_override else (self.mission_folder / "published" / "src")
         )

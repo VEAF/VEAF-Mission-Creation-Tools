@@ -143,6 +143,10 @@ local function unitRecord(unitData, groupData, context)
     -- The editor's COLD AT START. `veafDcsSpawner.addGroup` defaults a ground unit to warm, so a record
     -- that dropped this key turned every vehicle the mission maker ticked cold warm on respawn.
     coldAtStart = unitData.coldAtStart,
+    -- The editor's callsign: a table for a western aircraft (`{ 1, 1, 1, name = "Magic11" }`), a number for an eastern
+    -- one. A unit submitted without one is accepted, then every radio call of an AWACS or a tanker fails in DCS's
+    -- speech, "Callname -1 not found" (Campagne server, 2026-11-22, FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT ticket 05).
+    callsign = unitData.callsign,
     coalition = context.coalition,
     coalitionId = context.coalitionId,
     category = context.category,

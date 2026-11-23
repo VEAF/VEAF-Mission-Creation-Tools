@@ -11,6 +11,7 @@ luaunit = dofile(_base .. "/luaunit.lua")
 local sim = dofile(_base .. "/campaign_sim.lua")
 
 local SEEDS = 3
+local DRAWS_PER_SEED = 5
 
 local function median(values)
   table.sort(values)
@@ -70,11 +71,16 @@ function TestCampaignEconomySim:test_the_upgrades_cost_about_foothold_s_prices()
   local prices = {}
   for seed = 1, SEEDS do
     sim.run({ player = "average", strategy = "never", seed = seed, hours = 0 })
-    veafCampaignEconomy.offers = {}
     veafCampaign.data.dynamic.economy.prices = {}
-    for id in pairs(targets) do
-      prices[id] = prices[id] or {}
-      table.insert(prices[id], veafCampaignEconomy.upgradePrice(id))
+    -- several draws per run: with one, the median of three hung on where the run left the random sequence, and a
+    -- garrison drawing one more random point (FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT 06) turned two NASAMS of three into
+    -- batteries with two Avengers
+    for _ = 1, DRAWS_PER_SEED do
+      veafCampaignEconomy.offers = {} -- an offer is drawn once and kept: a new draw each time
+      for id in pairs(targets) do
+        prices[id] = prices[id] or {}
+        table.insert(prices[id], veafCampaignEconomy.upgradePrice(id))
+      end
     end
   end
   for id, target in pairs(targets) do

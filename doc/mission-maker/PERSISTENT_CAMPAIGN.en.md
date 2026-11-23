@@ -11,7 +11,10 @@
 - **A zone never changes hands directly**: when its garrison is destroyed it turns **neutral** (grey).
   A neutral zone is taken by holding the ground: ground units of a single side staying there for `capture_seconds` (120 s by default) — CTLD 2 troops or crate, a convoy, a `_spawn` group, a Combined Arms vehicle, a **landed** helicopter.
   Landed helicopters alone take `helicopter_capture_seconds` (600 s), and leave a token garrison: what a helicopter carries, `helicopter_garrison` soldiers (6) and no vehicle, whatever the zone's size class.
+  The F10 map and the situation show the time left until the zone is taken.
   The new garrison appears at once.
+  Its infantry holds one position, within `infantry_radius` (600 m) of the zone's centre, off the concrete and the buildings; armour and air defence keep the whole zone.
+  A garrison already in the save keeps its positions: only a garrison drawn anew (a capture, a new draw) is placed this way.
 - **A pilot on the ground after an ejection is nobody's enemy**: the survivor the CSAR module puts down neither holds nor contests a zone, wakes no zone and stops no convoy, in every VEAF script.
 - **Slots follow the bases**: an airfield taken goes to the side that took it, with its dynamic slots.
   Every airfield of the campaign has its slots ready from the build, even those the players' side does not hold yet (see [Building the mission](#build)).
@@ -605,6 +608,7 @@ A side's factories feed its zones hop by hop, along the connections, and only th
   After the zone's delay, the delivery brings back the dead units of its first damaged group, **cheapest first and up to what it paid**: a unit killed since the order stays dead.
   The units brought back appear in their places; the living ones do not move.
   **A zone under fire** — a unit lost less than `network.under_fire_seconds` (600 s) ago — is not reinforced: the delivery waits.
+  **A zone under siege** — a living vehicle of an enemy convoy within `network.threat_radius` (5,000 m) of its centre — is not either: the delivery waits for the convoy to be gone or destroyed.
   A zone lost meanwhile receives nothing; a delivery with nothing left to repair, or what it did not spend, goes back to the stock.
   Players who fly logistics go faster: a crate, troops or a helicopter reinforce at once, without waiting for the network; the units brought back are paid from the stock, at their spawn price (see **Resupply** in [A front that moves on its own](#front)).
 - **A zone cut off** from every factory and depot is still served, from the background production, after `network.isolated_seconds` (3,600 s).
@@ -821,6 +825,7 @@ A `KO` line is enough to know where to look.
 | `max_convoys` | 3 | a side's assault convoys on the road, at most |
 | `players_per_convoy` | 4 | enemy players armed to stop a convoy that are worth one more convoy on the road |
 | `defended_radius` | 30000 | metres: a zone with one of those players this close to its centre is defended, a counter-attack leaves it aside |
+| `infantry_radius` | 600 | metres: a drawn garrison's infantry holds one position this close to the zone's centre |
 | `supply` | `[red]` | the sides whose AI helicopters capture and resupply |
 | `supply_seconds` | 600 | interval between two helicopters of a side |
 | `max_helicopters` | 2 | a side's supply helicopters in the air |
@@ -843,7 +848,7 @@ A `KO` line is enough to know where to look.
 | `intel` | see [intelligence](#intel) | `hidden`, `seconds`, `overflight_altitude`, `spy_troops`, `spy_range` |
 | `resources` | see [the resources](#resources) | `enabled` (true), `start` (1000), `background_per_hour` (60), `reserve` (100), `prices` |
 | `factory` | see [the factories](#zone-kinds) | `buildings` (3), `per_hour` (180), `types` |
-| `network` | see [the network](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3), `under_fire_seconds` (600), `depot_buildings` (3), `depot_types`, `depot_rebuild_seconds` (2700) |
+| `network` | see [the network](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3), `under_fire_seconds` (600), `threat_radius` (5000), `depot_buildings` (3), `depot_types`, `depot_rebuild_seconds` (2700) |
 | `demolition` | see [demolition](#demolition) | `troops` (`Sappers`), `range` (5000), `fuse` (120) |
 | `warehouse` | see [the stocks](#warehouses) | `enabled` (true), `load` (10) |
 | `bombers` | see [the bombers](#bombers) | `enabled` (true), `seconds` (3600), `min_distance` (80000), `escort` (false), `package_delay` (30) |

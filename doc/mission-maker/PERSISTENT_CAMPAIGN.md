@@ -11,7 +11,10 @@
 - **Une zone ne change jamais de camp directement** : quand sa garnison est détruite, elle devient **neutre** (grise).
   Une zone neutre se prend en y tenant le terrain : des unités au sol d'un seul camp y restent `capture_seconds` (120 s par défaut) — troupes ou caisse CTLD 2, convoi, groupe `_spawn`, véhicule Combined Arms, hélicoptère **posé**.
   Des hélicoptères posés, seuls, mettent `helicopter_capture_seconds` (600 s), et ne laissent qu'une garnison symbolique : ce qu'emporte un hélicoptère, `helicopter_garrison` fantassins (6) et aucun véhicule, quelle que soit la classe de la zone.
+  La carte F10 et la situation montrent le temps qui reste avant la prise.
   La nouvelle garnison apparaît aussitôt.
+  Son infanterie tient une seule position, à moins de `infantry_radius` (600 m) du centre de la zone, hors du béton et des bâtiments ; blindés et défense sol-air gardent toute la zone.
+  Une garnison déjà dans la sauvegarde garde ses positions : seule une garnison tirée de nouveau (une prise, un nouveau tirage) se place ainsi.
 - **Un pilote au sol après une éjection n'est l'ennemi de personne** : le rescapé que pose le module CSAR ne tient ni ne conteste une zone, ne réveille aucune zone et n'arrête aucun convoi, dans tous les scripts VEAF.
 - **Les slots suivent les bases** : un aérodrome pris passe dans le camp du preneur, avec ses slots dynamiques.
   Tous les aérodromes de la campagne ont leurs slots prêts dès la construction, même ceux que le camp des joueurs ne tient pas encore (voir [Construire la mission](#build)).
@@ -605,6 +608,7 @@ Les usines d'un camp nourrissent ses zones de proche en proche, le long des liai
   Après le délai de la zone, la livraison ramène les unités mortes de son premier groupe touché, **les moins chères d'abord et à hauteur de ce qu'elle a payé** : une unité tuée depuis la commande reste morte.
   Les unités ramenées apparaissent à leur place, les vivantes ne bougent pas.
   **Une zone sous le feu** — une unité perdue il y a moins de `network.under_fire_seconds` (600 s) — n'est pas renforcée : la livraison attend.
+  **Une zone assiégée** — un véhicule vivant d'un convoi ennemi à moins de `network.threat_radius` (5 000 m) de son centre — non plus : la livraison attend que le convoi soit parti ou détruit.
   Une zone perdue entre-temps ne reçoit rien ; une livraison qui n'a plus rien à réparer, ou ce qu'elle n'a pas dépensé, retourne au stock.
   Les joueurs qui font de la logistique vont plus vite : une caisse, des troupes ou un hélicoptère renforcent sur-le-champ, sans attendre le réseau ; les unités ramenées se paient sur le stock, au prix de leur spawn (voir **Ravitaillement** dans [Un front qui bouge tout seul](#front)).
 - **Une zone coupée** de toute usine et de tout dépôt est encore servie, sur la production de fond, au bout de `network.isolated_seconds` (3 600 s).
@@ -821,6 +825,7 @@ Une ligne `KO` suffit à dire où regarder.
 | `max_convoys` | 3 | convois d'assaut d'un camp sur la route, au plus |
 | `players_per_convoy` | 4 | joueurs adverses armés pour arrêter un convoi qui valent un convoi de plus sur la route |
 | `defended_radius` | 30000 | mètres : une zone avec un de ces joueurs aussi près de son centre est défendue, une contre-attaque la laisse de côté |
+| `infantry_radius` | 600 | mètres : l'infanterie d'une garnison tirée tient une seule position aussi près du centre de la zone |
 | `supply` | `[red]` | les camps dont les hélicoptères IA capturent et ravitaillent |
 | `supply_seconds` | 600 | intervalle entre deux hélicoptères d'un camp |
 | `max_helicopters` | 2 | hélicoptères de ravitaillement d'un camp en vol |
@@ -843,7 +848,7 @@ Une ligne `KO` suffit à dire où regarder.
 | `intel` | voir [le renseignement](#intel) | `hidden`, `seconds`, `overflight_altitude`, `spy_troops`, `spy_range` |
 | `resources` | voir [les ressources](#resources) | `enabled` (true), `start` (1000), `background_per_hour` (60), `reserve` (100), `prices` |
 | `factory` | voir [les usines](#zone-kinds) | `buildings` (3), `per_hour` (180), `types` |
-| `network` | voir [le réseau](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3), `under_fire_seconds` (600), `depot_buildings` (3), `depot_types`, `depot_rebuild_seconds` (2700) |
+| `network` | voir [le réseau](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3), `under_fire_seconds` (600), `threat_radius` (5000), `depot_buildings` (3), `depot_types`, `depot_rebuild_seconds` (2700) |
 | `demolition` | voir [la démolition](#demolition) | `troops` (`Sappers`), `range` (5000), `fuse` (120) |
 | `warehouse` | voir [les stocks](#warehouses) | `enabled` (true), `load` (10) |
 | `bombers` | voir [les bombardiers](#bombers) | `enabled` (true), `seconds` (3600), `min_distance` (80000), `escort` (false), `package_delay` (30) |

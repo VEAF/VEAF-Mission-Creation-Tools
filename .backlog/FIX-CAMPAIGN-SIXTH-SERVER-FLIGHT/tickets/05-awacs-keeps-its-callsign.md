@@ -1,6 +1,6 @@
 # 05 — A respawned AWACS keeps its callsign
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — the measure in DCS and the flight check
 Type: fix
 
 ## Read
@@ -21,3 +21,15 @@ An AWACS or tanker respawned by VEAF answers on the radio with its callsign; wit
 ## Flight check
 
 On the Campagne server: buy the AWACS back after a loss, ask it for a picture, it answers "Magic".
+
+## Done (2026-11-23)
+
+**The cause**: `veafMissionDb`'s unit record (`unitRecord`) carried no `callsign`.
+`VeafGroupSpawn:respawn()` (and `clone`, and `teleport` through `getCurrentGroupData`) builds its units from that record, so `veafAssets.respawn` submitted the AWACS with no callsign; DCS accepts it, and its speech fails at every call, `Callname -1 not found for AWACS Magic-1`.
+The spawner's comment "skill, payload, callsign survives" had been wrong for the callsign since the record replaced MiST's database.
+
+- `unitRecord` keeps `callsign = unitData.callsign` (a table for a western aircraft, a number for an eastern one), so every respawn, clone and teleport of a Mission Editor aircraft carries it: the AWACS and the tankers alike, and every other `veafAssets.respawn` user.
+  A clone now carries the template's callsign too (DCS allows two aircraft with the same one); before, it had none.
+- Test: `test_a_respawn_keeps_the_editor_callsign` (a western `Magic11` table and an eastern number), red before the fix.
+- `known-limitations.yaml`: `aircraft-spawned-without-callsign-is-mute` (kind `dcs`, measured 2026-11-22); `docs/agents/dcs-runtime-traps.md` regenerated.
+- **Not done**: the measure in DCS through the bridge. David's DCS was not running on 2026-11-23. To do on a test mission with `AWACS Magic`: `veafAssets.respawn("AWACS Magic")`, read `Group.getByName("AWACS Magic"):getUnit(1):getCallsign()` before and after (expected `Magic11` both times), and ask it for a picture.

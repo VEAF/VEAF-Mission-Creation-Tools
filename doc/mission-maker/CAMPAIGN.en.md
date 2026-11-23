@@ -180,6 +180,7 @@ The first briefing therefore speaks in intelligence terms ("estimated strength")
 - The **F10 map** shows each zone as a circle in its owner's colour, with its name and its garrison's strength, and the connections as dashed lines.
 - The **Campaign → Situation** radio menu gives the zones, the objectives and the mission number.
 - **Taking a neutral zone**: ground units of a single side stay there for `capture_seconds` (120 s by default) — CTLD 2 troops or vehicles, a convoy, a `_spawn` group, a Combined Arms vehicle, a **landed** helicopter, a CTLD 2 crate.
+  The F10 map and the situation show the time left until the zone is taken ("blue capture in progress, taken in 4 min 30 s").
   Both sides present stop the clock; everybody gone cancels it.
   An aircraft in flight never counts, nor does a wreck.
   The DCS log (`dcs.log`) says, at each change, who holds a neutral zone and through which unit: that is where to read why a capture does not start.

@@ -691,8 +691,68 @@ function TestVeafCampaignCompose:test_every_group_stands_within_the_zone_radius(
   local units = veafCampaign.composeGarrison("Z", { x = 1, y = 0, z = 2 }, 1500, { size = 1, defense = 1, armor = 1 }, coalition.side.RED)
   luaunit.assertEquals(#units, #self.made)
   for _, radius in ipairs(self.radii) do
-    luaunit.assertEquals(radius, 1500)
+    -- the zone's, or the infantry's position near its centre and its sections around it
+    luaunit.assertTrue(radius == 1500 or radius == veafCampaign.setting("infantry_radius") or radius == veafCampaign.INFANTRY_SPREAD)
   end
+end
+
+-- FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT ticket 06: every section stood at its own random point of a 2 to 3 km zone, and the
+-- pilots could not find the infantry
+function TestVeafCampaignCompose:test_the_infantry_holds_one_point_near_the_centre()
+  local infantryRadius = veafCampaign.setting("infantry_radius")
+  luaunit.assertEquals(infantryRadius, 600)
+  local anchors = 0
+  veaf.findPointInZone = function(center, radius)
+    if radius == infantryRadius then
+      anchors = anchors + 1
+      return { x = center.x + 400, y = center.z }
+    end
+    luaunit.assertTrue(radius == 1500 or radius == veafCampaign.INFANTRY_SPREAD, "radius " .. radius)
+    return { x = center.x, y = center.z }
+  end
+  local units = veafCampaign.composeGarrison("Z", { x = 1, y = 0, z = 2 }, 1500, { size = 2, defense = 1, armor = 1 }, coalition.side.RED)
+  luaunit.assertEquals(anchors, 1, "one point for all the sections")
+  local infantry = 0
+  for _, unit in ipairs(units) do
+    if unit.typeName == "infantry" then
+      infantry = infantry + 1
+      luaunit.assertEquals(unit.spawnPoint.x, 401, "around the infantry's point")
+    else
+      luaunit.assertEquals(unit.spawnPoint.x, 1, unit.typeName .. " keeps the whole zone")
+    end
+  end
+  luaunit.assertEquals(infantry, 3)
+end
+
+function TestVeafCampaignCompose:test_the_infantry_point_is_off_the_concrete()
+  concreteWestOf50()
+  local points = { { x = 0, y = 0 }, { x = 200, y = 0 } }
+  local anchors = 0
+  veaf.findPointInZone = function(center, radius)
+    if radius == veafCampaign.setting("infantry_radius") then
+      anchors = anchors + 1
+      return points[math.min(anchors, #points)]
+    end
+    return { x = center.x, y = center.z }
+  end
+  local units = veafCampaign.composeGarrison("Z", { x = 1, y = 0, z = 2 }, 1500, { size = 1, defense = 0, armor = 0 }, coalition.side.RED)
+  luaunit.assertEquals(anchors, 2)
+  for _, unit in ipairs(units) do
+    luaunit.assertEquals(unit.spawnPoint.x, 200)
+  end
+end
+
+function TestVeafCampaignCompose:test_with_no_infantry_point_the_sections_take_the_whole_zone()
+  veaf.findPointInZone = function(center, radius)
+    table.insert(self.radii, radius)
+    if radius == veafCampaign.setting("infantry_radius") then
+      return nil
+    end
+    return { x = center.x, y = center.z }
+  end
+  local units = veafCampaign.composeGarrison("Z", { x = 1, y = 0, z = 2 }, 1500, { size = 1, defense = 0, armor = 0 }, coalition.side.RED)
+  luaunit.assertEquals(#units, 2)
+  luaunit.assertEquals(self.radii, { 600, 1500, 1500 })
 end
 
 function TestVeafCampaignCompose:test_a_group_landing_on_concrete_is_placed_again_elsewhere_in_the_zone()
@@ -704,8 +764,8 @@ function TestVeafCampaignCompose:test_a_group_landing_on_concrete_is_placed_agai
     return points[math.min(asked, #points)]
   end
   local units = veafCampaign.composeGarrison("Z", { x = 1, y = 0, z = 2 }, 1500, { size = 1, defense = 0, armor = 0 }, coalition.side.RED)
-  -- two sections: the first tries twice on the concrete then lands on x = 100, the second at once
-  luaunit.assertEquals(asked, 4)
+  -- the infantry's position tries twice on the concrete then lands on x = 100, and both sections around it
+  luaunit.assertEquals(asked, 5)
   luaunit.assertEquals(#units, 2)
   for _, unit in ipairs(units) do
     luaunit.assertEquals(unit.spawnPoint.x, 100)
@@ -739,8 +799,9 @@ function TestVeafCampaignCompose:test_a_zone_all_concrete_gives_up_after_its_tri
     return { x = 0, y = 0 }
   end
   veafCampaign.composeGarrison("Z", { x = 1, y = 0, z = 2 }, 1500, { size = 1, defense = 0, armor = 0 }, coalition.side.RED)
-  -- what it keeps then is dropped by drawGarrison's check, unit by unit
-  luaunit.assertEquals(asked, 2 * veafCampaign.GARRISON_PLACEMENT_TRIES)
+  -- no infantry position, then each section over the whole zone; what it keeps then is dropped by drawGarrison's
+  -- check, unit by unit
+  luaunit.assertEquals(asked, 3 * veafCampaign.GARRISON_PLACEMENT_TRIES)
 end
 
 -- ---------------------------------------------------------------------------
@@ -926,7 +987,21 @@ end
 function TestVeafCampaignMap:test_a_capture_in_progress_shows_on_the_label()
   veafCampaign.zones["Poti"].entry.capture = { side = "blue", seconds = 40 }
   veafCampaign.zones["Poti"]:draw()
-  luaunit.assertEquals(self.texts[#self.texts].text, "Poti — blue capture in progress (40 s)")
+  luaunit.assertEquals(self.texts[#self.texts].text, "Poti — blue capture in progress, taken in 1 min 20 s")
+end
+
+function TestVeafCampaignMap:test_a_capture_counts_down_to_its_end()
+  -- FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT ticket 01: the map showed how long the capture had run, not how long it had left
+  veafCampaign.data.capture_seconds = 600
+  veafCampaign.zones["Poti"].entry.capture = { side = "blue", seconds = 120 }
+  veafCampaign.zones["Poti"]:draw()
+  luaunit.assertEquals(self.texts[#self.texts].text, "Poti — blue capture in progress, taken in 8 min")
+  veafCampaign.zones["Poti"].entry.capture = { side = "blue", seconds = 555 }
+  veafCampaign.zones["Poti"]:draw()
+  luaunit.assertEquals(self.texts[#self.texts].text, "Poti — blue capture in progress, taken in 45 s")
+  veafCampaign.zones["Poti"].entry.capture = { side = "blue", seconds = 650 }
+  veafCampaign.zones["Poti"]:draw()
+  luaunit.assertEquals(self.texts[#self.texts].text, "Poti — blue capture in progress, taken in 0 s", "never below zero")
 end
 
 function TestVeafCampaignMap:test_the_module_runs_one_loop_for_all_its_zones()
@@ -970,7 +1045,7 @@ function TestVeafCampaignMenu:test_the_situation_in_english()
     veafCampaign.situationText(),
     table.concat({
       "Campaign Caucasus Front — mission 2 of 10",
-      "- Senaki: red, garrison 67%, blue capture in progress (30 s)",
+      "- Senaki: red, garrison 67%, blue capture in progress, taken in 1 min 30 s",
       "- Kobuleti: blue, garrison 100%",
       "Objectives:",
       "- capture Senaki, Kutaisi",
@@ -983,7 +1058,7 @@ function TestVeafCampaignMenu:test_the_situation_in_french()
   veaf.config.language = "fr"
   local text = veafCampaign.situationText()
   luaunit.assertStrContains(text, "Campagne Caucasus Front — mission 2 sur 10")
-  luaunit.assertStrContains(text, "- Senaki : rouge, garnison 67 %, capture bleu en cours (30 s)")
+  luaunit.assertStrContains(text, "- Senaki : rouge, garnison 67 %, capture bleu en cours, prise dans 1 min 30 s")
   luaunit.assertStrContains(text, "- prendre Senaki, Kutaisi")
 end
 

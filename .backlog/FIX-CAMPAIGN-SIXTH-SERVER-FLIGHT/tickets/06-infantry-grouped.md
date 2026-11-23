@@ -1,6 +1,6 @@
 # 06 — A zone's infantry grouped near its centre
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — the flight check
 Type: feature
 
 ## Read
@@ -21,3 +21,15 @@ A new garrison's infantry stands together near the zone's centre; with tests.
 ## Flight check
 
 On the Campagne server, in a zone drawn after the deploy: the infantry found in one place, near the centre.
+
+## Done (2026-11-23)
+
+- `veafCampaign.composeGarrison`: one infantry position, `veafCampaign.infantryAnchor(center, infantry_radius)` — a point within `infantry_radius` of the centre, off the concrete and the buildings, up to `GARRISON_PLACEMENT_TRIES` draws — and every section placed within `INFANTRY_SPREAD` (150 m) of it, the per-section concrete and building checks kept.
+  With no such point (an airfield all concrete within the radius), the sections take the whole zone, as before.
+  Armour, air defence and batteries keep the whole radius.
+- Value chosen: `infantry_radius: 600` (the recommendation), a top-level `dynamic` setting: `DYNAMIC_DEFAULTS`, `dynamic_settings.py`, the shipped `campaign.yaml` with its comment.
+- Not changed: a helicopter capture's token garrison (one group, `composeHelicopterGarrison`), outside the ticket.
+- Saves already on the server keep their positions; only a new draw (a capture, a redraw) places the new way. Said in the doc.
+- Tests: `test_the_infantry_holds_one_point_near_the_centre`, `test_the_infantry_point_is_off_the_concrete`, `test_with_no_infantry_point_the_sections_take_the_whole_zone`; three placement tests updated for the extra draws.
+  `test_the_upgrades_cost_about_foothold_s_prices` (economy simulator) took its median over three draws, one per seed, and the extra random draws turned two NASAMS of three into two-Avenger batteries: it now draws five offers per seed.
+- Docs: *Persistent campaign*, "What the players see" and the settings table (FR/EN).

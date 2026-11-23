@@ -407,8 +407,34 @@ function veafCampaignLogistics.dispatchDeliveries(now)
   end
 end
 
+--- The distance from a zone's centre to the nearest living vehicle of an enemy convoy within `network.threat_radius`,
+--- or nil when none stands that near. The campaign's own convoys only, no world search: on 2026-11-22 Menagh was
+--- repaired in a lull of its losses while the red assault convoy stood 1.1 to 4.3 km out, and destroyed again at once
+--- (FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT ticket 02).
+--- @param zone table the zone
+--- @param side string the zone's side
+--- @return number|nil metres
+function veafCampaignLogistics.enemyAtTheGates(zone, side)
+  local radius = veafCampaign.setting("network", "threat_radius")
+  local center = zone:getCenter()
+  local nearest = nil
+  for _, record in ipairs(veafCampaign.convoys) do
+    if not record.ended and record.side ~= side then
+      for _, unit in ipairs(veafCampaign.convoyUnits(record)) do
+        local point = unit:getPoint()
+        local distance = math.sqrt((point.x - center.x) ^ 2 + (point.z - center.z) ^ 2)
+        if distance <= radius and (not nearest or distance < nearest) then
+          nearest = distance
+        end
+      end
+    end
+  end
+  return nearest
+end
+
 --- Bring the deliveries that are due. A zone no longer the side's loses them; a zone that lost a unit less than
---- `network.under_fire_seconds` ago waits for them (ticket 03); otherwise the zone gets back what the delivery
+--- `network.under_fire_seconds` ago waits for them (ticket 03), and so does a zone with an enemy convoy within
+--- `network.threat_radius` (`enemyAtTheGates`); otherwise the zone gets back what the delivery
 --- pays for, and the points it does not spend — all of them when nothing is missing any more — go back to the
 --- side's stock (ticket 09: "lost: the zone is no longer theirs" was also said of a zone with nothing to repair).
 --- @param now number the mission time
@@ -431,6 +457,17 @@ function veafCampaignLogistics.arriveDeliveries(now)
           delivery.side,
           delivery.zone,
           math.floor(now - zone.lastLossAt)
+        )
+      end
+      table.insert(underway, delivery)
+    elseif veafCampaignLogistics.enemyAtTheGates(zone, delivery.side) then
+      if not delivery.heldByEnemy then
+        delivery.heldByEnemy = true
+        logger():info(
+          "the %s supply for [%s] waits: an enemy convoy %.1f km away",
+          delivery.side,
+          delivery.zone,
+          veafCampaignLogistics.enemyAtTheGates(zone, delivery.side) / 1000
         )
       end
       table.insert(underway, delivery)

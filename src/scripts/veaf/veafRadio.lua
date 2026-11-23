@@ -148,7 +148,10 @@ function veafRadio.onBirthEvent(event)
       end
       -- `units[callsign]` below cannot take a nil index.
       callsign = callsign or unitName
-      local unitObject = { name = unitName, spawned = true, groupId = groupId, callsign = callsign }
+      -- The server hook's name is the player's; anything else may be the DCS callsign, and the menu
+      -- asks DCS for the player's name when it renders (#1304).
+      local hasPlayerName = event and event.initiator and event.initiator.unitPilotName ~= nil
+      local unitObject = { name = unitName, spawned = true, groupId = groupId, callsign = callsign, hasPlayerName = hasPlayerName }
       veafRadio.humanUnits[unitName] = {}
       veafRadio.humanUnits[unitName].spawned = true
       veafRadio.humanUnits[unitName] = unitObject
@@ -708,6 +711,22 @@ function veafRadio.RadioMenuBuilder:_isAlive(unitName)
   return alive
 end
 
+--- (internal) The label of a pilot's own menu: the name the server hook gave, else the player's name
+--- DCS knows now, else the callsign cached at birth (#1304). Without the VEAF hook the cached name is
+--- the DCS callsign ("Enfield11"), which tells two pilots of a group apart but not who they are.
+function veafRadio.pilotLabel(unitData, callsign)
+  if unitData and not unitData.hasPlayerName and unitData.name then
+    local unit = Unit.getByName(unitData.name)
+    local ok, playerName = pcall(function()
+      return unit and unit.getPlayerName and unit:getPlayerName()
+    end)
+    if ok and type(playerName) == "string" and playerName ~= "" then
+      return playerName
+    end
+  end
+  return callsign
+end
+
 --- (internal) The pilots of a group still in their unit, in callsign order: `{ { callsign, unitName } }`.
 function veafRadio.RadioMenuBuilder:_livePilots(groupData)
   local pilots = {}
@@ -716,7 +735,7 @@ function veafRadio.RadioMenuBuilder:_livePilots(groupData)
     local unitName = unitData and unitData.name
     local humanUnit = unitName and veafRadio.humanUnits[unitName]
     if humanUnit and humanUnit.spawned and self:_isAlive(unitName) then
-      table.insert(pilots, { callsign = callsign, unitName = unitName })
+      table.insert(pilots, { callsign = veafRadio.pilotLabel(unitData, callsign), unitName = unitName })
     end
   end
   return pilots
@@ -873,6 +892,14 @@ function veafRadio.RadioMenuBuilder:_buildSubtree(parentNode, node)
   if (node.groupFilter or node.perPilot) and not scope then
     self:_buildSubtreeForGroups(parentNode, node, coalitionSide)
     return
+  end
+  -- Rendered for one group, a node of the other side is skipped: its coalition holds at any depth
+  -- (#1298). A group whose coalition DCS never gave us is left in, as everywhere else.
+  if scope and coalitionSide then
+    local groupData = veafRadio.humanGroups[scope.groupId]
+    if groupData and groupData.coalition ~= nil and groupData.coalition ~= coalitionSide then
+      return
+    end
   end
   -- Nested under a menu already rendered for one group, a filtered menu still asks its own filter: for
   -- the pilot the parent is bound to, or else for the pilots of the group (security-audits#147).

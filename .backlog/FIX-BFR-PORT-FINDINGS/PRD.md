@@ -1,6 +1,6 @@
 # FIX-BFR-PORT-FINDINGS — what BFR's port of three V5 missions found in the runtime and the docs
 
-Status: ⬜ ready
+Status: ✅ done — shipped in 6.39.0 (2026-11-23)
 
 Origin: Sharko (BFR) ported SeaShepherd, Bluestorm and SandBlast from VEAF V5 to VMCT V6 and filed what he met, in French, on 2026-11-22: [#1296](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1296), [#1297](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1297), [#1298](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1298), [#1299](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1299), [#1304](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1304), [#1305](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1305), [#1306](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1306), [#1308](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1308).
 The conversion and build findings of the same report (#1300 to #1303) are [FIX-CONVERT-V5-PARITY](../FIX-CONVERT-V5-PARITY/PRD.md).

@@ -400,6 +400,12 @@ modules:
 | `spotter_radio_range_km` | nombre | `20` | Portée d'un relais radio, en kilomètres |
 | `spotter_propagation_speed_kmh` | nombre | `3600` | Vitesse de l'alerte sur le réseau, en km/h (période d'un bond = portée ÷ vitesse) |
 | `spotter_view` | `"off"` \| `"on"` \| `"radio"` | `"off"` | Vue carte F10 du réseau de guetteurs ; `"radio"` pose l'interrupteur dans le menu F10. Mettre entre guillemets : YAML lit un `on`/`off` nu comme un booléen |
+| `last_line_of_defence` | booléen | `true` | Un site éteint garde un rayon court et s'y allume seul — voir [Dernière ligne de défense](mission-maker/scripts/veafSkynetIadsHelper.md#last-line-of-defence) |
+| `last_line_of_defence_min_radius_km` | nombre | `10` | Borne basse de ce rayon, en kilomètres |
+| `last_line_of_defence_max_radius_km` | nombre | `15` | Borne haute de ce rayon, en kilomètres |
+| `last_line_of_defence_persistence_s` | nombre | `45` | Durée pendant laquelle le site reste allumé après le dernier passage, en secondes |
+| `coverage_refresh_interval_s` | nombre | `10` | Intervalle entre deux balayages du graphe de couverture, en secondes (`0` = jamais) |
+| `setup_warnings_on_screen` | booléen | `false` | Afficher à l'écran de tous les joueurs les avertissements de mise en place de Skynet. Ils vont toujours dans `dcs.log` |
 
 #### Champs de `modules.CSAR`
 
@@ -593,6 +599,8 @@ modules:
 | `REMOTE` | veafRemote | — |
 | `SKYNET_MONITOR` | veafSkynetMonitor | — |
 | `I18N` | veafI18n | — |
+
+Les clés propres à un module sont décrites sur sa page. Deux exemples souvent cherchés ici : `WEATHER.welcomeBrief` coupe le message d'accueil à la prise de slot ([Accueil à la prise de slot](mission-maker/scripts/veafWeather.md#welcome-brief)) ; le `radio_menu_coalition` d'une zone de combat choisit le camp à qui son menu F10 est proposé ([À qui le menu F10 est-il proposé ?](mission-maker/scripts/veafCombatZone.md#f10-menu-audience)).
 
 ---
 

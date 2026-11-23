@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-BFR-PORT-FINDINGS](FIX-BFR-PORT-FINDINGS/PRD.md) · ✅
+
+What BFR's port of SeaShepherd, Bluestorm and SandBlast found in the runtime and the docs (#1296-#1299, #1304-#1306, #1308): Skynet set-up warnings off the players' screens, a coalition that holds under a per-pilot parent, the player's name on a per-pilot menu, a QRA draw that keeps its count, and the docs. Five tickets; opened 2026-11-23.
+
 ### [CHORE-VENDOR-CTLD-2-1-0](CHORE-VENDOR-CTLD-2-1-0/PRD.md) · ✅
 
 CTLD `2.1.0` vendored for 6.39.0, with the fixes BFR asked for: dropped groups act on their own again, players can drive what CTLD creates, inactive troop and waypoint zones stay inactive, nothing is lost when DCS refuses a pack or an unpack. Catalogue `2.3.0` → `2.5.0` with three new settings (`maximumMoveDistance`, `spawnedUnitsPlayerCanDrive`, `forbidUnpackInLogisticZone`).

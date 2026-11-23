@@ -1,6 +1,6 @@
 # 05 — Docs: load order, root-menu handles, mission.yaml keys, report path
 
-Status: ⬜ ready
+Status: ✅ done
 
 Issues: [#1297](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1297), [#1299](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1299), [#1305](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1305), [#1306](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1306).
 

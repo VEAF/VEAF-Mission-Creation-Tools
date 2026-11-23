@@ -62,6 +62,7 @@ modules:
 | `last_line_of_defence_max_radius_km` | number | `15` | Upper bound of that radius, in kilometres |
 | `last_line_of_defence_persistence_s` | number | `45` | How long the site stays lit after the last pass, in seconds |
 | `coverage_refresh_interval_s` | number | `10` | Interval between two sweeps of the coverage graph, in seconds (`0` = never) |
+| `setup_warnings_on_screen` | boolean | `false` | Show Skynet's set-up warnings (a group it cannot find, for instance) on every player's screen. They always go to `dcs.log` |
 
 ---
 

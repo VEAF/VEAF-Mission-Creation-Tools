@@ -376,7 +376,7 @@
   "cmd.convert_v5.opt.no_backup": "Do not create a .bak copy of missionConfig.lua before migrating it.",
   "cmd.convert_v5.opt.no_pipeline": "Skip automatic conversion of v5 pipeline config files (presets, waypoints, weather, aircraft groups). Files will be listed as needing manual conversion instead.",
   "cmd.convert_v5.opt.no_promote": "Do not promote src/mission/ to v6 (skip the base build + extract round-trip).",
-  "cmd.convert_v5.opt.report_file": "Save the conversion report to a Markdown file. Defaults to <mission_folder>/convert-v5-report.md.",
+  "cmd.convert_v5.opt.report_file": "Save the conversion report to a Markdown file. Defaults to <mission_folder>/backup_v5/convert-v5-report.md.",
   "cmd.convert_v5.report_header": "Conversion summary",
   "cmd.convert_v5.scanning": "Scanning {folder}...",
   "cmd.doctor.col.field": "Fact",

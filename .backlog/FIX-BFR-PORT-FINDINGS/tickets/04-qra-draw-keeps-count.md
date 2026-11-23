@@ -1,6 +1,6 @@
 # 04 — A QRA draw keeps its count when it exceeds the list
 
-Status: ⬜ ready
+Status: ✅ done
 
 Issue: [#1308](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1308).
 

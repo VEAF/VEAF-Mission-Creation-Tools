@@ -1,6 +1,6 @@
 # 03 — `VEAF_DYNAMIC_MISSIONPATH` is the mission folder
 
-Status: ⬜ ready
+Status: ✅ done
 
 Issue: [#1302](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1302).
 

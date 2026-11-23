@@ -1,6 +1,6 @@
 # 01 — Conversion writes a v5-parity configuration
 
-Status: ⬜ ready
+Status: ✅ done
 
 Issue: [#1300](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1300).
 

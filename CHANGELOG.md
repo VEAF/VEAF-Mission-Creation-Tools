@@ -138,6 +138,12 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   - Without the VEAF server hook, a per-pilot submenu carries the player's name in DCS instead of the unit's callsign.
   - A QRA `random_pick` bigger than its list keeps its count again: "4 of [A, B]" scrambles A and B twice each, as in v5, where the draw without replacement had sent 2. This corrects the entry of FEAT-OPPOSITION-SCALES-WITH-PLAYERS, which said a group drawn twice took off once; each drawn group is cloned, so it took off twice.
   - Docs: how to remove a root menu in any language by its handle (`veaf.ctldRootPath`, `<module>.rootPath`), why a module whose function a layer overrides is declared `initialized_by_mission`, the Skynet keys missing from the `mission.yaml` reference, the conversion report's real place (`backup_v5/`), and a CTLD FOB's fixed 120 s build.
+- **A converted v5 mission behaves as it did in v5** (FIX-CONVERT-V5-PARITY, #1300-#1303):
+  - `convert v5` writes every `pipeline:` step the v5 mission had no file for as `false`, so the build no longer injects the dynamic slot templates (+122 groups on BFR's part), opens warehouses, or adds weather variants it did not have; a converted step runs without the presets' kneeboard pages and the BULLSEYE waypoint. Dynamic slot templates stay on when the editor already granted dynamic slots. The report lists each line under "Behaviour kept from v5", to flip for the v6 feature.
+  - `silence_all` is kept without a YAML QRA; AIEN is enabled only when the v5 mission loaded it (not because the file sat in `published/`), REMOTE only when v5 started it; `mission.language` is always written; a computed `veaf.DO_NOT_EXPORT_JSON_FILES` is offered as a comment; the report states the log level actually written.
+  - A folder whose deepest file would pass the Windows path limit once backed up is refused before anything is written; a promotion that fails ends in a message and exit code 1 instead of a traceback, and removes the `mission.yaml` it wrote; `mission build` refuses a folder with `backup_v5/` and no `mission.yaml`.
+  - `VEAF_DYNAMIC_MISSIONPATH` is the mission folder, not the folder the `.miz` is written to.
+  - `validate` and the build check that every `custom_scripts` file is valid Lua 5.1.
 
 ## [6.38.0] — 2026-11-19
 

@@ -1,6 +1,6 @@
 # FIX-RADIO-NEXT-PAGE-IN-F10 — "Next page" is always the last entry of a radio menu page
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — the flight check on the Campagne server
 
 Seen on the Campagne server on 2026-11-22 (David): several radio menus show "Page suivante" in F9 and another entry in F10. David, 2026-11-23: a defect of VEAF's radio menus, every mission concerned, not the campaign's; its own lot, split out of FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT.
 

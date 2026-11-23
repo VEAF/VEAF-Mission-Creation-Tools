@@ -65,7 +65,7 @@ from veaf_libs.lua_config_generator import (
 )
 from veaf_libs.lua_i18n import load_runtime_catalog
 from veaf_libs.lua_module_scanner import get_modules
-from veaf_libs.lua_syntax import LuaSyntaxError
+from veaf_libs.lua_syntax import LuaSyntaxError, check_lua_syntax
 from veaf_libs.paths import resolve_path
 from veaf_libs.progress import spinner_context
 from veaf_libs.yaml_validator import validate_modules_semantics, validate_yaml_file
@@ -2183,14 +2183,16 @@ class MissionBuilderWorker(BaseWorker):
 
         Both are absolute, ``/``-terminated paths wrapped in ``[[ ]]`` so they need no
         escaping when emitted into a Lua statement. The scripts path falls back to the
-        output mission's ``published/`` folder when no explicit scripts path is set.
+        mission folder's ``published/`` folder when no explicit scripts path is set.
 
         Returns:
             A ``(scripts_path, mission_path)`` tuple of ``[[…/]]`` literals.
         """
-        scripts_root = self.scripts_path or (self.output_mission.parent / "published")
+        # The mission folder, not the folder the `.miz` goes to: a build written to `build/` or to a
+        # server's Missions folder pointed its scripts at the wrong place (#1302).
+        scripts_root = self.scripts_path or (self.mission_folder / "published")
         scripts_path = f"[[{scripts_root.resolve().as_posix()}/]]"
-        mission_path = f"[[{self.output_mission.parent.resolve().as_posix()}/]]"
+        mission_path = f"[[{self.mission_folder.resolve().as_posix()}/]]"
         return scripts_path, mission_path
 
     def _unused_country_id(self) -> int:
@@ -2742,6 +2744,33 @@ class MissionBuilderWorker(BaseWorker):
         logger.info(t("builder.veaf_config_generated", file=config_file))
         self._report_active_modules(yaml_dict)
 
+    def check_custom_scripts_syntax(self) -> None:
+        """Stop the build when a ``custom_scripts`` file is not valid Lua 5.1 (#1303).
+
+        Such a file went into the ``.miz`` unseen: DCS refuses it whole at load, and the mission
+        runs without it with nothing on screen. A missing file is left to the validator.
+
+        Raises:
+            RuntimeError: Naming the file, the line and what was expected (through ``logger.error``).
+        """
+        for script in self.custom_scripts:
+            path = self.mission_folder / "src" / "scripts" / script.path
+            if not path.is_file():
+                continue
+            try:
+                check_lua_syntax(path.read_text(encoding="utf-8", errors="replace"))
+            except LuaSyntaxError as exc:
+                logger.error(
+                    t(
+                        "builder.custom_script_not_valid_lua",
+                        file=script.path,
+                        line=exc.line,
+                        reason=exc.reason,
+                        source=exc.source_line,
+                    ),
+                    exception_type=RuntimeError,
+                )
+
     def _campaign_data(self, yaml_dict: dict) -> dict | None:
         """Read the campaign data table a campaign mission carries (FEAT-MULTI-MISSION-CAMPAIGN).
 
@@ -2860,6 +2889,9 @@ class MissionBuilderWorker(BaseWorker):
                 self.write_config_lua()
             # Invalidate cached mission script files so the new file is picked up
             self.collected_mission_script_files = None
+
+        # A custom script that does not parse would ship and silently not load in DCS (#1303).
+        self.check_custom_scripts_syntax()
 
         # Render the partial config-override script (FOOTHOLD-V6-004): validated
         # lexically, loaded between the upstream config and setup. Build-blocking.

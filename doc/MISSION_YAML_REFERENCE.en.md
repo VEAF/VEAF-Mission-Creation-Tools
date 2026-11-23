@@ -663,7 +663,7 @@ See the respective module pages for full schema:
 ### `custom_scripts:` {#custom-scripts}
 
 Declares custom Lua scripts present in `src/scripts/` that are not part of the standard VEAF v6 set.  
-A declared script is included in the `.miz` **without** triggering a warning. By default a DCS load trigger is generated for it automatically; setting `generate_load_trigger: false` disables that trigger (useful when the script is loaded manually from `mission-script.lua`).
+A declared script is included in the `.miz` **without** triggering a warning. `validate` and the build check that it is valid Lua 5.1: DCS would otherwise refuse the whole file, with nothing on screen. By default a DCS load trigger is generated for it automatically; setting `generate_load_trigger: false` disables that trigger (useful when the script is loaded manually from `mission-script.lua`).
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|

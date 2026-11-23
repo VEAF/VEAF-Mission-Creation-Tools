@@ -104,7 +104,7 @@ modules:
 | `groups_by_enemy_count` | object[] | `[]` | No | Scaled scramble rules |
 | `groups_by_enemy_count[].enemy_count` | integer | — | Yes | Number of intruders that activates this rule |
 | `groups_by_enemy_count[].groups` | string[] | — | Yes | Pool of group names or VEAF commands, as for `simple_groups` |
-| `groups_by_enemy_count[].random_pick` | integer | — | No | How many groups to **draw** from the pool, without replacement: never the same group twice, never more than the list holds. **Absent: every group of the tier takes off.** The tier used is the biggest whose `enemy_count` does not exceed the intruders, whatever order the tiers are written in |
+| `groups_by_enemy_count[].random_pick` | integer | — | No | How many groups to **draw** from the pool, without replacement: never the same group twice until the list is used up. A number bigger than the list starts a new round: "4 of [A, B]" scrambles A and B twice each, as in v5. **Absent: every group of the tier takes off.** The tier used is the biggest whose `enemy_count` does not exceed the intruders, whatever order the tiers are written in |
 | `delay_before_rearming` | integer | `0` | No | Seconds before zone resets after intruders leave |
 | `delay_before_activating` | integer | `0` | No | Seconds after start before QRA goes online |
 | `rearm_while_occupied` | boolean | `false` | No | A destroyed QRA rearms **even with intruders still in its zone**. Without it, it waits for the zone to be empty — with several players over the target, almost never |

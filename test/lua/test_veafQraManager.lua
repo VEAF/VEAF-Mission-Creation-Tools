@@ -1382,9 +1382,11 @@ function TestVeafQraTiers:test_a_pick_of_n_from_n_gives_n_distinct_groups()
   luaunit.assertEquals(picked, { "MiG-29", "Su-27" })
 end
 
-function TestVeafQraTiers:test_a_pick_never_draws_more_than_the_list_holds()
+function TestVeafQraTiers:test_a_pick_bigger_than_the_list_keeps_its_count()
+  -- #1308: each drawn group is cloned, so v5 sent 5 groups here; the draw starts a new round instead
+  -- of stopping at the size of the list.
   local q = VeafQRA:new():setRandomGroupsToDeployByEnemyQuantity(1, { "MiG-29", "Su-27" }, 5)
-  luaunit.assertEquals(#q:chooseGroupsToDeploy(1), 2)
+  luaunit.assertEquals(#q:chooseGroupsToDeploy(1), 5)
 end
 
 function TestVeafQraTiers:test_a_qra_following_the_level_scrambles_its_tier()

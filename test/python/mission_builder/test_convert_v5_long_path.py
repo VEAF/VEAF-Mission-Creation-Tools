@@ -15,7 +15,6 @@ from pathlib import Path
 from unittest import mock
 
 import typer
-
 from mission_builder import v5_converter
 from mission_builder.v5_converter import PathTooLongError, V5Converter
 

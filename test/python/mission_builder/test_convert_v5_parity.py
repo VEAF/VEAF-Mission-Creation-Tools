@@ -11,7 +11,6 @@ import unittest
 from pathlib import Path
 
 import yaml
-
 from mission_builder.v5_converter import V5Converter
 from veaf_libs.i18n import language
 

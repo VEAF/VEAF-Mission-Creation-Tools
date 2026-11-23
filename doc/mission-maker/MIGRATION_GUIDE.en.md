@@ -112,7 +112,15 @@ This single command handles everything in one pass:
 - **`mission.yaml` generation** — creates `mission.yaml` with the correct `modules:` and `pipeline:` sections.
 - **`src/mission/` promotion to v6** — rewrites the exploded `.miz` (`src/mission/`) to v6: a base build migrates the legacy v5 triggers **on disk**, after backing up the original to `backup_v5/src/mission/`. On by default; all editor content (groups, routes, units) is preserved — only the legacy v5 trigger layer is purged. Use `--no-promote` to skip it.
 - **Leftover v5 file triage** — obsolete v5 tooling (`*.cmd`, `*.ps1`, `package.json`, `yarn.lock`, `configuration.json`, …) is moved to `backup_v5/`; regenerable artifacts (`node_modules/`, `build/`, `cache/`) are deleted; any other unmanaged file is just **listed** in the report for you to decide. `configuration.json` is flagged because it may hold a v5 API key (unused in v6: real weather goes through `avwx-engine`, no key).
-- **Conversion report** — saves `convert-v5-report.md` with all actions taken and any items requiring manual review.
+- **Conversion report** — saves `backup_v5/convert-v5-report.md` with all actions taken and any items requiring manual review.
+
+> **The converted mission keeps its v5 behaviour.** The generated `mission.yaml` turns off what v6 adds and the v5 mission did not have.
+> A `pipeline:` step with no file in the v5 mission is `false`: presets, waypoints, aircraft groups, weather.
+> Dynamic slot templates and warehouses are `false`, unless the editor already granted dynamic slots.
+> On a converted step, the presets' kneeboard pages and the BULLSEYE waypoint are `false`.
+> AIEN and REMOTE are enabled only when the v5 mission loaded or started them.
+> `mission.language` is always written, and `silence_all` is kept even with no QRA in YAML.
+> The report lists these lines under "Behaviour kept from v5": set one to `true` to get the v6 feature.
 
 If your pipeline contains `realweather` weather versions, supply the ICAO airport code via the `--icao` option to embed it in the generated config. If you omit it, the conversion still succeeds: the tool writes `airport_icao: TODO` into the generated config (`versions.yaml`) and prints a warning. Set it afterwards either by editing the `TODO` in `versions.yaml`, or by re-running `convert-v5 --icao UGGG --force`:
 

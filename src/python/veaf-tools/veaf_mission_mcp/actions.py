@@ -2237,7 +2237,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "frequency plan and the kneeboard flight card are those of the aircraft the flights fly, one block "
                 "per radio plan. map_offline = no tiles could be downloaded. KNEEBOARD ONLY (kneeboard_only): the "
                 "kneeboard and nothing else, for an Open Training; sheets of free text (title + paragraphs) come first "
-                "in the kneeboard, in either mode."
+                "in the kneeboard, in either mode. BILINGUAL MISSION (build_variants with a FR and an EN profile): "
+                "after every build, call it once in the mission's language, then once per other language with "
+                "`language` and the words in that language; each call writes only the .miz of its language (read "
+                "from their veaf-config.lua), and a call in another language than the mission's leaves the folder "
+                "and the mission's deck alone (docs/<mission>_briefing.<language>.pptx, docs/maps/<language>/)."
             ),
             parameters_schema={
                 "type": "object",
@@ -2452,6 +2456,16 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         ),
                     },
                     "side": {"type": "string", "enum": ["blue", "red"], "description": "The players' side."},
+                    "language": {
+                        "type": "string",
+                        "enum": ["fr", "en"],
+                        "description": (
+                            "The briefing's language, the mission's (mission.language) when omitted: the deck, the "
+                            "maps and the kneeboard are written in it, and only the built .miz of that language "
+                            "(veaf.config.language of their veaf-config.lua) get its pages. In another language than "
+                            "the mission's, src/mission/ and the mission's deck are left alone."
+                        ),
+                    },
                 },
                 "required": ["mission_path", "title"],
             },

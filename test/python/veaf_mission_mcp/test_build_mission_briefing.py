@@ -230,3 +230,15 @@ def test_the_sheets_are_checked_for_accents(catalog: ActionCatalog, tmp_path: Pa
         "build_mission_briefing", {"mission_path": str(tmp_path), **PARAMS, "kneeboard_only": True, "sheets": sheets}
     )
     assert any(warning.startswith("sheet Conduite:") and "accent" in warning for warning in result["warnings"])
+
+
+def test_the_language_reaches_the_worker_and_the_schema_declares_it(catalog: ActionCatalog, tmp_path: Path) -> None:
+    """FEAT-BRIEFING-PER-LANGUAGE 01: the demo mission looks for `"language"` in the schema before passing it."""
+    schema = catalog.describe_action("build_mission_briefing").parameters_schema
+    assert schema["properties"]["language"]["enum"] == ["fr", "en"]
+    objective_mission(tmp_path)
+    result = catalog.run_action(
+        "build_mission_briefing", {"mission_path": str(tmp_path), **PARAMS, "language": "en", "kneeboard_only": True}
+    )
+    assert result["archives"] == []
+    assert any("No built mission in English" in warning for warning in result["warnings"])

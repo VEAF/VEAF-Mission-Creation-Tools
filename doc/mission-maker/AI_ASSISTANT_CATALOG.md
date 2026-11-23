@@ -799,6 +799,8 @@ L'IA peut aussi donner les **mots-codes** du package (une page dans le deck et d
 **Le kneeboard seul**, pour une Open Training : son README est déjà le briefing complet et ses images de briefing sont les siennes, alors l'outil n'écrit que les pages du kneeboard — ni PPTX, ni PDF, ni image de briefing DCS.
 Il commence par des **fiches de texte** que l'IA écrit (la mission, la conduite sur le serveur, les commandes utiles avec leur niveau de sécurité), puis la carte d'ensemble, un zoom par zone de combat avec ses photos de reconnaissance, et la liste des zones avec le chemin du menu F10 qui démarre chacune et ses coordonnées.
 Les fiches de texte se mettent aussi en tête du kneeboard d'une mission à objectifs.
+**Une mission bilingue**, construite en français et en anglais (`build_variants` avec un profil FR et un profil EN), a un briefing dans chaque langue : après chaque build, l'IA lance le briefing une fois dans la langue de la mission, puis une fois en anglais (ou en français) avec les mots traduits.
+Chaque passage n'écrit que dans les `.miz` de sa langue ; le second laisse le dossier et le PPTX de la mission tels quels, et écrit `docs/<mission>_briefing.en.pptx`, son PDF et ses cartes dans `docs/maps/en/`.
 
 > 💬 *« Fais le briefing de la mission, fond topo. »*
 

@@ -2215,7 +2215,9 @@ end
 --- none is left. A convoy falling back does not press on: it stands down and holds (Q4).
 ---
 --- A push is no contact: the enemies recalled to push onto them are not sightings, and the push is timed by `lastPush`.
---- Pushes that move nothing end in a drive on (`pushMovesSomething`).
+--- Pushes that move nothing end in a drive on (`pushMovesSomething`), and the enemies pressed on in vain are given up
+--- on like the ones in sight: on 2026-11-22 the red assault convoy on Menagh drove on, saw the same garrison again as a
+--- new contact minutes later, and went round three times (FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT ticket 03).
 --- @param now number
 --- @return boolean true when it closes in again, or gave up and drove on, rather than standing down
 function ConvoyUnitHandler:pressOn(now)
@@ -2237,7 +2239,7 @@ function ConvoyUnitHandler:pressOn(now)
   if #alive == 0 then
     return false
   end
-  if not self:pushMovesSomething(nearest, {}) then
+  if not self:pushMovesSomething(nearest, alive) then
     return true
   end
   veaf.loggers.get(veafGroundAI.Id):info("convoy %s: %d enemies still alive out of sight, closing in again", veaf.p(self:getName()), #alive)
@@ -2253,7 +2255,7 @@ end
 --- On 2026-11-21 a red assault convoy stood 1.3 km from Menagh from 22:00 to the end of the evening, pushed every two
 --- minutes onto an enemy 956 m away, then 957 m (FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT).
 --- @param distance number the convoy's distance to the enemy it is about to push onto, in metres
---- @param seen table the enemy units in sight, given up on with the push
+--- @param seen table the enemy units pushed onto, in sight or recalled, given up on with the push
 --- @return boolean true when the push goes ahead, false when the convoy gave up and drove on
 function ConvoyUnitHandler:pushMovesSomething(distance, seen)
   if self.lastPushDistance and distance > self.lastPushDistance - ConvoyUnitHandler.PUSH_PROGRESS_MARGIN then

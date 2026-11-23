@@ -176,10 +176,20 @@ class TestZones:
         raw["zones"][0]["side"] = "neutral"
         assert _errors(raw) == []
 
+    @pytest.mark.parametrize("kind", ["factory", "depot"])
+    def test_a_persistent_campaign_s_kinds_are_accepted(self, kind: str) -> None:
+        raw = copy.deepcopy(VALID)
+        raw["zones"][0]["kind"] = kind
+        campaign, issues = parse_campaign(raw)
+        assert campaign is not None, issues
+        assert campaign.zones[0].kind == kind
+
     def test_an_unknown_kind_is_reported(self) -> None:
         raw = copy.deepcopy(VALID)
         raw["zones"][0]["kind"] = "casino"
-        assert t("campaign.issue.unknown_kind", zone="Kobuleti", kind="casino", known="logistics") in _errors(raw)
+        assert t(
+            "campaign.issue.unknown_kind", zone="Kobuleti", kind="casino", known="logistics, factory, depot"
+        ) in _errors(raw)
 
     def test_an_unknown_garrison_entry_is_reported(self) -> None:
         raw = copy.deepcopy(VALID)
@@ -242,9 +252,107 @@ class TestSizeClasses:
         raw = _with(size_classes={"outpost": {"tanks": 3}})
         assert t("campaign.issue.unknown_size_parameter", size="outpost", field="tanks") in _errors(raw)
 
+    def test_a_zone_long_range_sam_flag_that_is_not_a_boolean_is_reported(self) -> None:
+        raw = copy.deepcopy(VALID)
+        raw["zones"][0]["long_range_sam"] = "yes"
+        assert t("campaign.issue.bad_zone_long_range_sam", zone="Kobuleti") in _errors(raw)
+
+    def test_too_many_long_range_sams_on_one_side_are_refused(self) -> None:
+        raw = copy.deepcopy(VALID)
+        raw["zones"][2]["long_range_sam"] = True
+        raw["long_range_sams"] = {"per_side": 1, "min_spacing": 0}
+        expected = t(
+            "campaign.issue.too_many_long_range_sams", side="red", count=2, cap=1, zones="Senaki, Gudauta depot"
+        )
+        assert expected in _errors(raw)
+
+    def test_two_long_range_sams_of_a_side_too_close_are_refused(self) -> None:
+        # a red depot 30 km from Senaki-Kolkhi, under the 120 km shipped
+        raw = copy.deepcopy(VALID)
+        raw["zones"][2].update({"at": {"lat": 42.50, "lon": 42.05}, "long_range_sam": True})
+        messages = [m for m in _errors(raw) if "`Senaki`" in m and "`Gudauta depot`" in m]
+        assert len(messages) == 1
+        assert "120 km" in messages[0]
+        raw["long_range_sams"] = {"min_spacing": 20000}
+        assert _errors(raw) == []
+
+    def test_two_sides_long_range_sams_may_face_each_other(self) -> None:
+        # Kobuleti to Senaki-Kolkhi: 38 km, a front rather than one umbrella doubled
+        raw = copy.deepcopy(VALID)
+        raw["zones"][0]["long_range_sam"] = True
+        assert _errors(raw) == []
+
+    def test_a_bad_long_range_sams_setting_is_reported(self) -> None:
+        raw = _with(long_range_sams={"per_side": -1})
+        assert t("campaign.issue.bad_long_range_sams", setting="per_side") in _errors(raw)
+
+    def test_the_airfield_class_draws_no_long_range_sam_by_itself(self) -> None:
+        raw = copy.deepcopy(VALID)
+        del raw["zones"][1]["long_range_sam"]
+        campaign, _ = parse_campaign(raw)
+        assert campaign is not None
+        assert not campaign.has_long_range_sam(campaign.zone("Senaki"))
+
     def test_a_long_range_sam_flag_that_is_not_a_boolean_is_reported(self) -> None:
         raw = _with(size_classes={"outpost": {"long_range_sam": "yes"}})
         assert t("campaign.issue.bad_long_range_sam", size="outpost") in _errors(raw)
+
+    # FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 02: a medium-range battery, flagged, capped and spaced as the long-range one
+    def test_a_zone_medium_range_sam_flag_that_is_not_a_boolean_is_reported(self) -> None:
+        raw = copy.deepcopy(VALID)
+        raw["zones"][0]["medium_range_sam"] = "yes"
+        assert t("campaign.issue.bad_zone_medium_range_sam", zone="Kobuleti") in _errors(raw)
+
+    def test_a_size_class_medium_range_sam_flag_that_is_not_a_boolean_is_reported(self) -> None:
+        raw = _with(size_classes={"outpost": {"medium_range_sam": 1}})
+        assert t("campaign.issue.bad_medium_range_sam", size="outpost") in _errors(raw)
+
+    def test_a_medium_range_sam_follows_the_zone_then_its_size_class(self) -> None:
+        raw = copy.deepcopy(VALID)
+        raw["size_classes"] = {"outpost": {"medium_range_sam": True}}
+        raw["zones"][1]["medium_range_sam"] = True
+        campaign, issues = parse_campaign(raw)
+        assert campaign is not None, issues
+        assert campaign.has_medium_range_sam(campaign.zone("Senaki"))
+        assert not campaign.has_medium_range_sam(campaign.zone("Kobuleti"))
+        outposts = [zone for zone in campaign.zones if zone.size == "outpost"]
+        assert outposts and all(campaign.has_medium_range_sam(zone) for zone in outposts)
+        assert campaign.has_sam_battery(campaign.zone("Senaki"))
+
+    def test_too_many_medium_range_sams_on_one_side_are_refused(self) -> None:
+        raw = copy.deepcopy(VALID)
+        raw["zones"][1]["medium_range_sam"] = True
+        raw["zones"][2]["medium_range_sam"] = True
+        raw["medium_range_sams"] = {"per_side": 1, "min_spacing": 0}
+        expected = t(
+            "campaign.issue.too_many_medium_range_sams", side="red", count=2, cap=1, zones="Senaki, Gudauta depot"
+        )
+        assert expected in _errors(raw)
+
+    def test_two_medium_range_sams_of_a_side_too_close_are_refused(self) -> None:
+        # a red depot 30 km from Senaki-Kolkhi, under the 60 km shipped
+        raw = copy.deepcopy(VALID)
+        raw["zones"][1]["medium_range_sam"] = True
+        raw["zones"][2].update({"at": {"lat": 42.50, "lon": 42.05}, "medium_range_sam": True})
+        messages = [m for m in _errors(raw) if "`Senaki`" in m and "`Gudauta depot`" in m]
+        assert len(messages) == 1
+        assert "60 km" in messages[0] and "medium_range_sams" in messages[0]
+        raw["medium_range_sams"] = {"min_spacing": 20000}
+        assert _errors(raw) == []
+
+    def test_a_long_and_a_medium_range_sam_do_not_count_against_each_other(self) -> None:
+        raw = copy.deepcopy(VALID)
+        raw["zones"][2].update({"at": {"lat": 42.50, "lon": 42.05}, "long_range_sam": False, "medium_range_sam": True})
+        assert _errors(raw) == []
+
+    def test_a_bad_medium_range_sams_setting_is_reported(self) -> None:
+        raw = _with(medium_range_sams={"cap": 3})
+        assert t("campaign.issue.bad_medium_range_sams", setting="cap") in _errors(raw)
+
+    def test_the_shipped_medium_range_limits(self) -> None:
+        campaign, _ = parse_campaign(copy.deepcopy(VALID))
+        assert campaign is not None
+        assert (campaign.medium_range_sam_cap, campaign.medium_range_sam_spacing) == (3, 60000)
 
     def test_a_new_size_class_must_name_every_generator_parameter(self) -> None:
         raw = _with(size_classes={"fortress": {"size": 5}})
@@ -366,3 +474,9 @@ class TestTheParserNeverRaises:
         campaign, issues = parse_campaign(raw)
         assert campaign is None
         assert any(issue.level == ERROR for issue in issues)
+
+
+def test_the_shipped_air_defence_has_radar_sams_at_an_airfield() -> None:
+    """David, 2026-11-17: only short-range infrared SAMs at Aleppo; defence 5 draws SA-8, SA-15 and Tunguska."""
+    assert DEFAULT_SIZE_CLASSES["airfield"].defense == 5
+    assert DEFAULT_SIZE_CLASSES["outpost"].defense == 3

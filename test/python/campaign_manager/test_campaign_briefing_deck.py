@@ -8,7 +8,6 @@ from pathlib import Path
 
 from campaign_fixture import PROSE, VALID
 from campaign_manager.briefing_deck import (
-    DECK_FILE,
     MAP_FILE,
     Block,
     Page,
@@ -22,6 +21,7 @@ from campaign_manager.briefing_deck import (
 from campaign_manager.briefing_prose import BriefingProse, parse_prose
 from campaign_manager.campaign_manager import initial_state, parse_campaign
 from campaign_manager.models import CampaignDefinition
+from deck_pdf_check import assert_pdf_matches_deck
 from pptx import Presentation
 from veaf_libs.i18n import language, t
 
@@ -61,7 +61,9 @@ def _deck(tmp_path: Path, with_prose: bool = True) -> list[list[str]]:
             cache_dir=tmp_path / "tiles",
             fetch=_offline,
         )
-    assert report.path == tmp_path / "mission-01" / DECK_FILE
+    # David, 2026-11-17: named after the operation (else the campaign) and the mission, not "briefing-campagne"
+    name = "Kolkhida" if with_prose else "Caucasus-Front"
+    assert report.path == tmp_path / "mission-01" / f"{name}_mission-01_briefing-campagne.pptx"
     assert (tmp_path / "mission-01" / MAP_FILE).is_file()
     return _slides(report.path)
 
@@ -101,7 +103,7 @@ class TestTheDeck:
     def test_the_facts_come_from_the_campaign(self, tmp_path: Path) -> None:
         slides = {slide[0]: "\n".join(slide[1:]) for slide in _deck(tmp_path)[1:]}
         military = slides["2. Situation militaire"]
-        assert "– Kobuleti : base défendue" in military
+        assert "– Kobuleti : détachement" in military  # no long-range SAM of its own (ticket 20)
         assert (
             "Réserves : volume inconnu. Elles transiteraient par ses centres logistiques (Gudauta depot)." in military
         )
@@ -159,3 +161,90 @@ class TestWhereAPageEnds:
 
     def test_a_page_that_fits_stays_one_page(self) -> None:
         assert len(paginate(Page("Situation", [Block("Contexte", ("Un paragraphe.",))]))) == 1
+
+
+def _persistent_deck(tmp_path: Path, keep_objectives: bool = False, **dynamic: object) -> list[list[str]]:
+    """The deck of the reference campaign played as one persistent mission, red's depot a factory."""
+    raw = copy.deepcopy(VALID)
+    raw["campaign"]["mode"] = "persistent"
+    # the depot turned factory can no longer be destroyed `as logistics`: only the capture is kept
+    raw["campaign"]["objectives"] = [{"capture": ["Senaki"]}] if keep_objectives else []
+    raw["zones"][2]["kind"] = "factory"
+    if dynamic:
+        raw["dynamic"] = dynamic
+    campaign, issues = parse_campaign(raw)
+    assert campaign is not None, issues
+    with language("fr"):
+        report = campaign_deck(
+            campaign,
+            initial_state(campaign),
+            _prose(campaign),
+            tmp_path / "mission-01",
+            cache_dir=tmp_path / "tiles",
+            fetch=_offline,
+        )
+    return _slides(report.path)
+
+
+class TestAPersistentCampaign:
+    """Found on the Syria campaign (2026-11-16): its deck spoke of ten missions and of what happens between two."""
+
+    def test_no_count_of_missions(self, tmp_path: Path) -> None:
+        text = "\n".join("\n".join(slide) for slide in _persistent_deck(tmp_path))
+        assert "Caucasus — campagne persistante" in text
+        assert "8 missions" not in text
+        assert "Missions restantes" not in text
+        assert "au terme de la mission" not in text
+
+    def test_the_victory_is_holding_every_zone(self, tmp_path: Path) -> None:
+        slides = {slide[0]: "\n".join(slide[1:]) for slide in _persistent_deck(tmp_path)[1:]}
+        objectives = slides["5. Objectifs de la campagne"]
+        assert "gagnée quand l'ennemi ne tient plus aucune zone" in objectives
+
+    def test_declared_objectives_are_no_condition_of_victory(self, tmp_path: Path) -> None:
+        # the runtime judges a persistent campaign on the zones held only
+        deck = _persistent_deck(tmp_path, keep_objectives=True)
+        slides = {slide[0]: "\n".join(slide[1:]) for slide in deck[1:]}
+        objectives = slides["5. Objectifs de la campagne"]
+        assert "gagnée quand l'ennemi ne tient plus aucune zone" in objectives
+        assert "– prendre et tenir" not in objectives
+
+    def test_the_tasks_are_standing_orders(self, tmp_path: Path) -> None:
+        titles = [slide[0] for slide in _persistent_deck(tmp_path)[1:]]
+        assert "8. Ordres en cours — La porte de Poti" in titles
+
+    def test_the_reserves_are_the_factories(self, tmp_path: Path) -> None:
+        slides = {slide[0]: "\n".join(slide[1:]) for slide in _persistent_deck(tmp_path)[1:]}
+        military = slides["2. Situation militaire"]
+        assert "Réserves" not in military
+        assert "sortirait de ses usines (Gudauta depot)" in military
+
+    def test_the_annex_tells_the_live_front_not_the_turn(self, tmp_path: Path) -> None:
+        annex = "\n".join(_persistent_deck(tmp_path)[-1])
+        assert "Entre deux missions" not in annex
+        assert "blindé(s)" not in annex
+        assert "Le front vivant" in annex
+        assert "contre-attaque" in annex
+        assert "bombardiers" in annex
+        assert "se sauvegarde" in annex
+        assert "payée sur ses ressources" in annex
+
+    def test_the_annex_drops_what_the_campaign_turned_off(self, tmp_path: Path) -> None:
+        annex = "\n".join(_persistent_deck(tmp_path, attacks=[], bombers={"enabled": False})[-1])
+        assert "contre-attaque" not in annex
+        assert "bombardiers" not in annex
+
+
+def test_a_pdf_of_the_same_pages_beside_the_deck(tmp_path: Path) -> None:
+    """David, 2026-11-17: every briefing written as a PowerPoint is written as a PDF too."""
+    campaign = _campaign()
+    with language("fr"):
+        report = campaign_deck(
+            campaign,
+            initial_state(campaign),
+            _prose(campaign),
+            tmp_path / "mission-01",
+            cache_dir=tmp_path / "tiles",
+            fetch=_offline,
+        )
+    assert_pdf_matches_deck(report.path, report.pdf)

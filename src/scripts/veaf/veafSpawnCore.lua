@@ -86,6 +86,10 @@ veafSpawn.CAP_WATCHDOG_DELAY = 10
 --- watchdog; an entry exists exactly while a watchdog runs for that group (FEAT-AIRCRAFT-ROLES).
 veafSpawn.capWatchdogZones = {}
 
+--- An optional predicate per CAP group, by group name: `function(target)` true when the watchdog may engage
+--- that detected target. The persistent campaign spares helicopters and attack airplanes this way.
+veafSpawn.capTargetFilters = {}
+
 --- The CAP groups their watchdog has seen in the air at least once, by group name. Only those can have
 --- *landed*: a flight placed on a parking spot is on the ground at the first tick, one second after its
 --- spawn, and was destroyed before it had started its engines (FEAT-AIRCRAFT-ROLES).
@@ -142,6 +146,13 @@ veafSpawn.traceMarkerId = 3727
 
 -- Registry mapping option-key strings to handler functions registered by sub-modules.
 veafSpawn.commandHandlers = {} -- ordered list: { {key=string, fn=function}, ... }
+
+--- Set by a persistent campaign (FEAT-DYNAMIC-CAMPAIGN ticket 14), nil otherwise: asked before a person's
+--- command runs, `spawnGate(key, options, requesterCoalition) -> boolean` says whether it may run (asked once,
+--- before the first copy of a multiplied command), and `spawnPaid(key, options, groupName, requesterCoalition)`
+--- charges each copy the units it made, into debt if need be.
+veafSpawn.spawnGate = nil
+veafSpawn.spawnPaid = nil
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Utility methods
@@ -210,6 +221,38 @@ function veafSpawn.registerCommandHandler(key, security, fn)
     veafSecurity.levelForName(security)
   end
   table.insert(veafSpawn.commandHandlers, { key = key, fn = fn, security = security })
+end
+
+--- The id of the first route each spawned group waits for, by group name (see `giveFirstRoute`).
+veafSpawn.firstRouteIds = {}
+
+--- Give a group `executeCommand` just spawned its route, `CONVOY_FIRST_ORDER_DELAY_SECONDS` later: an order given in
+--- the frame a group is created is lost, 3 times out of 3, and taken 5 s later (measured 2026-11, dcs-cartographie).
+--- Not when the group is gone by then, nor when a group spawned again under the same name meanwhile has its own (the
+--- last order wins). Measured on ground groups; a route passed with the command can also reach an aircraft or a ship (a
+--- Mission Editor placeholder's route, `veafInterpreter`), which then flies or sails its spawn route for those 5 s. An
+--- aircraft with a role never comes here.
+--- @param groupName string
+--- @param route table|nil route points; nothing is given without them
+function veafSpawn.giveFirstRoute(groupName, route)
+  if not route then
+    return
+  end
+  local id = (veafSpawn.firstRouteIds[groupName] or 0) + 1
+  veafSpawn.firstRouteIds[groupName] = id
+  if veafGroundAI and veafGroundAI.noteBirth then
+    veafGroundAI.noteBirth(groupName)
+  end
+  veaf.scheduleFunction(function()
+    if veafSpawn.firstRouteIds[groupName] ~= id then
+      return
+    end
+    veafSpawn.firstRouteIds[groupName] = nil
+    local group = Group.getByName(groupName)
+    if group and group:isExist() then
+      veaf.goRoute(group, route)
+    end
+  end, nil, timer.getTime() + veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS)
 end
 
 function veafSpawn.executeCommand(
@@ -374,10 +417,12 @@ function veafSpawn.executeCommand(
         -- Dispatch to registered command handler (ordered list, first match wins)
         local _handler = nil
         local _security = nil
+        local _key = nil
         for _, _entry in ipairs(veafSpawn.commandHandlers) do
           if options[_entry.key] then
             _handler = _entry.fn
             _security = _entry.security
+            _key = _entry.key
             break
           end
         end
@@ -391,12 +436,21 @@ function veafSpawn.executeCommand(
               return
             end
           end
+          -- a person's spawn may have to be paid for (a persistent campaign, FEAT-DYNAMIC-CAMPAIGN ticket 14):
+          -- the balance is asked once, before the first copy, so that a multiplied command is accepted or
+          -- refused whole, never in part; each copy is then charged for the units it made
+          if i == 1 and veafSpawn.spawnGate and not scripted and not veafSpawn.spawnGate(_key, options, requesterCoalition) then
+            return
+          end
           local _g, _done, _abort = _handler(eventPos, options, coalition, markId, bypassSecurity)
           if _abort then
             return
           end
           if _g then
             spawnedGroup = _g
+            if veafSpawn.spawnPaid and not scripted then
+              veafSpawn.spawnPaid(_key, options, _g, requesterCoalition)
+            end
           end
           if _done then
             routeDone = _done
@@ -430,7 +484,8 @@ function veafSpawn.executeCommand(
               if hasRole then
                 veaf.loggers.get(veafSpawn.Id):trace("%s flies a role, its route and options are kept", veaf.p(spawnedGroup))
               elseif not route and not routeDone and options.destination then
-                --  make the group go to destination
+                --  make the group go to destination; `generateVehiclesRoute` drives it off road to the nearest road
+                --  first unless `offroad`
                 local actualPosition = groupObject:getUnit(1):getPosition().p
                 local route = veaf.generateVehiclesRoute(
                   actualPosition,
@@ -440,9 +495,9 @@ function veafSpawn.executeCommand(
                   options.patrol,
                   spawnedGroup
                 )
-                veaf.goRoute(groupObject, route)
+                veafSpawn.giveFirstRoute(spawnedGroup, route)
               elseif route then
-                veaf.goRoute(groupObject, route)
+                veafSpawn.giveFirstRoute(spawnedGroup, route)
               end
               -- add the group to the IADS, if there is one
               if veafSkynet then

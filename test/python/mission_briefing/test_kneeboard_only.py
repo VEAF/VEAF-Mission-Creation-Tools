@@ -14,7 +14,7 @@ from typing import Any
 
 import pytest
 from mission_briefing import mission_briefing_worker
-from mission_briefing.mission_briefing_worker import DECK_FILE, PDF_FILE, build_mission_briefing
+from mission_briefing.mission_briefing_worker import build_mission_briefing
 from mission_briefing.models import BriefingContent, Objective, TextSheet
 from mission_tools.miz_tools import read_miz, write_miz
 from objective_mission_fixture import objective_mission
@@ -71,7 +71,7 @@ class TestKneeboardOnly:
         folder, _, _, report = kneeboard_only
         assert report.deck is None and report.pdf is None
         assert report.pages == 0 and report.pdf_pages == 0
-        assert not (folder / DECK_FILE).exists() and not (folder / PDF_FILE).exists()
+        assert not list((folder / "docs").glob("*briefing.pptx")) and not list((folder / "docs").glob("*briefing.pdf"))
 
     def test_no_dcs_briefing_picture_added_and_its_own_left_alone(self, kneeboard_only) -> None:
         folder, miz, before, report = kneeboard_only

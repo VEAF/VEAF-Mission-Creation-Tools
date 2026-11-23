@@ -838,9 +838,19 @@ function veafSpawn.spawnConvoy(
       patrol = patrol,
     }
 
-    --  make the group go to destination
+    --  make the group go to destination, `CONVOY_FIRST_ORDER_DELAY_SECONDS` after its creation: an order given in the
+    --  frame a group is created is lost (FIX-GROUNDAI-CLOSE-IN-REACHABLE). Not when it was stopped meanwhile: a convoy
+    --  in contact at once has its own orders.
     veaf.loggers.get(veafSpawn.Id):trace("make the group go to destination : " .. groupName)
-    veaf.goRoute(groupName, route)
+    veaf.scheduleFunction(function()
+      local record = veafSpawn.spawnedConvoys[groupName]
+      if record and not record.stopped then
+        veaf.goRoute(groupName, record.route)
+      end
+    end, nil, timer.getTime() + veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS)
+    if veafGroundAI and veafGroundAI.noteBirth then
+      veafGroundAI.noteBirth(groupName)
+    end
 
     -- Only an itinerary needs watching. A single `dest` has no next leg, so a one-point convoy keeps
     -- exactly the behaviour it had before this lot — no watchdog, nothing rescheduled.
@@ -872,6 +882,10 @@ veafSpawn.CONVOY_ARRIVAL_RADIUS_METRES = 150
 
 --- How often the arrival watch runs, in seconds. Same cadence as `veaf.PatrolWatchdog`.
 veafSpawn.CONVOY_WATCHDOG_PERIOD_SECONDS = 30
+
+--- Seconds between a convoy's creation and its first order: an order given in the frame a group is created is lost,
+--- 3 times out of 3, and taken 5 s later (measured 2026-11, dcs-cartographie).
+veafSpawn.CONVOY_FIRST_ORDER_DELAY_SECONDS = 5
 
 --- Watch a convoy for arrival at the point it is heading for, and start the next leg when it gets there.
 ---

@@ -12,20 +12,24 @@ from __future__ import annotations
 import re
 import shutil
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import yaml
 from mission_tools.mission_yaml_editor import load_yaml, save_yaml
+from veaf_libs.ctld_config import CTLD_CONFIG_FILENAME
+from veaf_libs.dcs_airdromes import airdrome_id_for_name
 from veaf_libs.i18n import language, t
 from veaf_mission_mcp.airbase import set_airbase_coalition
+from veaf_mission_mcp.mission_folder import load_folder_mission
 from veaf_mission_mcp.mission_settings import set_briefing
 
-from campaign_manager.briefing_prose import MissionPage
+from campaign_manager.briefing_prose import BriefingProse, MissionPage
 from campaign_manager.mission_conditions import MissionConditions, set_conditions
 from campaign_manager.models import COALITIONS, CampaignDefinition, CampaignState
-from campaign_manager.objective_waypoints import write_objective_waypoints
+from campaign_manager.objective_waypoints import flight_plan_numbers, write_objective_waypoints, zone_waypoint_numbers
+from campaign_manager.radio_plan import write_campaign_radio_plan
 from campaign_manager.turn_manager import describe_change, enemy_of, evaluate_objectives, garrison_strength, outcome
 
 #: The data table, in the mission folder, the build turns into `veafCampaign.data`.
@@ -68,12 +72,21 @@ class NextMissionReport:
     waypoints: bool = False
     """Whether `src/waypoints.yaml` was written from the objectives; ``False`` when an edited one was kept."""
     name: str = ""
-    """The mission's name, written into `mission.yaml`; the build appends its date to it."""
+    """The mission's name, written into `mission.yaml`; the build appends its date to it, unless it is the campaign's
+    `mission_file`."""
     security_restored: bool = False
     """Whether security overrides (`disabled`, passwords) were removed from `mission.yaml`."""
+    interpreter_commands: list[str] = field(default_factory=list)
+    """The `#veafInterpreter` commands a persistent campaign's mission holds: they spawn afresh at every
+    restart, outside the save."""
+    slot_airbases: list[str] = field(default_factory=list)
+    """The airfields a persistent campaign's `warehouses.yaml` lists for the player side: every airfield zone,
+    whatever its owner, so one captured in flight has its slots ready."""
 
 
-def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str, Any]:
+def mission_data(
+    campaign: CampaignDefinition, state: CampaignState, numbers: dict[str, int] | None = None
+) -> dict[str, Any]:
     """Return the campaign data table of the next mission: `veafCampaign.data` at run time.
 
     Zones carry their position as the runtime can resolve it — an airbase name, or coordinates the
@@ -82,11 +95,15 @@ def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str
     Args:
         campaign: The validated campaign.
         state: The campaign state the mission starts from.
+        numbers: Each zone's waypoint number in the flight plan, when the mission folder's is known; else the
+            numbers `campaign next` writes for a persistent campaign.
 
     Returns:
         Plain data, with the structure the state file has on its way back.
     """
     zones = []
+    if numbers is None:
+        numbers = zone_waypoint_numbers(campaign, state)
     for zone in campaign.zones:
         zone_state = state.zones[zone.name]
         size = campaign.size_classes[zone.size]
@@ -98,7 +115,8 @@ def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str
                 "size": size.size,
                 "defense": size.defense,
                 "armor": size.armor,
-                "long_range_sam": size.long_range_sam,
+                "long_range_sam": campaign.has_long_range_sam(zone),
+                "medium_range_sam": campaign.has_medium_range_sam(zone),
             },
         }
         if zone.location.airfield:
@@ -107,6 +125,9 @@ def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str
             entry["lat"], entry["lon"] = zone.location.lat, zone.location.lon
         if zone.kind:
             entry["kind"] = zone.kind
+        if zone.name in numbers:
+            # its steerpoint in the players' flight plan, shown with its name on the map and in the messages
+            entry["waypoint"] = numbers[zone.name]
         if zone.garrison:
             # the declared side's garrison: a side that takes the zone draws its own instead
             entry["garrison_list"] = list(zone.garrison)
@@ -127,8 +148,48 @@ def mission_data(campaign: CampaignDefinition, state: CampaignState) -> dict[str
         "objectives": [{"kind": o.kind, "zones": list(o.zones)} for o in campaign.objectives],
         "zones": zones,
         "connections": [list(connection) for connection in campaign.connections],
-        "sides": {side: {"reserve": dict(state.sides[side].reserve)} for side in COALITIONS},
+        "sides": {side: _side_data(campaign, state, side) for side in COALITIONS},
         "scenery_destroyed": state.scenery_destroyed,
+        **_persistent_data(campaign),
+    }
+
+
+def _side_data(campaign: CampaignDefinition, state: CampaignState, side: str) -> dict[str, Any]:
+    """A side's part of the data table: its reserve, unless a persistent campaign gave it none.
+
+    An episodic campaign always counts its reserves, an empty one meaning nothing left. A persistent
+    campaign that declares no reserve for a side means it draws for free: the runtime does that when
+    the side has no `reserve` at all.
+
+    Args:
+        campaign: The validated campaign.
+        state: The campaign state the mission starts from.
+        side: ``blue`` or ``red``.
+
+    Returns:
+        ``{"reserve": {...}}``, or an empty table.
+    """
+    if campaign.mode == "persistent" and side not in campaign.declared_reserves:
+        return {}
+    return {"reserve": dict(state.sides[side].reserve)}
+
+
+def _persistent_data(campaign: CampaignDefinition) -> dict[str, Any]:
+    """What only a persistent campaign's mission carries: its mode, and its live play's settings.
+
+    Args:
+        campaign: The validated campaign.
+
+    Returns:
+        ``{"persistent": True, "player_side", "dynamic"}``, or an empty table for an
+        episodic campaign.
+    """
+    if campaign.mode != "persistent":
+        return {}
+    return {
+        "persistent": True,
+        "player_side": campaign.player_side,
+        "dynamic": campaign.dynamic,
     }
 
 
@@ -136,7 +197,7 @@ def strategic_situation(campaign: CampaignDefinition, state: CampaignState) -> s
     """Write the factual part of the next mission's strategic briefing, in the current language.
 
     The front, what changed in the last mission, the enemy's state, the objectives and the missions
-    left. The narrative — what the enemy intends, what is asked of the players — is not here.
+    left; for a persistent campaign, how it is won instead of the objectives and the missions left. The narrative — what the enemy intends, what is asked of the players — is not here.
 
     Args:
         campaign: The validated campaign.
@@ -146,9 +207,15 @@ def strategic_situation(campaign: CampaignDefinition, state: CampaignState) -> s
         Plain text, one fact per line.
     """
     mission = state.mission + 1
-    lines = [t("campaign.briefing.header", mission=mission, missions=campaign.missions), ""]
+    persistent = campaign.mode == "persistent"
+    header = (
+        t("campaign.briefing.header_persistent")
+        if persistent
+        else t("campaign.briefing.header", mission=mission, missions=campaign.missions)
+    )
+    lines = [header, ""]
     for side in (*COALITIONS, "neutral"):
-        held = [zone.name for zone in campaign.zones if state.zones[zone.name].owner == side]
+        held = [zone.label for zone in campaign.zones if state.zones[zone.name].owner == side]
         if held:
             lines.append(t(f"campaign.briefing.held.{side}", zones=", ".join(held)))
     if state.history:
@@ -157,28 +224,35 @@ def strategic_situation(campaign: CampaignDefinition, state: CampaignState) -> s
         lines += [f"- {describe_change(change)}" for change in last["changes"]] or [t("campaign.briefing.quiet")]
     enemy = enemy_of(campaign.player_side)
     reserve = state.sides[enemy].reserve
-    lines += [
-        "",
-        t(
-            "campaign.briefing.enemy_reserve",
-            armor=reserve.get("armor", 0),
-            air_defense=reserve.get("air_defense", 0),
-            transport=reserve.get("transport", 0),
-        ),
-    ]
+    lines.append("")
+    # a persistent side with no reserve declared draws for free: "0 blindés" would be a lie
+    if not persistent or enemy in campaign.declared_reserves:
+        lines.append(
+            t(
+                "campaign.briefing.enemy_reserve",
+                armor=reserve.get("armor", 0),
+                air_defense=reserve.get("air_defense", 0),
+                transport=reserve.get("transport", 0),
+            )
+        )
     for zone in campaign.zones:
         zone_state = state.zones[zone.name]
         if zone_state.owner != enemy:
             continue
         strength = garrison_strength(zone_state.garrison)
         if strength is None:
-            lines.append(t("campaign.briefing.enemy_zone_unknown", zone=zone.name))
+            lines.append(t("campaign.briefing.enemy_zone_unknown", zone=zone.label))
         else:
-            lines.append(t("campaign.briefing.enemy_zone", zone=zone.name, strength=strength))
+            lines.append(t("campaign.briefing.enemy_zone", zone=zone.label, strength=strength))
     lines += ["", t("campaign.briefing.objectives")]
+    if persistent:
+        # the runtime judges a persistent campaign on the zones held only: its objectives decide nothing
+        lines.append(t("campaign.briefing.outcome.persistent"))
+        return "\n".join(lines) + "\n"
     for objective, met in evaluate_objectives(campaign, state):
         mark = "[x]" if met else "[ ]"
-        lines.append(f"{mark} {t(f'campaign.objective.{objective.kind}', zones=', '.join(objective.zones))}")
+        labels = ", ".join(campaign.zone(name).label for name in objective.zones)
+        lines.append(f"{mark} {t(f'campaign.objective.{objective.kind}', zones=labels)}")
     left = max(campaign.missions - state.mission, 0)
     lines.append(t(f"campaign.briefing.outcome.{outcome(campaign, state)}", left=left))
     return "\n".join(lines) + "\n"
@@ -198,6 +272,127 @@ def _enable_campaign_module(mission_yaml: Path, era: str) -> None:
     save_yaml(mission_yaml, data)
 
 
+def enable_support_module(mission_yaml: Path, dynamic: dict[str, Any]) -> bool:
+    """Turn the `SUPPORT` module on in `mission.yaml` with the campaign's `dynamic.support`.
+
+    The AWACS and tankers are held by a module of their own (`veafSupport`), which a mission without a campaign
+    may use too; a persistent campaign configures it from `campaign.yaml` and hands it its threats at run time.
+
+    Args:
+        mission_yaml: The mission's `mission.yaml`.
+        dynamic: The campaign's `dynamic:` block.
+
+    Returns:
+        Whether the module was set; ``False`` when the campaign names no asset.
+    """
+    support = dict(dynamic.get("support") or {})
+    if not support.get("assets"):
+        return False
+    data = load_yaml(mission_yaml)
+    modules = data.setdefault("modules", {})
+    if modules is None:
+        modules = data["modules"] = {}
+    modules["SUPPORT"] = {"enabled": True, **support}
+    save_yaml(mission_yaml, data)
+    return True
+
+
+def enable_skynet_module(mission_yaml: Path, dynamic: dict[str, Any]) -> bool:
+    """Turn the `SKYNET` module on in `mission.yaml`, for both sides, unless `dynamic.skynet.enabled` is false.
+
+    Skynet creates a network for each coalition when it starts. The campaign spawns its garrisons later, zone by
+    zone, and declares each of its SAM groups itself (`veafCampaign.declareToSkynet`), so the birth-event
+    integration is left off: a group declared twice would only be refused, but the rule is one path per spawn.
+
+    Args:
+        mission_yaml: The mission's `mission.yaml`.
+        dynamic: The campaign's `dynamic:` block.
+
+    Returns:
+        Whether the module was set; ``False`` when the campaign turns it off.
+    """
+    if (dynamic.get("skynet") or {}).get("enabled") is False:
+        return False
+    data = load_yaml(mission_yaml)
+    modules = data.setdefault("modules", {})
+    if modules is None:
+        modules = data["modules"] = {}
+    modules["SKYNET"] = {"enabled": True, "dynamic_spawn": False}
+    save_yaml(mission_yaml, data)
+    return True
+
+
+def open_every_campaign_airfield(campaign: CampaignDefinition, mission_folder: Path) -> list[str]:
+    """List every airfield zone of the campaign under the player side's `airports:` in `src/warehouses.yaml`.
+
+    With no `airports:` list, the build stocks the airbases a side owns at build time only, so an airfield
+    captured in flight had no slot to open (FIX-CAMPAIGN-THIRD-SERVER-FLIGHT ticket 01, Minakh). Listed, an
+    airbase is stocked whatever its owner; DCS offers its slots to the side that holds it. An entry already
+    there keeps its settings, and nothing else of the file changes.
+
+    Args:
+        campaign: The validated campaign.
+        mission_folder: The mission folder.
+
+    Returns:
+        The airfields now listed; empty when the file is absent or does not declare the player side, which the
+        build then leaves without slots, as the mission maker chose.
+    """
+    path = mission_folder / "src" / "warehouses.yaml"
+    names = [zone.location.airfield for zone in campaign.zones if zone.location.airfield]
+    if not names or not path.is_file():
+        return []
+    data = load_yaml(path)
+    side = data.get(campaign.player_side) if isinstance(data, dict) else None
+    if not isinstance(side, dict):
+        return []
+    airports = side.get("airports")
+    if not isinstance(airports, dict):
+        airports = side["airports"] = {}
+    for name in names:
+        if name not in airports:
+            airports[name] = {}
+    # the list replaces "every base of the side": a base the mission gives the side outside the campaign's zones
+    # (a rear base set in the template) is listed by its id, or it would lose its slots
+    zones = {airdrome_id_for_name(campaign.theatre, name) for name in names}
+    table = load_folder_mission(mission_folder).warehouses_content or {}
+    for airport_id, entry in (table.get("airports") or {}).items():
+        own = isinstance(entry, dict) and str(entry.get("coalition", "")).lower() == campaign.player_side
+        if own and airport_id not in zones and airport_id not in airports:
+            airports[airport_id] = {}
+    save_yaml(path, data)
+    return names
+
+
+#: The F10 map view a persistent campaign's mission enforces when it sets none: the players see the enemy
+#: their own side has detected, not every garrison, so its strength is learned by reconnaissance
+#: (FEAT-DYNAMIC-CAMPAIGN ticket 08; David, 2026-11-15).
+PERSISTENT_F10_VIEW = "fog_of_war"
+
+
+def hide_enemies_on_the_map(mission_yaml: Path) -> bool:
+    """Set `mission.forced_options.f10_view` for a persistent campaign, unless the mission sets one.
+
+    Args:
+        mission_yaml: The mission's `mission.yaml`.
+
+    Returns:
+        Whether the view was set now; ``False`` when the mission already chose one.
+    """
+    data = load_yaml(mission_yaml)
+    mission = data.setdefault("mission", {})
+    if mission is None:
+        mission = data["mission"] = {}
+    options = mission.setdefault("forced_options", {})
+    if options is None:
+        options = mission["forced_options"] = {}
+    if options.get("f10_view"):
+        return False
+    options["f10_view"] = PERSISTENT_F10_VIEW
+    save_yaml(mission_yaml, data)
+    return True
+
+
 def _name_part(text: str) -> str:
     """``La porte de Poti`` → ``La-porte-de-Poti``: ASCII letters, digits and dashes only.
 
@@ -209,13 +404,18 @@ def _name_part(text: str) -> str:
     return f"{part}-" if part.lower().endswith("icao") else part
 
 
-def mission_name(campaign: str, number: int, title: str | None) -> str:
+def mission_name(campaign: str, number: int, title: str | None, *, fixed_conditions: bool = True) -> str:
     """Return the name of a campaign mission: `Campaign_<campaign>_Mission_<NN>_<title>_NoMizedit`.
+
+    A persistent campaign's mission has no `_NoMizedit`: it runs for weeks, and the server's MizEdit preset gives it
+    its real weather and time at each load (David, 2026-11-17).
 
     Args:
         campaign: The campaign's name.
         number: The mission's number in the campaign.
         title: The mission's title in `briefing.yaml`, or ``None`` before it is designed.
+        fixed_conditions: Whether the campaign fixes the mission's date, time and weather, which the marker
+            keeps the server from changing.
 
     Returns:
         The name, ASCII letters, digits, dashes and underscores only.
@@ -223,16 +423,39 @@ def mission_name(campaign: str, number: int, title: str | None) -> str:
     parts = ["Campaign", _name_part(campaign), "Mission", f"{number:02d}"]
     if title and _name_part(title):
         parts.append(_name_part(title))
-    parts.append(NO_MIZEDIT_MARKER)
+    if fixed_conditions:
+        parts.append(NO_MIZEDIT_MARKER)
     return "_".join(parts)
 
 
-def _set_squadron_settings(mission_yaml: Path, name: str) -> bool:
+def mission_title(mode: str, page: MissionPage | None, prose: BriefingProse | None) -> str | None:
+    """The title the mission's name carries: its page's, else a persistent campaign's operation.
+
+    A persistent campaign written with `axes:` has no mission page; its single mission is the operation.
+
+    Args:
+        mode: The campaign's mode, ``episodic`` or ``persistent``.
+        page: The coming mission's page of `briefing.yaml`, if any.
+        prose: The whole `briefing.yaml`, if any.
+
+    Returns:
+        The title, or ``None`` when there is none to give.
+    """
+    if page:
+        return page.title
+    if mode == "persistent" and prose and prose.operation:
+        return prose.operation
+    return None
+
+
+def _set_squadron_settings(mission_yaml: Path, name: str, *, dated: bool = True) -> bool:
     """Name the mission, silence the ATC unless told otherwise, and give it the server's security.
 
     Args:
         mission_yaml: The mission's `mission.yaml`.
-        name: The name `mission_name` computed.
+        name: The name `mission_name` computed, or the campaign's `mission_file`.
+        dated: Whether the build appends its date to the file's name; ``False`` writes `date_suffix: false`
+            (FEAT-CAMPAIGN-MISSION-FILE), ``True`` removes it.
 
     Returns:
         Whether a security override was removed.
@@ -242,6 +465,10 @@ def _set_squadron_settings(mission_yaml: Path, name: str) -> bool:
     if mission is None:
         mission = data["mission"] = {}
     mission["name"] = name
+    if dated:
+        mission.pop("date_suffix", None)
+    else:
+        mission["date_suffix"] = False
     mission.setdefault("silence_atc_on_all_airbases", True)
     security = data.get("security")
     restored = isinstance(security, dict) and any(key in security for key in _SECURITY_OVERRIDES)
@@ -271,6 +498,63 @@ def opposition_for(players: tuple[int, int], player_side: str) -> dict[str, Any]
     return {"level": players[1], "follow": "air_to_air", "players_coalition": player_side.upper()}
 
 
+#: The CTLD 2 crate section a persistent campaign adds: one "Zone supplies" crate per side, which the
+#: runtime consumes to reinforce a friendly zone (FEAT-DYNAMIC-CAMPAIGN ticket 03). CTLD tells crates
+#: apart by their weight, so these two are odd enough to clash with none of the shipped ones.
+SUPPLY_CRATE_SECTION = "Campaign"
+SUPPLY_CRATES: tuple[dict[str, Any], ...] = (
+    {"unit": "M 818", "weight": 1009.01, "cratesRequired": 1, "side": 2},
+    {"unit": "Ural-375", "weight": 1009.02, "cratesRequired": 1, "side": 1},
+)
+
+#: The one-man CTLD 2 troop group a persistent campaign adds, for the spy team (ticket 08).
+SPY_GROUP: dict[str, Any] = {"inf": 1}
+
+#: The two-man CTLD 2 troop group a persistent campaign adds, for the demolition team (ticket 15).
+SAPPER_GROUP: dict[str, Any] = {"inf": 2}
+
+
+def add_campaign_cargo(mission_folder: Path, dynamic: dict[str, Any]) -> list[str]:
+    """Add to the mission's CTLD 2 catalogue what a persistent campaign's players carry.
+
+    The "Zone supplies" crates, the spy team and the demolition team, under the names
+    `dynamic.supply_crate`, `dynamic.intel.spy_troops` and `dynamic.demolition.troops` give, when the
+    mission's `ctld-config.yaml` does not have them yet. A mission without that file has no CTLD 2, and
+    is left alone.
+
+    Args:
+        mission_folder: The mission folder.
+        dynamic: The campaign's live play settings.
+
+    Returns:
+        What was added, for the report: the crate's and the troop groups' names.
+    """
+    path = mission_folder / CTLD_CONFIG_FILENAME
+    if not path.is_file():
+        return []
+    crate_name = str(dynamic.get("supply_crate") or "Zone supplies")
+    spy_name = str((dynamic.get("intel") or {}).get("spy_troops") or "Spy")
+    sapper_name = str((dynamic.get("demolition") or {}).get("troops") or "Sappers")
+    data = load_yaml(path)
+    facing = data.get("mm_facing")
+    if not isinstance(facing, dict):
+        return []
+    added: list[str] = []
+    crates = facing.setdefault("spawnableCrates", {})
+    known_crates = {str(crate.get("desc")) for section in crates.values() for crate in (section or [])}
+    if crate_name not in known_crates:
+        crates[SUPPLY_CRATE_SECTION] = [{**crate, "desc": crate_name} for crate in SUPPLY_CRATES]
+        added.append(crate_name)
+    groups = facing.setdefault("loadableGroups", [])
+    for name, group in ((spy_name, SPY_GROUP), (sapper_name, SAPPER_GROUP)):
+        if name not in {str(known.get("name")) for known in groups}:
+            groups.append({"name": name, **group})
+            added.append(name)
+    if added:
+        save_yaml(path, data)
+    return added
+
+
 def _set_opposition(mission_yaml: Path, block: dict[str, Any]) -> None:
     """Write the `opposition:` block of `mission.yaml`, keeping the rest of the file.
 
@@ -288,6 +572,99 @@ def _set_opposition(mission_yaml: Path, block: dict[str, Any]) -> None:
     save_yaml(mission_yaml, data)
 
 
+#: A unit or static named with a command the runtime interpreter runs at every mission start; the mission
+#: file escapes the quotes of the name (`#veafInterpreter[\"-samLR\"]`), a YAML source does not.
+_INTERPRETER_COMMAND = re.compile(r'#veafInterpreter\[\\?"(.*?)\\?"\]')
+
+
+def interpreter_commands(mission_folder: Path) -> list[str]:
+    """Find the interpreter commands a mission folder places: in its mission file and its YAML sources.
+
+    In a persistent campaign they are outside the save: the interpreter runs them at every start, so what
+    they spawn comes back whole after each restart, its losses forgotten, and nobody pays for it. What a
+    persistent campaign places belongs in `campaign.yaml`, as zones and garrisons (FEAT-DYNAMIC-CAMPAIGN,
+    David 2026-11-16).
+
+    Args:
+        mission_folder: The mission folder.
+
+    Returns:
+        The commands, each once, sorted.
+    """
+    source = mission_folder / "src"
+    files = list((source / "mission").rglob("*")) + list(source.glob("*.yaml"))
+    found: set[str] = set()
+    for path in files:
+        if path.is_file():
+            found.update(_INTERPRETER_COMMAND.findall(path.read_text(encoding="utf-8", errors="replace")))
+    return sorted(found)
+
+
+def _persistent_dcs_briefing(campaign: CampaignDefinition, prose: BriefingProse | None) -> dict[str, str]:
+    """A persistent campaign's DCS briefing: the situation, the axes of effort, and the kneeboard for the rest.
+
+    No objectives of the day: the campaign has none (David, 2026-11-17).
+    """
+    lines: list[str] = []
+    if prose and prose.operation:
+        lines.append(t("campaign.dcs_briefing.operation", operation=prose.operation.upper()))
+    if prose:
+        lines.extend(prose.text("mission", "mission"))
+        for part in ("political", "economic", "enemy_course_of_action"):
+            lines.extend(prose.text("situation", part))
+    lines.append(t("campaign.dcs_briefing.persistent"))
+    axes = prose.effort() if prose else ()
+    axis_lines = [f"{index}. {axis.title}" for index, axis in enumerate(axes, start=1)]
+    if axis_lines:
+        lines.extend(["", t("campaign.dcs_briefing.axes"), *axis_lines, t("campaign.dossier.axes.note")])
+    lines.extend(["", t("campaign.dcs_briefing.kneeboard")])
+    fields = {"situation": "\n".join(lines)}
+    title = prose.operation if prose and prose.operation else campaign.name
+    fields["sortie"] = title
+    if axis_lines:
+        fields["blue_task"] = "\n".join(axis_lines)
+    return fields
+
+
+def dcs_briefing(
+    campaign: CampaignDefinition, state: CampaignState, page: MissionPage | None, prose: BriefingProse | None
+) -> dict[str, str]:
+    """The DCS briefing of a mission folder just created: what `briefing.yaml` says, then the facts.
+
+    The Syria campaign's sortie name, its opening lines and its blue tasks were typed into the mission table by
+    hand, and a mission folder created afresh lost them (2026-11-17). `briefing.yaml` already holds them: the
+    operation, the mission statement and the coming mission's tasks.
+
+    Args:
+        campaign: The validated campaign.
+        state: The state the mission starts from.
+        page: The coming mission's page of `briefing.yaml`, or ``None``.
+        prose: The whole `briefing.yaml`, or ``None``.
+
+    Returns:
+        The fields of `set_briefing`: ``situation`` always, ``sortie`` and ``blue_task`` when written.
+    """
+    if campaign.mode == "persistent":
+        return _persistent_dcs_briefing(campaign, prose)
+    head: list[str] = []
+    if prose and prose.operation:
+        head.append(t("campaign.dcs_briefing.operation", operation=prose.operation.upper()))
+    head.extend(prose.text("mission", "mission") if prose else ())
+    if campaign.mode == "persistent" and head:
+        head.append(t("campaign.dcs_briefing.persistent"))
+    situation = strategic_situation(campaign, state)
+    fields = {"situation": "\n".join(head) + "\n\n" + situation if head else situation}
+    title = page.title if page else (prose.operation if prose else None)
+    if title:
+        fields["sortie"] = title
+    if page and page.tasks:
+        fields["blue_task"] = "\n".join(
+            f"{index}. {task.title} : {' '.join(task.text)}".rstrip(" :")
+            for index, task in enumerate(page.tasks, start=1)
+        )
+    return fields
+
+
 def prepare_next_mission(
     campaign: CampaignDefinition,
     state: CampaignState,
@@ -295,6 +672,7 @@ def prepare_next_mission(
     mission_folder: Path,
     players: tuple[int, int] | None = None,
     page: MissionPage | None = None,
+    prose: BriefingProse | None = None,
 ) -> NextMissionReport:
     """Create, or refresh, the next mission's folder from the campaign state.
 
@@ -335,10 +713,13 @@ def prepare_next_mission(
             )
             airbases.append(zone.location.airfield)
 
+    # the flight plan first: the zones' numbers are read from what it holds, kept or written
+    waypoints = write_objective_waypoints(campaign, page, mission_folder, created=created, state=state)
+    numbers = flight_plan_numbers(campaign, mission_folder)
     data_path = mission_folder / DATA_FILE
     data_path.parent.mkdir(parents=True, exist_ok=True)
     data_path.write_text(
-        yaml.safe_dump(mission_data(campaign, state), allow_unicode=True, sort_keys=False), encoding="utf-8"
+        yaml.safe_dump(mission_data(campaign, state, numbers), allow_unicode=True, sort_keys=False), encoding="utf-8"
     )
     for lang in BRIEFING_LANGUAGES:
         with language(lang):
@@ -347,18 +728,35 @@ def prepare_next_mission(
     if created:
         # the mission flies with the facts even if nobody designs it further; a refresh leaves the
         # briefing alone, since what was written on top of them is design
-        set_briefing(mission_folder, situation=strategic_situation(campaign, state))
+        set_briefing(mission_folder, **dcs_briefing(campaign, state, page, prose))
     _enable_campaign_module(mission_folder / "mission.yaml", campaign.era)
+    if campaign.mode == "persistent":
+        add_campaign_cargo(mission_folder, campaign.dynamic)
+        enable_support_module(mission_folder / "mission.yaml", campaign.dynamic)
+        enable_skynet_module(mission_folder / "mission.yaml", campaign.dynamic)
+        hide_enemies_on_the_map(mission_folder / "mission.yaml")
+        slot_airbases = open_every_campaign_airfield(campaign, mission_folder)
+    else:
+        slot_airbases = []
     # rewritten on every run: the title arrives with the design, and a test copy is the one that turns
     # security off, never the campaign
-    name = mission_name(campaign.name, state.mission + 1, page.title if page else None)
-    security_restored = _set_squadron_settings(mission_folder / "mission.yaml", name)
+    persistent = campaign.mode == "persistent"
+    # a persistent campaign may name its file, with no date: the server browser shows it, and a redeploy replaces it
+    name = campaign.mission_file or mission_name(
+        campaign.name, state.mission + 1, mission_title(campaign.mode, page, prose), fixed_conditions=not persistent
+    )
+    security_restored = _set_squadron_settings(
+        mission_folder / "mission.yaml", name, dated=campaign.mission_file is None
+    )
     expected = players or campaign.players
     if expected:
         _set_opposition(mission_folder / "mission.yaml", opposition_for(expected, campaign.player_side))
     # date, time and weather are fixed once, when the folder is created: a refresh keeps what was set since
-    conditions = set_conditions(campaign, state, mission_folder) if created else None
-    waypoints = write_objective_waypoints(campaign, page, mission_folder, created=created)
+    # a persistent campaign leaves them to the server's MizEdit preset, which sets them at each load
+    conditions = set_conditions(campaign, state, mission_folder) if created and not persistent else None
+    # the radio plan too: written with the folder, the mission maker's afterwards (radio_plan)
+    if created:
+        write_campaign_radio_plan(campaign, mission_folder)
     return NextMissionReport(
         mission=state.mission + 1,
         folder=mission_folder,
@@ -368,4 +766,6 @@ def prepare_next_mission(
         waypoints=waypoints,
         name=name,
         security_restored=security_restored,
+        interpreter_commands=interpreter_commands(mission_folder) if campaign.mode == "persistent" else [],
+        slot_airbases=slot_airbases,
     )

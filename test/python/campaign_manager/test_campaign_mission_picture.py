@@ -43,7 +43,7 @@ class TestTheFlightPlans:
         assert [(p.name, p.alt, p.alt_type) for p in plane.waypoints] == [
             ("POTI", 3048.0, "BARO"),
             ("KHOBI", 3048.0, "BARO"),
-            ("BULLSEYE", 6096.0, "BARO"),
+            ("BULLSEYE", 0.0, "RADIO"),
         ]
         assert [(p.name, p.alt_type) for p in helicopter.waypoints][:2] == [("POTI", "RADIO"), ("KHOBI", "RADIO")]
         assert (plane.waypoints[0].x, plane.waypoints[0].y) == (-295152.0, 617091.0)

@@ -20,6 +20,22 @@ Use it on a lot whose remaining tickets are shelved, or on a single shelved tick
 an otherwise finished lot. Record *why* on the same line — a paused item with no reason
 is indistinguishable from a forgotten one.
 
+## Two kinds of in-game checks
+
+An in-game check left at the end of a lot falls in one of two kinds (David, 2026-11-23). Sort each one when
+the lot ends.
+
+1. **A local check, on David's DCS, without flying.** The agent drives it — the DCS bridge, F10 marks, a game
+   master slot; David may click in DCS but does not get his flight gear out. The lot is `waiting-human` 🧑, and
+   these checks are done **before a release**.
+2. **A flight check, for real.** It is flown on the server with the squad: the Open Trainings and/or the
+   campaign are deployed, the pilots get instructions on what to try, and the feedback comes in over a few days.
+   It **never blocks a release**: the lot is `done` ✅, with a `Flight check:` line in its PRD saying what is
+   still to be checked in flight.
+
+*Why:* lots waiting on a flight piled up in 🧑 and held fixes out of releases, though nothing a mission maker
+could see was missing.
+
 `needs-triage` is not used — lots are created already specified, not triaged from
 raw external reports. `/to-prd` and `/to-issues` create artifacts at `ready` ⬜.
 

@@ -33,6 +33,7 @@ SECTIONS: dict[str, tuple[str, ...]] = {
     "concept": ("phases", "attention"),
     "rules_of_engagement": ("targeting", "civilians", "self_defence"),
     "missions": (),
+    "axes": (),
 }
 
 
@@ -63,6 +64,15 @@ class BriefingProse:
     section → sub-section → paragraphs; the mission statement is ``texts["mission"]["mission"]``."""
     phases: tuple[Titled, ...] = ()
     missions: dict[int, MissionPage] = field(default_factory=dict)
+    axes: tuple[Titled, ...] = ()
+    """A persistent campaign's axes of effort (`axes:`), indicative priorities in place of a mission's tasks."""
+
+    def effort(self) -> tuple[Titled, ...]:
+        """The axes of effort: `axes:`, else the first mission page's tasks (a file written before `axes:`)."""
+        if self.axes:
+            return self.axes
+        first = self.missions.get(1)
+        return first.tasks if first else ()
 
     def text(self, section: str, part: str) -> tuple[str, ...]:
         """The paragraphs of a sub-section, empty when it is not written.
@@ -181,7 +191,17 @@ def parse_prose(raw: Any, missions: int, coming: int) -> tuple[BriefingProse | N
             _titled(f"missions.{number}.tasks[{i}]", task, issues) for i, task in enumerate(page.get("tasks") or [], 1)
         ]
         pages[number] = MissionPage(page["title"].strip(), tuple(task for task in tasks if task))
-    if coming not in pages:
+    axes: list[Titled] = []
+    raw_axes = raw.get("axes")
+    if raw_axes is not None:
+        if not isinstance(raw_axes, list):
+            issues.append(_issue(ERROR, "not_a_section", section="axes"))
+        else:
+            for index, entry in enumerate(raw_axes, 1):
+                axis = _titled(f"axes[{index}]", entry, issues)
+                if axis:
+                    axes.append(axis)
+    if coming not in pages and not axes:
         issues.append(_issue(WARNING, "no_mission_page", mission=coming))
 
     if any(issue.level == ERROR for issue in issues):
@@ -193,6 +213,7 @@ def parse_prose(raw: Any, missions: int, coming: int) -> tuple[BriefingProse | N
             texts=texts,
             phases=tuple(phases),
             missions=pages,
+            axes=tuple(axes),
         ),
         issues,
     )

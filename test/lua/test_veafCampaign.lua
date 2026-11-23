@@ -75,6 +75,7 @@ local function setUpSuite(self)
   self.saved = {
     composeGarrison = veafCampaign.composeGarrison,
     generateLongRange = veafCasMission.generateLongRangeAirDefenseGroup,
+    generateMediumRange = veafCasMission.generateMediumRangeAirDefenseGroup,
     placeGroup = veafCasMission.placeGroup,
     findGroup = veafUnits.findGroup,
     callbacks = veafEventHandler.callbacks,
@@ -103,6 +104,7 @@ end
 local function tearDownSuite(self)
   veafCampaign.composeGarrison = self.saved.composeGarrison
   veafCasMission.generateLongRangeAirDefenseGroup = self.saved.generateLongRange
+  veafCasMission.generateMediumRangeAirDefenseGroup = self.saved.generateMediumRange
   veafCasMission.placeGroup = self.saved.placeGroup
   veafUnits.findGroup = self.saved.findGroup
   veafEventHandler.callbacks = self.saved.callbacks
@@ -179,6 +181,28 @@ function TestVeafCampaignDraw:test_no_drawn_unit_stands_on_the_airfields_concret
   local units = veafCampaign.data.zones[1].garrison[1].units
   luaunit.assertEquals(#units, 1)
   luaunit.assertEquals(units[1].type, "BMP-2")
+end
+
+-- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 07: "un véhicule sur un bâtiment à Alep", 2026-11-17
+function TestVeafCampaignDraw:test_no_drawn_unit_stands_on_a_building()
+  local asked = {}
+  veafGrass = {
+    isSpotOccupied = function(position, clearance)
+      table.insert(asked, { position.x, position.y, clearance })
+      return position.x > 50, "a house"
+    end,
+  }
+  veafCampaign.composeGarrison = function()
+    return { placed("T-72B", 10, 2), placed("BMP-2", 60, 4) }
+  end
+  veafCampaign.data = { zones = { zoneEntry("Senaki", "red") } }
+  veafCampaign.initialize()
+  veafGrass = nil
+  local units = veafCampaign.data.zones[1].garrison[1].units
+  luaunit.assertEquals(#units, 1)
+  luaunit.assertEquals(units[1].type, "T-72B")
+  -- a mission-table position: y is the easting, the spawn point's z
+  luaunit.assertEquals(asked[1], { 10, 2, veafCampaign.GARRISON_BUILDING_CLEARANCE })
 end
 
 function TestVeafCampaignDraw:test_a_zone_with_a_recorded_garrison_does_not_draw_again()
@@ -270,6 +294,27 @@ function TestVeafCampaignDraw:test_a_size_class_with_a_long_range_sam_adds_a_bat
   luaunit.assertEquals(garrison[2].units[1].type, "S-300PS 40B6M tr")
 end
 
+-- FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 02: a medium-range battery of its own, named as the long-range one is
+function TestVeafCampaignDraw:test_a_zone_with_a_medium_range_sam_adds_a_battery_of_its_own()
+  local asked = {}
+  veafCasMission.generateMediumRangeAirDefenseGroup = function(name, side)
+    table.insert(asked, { name, side })
+    return { units = { { "SA-11 Buk LN 9A310M1" } }, groupName = name }
+  end
+  veafCasMission.placeGroup = function(definition, position, spacing, result)
+    table.insert(result, placed(definition.units[1][1] or "Infantry AK", 5, 6))
+    return result
+  end
+  local entry = zoneEntry("Senaki", "red")
+  entry.size.medium_range_sam = true
+  veafCampaign.data = { zones = { entry } }
+  veafCampaign.initialize()
+  local garrison = veafCampaign.data.zones[1].garrison
+  luaunit.assertEquals(asked, { { "Senaki medium-range SAM", coalition.side.RED } })
+  luaunit.assertEquals(garrison[#garrison].name, "Senaki medium-range SAM")
+  luaunit.assertEquals(garrison[#garrison].units[1].type, "SA-11 Buk LN 9A310M1")
+end
+
 function TestVeafCampaignDraw:test_an_explicit_garrison_list_replaces_the_draw()
   local definitions = {}
   veafUnits.findGroup = function(name)
@@ -295,6 +340,266 @@ function TestVeafCampaignDraw:test_an_explicit_garrison_list_replaces_the_draw()
     table.insert(types, unit.type)
   end
   luaunit.assertEquals(types, { "HQ-7_LN_SP", "sa8", "T-72B" })
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafCampaignSamGroup — a SAM of separate pieces in a group of its own (FEAT-CAMPAIGN-SKYNET 02)
+-- ---------------------------------------------------------------------------
+TestVeafCampaignSamGroup = { setUp = setUpSuite, tearDown = tearDownSuite }
+
+--- A blue level-5 garrison's units, as `generateAirDefenseGroup-BLUE-5` and an armour platoon give them.
+local function hawkGarrison()
+  return {
+    placed("M-1 Abrams", 1, 2),
+    placed("Hawk sr", 3, 4),
+    placed("Gepard", 5, 6),
+    placed("Hawk tr", 7, 8),
+    placed("Hawk ln", 9, 10),
+    placed("M1097 Avenger", 11, 12),
+    placed("Hawk pcp", 13, 14),
+    placed("Hawk ln", 15, 16),
+  }
+end
+
+local function typesOf(group)
+  local types = {}
+  for _, unit in ipairs(group.units) do
+    table.insert(types, unit.type)
+  end
+  return types
+end
+
+--- A recorded garrison group, from a list of types.
+local function recordedGroup(name, types)
+  local group = { name = name, units = {} }
+  for index, typeName in ipairs(types) do
+    table.insert(group.units, { type = typeName, x = index, z = index, heading = 0, alive = true })
+  end
+  return group
+end
+
+function TestVeafCampaignSamGroup:test_the_pieces_of_a_sam_are_told_from_its_self_contained_vehicles()
+  for _, typeName in ipairs({ "Hawk ln", "Hawk sr", "Hawk tr", "Hawk pcp", "Hawk cwar", "Kub 2P25 ln", "NASAMS_LN_C" }) do
+    luaunit.assertTrue(veafCampaign.isSamPiece(typeName), typeName)
+  end
+  for _, typeName in ipairs({ "Gepard", "M1097 Avenger", "Roland ADS", "Tor 9A331", "2S6 Tunguska", "Strela-10M3", "Vulcan", "M-1 Abrams" }) do
+    luaunit.assertFalse(veafCampaign.isSamPiece(typeName), typeName)
+  end
+end
+
+function TestVeafCampaignSamGroup:test_a_fresh_garrison_puts_its_hawk_in_a_group_of_its_own()
+  veafCampaign.composeGarrison = function()
+    return hawkGarrison()
+  end
+  veafCampaign.data = { zones = { zoneEntry("Hatay", "blue") } }
+  veafCampaign.initialize()
+  local garrison = veafCampaign.data.zones[1].garrison
+  luaunit.assertEquals(#garrison, 2)
+  luaunit.assertEquals(garrison[1].name, "Hatay garrison")
+  luaunit.assertEquals(typesOf(garrison[1]), { "M-1 Abrams", "Gepard", "M1097 Avenger" })
+  luaunit.assertEquals(garrison[2].name, "Hatay SAM")
+  luaunit.assertEquals(typesOf(garrison[2]), { "Hawk sr", "Hawk tr", "Hawk ln", "Hawk pcp", "Hawk ln" })
+  -- each spawns as its own DCS group
+  luaunit.assertEquals(#submitted()["Hatay SAM"], 5)
+  luaunit.assertEquals(#submitted()["Hatay garrison"], 3)
+end
+
+function TestVeafCampaignSamGroup:test_a_garrison_without_such_a_sam_keeps_one_group()
+  -- a lone acquisition radar (the Dog Ear of the red groups, the Roland's radar) is no SAM of its own
+  veafCampaign.composeGarrison = function()
+    return { placed("2S6 Tunguska", 1, 2), placed("Dog Ear radar", 3, 4), placed("Roland ADS", 5, 6), placed("Roland Radar", 7, 8) }
+  end
+  veafCampaign.data = { zones = { zoneEntry("Minakh", "red") } }
+  veafCampaign.initialize()
+  local garrison = veafCampaign.data.zones[1].garrison
+  luaunit.assertEquals(#garrison, 1)
+  luaunit.assertEquals(#garrison[1].units, 4)
+end
+
+function TestVeafCampaignSamGroup:test_a_loaded_garrison_is_split_with_its_dead_and_its_positions()
+  local main = recordedGroup("Hatay garrison", { "M-1 Abrams", "Hawk sr", "Gepard", "Hawk ln", "Hawk ln" })
+  main.units[4].alive = false
+  main.units[2].heading = 2.5
+  local before = veafCampaign.garrisonPrice({ main })
+  veafCampaign.data = { zones = { zoneEntry("Hatay", "blue", { garrison = { main } }) } }
+  veafCampaign.initialize()
+  local garrison = veafCampaign.data.zones[1].garrison
+  luaunit.assertEquals(typesOf(garrison[1]), { "M-1 Abrams", "Gepard" })
+  luaunit.assertEquals(garrison[2].name, "Hatay SAM")
+  luaunit.assertEquals(garrison[2].units[1], { type = "Hawk sr", x = 2, z = 2, heading = 2.5, alive = true })
+  luaunit.assertEquals({ garrison[2].units[2].alive, garrison[2].units[3].alive }, { false, true })
+  luaunit.assertEquals(veafCampaign.garrisonPrice(garrison), before)
+  luaunit.assertEquals({ veafCampaign.zones["Hatay"]:countUnits() }, { 4, 5 })
+  -- the dead launcher is not spawned, and the living units are indexed under their new group
+  luaunit.assertEquals(#submitted()["Hatay SAM"], 2)
+  luaunit.assertEquals(veafCampaign.unitIndex["Hatay SAM #3"].group, 2)
+  luaunit.assertEquals(veafCampaign.unitIndex["Hatay garrison #2"].type, "Gepard")
+end
+
+function TestVeafCampaignSamGroup:test_a_loss_in_the_sam_group_is_recorded_against_it()
+  local main = recordedGroup("Hatay garrison", { "M-1 Abrams", "Hawk sr", "Hawk ln" })
+  veafCampaign.data = { zones = { zoneEntry("Hatay", "blue", { garrison = { main } }) } }
+  veafCampaign.initialize()
+  veafCampaign.onUnitDead(deadEvent("Hatay SAM #2"))
+  local garrison = veafCampaign.data.zones[1].garrison
+  luaunit.assertEquals({ garrison[2].units[1].alive, garrison[2].units[2].alive }, { true, false })
+  luaunit.assertEquals({ veafCampaign.zones["Hatay"]:countUnits() }, { 2, 3 })
+end
+
+function TestVeafCampaignSamGroup:test_a_garrison_already_split_is_left_alone()
+  local garrison = {
+    recordedGroup("Hatay garrison", { "M-1 Abrams", "Gepard" }),
+    recordedGroup("Hatay medium-range SAM", { "Hawk sr", "Hawk ln" }),
+    recordedGroup("Hatay SAM", { "Hawk sr", "Hawk ln" }),
+  }
+  veafCampaign.data = { zones = { zoneEntry("Hatay", "blue", { garrison = garrison }) } }
+  veafCampaign.initialize()
+  local after = veafCampaign.data.zones[1].garrison
+  luaunit.assertEquals(#after, 3)
+  luaunit.assertEquals({ #after[1].units, #after[2].units, #after[3].units }, { 2, 2, 2 })
+end
+
+function TestVeafCampaignSamGroup:test_the_sam_group_wakes_whole_after_the_main_group()
+  local main = recordedGroup("Hatay garrison", { "M-1 Abrams", "Hawk sr", "Hawk ln", "Hawk tr" })
+  local zone = VeafCampaignZone:new(zoneEntry("Hatay", "blue", { garrison = { main } }))
+  zone:separateSam()
+  -- a group bought later comes after it in the garrison, and still wakes before it
+  table.insert(zone.entry.garrison, recordedGroup("Hatay upgrade 1 gepard", { "Gepard" }))
+  zone:startSpawning()
+  local order = {}
+  for _, call in ipairs(dcs_mocks.groupsAdded) do
+    table.insert(order, call.group.name)
+  end
+  for _, groupIndex in ipairs(zone.wakeQueue or {}) do
+    table.insert(order, zone.entry.garrison[groupIndex].name)
+  end
+  luaunit.assertEquals(order[#order], "Hatay SAM")
+end
+
+-- ---------------------------------------------------------------------------
+-- TestVeafCampaignSkynet — the campaign declares its SAM groups to Skynet (FEAT-CAMPAIGN-SKYNET 03)
+-- ---------------------------------------------------------------------------
+TestVeafCampaignSkynet = {}
+
+function TestVeafCampaignSkynet:setUp()
+  setUpSuite(self)
+  local this = self
+  self.savedSkynet = veafSkynet
+  self.declared, self.removed, self.rebuilt = {}, {}, {}
+  self.networks = {
+    ["blue iads"] = { iads = { samSites = {} } },
+    ["red iads"] = { iads = { samSites = {} } },
+  }
+  veafSkynet = {
+    initialized = true,
+    defaultIADS = { [tostring(coalition.side.BLUE)] = "blue iads", [tostring(coalition.side.RED)] = "red iads" },
+    getNetwork = function(name)
+      return this.networks[name]
+    end,
+    removeSkynetElement = function(site, network)
+      table.insert(this.removed, site.dcsName)
+      for index, listed in ipairs(network.iads.samSites) do
+        if listed == site then
+          table.remove(network.iads.samSites, index)
+          break
+        end
+      end
+    end,
+    rebuildRadarCoverage = function(name)
+      table.insert(this.rebuilt, name)
+    end,
+    integrateMissionSpawn = function(groupName)
+      table.insert(this.declared, groupName)
+    end,
+  }
+end
+
+function TestVeafCampaignSkynet:tearDown()
+  veafSkynet = self.savedSkynet
+  tearDownSuite(self)
+end
+
+--- Blue Hatay, with its main group, its SAM group, a medium-range battery and four groups bought in the shop.
+local function hatayGarrison()
+  return {
+    recordedGroup("Hatay garrison", { "M-1 Abrams", "Gepard", "M1097 Avenger" }),
+    recordedGroup("Hatay SAM", { "Hawk sr", "Hawk tr", "Hawk ln" }),
+    recordedGroup("Hatay medium-range SAM", { "Tor 9A331" }),
+    recordedGroup("Hatay upgrade 1 nasams", { "NASAMS_Radar_MPQ64F1", "NASAMS_LN_C", "NASAMS_Command_Post" }),
+    recordedGroup("Hatay upgrade 2 rapier", { "rapier_fsa_launcher", "rapier_fsa_blindfire_radar" }),
+    recordedGroup("Hatay upgrade 3 avenger", { "M1097 Avenger", "M1097 Avenger" }),
+    recordedGroup("Hatay upgrade 4 gepard", { "Gepard", "Gepard", "M 818" }),
+  }
+end
+
+function TestVeafCampaignSkynet:test_every_sam_group_is_declared_and_no_other()
+  veafCampaign.data = { zones = { zoneEntry("Hatay", "blue", { garrison = hatayGarrison() }) } }
+  veafCampaign.initialize()
+  table.sort(self.declared)
+  luaunit.assertEquals(self.declared, { "Hatay SAM", "Hatay medium-range SAM", "Hatay upgrade 1 nasams", "Hatay upgrade 2 rapier" })
+end
+
+function TestVeafCampaignSkynet:test_a_group_spawned_again_replaces_its_old_site()
+  -- a zone woken again, or a SAM brought back by a delivery: the same name, a new DCS group
+  local old = { dcsName = "Hatay SAM" }
+  self.networks["blue iads"].iads.samSites = { { dcsName = "Antakya SAM" }, old }
+  veafCampaign.data = { zones = { zoneEntry("Hatay", "blue", { garrison = hatayGarrison() }) } }
+  veafCampaign.initialize()
+  luaunit.assertEquals(self.removed, { "Hatay SAM" })
+  luaunit.assertEquals(self.rebuilt, { "blue iads" })
+  luaunit.assertEquals(#self.networks["blue iads"].iads.samSites, 1)
+end
+
+function TestVeafCampaignSkynet:test_a_zone_of_the_other_side_declares_to_its_own_network()
+  -- a captured zone: the new owner's garrison carries the same names; the old owner's network is not touched
+  self.networks["blue iads"].iads.samSites = { { dcsName = "Hatay SAM" } }
+  veafCampaign.data = { zones = { zoneEntry("Hatay", "red", { garrison = hatayGarrison() }) } }
+  veafCampaign.initialize()
+  luaunit.assertEquals(self.removed, {})
+  luaunit.assertEquals(#self.networks["blue iads"].iads.samSites, 1)
+  luaunit.assertTrue(#self.declared > 0)
+end
+
+function TestVeafCampaignSkynet:test_the_units_a_delivery_brings_back_beside_a_group_are_not_declared()
+  local garrison = hatayGarrison()
+  garrison[1].units[1].alive = false
+  veafCampaign.data = { zones = { zoneEntry("Hatay", "blue", { garrison = garrison }) } }
+  veafCampaign.initialize()
+  self.declared = {}
+  luaunit.assertTrue(veafCampaign.zones["Hatay"]:reinforce())
+  luaunit.assertEquals(self.declared, {})
+end
+
+function TestVeafCampaignSkynet:test_a_lorry_brought_back_beside_a_battery_is_not_declared()
+  local garrison = hatayGarrison()
+  garrison[1].units[1].alive = true
+  table.insert(garrison[3].units, { type = "M 818", x = 0, z = 0, heading = 0, alive = false })
+  veafCampaign.data = { zones = { zoneEntry("Hatay", "blue", { garrison = garrison }) } }
+  veafCampaign.initialize()
+  self.declared = {}
+  luaunit.assertTrue(veafCampaign.zones["Hatay"]:reinforce())
+  luaunit.assertNotNil(submitted()["Hatay medium-range SAM +1"])
+  luaunit.assertEquals(self.declared, {})
+end
+
+function TestVeafCampaignSkynet:test_a_sam_brought_back_by_a_delivery_is_declared_again()
+  local garrison = hatayGarrison()
+  garrison[2].units[3].alive = false
+  veafCampaign.data = { zones = { zoneEntry("Hatay", "blue", { garrison = garrison }) } }
+  veafCampaign.initialize()
+  self.declared = {}
+  luaunit.assertTrue(veafCampaign.zones["Hatay"]:reinforce())
+  luaunit.assertEquals(self.declared, { "Hatay SAM" })
+end
+
+function TestVeafCampaignSkynet:test_nothing_is_declared_while_skynet_is_not_running()
+  veafSkynet.initialized = false
+  veafCampaign.data = { zones = { zoneEntry("Hatay", "blue", { garrison = hatayGarrison() }) } }
+  veafCampaign.initialize()
+  luaunit.assertEquals(self.declared, {})
+  veafSkynet = nil
+  veafCampaign.data = { zones = { zoneEntry("Hatay", "blue", { garrison = hatayGarrison() }) } }
+  luaunit.assertTrue(veafCampaign.initialize())
 end
 
 -- ---------------------------------------------------------------------------
@@ -358,11 +663,23 @@ end
 
 function TestVeafCampaignCompose:test_the_same_groups_as_a_cas_target_but_no_transport_company()
   veafCampaign.composeGarrison("Z", { x = 1, y = 0, z = 2 }, 1500, { size = 2, defense = 4, armor = 1 }, coalition.side.RED)
-  -- the largest draw of a size 2: size + 1 sections and platoons; defense above 3: two air defence groups
+  -- the largest draw of a size 2: size + 1 sections and platoons; one air defence group
   luaunit.assertEquals(count(self.made, "infantry"), 3)
   luaunit.assertEquals(count(self.made, "armor"), 3)
-  luaunit.assertEquals(count(self.made, "air defense"), 2)
+  luaunit.assertEquals(count(self.made, "air defense"), 1)
   luaunit.assertEquals(count(self.made, "transport"), 0)
+end
+
+-- FIX-CAMPAIGN-THIRD-SERVER-FLIGHT 08: two groups of level 5 gave Aleppo 32 air defence units and 121 missiles on
+-- 2026-11-19; David kept level 5 (Tor, Osa, Tunguska) but one group
+function TestVeafCampaignCompose:test_a_level_5_garrison_draws_one_air_defence_group()
+  veafCampaign.composeGarrison("Z", { x = 1, y = 0, z = 2 }, 1500, { size = 3, defense = 5, armor = 2 }, coalition.side.RED)
+  luaunit.assertEquals(count(self.made, "air defense"), 1)
+end
+
+function TestVeafCampaignCompose:test_only_a_level_above_5_draws_two()
+  veafCampaign.composeGarrison("Z", { x = 1, y = 0, z = 2 }, 1500, { size = 3, defense = 6, armor = 2 }, coalition.side.RED)
+  luaunit.assertEquals(count(self.made, "air defense"), 2)
 end
 
 function TestVeafCampaignCompose:test_no_armour_and_no_defence_mean_infantry_alone()
@@ -390,6 +707,25 @@ function TestVeafCampaignCompose:test_a_group_landing_on_concrete_is_placed_agai
   -- two sections: the first tries twice on the concrete then lands on x = 100, the second at once
   luaunit.assertEquals(asked, 4)
   luaunit.assertEquals(#units, 2)
+  for _, unit in ipairs(units) do
+    luaunit.assertEquals(unit.spawnPoint.x, 100)
+  end
+end
+
+function TestVeafCampaignCompose:test_a_group_landing_on_a_building_is_placed_again_elsewhere_in_the_zone()
+  veafGrass = {
+    isSpotOccupied = function(position)
+      return position.x < 50
+    end,
+  }
+  local points = { { x = 0, y = 0 }, { x = 100, y = 0 } }
+  local asked = 0
+  veaf.findPointInZone = function()
+    asked = asked + 1
+    return points[math.min(asked, #points)]
+  end
+  local units = veafCampaign.composeGarrison("Z", { x = 1, y = 0, z = 2 }, 1500, { size = 1, defense = 0, armor = 0 }, coalition.side.RED)
+  veafGrass = nil
   for _, unit in ipairs(units) do
     luaunit.assertEquals(unit.spawnPoint.x, 100)
   end
@@ -508,7 +844,7 @@ function TestVeafCampaignLosses:test_a_zone_that_loses_its_whole_garrison_turns_
   local entry = veafCampaign.data.zones[1]
   luaunit.assertEquals(entry.owner, "neutral")
   luaunit.assertNil(entry.garrison)
-  luaunit.assertEquals(#dcs_mocks.messages, 1)
+  luaunit.assertEquals(#dcs_mocks.messages, 2, "one per side")
   luaunit.assertStrContains(dcs_mocks.messages[1].text, "Senaki")
 end
 
@@ -693,10 +1029,16 @@ local function fakeFileSystem(self, options)
           return nil, "No space left on device"
         end
         table.insert(chunks, text)
+        if options.answersNothing then
+          return -- what DCS's io did on 2026-11-16 for a write that worked
+        end
         return file
       end
       file.close = function()
         this.files[path] = table.concat(chunks)
+        if options.answersNothing then
+          return
+        end
         if options.closeFails then
           -- buffered: a full disk shows up at close, with what was flushed left behind
           this.files[path] = table.concat(chunks):sub(1, 10)
@@ -832,6 +1174,15 @@ function TestVeafCampaignStateFile:test_a_failed_write_keeps_the_previous_state(
   luaunit.assertEquals(self.removed, {})
   luaunit.assertEquals(self.renames, {})
   luaunit.assertEquals(self.files[PATH], PREVIOUS_STATE)
+end
+
+function TestVeafCampaignStateFile:test_a_write_that_answers_nothing_has_worked()
+  -- inside DCS a successful write can return nothing: every save of a persistent campaign was logged as failed
+  -- and the state file itself was never written, only its temporary (measured 2026-11-16)
+  fakeFileSystem(self, { answersNothing = true })
+  luaunit.assertTrue(veafCampaign.writeState())
+  luaunit.assertEquals(#self.renames, 1)
+  luaunit.assertTrue(veafCampaign.lastWriteOk)
 end
 
 function TestVeafCampaignStateFile:test_a_failed_close_keeps_the_previous_state()
@@ -1021,6 +1372,16 @@ function TestVeafCampaignCapture:test_one_side_alone_runs_the_clock()
   luaunit.assertEquals(self.poti.entry.owner, "neutral")
 end
 
+function TestVeafCampaignCapture:test_a_csar_pilot_neither_contests_nor_takes_a_zone()
+  -- Menagh, 2026-11-16: an immortal red "Wounded Pilot" kept the zone contested until an admin destroyed him
+  dcs_mocks.searchObjectsObjects = { groundUnit(BLUE), groundUnit(RED, { name = "Wounded Pilot #201080" }) }
+  beats(3)
+  luaunit.assertEquals(self.poti.entry.capture, { side = "blue", seconds = 30 })
+  dcs_mocks.searchObjectsObjects = { groundUnit(RED, { name = "Wounded Pilot #201080" }) }
+  beats(1)
+  luaunit.assertNil(self.poti.entry.capture, "a pilot alone holds nothing")
+end
+
 function TestVeafCampaignCapture:test_the_clock_reaching_capture_seconds_captures_the_zone()
   dcs_mocks.searchObjectsObjects = { groundUnit(BLUE) }
   beats(6)
@@ -1031,7 +1392,9 @@ function TestVeafCampaignCapture:test_the_clock_reaching_capture_seconds_capture
   luaunit.assertEquals(self.casCalls[1].side, BLUE)
   luaunit.assertNotNil(entry.garrison)
   luaunit.assertNotNil(submitted()["Poti garrison"])
-  luaunit.assertEquals(#dcs_mocks.messagesContaining("Poti"), 1)
+  -- each side hears it from its own command (2026-11-16: "the announcements say nothing of the side")
+  luaunit.assertEquals(#dcs_mocks.messagesContaining(veaf.t("campaign.speaker.blue") .. "Poti"), 1)
+  luaunit.assertEquals(#dcs_mocks.messagesContaining(veaf.t("campaign.speaker.red") .. "Poti"), 1)
 end
 
 function TestVeafCampaignCapture:test_only_a_neutral_zone_can_be_captured()
@@ -1454,6 +1817,20 @@ function TestVeafCampaignAssault:test_the_axis_is_a_line_in_the_side_colour_for_
   luaunit.assertEquals({ self.lines[1].startPoint.x, self.lines[1].endPoint.x }, { 20000, 10000 })
   luaunit.assertEquals(self.lines[1].color, veafCampaign.AXIS_COLORS.red)
   luaunit.assertEquals(self.lines[1].id, veafCampaign.convoys[1].axisId)
+end
+
+-- 2026-11-16: in a persistent campaign the other side hears of a convoy when it leaves; told 20 minutes later, it
+-- read as the cause of a capture a helicopter made in the same second
+function TestVeafCampaignAssault:test_a_persistent_campaign_tells_the_other_side_at_once()
+  veafCampaign.initialize()
+  veafCampaign.data.persistent = true
+  veafCampaign.pendingAssaults["Poti|blue"] = nil
+  timer.setTime(600)
+  veafCampaign.launchDueAssaults(600)
+  local told = dcs_mocks.messagesContaining(veaf.t("campaign.speaker.intel"))
+  luaunit.assertEquals(#told, 1)
+  luaunit.assertEquals(told[1].target, coalition.side.BLUE)
+  veafCampaign.data.persistent = nil
 end
 
 -- FEAT-CAMPAIGN-INTEL-DELAY: the other side learns of a convoy `intel_seconds` after it left (1200 by

@@ -31,6 +31,7 @@ dcs_mocks.groupsAdded = {} -- captured coalition.addGroup calls, as { countryId,
 --- every removeMark id. Declared here so the trigger table below can rely on them existing.
 dcs_mocks.circlesDrawn = {}
 dcs_mocks.marksRemoved = {}
+dcs_mocks.markups = {} -- captured trigger.action.markupToAll calls
 --- Injectable world.searchObjects behaviour (ticket 03): the objects the callback is walked over,
 --- the { category, volume } of each call, and a switch to make the call raise. Declared here so the
 --- world table below can rely on them existing.
@@ -217,6 +218,10 @@ trigger = {
     end,
     arrowToAll = function(...) end,
     lineToAll = function(...) end,
+    --- Recorded, as `{ shape, coalition, id, args }`: the campaign's territory cells are drawn with it.
+    markupToAll = function(shape, coalitionSide, id, ...)
+      table.insert(dcs_mocks.markups, { shape = shape, coalition = coalitionSide, id = id, args = { ... } })
+    end,
     circleToAll = function(coalitionSide, id, point, radius, color, fillColor, lineType, readOnly)
       table.insert(dcs_mocks.circlesDrawn, {
         coalition = coalitionSide,
@@ -788,6 +793,7 @@ function dcs_mocks.reset()
   dcs_mocks.registerFOBAsLogisticResult = nil
   dcs_mocks.circlesDrawn = {}
   dcs_mocks.marksRemoved = {}
+  dcs_mocks.markups = {}
   dcs_mocks.searchObjectsObjects = {}
   dcs_mocks.searchObjectsCalls = {}
   dcs_mocks.searchObjectsRaise = false

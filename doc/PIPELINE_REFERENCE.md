@@ -313,6 +313,7 @@ Un waypoint a une **clé** (`<NOM_WAYPOINT>`) et un `name:`. Un plan le désigne
 Un plan liste ses waypoints sous forme d'une liste de clés. L'ancienne forme en mapping — `HOLDING_POINT: "HOLDING_POINT"` — se charge toujours, mais **seules ses clés sont lues** : la valeur est ignorée, donc `POTI: "POTI_LOW"` mène à `POTI`. Le build prévient quand une valeur nomme un autre waypoint.
 
 Le build ajoute aussi à chaque plan de vol un waypoint `BULLSEYE`, au bullseye de la mission : ne pas en déclarer.
+Il est au sol (0 m au-dessus du sol, `RADIO`), là où regarde une nacelle de désignation ou une arme asservie au steerpoint ; il était à 20 000 ft `BARO` jusqu'au 17/11/2026.
 
 ### Priorité de correspondance
 

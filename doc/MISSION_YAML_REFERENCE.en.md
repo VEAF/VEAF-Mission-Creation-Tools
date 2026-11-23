@@ -148,6 +148,7 @@ mission:
 | `name` | string | — | No | Mission name shown in menus and logs, **and the name of the built `.miz`** — see the naming note below |
 | `export_path` | string \| null | `null` | No | Override DCS Saved Games export path |
 | `era` | string | *inferred* | No | `MODERN` \| `COLD_WAR` \| `WW2` — affects available spawn groups. **When absent it is inferred at every build** from the base mission's content: a WW2 unit type or a year ≤ 1945 gives `WW2`, a year ≤ 1991 `COLD_WAR`, otherwise `MODERN` (`era_detector.py`). The inferred value is **not** written back into your `mission.yaml` — it is recomputed; set the key to pin it. |
+| `date_suffix` | boolean | `true` | No | `false`: the built `.miz` is `<name>.miz`, with no date — see the naming note below |
 | `silence_atc_on_all_airbases` | boolean | `false` | No | Mission-wide option: mute DCS ATC at every airbase (emits `veaf.silenceAtcOnAllAirbases()`). `convert-v5` migrates it from an active call and annotates its provenance |
 | `language` | string | *tools' language* | No | Language of in-game VEAF messages (`fr` \| `en`); emitted into `veaf-config.lua` as `veaf.config.language` and read by `veaf.t()`. When omitted, the build uses the tools' language (`--lang` > `VEAF_LANG` > user config > OS locale > `en`) |
 | `third_party_mods` | list of strings | `[]` | No | **Third-party** DCS mods (paid/community aircraft) to make **non-blocking**: their ids are removed from the `.miz`'s `requiredModules` table at build, so a pilot who does not own the mod can still **load** the mission (that slot is simply unavailable). The list is **unioned** with a VEAF default list covering the common mods (Hercules, UH-60L, A-4E-C, T-45, AM2, SU-30/FlankerEx, Bronco-OV-10A) — only declare mods not already handled. Not to be confused with VEAF *Modules* (the `modules:` block, which are capabilities, not DCS add-ons) |
@@ -159,6 +160,9 @@ mission:
 `mission.name` becomes the built file name: `<name>_<YYYYMMDD>.miz`, plus a `_<VARIANT>` suffix
 when [`build_variants:`](#build-variants) is used. Give a name ending in `.miz` instead and the
 name is taken **verbatim**, with no date.
+
+To keep the name in the mission folder without the date, set `date_suffix: false`: the build writes `<name>.miz`.
+A [persistent campaign](mission-maker/PERSISTENT_CAMPAIGN.en.md#mission-file) that names its file does this: a server that replaces the file at each redeploy keeps the same name.
 
 That matters because **server-side tooling reads the file name**. On the VEAF servers, the
 RealWeather extension of [DCSServerBot](https://github.com/Special-K-s-Flightsim-Bots/DCSServerBot)
@@ -217,7 +221,8 @@ The VEAF Open Training missions open 5 slots per role and per side, with vehicle
 #### `forced_options`: the options enforced on every player {#forced-options}
 
 The editor's *Mission options* panel enforces some options on every player, whatever their own settings: labels, F10 map view, external views, wake turbulence…
-The block sets them at every build, in the mission's `forcedOptions` table:
+The block sets them at every build, in the mission's `forcedOptions` table.
+A mission created by VMCT already starts with civil traffic off, no birds and no random failures, as the VEAF Foothold missions; the block takes over those three too:
 
 ```yaml
 mission:

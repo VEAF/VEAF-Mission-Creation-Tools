@@ -466,7 +466,7 @@ Point d'étape bref après chaque étape : ce qui est fait, pas ce que tu t'appr
 - **La fiche Mission Maker** (`docs/fiche-mission-maker.md`), séparée du briefing : ce que la mission fait toute seule ; chaque commande F10 qui lui revient avec son **chemin exact** (« VEAF > ZONES DE COMBAT > Batterie SA-6 > Désactiver la zone ») et son effet ; un tableau « selon qui est là » (personne en BARCAP, personne en SEAD, moins de 6 pilotes, beaucoup de pilotes) ; ce qu'il faut vérifier avant la soirée.
   Ne présente une commande comme vérifiée que si elle l'a été en jeu.
 
-- **PPTX et PDF** dans `docs/` (`docs/briefing.pptx`, `docs/briefing.pdf`), le modèle
+- **PPTX et PDF** dans `docs/` (`docs/<mission>_briefing.pptx`, `docs/<mission>_briefing.pdf`), le modèle
   de la section 3, page pour page ; le PPTX est la source de la version **Google Slides** (import dans
   Drive). Garde des polices que Slides connaît (Calibri, Cambria, Arial), et regarde le rendu converti
   s'il est déposé.
@@ -488,7 +488,7 @@ Point d'étape bref après chaque étape : ce qui est fait, pas ce que tu t'appr
   les cockpits (le plan de fréquences), coordonnées de chaque cible posée et altitude du sol dessous —
   sans grille d'altitude pour le théâtre, la colonne reste vide et l'action le signale : c'est un
   point ouvert. Lis ses `warnings`.
-- **Le PDF** (`docs/briefing.pdf`) est écrit par la même action, avec les pages, les cartes et les mots
+- **Le PDF** (`docs/<mission>_briefing.pdf`) est écrit par la même action, avec les pages, les cartes et les mots
   du deck, quoi que le PC contienne : n'installe rien et n'écris aucun convertisseur (une IA qui a
   installé LibreOffice par `winget` a perdu quinze minutes et laissé une installation à moitié faite).
   Sa mise en page est la sienne (DejaVu Sans, pas Calibri) et une page dont le texte déborde en fait une

@@ -2009,13 +2009,17 @@ veaf.i18nCatalog = {
   },
   -- veafCampaign
   ["campaign.zone_neutral"] = {
-    fr = "Campagne : %s a perdu toute sa garnison, la zone est neutre et peut être prise.",
-    en = "Campaign: %s has lost its whole garrison; the zone is neutral and can be captured.",
+    fr = "%s a perdu toute sa garnison, la zone est neutre et peut être prise.",
+    en = "%s has lost its whole garrison; the zone is neutral and can be captured.",
   },
   ["campaign.zone_captured"] = {
-    fr = "Campagne : %s a été prise par le camp %s.",
-    en = "Campaign: %s has been captured by %s.",
+    fr = "%s a été prise par le camp %s.",
+    en = "%s has been captured by %s.",
   },
+  ["campaign.speaker.blue"] = { fr = "Commandement bleu : ", en = "Blue command: " },
+  ["campaign.speaker.red"] = { fr = "Commandement rouge : ", en = "Red command: " },
+  ["campaign.speaker.intel"] = { fr = "Renseignement : ", en = "Intelligence: " },
+  ["campaign.zone_with_waypoint"] = { fr = "%s (WP %d)", en = "%s (WP %d)" },
   ["campaign.side.blue"] = { fr = "bleu", en = "blue" },
   ["campaign.side.red"] = { fr = "rouge", en = "red" },
   ["campaign.side.neutral"] = { fr = "neutre", en = "neutral" },
@@ -2055,8 +2059,8 @@ veaf.i18nCatalog = {
     en = "An assault convoy leaves %s to take %s.",
   },
   ["campaign.convoy_sent_enemy"] = {
-    fr = "Renseignement : une colonne ennemie quitte %s en direction de %s.",
-    en = "Intelligence: an enemy column is leaving %s towards %s.",
+    fr = "Une colonne ennemie quitte %s en direction de %s.",
+    en = "An enemy column is leaving %s towards %s.",
   },
   ["campaign.assault_refused"] = {
     fr = "Assaut de %s vers %s impossible : la zone de départ n'est plus à nous, la cible l'est déjà, ou un convoi y va déjà.",
@@ -2065,6 +2069,384 @@ veaf.i18nCatalog = {
   ["campaign.assault_no_reserve"] = {
     fr = "Assaut impossible : plus rien en réserve.",
     en = "No assault: nothing left in reserve.",
+  },
+
+  -- veafCampaign, persistent mode (FEAT-DYNAMIC-CAMPAIGN)
+  ["campaign.zone_reinforced"] = {
+    fr = "%s a été ravitaillée, un groupe de sa garnison est de nouveau au complet.",
+    en = "%s has been resupplied; one group of its garrison is back to full strength.",
+  },
+  ["campaign.outcome.victory"] = {
+    fr = "Campagne : l'ennemi ne tient plus aucune zone. Victoire ! La campagne recommencera au prochain chargement de la mission.",
+    en = "Campaign: the enemy holds no zone any more. Victory! The campaign starts again at the next load of the mission.",
+  },
+  ["campaign.outcome.defeat"] = {
+    fr = "Campagne : nous ne tenons plus aucune zone. Défaite. La campagne recommencera au prochain chargement de la mission.",
+    en = "Campaign: we hold no zone any more. Defeat. The campaign starts again at the next load of the mission.",
+  },
+  ["campaign.outcome.reset"] = {
+    fr = "Campagne remise à zéro par un administrateur : elle recommencera au prochain chargement de la mission.",
+    en = "Campaign reset by an administrator: it starts again at the next load of the mission.",
+  },
+  ["campaign.counters_dormancy"] = {
+    fr = "Zones éveillées : %d ; réveils : %d ; mises en sommeil : %d ; renforts : %d",
+    en = "Awake zones: %d; wakes: %d; sleeps: %d; reinforcements: %d",
+  },
+  ["menu.campaign.reset"] = { fr = "Remettre la campagne à zéro (admin)", en = "Reset the campaign (admin)" },
+
+  ["menu.campaign.self_check"] = { fr = "Auto-contrôle (admin)", en = "Self-check (admin)" },
+  ["campaign.check.title"] = {
+    fr = "Campagne — auto-contrôle (mission à %d s, %d battement(s) ; rien n'est jugé avant le premier, à 10 s)",
+    en = "Campaign — self-check (mission at %d s, %d beat(s); nothing is judged before the first, at 10 s)",
+  },
+  ["campaign.check.ok"] = { fr = "OK  %s", en = "OK  %s" },
+  ["campaign.check.ko"] = { fr = "KO  %s", en = "KO  %s" },
+  ["campaign.check.zones"] = { fr = "zones placées : %d sur %d %s", en = "zones placed: %d of %d %s" },
+  ["campaign.check.load"] = {
+    fr = "chargement : %s (loaded = sauvegarde reprise, fresh = campagne neuve)",
+    en = "load: %s (loaded = save resumed, fresh = new campaign)",
+  },
+  ["campaign.check.save"] = {
+    fr = "sauvegarde : %d écriture(s), dernière réussie : %s",
+    en = "save: %d write(s), last one succeeded: %s",
+  },
+  ["campaign.check.outcome"] = { fr = "issue : %s", en = "outcome: %s" },
+  ["campaign.check.dormancy"] = {
+    fr = "dormance : %d zone(s) éveillée(s) sur %d au plus, %d réveil(s), %d mise(s) en sommeil",
+    en = "dormancy: %d zone(s) awake of %d at most, %d wake(s), %d sleep(s)",
+  },
+  ["campaign.check.capture"] = { fr = "zones neutres : %s ; captures en cours : %s", en = "neutral zones: %s; captures running: %s" },
+  ["campaign.check.losses"] = { fr = "pertes enregistrées : %d ; renforts : %d", en = "losses recorded: %d; reinforcements: %d" },
+  ["campaign.check.failed"] = { fr = "un contrôle a échoué : %s", en = "a check failed: %s" },
+
+  ["campaign.helicopter_sent"] = {
+    fr = "Un hélicoptère de ravitaillement quitte %s pour %s.",
+    en = "A supply helicopter leaves %s for %s.",
+  },
+  ["campaign.helicopter_sent_enemy.capture"] = {
+    fr = "Un hélicoptère ennemi quitte %s pour prendre %s en s'y posant. Interceptez-le !",
+    en = "An enemy helicopter leaves %s to take %s by landing there. Intercept it!",
+  },
+  ["campaign.helicopter_sent_enemy.resupply"] = {
+    fr = "Un hélicoptère ennemi quitte %s pour ravitailler %s.",
+    en = "An enemy helicopter leaves %s to resupply %s.",
+  },
+  ["campaign.hunter"] = {
+    fr = "Attention %s : deux chasseurs ennemis viennent de décoller de %s pour vous intercepter.",
+    en = "Watch your six, %s: two enemy fighters just took off from %s to intercept you.",
+  },
+  ["campaign.check.helicopters"] = {
+    fr = "hélicoptères de ravitaillement : %d envoyé(s), %d posé(s) dans leur zone, %d échec(s)",
+    en = "supply helicopters: %d sent, %d landed in their zone, %d failed",
+  },
+  ["campaign.check.air"] = {
+    fr = "aviation ennemie : %d vol(s) lancé(s), %d CAP en l'air sur %d voulue(s), %d Hunter",
+    en = "enemy air: %d flight(s) launched, %d CAP up of %d wanted, %d Hunter",
+  },
+
+  ["campaign.map_label_hidden"] = { fr = "%s — force inconnue", en = "%s — strength unknown" },
+  ["campaign.situation.zone_hidden"] = { fr = "- %s : %s, garnison inconnue", en = "- %s: %s, garrison unknown" },
+  ["campaign.credits.earned"] = { fr = "Crédits : +%d (%s), solde %d", en = "Credits: +%d (%s), balance %d" },
+  ["campaign.credits.kill"] = { fr = "victoire de %s", en = "kill by %s" },
+  ["campaign.credits.kill_held"] = {
+    fr = "victoire de %s ; %d de plus à son atterrissage sur une base amie",
+    en = "kill by %s; %d more when the pilot lands at a friendly base",
+  },
+  ["campaign.credits.landed"] = { fr = "%s s'est posé, son bonus est acquis", en = "%s has landed, the bonus is banked" },
+  ["campaign.credits.held_lost"] = {
+    fr = "%s ne rentre pas : les %d crédits de bonus sont perdus.",
+    en = "%s is not coming back: the %d bonus credits are lost.",
+  },
+  ["campaign.credits.capture"] = { fr = "prise de %s", en = "%s captured" },
+  ["campaign.credits.delivery"] = { fr = "ravitaillement de %s", en = "%s resupplied" },
+  ["campaign.credits.task"] = { fr = "tâche accomplie : %s", en = "task done: %s" },
+  ["campaign.credits.rescue"] = { fr = "%s a ramené %d pilote(s) au MASH", en = "%s brought %d pilot(s) back to the MASH" },
+  ["campaign.credits.balance"] = { fr = "Crédits de la coalition : %d", en = "Coalition credits: %d" },
+  ["campaign.earnings.header"] = { fr = "Mes gains - %s", en = "My earnings - %s" },
+  ["campaign.earnings.nothing"] = { fr = "Mes gains - %s : rien encore cette session.", en = "My earnings - %s: nothing yet this session." },
+  ["campaign.earnings.session"] = {
+    fr = "Cette session (depuis que plus personne n'était en slot) : %d cr.",
+    en = "This session (since nobody was left in a slot): %d cr.",
+  },
+  ["campaign.earnings.reason_line"] = { fr = "- %s : %d cr.", en = "- %s: %d cr." },
+  ["campaign.earnings.reason.kill"] = { fr = "victoires", en = "kills" },
+  ["campaign.earnings.reason.landed"] = { fr = "bonus encaissé à l'atterrissage", en = "bonus banked at landing" },
+  ["campaign.earnings.reason.rescue"] = { fr = "sauvetages", en = "rescues" },
+  ["campaign.earnings.reason.warehouse"] = { fr = "livraisons d'armement", en = "weapon deliveries" },
+  ["campaign.earnings.reason.other"] = { fr = "autres", en = "other" },
+  ["campaign.earnings.held"] = {
+    fr = "À bord : %d cr., à encaisser à l'atterrissage sur un terrain, un FARP ou un porte-avions ami",
+    en = "Held in your aircraft: %d cr., banked when you land at a friendly airfield, FARP or carrier",
+  },
+  ["campaign.earnings.held_none"] = { fr = "À bord : rien", en = "Held in your aircraft: nothing" },
+  ["campaign.earnings.campaign"] = { fr = "Campagne : %d cr., rang %d sur %d", en = "Campaign: %d cr., rank %d of %d" },
+  ["campaign.earnings.score"] = { fr = "Tableau de chasse : %s", en = "Score: %s" },
+  ["campaign.earnings.stat.air"] = { fr = "avions", en = "aircraft" },
+  ["campaign.earnings.stat.helo"] = { fr = "hélicoptères", en = "helicopters" },
+  ["campaign.earnings.stat.sam"] = { fr = "défense sol-air", en = "air defence" },
+  ["campaign.earnings.stat.ground"] = { fr = "véhicules", en = "ground units" },
+  ["campaign.earnings.stat.infantry"] = { fr = "infanterie", en = "infantry" },
+  ["campaign.earnings.stat.structure"] = { fr = "bâtiments", en = "buildings" },
+  ["campaign.earnings.stat.warehouse"] = { fr = "livraisons d'armement", en = "weapon deliveries" },
+  ["campaign.earnings.stat.deaths"] = { fr = "morts", en = "deaths" },
+  ["campaign.earnings.team"] = {
+    fr = "Les prises, tâches et ravitaillements du réseau vont à toute l'équipe : %d cr. cette session",
+    en = "Captures, tasks and network deliveries go to the whole team: %d cr. this session",
+  },
+  ["campaign.intel.revealed"] = {
+    fr = "Renseignement : la garnison de %s est connue (%s). Détail : Campagne > Renseignement.",
+    en = "Intelligence: %s's garrison is known (%s). Details: Campaign > Intel.",
+  },
+  ["campaign.intel.by_overflight"] = { fr = "survol", en = "overflight" },
+  ["campaign.intel.by_jtac"] = { fr = "drone JTAC", en = "JTAC drone" },
+  ["campaign.intel.by_purchase"] = { fr = "renseignement acheté", en = "intel bought" },
+  ["campaign.intel.by_spy"] = { fr = "équipe espion", en = "spy team" },
+  ["campaign.intel.report"] = { fr = "%s — garnison à %d %% :", en = "%s — garrison at %d%%:" },
+  ["campaign.intel.none"] = {
+    fr = "Aucune zone ennemie n'est renseignée en ce moment : survolez-la bas, envoyez un drone JTAC ou une équipe espion, ou achetez du renseignement.",
+    en = "No enemy zone is known right now: overfly one low, send a JTAC drone or a spy team, or buy intel.",
+  },
+  ["campaign.intel.spy_sent"] = { fr = "L'équipe espion part vers %s.", en = "The spy team heads for %s." },
+  ["campaign.intel.spy_no_zone"] = {
+    fr = "Équipe espion : aucune zone ennemie à moins de %d km, elle reste sur place.",
+    en = "Spy team: no enemy zone within %d km; it stays where it is.",
+  },
+  ["campaign.shop.item.jtac"] = { fr = "Drone JTAC", en = "JTAC drone" },
+  ["campaign.shop.item.illumination"] = { fr = "Éclairage", en = "Illumination" },
+  ["campaign.shop.item.smoke"] = { fr = "Fumigènes sur cibles", en = "Smoke on targets" },
+  ["campaign.shop.item.intel"] = { fr = "Renseignement", en = "Intel" },
+  ["campaign.shop.item.cap"] = { fr = "CAP amie", en = "Friendly CAP" },
+  ["campaign.shop.item.barcap"] = { fr = "BARCAP", en = "BARCAP" },
+  ["campaign.shop.barcap"] = {
+    fr = "BARCAP : en station à %d km de %s, hors de portée de ses défenses (%d km mesurés), au départ de %s.",
+    en = "BARCAP: on station %d km from %s, out of its air defence's reach (%d km measured), from %s.",
+  },
+  ["campaign.shop.barcap_assumed"] = {
+    fr = "BARCAP : en station à %d km de %s, hors de portée supposée de ses défenses (%d km estimés, zone non observée), au départ de %s.",
+    en = "BARCAP: on station %d km from %s, out of its air defence's assumed reach (%d km estimated, zone not observed), from %s.",
+  },
+  ["campaign.shop.item.capture"] = { fr = "Hélico de capture", en = "Capture helicopter" },
+  ["campaign.shop.item.resupply"] = { fr = "Hélico de ravitaillement", en = "Resupply helicopter" },
+  ["campaign.shop.item.tanker"] = { fr = "Ravitailleur", en = "Tanker" },
+  ["campaign.shop.item.escort"] = { fr = "Escorte de mon groupe", en = "Escort for my group" },
+  ["campaign.shop.escort"] = {
+    fr = "Escorte achetée pour %s : deux chasseurs partent de %s. %d crédits, solde %d",
+    en = "Escort bought for %s: two fighters leave from %s. %d credits, balance %d",
+  },
+  ["campaign.shop.bought"] = { fr = "Acheté : %s (%s) pour %d crédits, solde %d", en = "Bought: %s (%s) for %d credits, balance %d" },
+  ["campaign.shop.too_expensive"] = {
+    fr = "%s coûte %d crédits, la coalition n'en a que %d.",
+    en = "%s costs %d credits; the coalition has %d.",
+  },
+  ["campaign.shop.refused"] = { fr = "%s impossible : %s. Rien n'est débité.", en = "%s refused: %s. Nothing was charged." },
+  ["campaign.shop.refused_zone"] = { fr = "la zone ne s'y prête plus", en = "the zone no longer suits it" },
+  ["campaign.shop.refused_nothing"] = { fr = "rien à faire là", en = "nothing to do there" },
+  ["campaign.shop.refused_no_airfield"] = { fr = "aucun terrain à nous d'où partir", en = "no airfield of ours to leave from" },
+  ["campaign.shop.refused_no_tanker"] = { fr = "la campagne n'a pas de ravitailleur", en = "the campaign has no tanker" },
+  ["campaign.shop.refused_jtac"] = { fr = "le drone n'a pas pu être lancé", en = "the drone could not be launched" },
+  ["campaign.shop.refused_spawn"] = { fr = "l'appareil n'a pas pu être lancé", en = "the aircraft could not be launched" },
+  ["campaign.task.header"] = { fr = "Tâches :", en = "Tasks:" },
+  ["campaign.task.attack"] = { fr = "Attaquer %s (%d cr.)", en = "Attack %s (%d cr.)" },
+  ["campaign.task.capture"] = { fr = "Prendre %s (%d cr.)", en = "Capture %s (%d cr.)" },
+  ["campaign.task.resupply"] = { fr = "Ravitailler %s (%d cr.)", en = "Resupply %s (%d cr.)" },
+  ["campaign.task.air"] = { fr = "Supériorité aérienne%.0s (%d cr.)", en = "Air superiority%.0s (%d cr.)" },
+  ["campaign.task.posted"] = { fr = "Nouvelle tâche : %s", en = "New task: %s" },
+  ["campaign.task.withdrawn"] = { fr = "Tâche retirée : %s", en = "Task withdrawn: %s" },
+  ["menu.campaign.credits"] = { fr = "Crédits", en = "Credits" },
+  ["menu.campaign.earnings"] = { fr = "Mes gains", en = "My earnings" },
+  ["menu.campaign.earnings_show"] = { fr = "Afficher", en = "Show" },
+  ["menu.campaign.tasks"] = { fr = "Tâches", en = "Tasks" },
+  ["menu.campaign.intel"] = { fr = "Renseignement", en = "Intel" },
+  ["menu.campaign.shop"] = { fr = "Boutique", en = "Shop" },
+  ["menu.campaign.shop_item"] = { fr = "%s (%d cr.)", en = "%s (%d cr.)" },
+  ["tanker.kind.boom"] = { fr = "boom", en = "boom" },
+  ["tanker.kind.basket"] = { fr = "panier", en = "basket" },
+  ["tanker.kind.both"] = { fr = "boom et panier", en = "boom and basket" },
+  ["campaign.check.credits"] = { fr = "crédits : %d ; achats : %d", en = "credits: %d; purchases: %d" },
+  ["campaign.check.tasks"] = {
+    fr = "tâches : %d affichée(s), %d postée(s), %d accomplie(s)",
+    en = "tasks: %d on the board, %d posted, %d done",
+  },
+  ["campaign.check.intel"] = {
+    fr = "renseignement : %d zone(s) révélée(s), %d par équipe espion",
+    en = "intel: %d zone(s) revealed, %d by spy team",
+  },
+
+  -- FEAT-DYNAMIC-CAMPAIGN V1.5
+  ["command.disabled_here"] = {
+    fr = "%s : cette commande est désactivée dans cette mission.",
+    en = "%s: this command is turned off in this mission.",
+  },
+  ["command.reserved_here"] = {
+    fr = "%s : dans cette mission, cette commande est réservée au niveau %s.",
+    en = "%s: in this mission, this command is reserved to the %s level.",
+  },
+  ["campaign.map_factory"] = { fr = " · usine %d/%d", en = " · factory %d/%d" },
+  ["campaign.map_depot"] = { fr = " · dépôt %d/%d", en = " · depot %d/%d" },
+  ["campaign.depot_destroyed"] = {
+    fr = "Les bâtiments du dépôt de %s sont détruits : il ne ravitaille plus rien en attendant d'être reconstruit.",
+    en = "The buildings of the depot of %s are destroyed: it supplies nothing until rebuilt.",
+  },
+  ["campaign.shop.item.assault"] = { fr = "Assaut", en = "Assault" },
+  ["campaign.shop.item.bomber"] = { fr = "Raid de bombardiers", en = "Bomber raid" },
+  ["campaign.shop.refused_no_bomber"] = {
+    fr = "pas de bombardier, ou aucun terrain à nous assez loin de la cible",
+    en = "no bomber, or no airfield of ours far enough from the target",
+  },
+  -- FEAT-CAMPAIGN-SHOP-UPGRADES
+  ["campaign.shop.item.cas"] = { fr = "Vol CAS", en = "CAS flight" },
+  ["campaign.shop.item.sead"] = { fr = "Vol SEAD", en = "SEAD flight" },
+  ["campaign.shop.strike"] = { fr = "%s : départ de %s vers %s.", en = "%s: leaving %s for %s." },
+  ["campaign.shop.refused_flight_up"] = {
+    fr = "un vol de ce type est déjà en l'air",
+    en = "a flight of that kind is already in the air",
+  },
+  ["menu.campaign.upgrades"] = { fr = "Renforcer une zone", en = "Zone upgrades" },
+  ["campaign.shop.upgrade.hawk"] = { fr = "Batterie Hawk", en = "Hawk battery" },
+  ["campaign.shop.upgrade.nasams"] = { fr = "Batterie NASAMS", en = "NASAMS battery" },
+  ["campaign.shop.upgrade.iristslm"] = { fr = "Batterie IRIS-T SLM", en = "IRIS-T SLM battery" },
+  ["campaign.shop.upgrade.rapier"] = { fr = "Batterie Rapier", en = "Rapier battery" },
+  ["campaign.shop.upgrade.patriot"] = { fr = "Batterie Patriot", en = "Patriot battery" },
+  ["campaign.shop.upgrade.avenger"] = { fr = "Section Avenger", en = "Avenger section" },
+  ["campaign.shop.upgrade.gepard"] = { fr = "Section Gepard", en = "Gepard section" },
+  ["campaign.shop.upgrade.infantry"] = { fr = "Section d'infanterie", en = "Infantry section" },
+  ["campaign.shop.upgrade.armor"] = { fr = "Peloton blindé", en = "Armour platoon" },
+  ["campaign.shop.refused_upgrades_full"] = {
+    fr = "la zone a déjà ses %d renforts achetés",
+    en = "the zone already holds its %d bought upgrades",
+  },
+  ["campaign.shop.refused_upgrade_once"] = {
+    fr = "une seule par zone, et celle-ci en a déjà une",
+    en = "one per zone, and this zone has one already",
+  },
+  ["campaign.shop.refused_placed"] = {
+    fr = "aucune place pour l'installer dans la zone",
+    en = "no room for it in the zone",
+  },
+  ["campaign.task.intercept"] = {
+    fr = "Intercepter les bombardiers vers %s (%d cr.)",
+    en = "Intercept the bombers heading for %s (%d cr.)",
+  },
+  ["campaign.raid.inbound"] = {
+    fr = "des bombardiers ennemis font route vers %s, partis de %s. Interceptez-les !",
+    en = "enemy bombers are heading for %s, from %s. Intercept them!",
+  },
+  ["campaign.raid.sent"] = { fr = "Raid de bombardiers : départ de %s vers %s.", en = "Bomber raid: leaving %s for %s." },
+  ["campaign.network.header"] = {
+    fr = "Ressources : %d points, production %d par heure. Réseau d'approvisionnement :",
+    en = "Resources: %d points, making %d an hour. Supply network:",
+  },
+  ["campaign.network.zone"] = { fr = "- %s : %d min depuis %s", en = "- %s: %d min from %s" },
+  ["campaign.network.cut"] = { fr = "- %s : coupée du réseau", en = "- %s: cut off" },
+  ["campaign.network.underway"] = { fr = " (livraison en route)", en = " (a delivery on its way)" },
+  -- veafSupport
+  ["support.retreat"] = {
+    fr = "%s se replie sur une nouvelle orbite, au %03d à %d nautiques du bullseye, hors de portée d'une défense ennemie. Fréquence inchangée.",
+    en = "%s falls back to a new orbit, %03d for %d nm from the bullseye, out of an enemy air defence's reach. Same frequency.",
+  },
+  ["support.advance"] = {
+    fr = "%s se rapproche, nouvelle orbite au %03d à %d nautiques du bullseye : la voie est libre depuis un moment. Fréquence inchangée.",
+    en = "%s moves closer, new orbit %03d for %d nm from the bullseye: the way has been clear for a while. Same frequency.",
+  },
+  ["campaign.network.arrived"] = {
+    fr = "%s est renforcée par le réseau d'approvisionnement.",
+    en = "%s is reinforced by the supply network.",
+  },
+  ["campaign.spawn.refused_credits"] = {
+    fr = "%s refusé : la coalition (%s) a %d crédits ; plus de spawn tant que le solde n'est pas positif. Rien n'est débité.",
+    en = "%s refused: the coalition (%s) has %d credits; no spawn until the balance is above zero. Nothing was charged.",
+  },
+  ["campaign.spawn.refused_resources"] = {
+    fr = "%s refusé : %s a %d points de ressources ; plus de spawn tant qu'il n'est pas repassé au-dessus de zéro. Rien n'est débité.",
+    en = "%s refused: %s has %d resource points; no spawn until it is above zero again. Nothing was charged.",
+  },
+  ["campaign.spawn.in_debt_credits"] = {
+    fr = "La coalition (%s) est dans le rouge : %d crédits. Plus de spawn tant que le solde n'est pas positif.",
+    en = "The coalition (%s) is in debt: %d credits. No spawn until the balance is above zero.",
+  },
+  ["campaign.spawn.in_debt_resources"] = {
+    fr = "%s est dans le rouge : %d points de ressources. Ni spawn ni sortie tant qu'il n'est pas repassé au-dessus de zéro.",
+    en = "%s is in debt: %d resource points. No spawn nor sortie until it is above zero again.",
+  },
+  ["campaign.spawn.paid_credits"] = {
+    fr = "%s : %d unité(s), %d crédits débités, solde %d",
+    en = "%s: %d unit(s), %d credits charged, balance %d",
+  },
+  ["campaign.demolition.no_target"] = {
+    fr = "Sapeurs : aucune usine ennemie à moins de %d km, ils restent sur place.",
+    en = "Sappers: no enemy factory within %d km; they stay where they are.",
+  },
+  ["campaign.demolition.sent"] = { fr = "Les sapeurs partent vers l'usine de %s.", en = "The sappers head for the factory at %s." },
+  ["campaign.demolition.planted"] = {
+    fr = "Sapeurs : charges posées à %s sur %d bâtiment(s), explosion dans %d s. Ils se replient.",
+    en = "Sappers: charges planted at %s on %d building(s), blowing in %d s. They are pulling back.",
+  },
+  ["campaign.credits.demolition"] = { fr = "bâtiment détruit à %s", en = "building destroyed at %s" },
+  ["campaign.credits.warehouse"] = { fr = "armement livré à %s", en = "weapons delivered to %s" },
+  ["campaign.warehouse.not_transport"] = {
+    fr = "Seul un hélicoptère ou un avion de transport emporte de l'armement.",
+    en = "Only a helicopter or a transport aircraft carries weapons.",
+  },
+  ["campaign.warehouse.not_here"] = {
+    fr = "Posez-vous sur un terrain de la coalition pour charger.",
+    en = "Land at an airfield of the coalition to load.",
+  },
+  ["campaign.warehouse.already_loaded"] = {
+    fr = "Vous avez déjà de l'armement à bord : déchargez-le d'abord.",
+    en = "You already carry weapons: unload them first.",
+  },
+  ["campaign.warehouse.empty"] = {
+    fr = "L'entrepôt de %s n'a rien à céder (vide, ou illimité).",
+    en = "The warehouse at %s has nothing to give (empty, or unlimited).",
+  },
+  ["campaign.warehouse.loaded"] = {
+    fr = "%d armes chargées à %s. Déchargez-les sur un autre terrain de la coalition.",
+    en = "%d weapons loaded at %s. Unload them at another airfield of the coalition.",
+  },
+  ["campaign.warehouse.nothing_aboard"] = { fr = "Aucun armement à bord.", en = "No weapons aboard." },
+  ["campaign.warehouse.not_there"] = {
+    fr = "Posez-vous sur un autre terrain de la coalition pour décharger.",
+    en = "Land at another airfield of the coalition to unload.",
+  },
+  ["campaign.warehouse.unloaded"] = { fr = "%d armes déchargées à %s.", en = "%d weapons unloaded at %s." },
+  ["campaign.warehouse.cargo"] = { fr = "À bord : %d armes, chargées à %s.", en = "Aboard: %d weapons, loaded at %s." },
+  ["menu.campaign.network"] = { fr = "Réseau d'approvisionnement", en = "Supply network" },
+  ["menu.campaign.warehouse"] = { fr = "Entrepôt", en = "Warehouse" },
+  ["menu.campaign.warehouse_load"] = { fr = "Charger de l'armement", en = "Load weapons" },
+  ["menu.campaign.warehouse_unload"] = { fr = "Décharger l'armement", en = "Unload weapons" },
+  ["menu.campaign.warehouse_cargo"] = { fr = "Armement à bord", en = "Cargo" },
+  ["campaign.check.resources"] = {
+    fr = "ressources : bleu %d (+%d/h), rouge %d (+%d/h) ; dépensé bleu %d, rouge %d",
+    en = "resources: blue %d (+%d/h), red %d (+%d/h); spent blue %d, red %d",
+  },
+  ["campaign.check.resources_off"] = {
+    fr = "ressources : non comptées (resources.enabled: false)",
+    en = "resources: not counted (resources.enabled: false)",
+  },
+  ["campaign.check.network"] = {
+    fr = "réseau : %d livraison(s) en route, %d commandée(s), %d arrivée(s), %d perdue(s) ; zones coupées : %s",
+    en = "network: %d delivery(ies) on the way, %d ordered, %d arrived, %d lost; zones cut off: %s",
+  },
+  ["campaign.check.spawns"] = { fr = "spawns payants : %d débité(s), %d refusé(s)", en = "paid spawns: %d charged, %d refused" },
+  ["campaign.check.demolition"] = {
+    fr = "sapeurs : %d équipe(s), %d charge(s) explosée(s), %d bâtiment(s) détruit(s)",
+    en = "sappers: %d team(s), %d charge(s) blown, %d building(s) destroyed",
+  },
+  ["campaign.check.warehouse"] = {
+    fr = "entrepôts : %d restauré(s), %d chargement(s), %d déchargement(s)",
+    en = "warehouses: %d restored, %d load(s), %d unload(s)",
+  },
+  ["campaign.check.raids"] = {
+    fr = "bombardiers : %d raid(s), %d abattu(s) ; %d sortie(s) IA non payée(s)",
+    en = "bombers: %d raid(s), %d shot down; %d AI sortie(s) not paid",
+  },
+  ["campaign.check.factories"] = {
+    fr = "usines : %d, bâtiments debout %d sur %d, %d détruit(s)",
+    en = "factories: %d, buildings standing %d of %d, %d destroyed",
+  },
+  ["campaign.check.territory"] = {
+    fr = "territoire : dessiné %d fois, %d marque(s)",
+    en = "territory: drawn %d time(s), %d mark(s)",
   },
 
   -- veafOpposition

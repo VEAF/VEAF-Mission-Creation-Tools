@@ -1,8 +1,8 @@
 """What the players know of each zone (FEAT-CAMPAIGN-BRIEFING-DECK ticket 02).
 
 The enemy stays uneven intelligence: never a count, neither of a garrison nor of a reserve, each item
-with the reliability of its source. The one exception is a fixed site — the long-range SAM of a zone —
-named once the campaign state records it: a garrison is drawn when its mission starts, so before the
+with the reliability of its source. The one exception is a fixed site — the long- or medium-range SAM of a
+zone — named once the campaign state records it: a garrison is drawn when its mission starts, so before the
 first mission nobody knows the battery's type, and from the second one on its units are in the state.
 The friendly side's positions and reserves are known, and said.
 """
@@ -23,13 +23,16 @@ from campaign_manager.models import RESERVE_CATEGORIES, CampaignDefinition, Camp
 #: The suffix `veafCampaign` gives the long-range SAM group of a garrison (`veafCampaign.lua`).
 LONG_RANGE_SAM_SUFFIX = " long-range SAM"
 
+#: The suffix it gives the medium-range one (FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY 02).
+MEDIUM_RANGE_SAM_SUFFIX = " medium-range SAM"
+
 #: An alias that is a NATO SAM designation, `sa10` or `sa-10`.
 _NATO_ALIAS = re.compile(r"^sa-?(\d+)$", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
 class FixedSite:
-    """A long-range SAM the campaign state records in a zone."""
+    """A long- or medium-range SAM the campaign state records in a zone."""
 
     system: str | None
     """Its name for the players (``SA-10``, ``Patriot``), or ``None`` for a battery no group names."""
@@ -77,17 +80,18 @@ def identify_system(types: set[str]) -> str | None:
     return best
 
 
-def fixed_site(garrison: list[dict[str, Any]] | None) -> FixedSite | None:
-    """Return the long-range SAM a recorded garrison holds, if it holds one.
+def fixed_site(garrison: list[dict[str, Any]] | None, suffix: str = LONG_RANGE_SAM_SUFFIX) -> FixedSite | None:
+    """Return the long-range SAM a recorded garrison holds, or its medium-range one, if it holds one.
 
     Args:
         garrison: The zone's garrison as the state records it, or ``None`` before it is drawn.
+        suffix: `LONG_RANGE_SAM_SUFFIX` or `MEDIUM_RANGE_SAM_SUFFIX`: which battery.
 
     Returns:
         The site, destroyed when none of its units is alive; ``None`` when there is none to know of.
     """
     for group in garrison or []:
-        if str(group.get("name", "")).endswith(LONG_RANGE_SAM_SUFFIX):
+        if str(group.get("name", "")).endswith(suffix):
             units = group.get("units") or []
             if not units:
                 return None
@@ -97,25 +101,31 @@ def fixed_site(garrison: list[dict[str, Any]] | None) -> FixedSite | None:
 
 
 def _category(campaign: CampaignDefinition, zone: CampaignZone) -> str:
-    """``logistics``, ``main`` (a size class with a long-range SAM) or ``outpost``."""
+    """``logistics``, ``main`` (a zone with a long- or medium-range SAM) or ``outpost``."""
     if zone.kind == "logistics":
         return "logistics"
-    size = campaign.size_classes.get(zone.size)
-    return "main" if size is not None and size.long_range_sam else "outpost"
+    return "main" if campaign.has_sam_battery(zone) else "outpost"
 
 
-def _air_defence(campaign: CampaignDefinition, state: CampaignState, zone: CampaignZone) -> str | None:
-    """What is said of a zone's long-range air defence, or ``None`` when it has none."""
-    size = campaign.size_classes.get(zone.size)
-    if size is None or not size.long_range_sam:
-        return None
-    site = fixed_site(state.zones[zone.name].garrison)
+def _battery_sentence(state: CampaignState, zone: CampaignZone, suffix: str, kind: str) -> str:
+    """What is said of one of a zone's batteries: suspected before it is drawn, then named, then destroyed."""
+    site = fixed_site(state.zones[zone.name].garrison, suffix)
     if site is None:
-        return t("campaign.intel.long_range.suspected")
-    system = site.system or t("campaign.intel.long_range.unnamed")
+        return t(f"campaign.intel.{kind}.suspected")
+    system = site.system or t(f"campaign.intel.{kind}.unnamed")
     if site.destroyed:
         return t("campaign.intel.long_range.destroyed", system=system)
     return t("campaign.intel.long_range.confirmed", system=system)
+
+
+def _air_defence(campaign: CampaignDefinition, state: CampaignState, zone: CampaignZone) -> str | None:
+    """What is said of a zone's long- and medium-range air defence, or ``None`` when it has neither."""
+    sentences = []
+    if campaign.has_long_range_sam(zone):
+        sentences.append(_battery_sentence(state, zone, LONG_RANGE_SAM_SUFFIX, "long_range"))
+    if campaign.has_medium_range_sam(zone):
+        sentences.append(_battery_sentence(state, zone, MEDIUM_RANGE_SAM_SUFFIX, "medium_range"))
+    return " ".join(sentences) or None
 
 
 def enemy_picture(campaign: CampaignDefinition, state: CampaignState, zone: CampaignZone) -> str:

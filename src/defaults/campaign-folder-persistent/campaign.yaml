@@ -1,0 +1,116 @@
+# ---------------------------------------------------------------------------
+# Example persistent campaign — the Georgian front, one mission on a server
+# ---------------------------------------------------------------------------
+# Blue holds Batumi and Kobuleti; red holds Senaki, Kutaisi and the outposts between.
+# Poti is in nobody's hands. The enemy counter-attacks, resupplies by helicopter and
+# flies CAP, strikes and bomber raids; the players take the coast and the valley zone by
+# zone, with their credits, their tasks and their reconnaissance. Each side has a factory
+# behind its lines and a depot on the way to the front: the resources the AI spends are
+# made there, and reach the front hop by hop. The campaign saves itself and reloads at
+# every restart; it is won when red holds no zone left.
+#
+# To use it: copy this folder, add a `template/` mission folder next to this file
+# (`.\veaf-tools.exe mission prepare --theatre Caucasus` in it), then
+#   .\veaf-tools.exe campaign init  <this folder>
+#   .\veaf-tools.exe campaign next  <this folder>
+# and build the mission in `missions\mission-01\mission`.
+# See doc/mission-maker/PERSISTENT_CAMPAIGN.md for every key.
+# ---------------------------------------------------------------------------
+
+campaign:
+  name: Georgian Front
+  theatre: Caucasus
+  era: MODERN
+  mode: persistent
+  player_side: blue
+
+zones:
+  # blue
+  - { name: Batumi, at: { airfield: Batumi }, size: airfield, side: blue, long_range_sam: true, radius: 3000 }
+  - { name: Kobuleti, at: { airfield: Kobuleti }, size: airfield, side: blue, radius: 3000 }
+  - { name: Ozurgeti, at: { lat: 41.925, lon: 42.005 }, size: outpost, side: blue, kind: factory }
+  - { name: Supsa, at: { lat: 42.030, lon: 41.800 }, size: outpost, side: blue, kind: depot }
+  # nobody's
+  - { name: Poti, at: { lat: 42.155, lon: 41.705 }, size: outpost, side: neutral }
+  # red
+  - { name: Khobi, at: { lat: 42.315, lon: 41.905 }, size: outpost, side: red }
+  - { name: Senaki, at: { airfield: Senaki-Kolkhi }, size: airfield, side: red, radius: 3000 }
+  - { name: Samtredia, at: { lat: 42.165, lon: 42.335 }, size: outpost, side: red, kind: depot }
+  - { name: Kutaisi, at: { airfield: Kutaisi }, size: airfield, side: red, long_range_sam: true, radius: 3000 }
+  - { name: Tkibuli, at: { lat: 42.350, lon: 42.998 }, size: outpost, side: red, kind: factory }
+  - { name: Zugdidi, at: { lat: 42.505, lon: 41.870 }, size: outpost, side: red }
+
+connections:
+  - [Batumi, Kobuleti]
+  - [Kobuleti, Ozurgeti]
+  - [Kobuleti, Supsa]
+  - [Supsa, Poti]
+  - [Kobuleti, Samtredia]
+  - [Poti, Khobi]
+  - [Poti, Senaki]
+  - [Khobi, Zugdidi]
+  - [Khobi, Senaki]
+  - [Senaki, Samtredia]
+  - [Samtredia, Kutaisi]
+  - [Kutaisi, Tkibuli]
+
+# Every key is optional; these are the defaults, written out to show them.
+# Long-range SAMs are a zone's own (`long_range_sam: true`, Batumi and Kutaisi above), two a side at most,
+# 120 km apart at least: `long_range_sams: { per_side: 2, min_spacing: 120000 }` at the top level.
+# Medium-range SAMs (an SA-11, an SA-6, a Hawk) the same way: `medium_range_sam: true` on a zone, three a side
+# at most, 60 km apart at least: `medium_range_sams: { per_side: 3, min_spacing: 60000 }`.
+dynamic:
+  save_seconds: 60
+  wake_radius: 60000
+  ground_wake_radius: 10000
+  reach_wake_margin: 20000
+  front_depth: 40000
+  takeoff_threat_range: 40000
+  sleep_seconds: 600
+  max_awake_zones: 12
+  attacks: [red]
+  attack_seconds: 900
+  supply: [red]
+  supply_seconds: 600
+  helicopter_capture_seconds: 600
+  convoy_timeout: 2700
+  economy:
+    start_credits: 500
+    landing_share: 50
+    tanker: [ "Tanker Texaco", "Tanker Arco" ]   # the boom and the basket: one shop item each
+    upgrades_per_zone: 2   # air defence or troops bought on a zone (Shop > Zone upgrades), at most
+  tasks:
+    count: 3
+  intel:
+    hidden: true
+  # the V1.5: resources, factories, the supply network, sappers, warehouses, bombers, territory
+  resources:
+    start: 1000
+    background_per_hour: 60
+    reserve: 100
+  factory:
+    buildings: 3
+    per_hour: 180
+  network:
+    hop_seconds: 600
+    isolated_seconds: 3600
+  demolition:
+    troops: Sappers
+  warehouse:
+    enabled: true
+  bombers:
+    seconds: 3600
+    min_distance: 80000
+  territory:
+    enabled: true
+  # the AWACS and tankers held out of the enemy's air defence: groups of the template mission, each with
+  # an orbit (add them with the MCP's add_air_group and edit_route, or in the Mission Editor), and their
+  # channels in the template's src/presets.yaml; `campaign validate` warns when one is missing
+  support:
+    assets: [ "AWACS Magic", "Tanker Texaco", "Tanker Arco" ]   # Texaco a KC-135 (boom), Arco a KC-135MPRS (basket)
+    margin: 30000            # `campaign next` writes this block into mission.yaml's SUPPORT module (veafSupport)
+    awacs_standoff: 100000   # metres an AWACS holds from every enemy zone, whatever its reach; not the tankers
+  # the SAM sites of both sides run under Skynet: `campaign next` turns mission.yaml's SKYNET module on, and the
+  # campaign declares each SAM group it spawns to its side's network; `enabled: false` leaves them to DCS's AI
+  skynet:
+    enabled: true

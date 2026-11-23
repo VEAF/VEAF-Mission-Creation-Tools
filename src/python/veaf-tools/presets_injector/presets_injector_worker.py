@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import yaml
 from mission_tools import Group, write_miz
 from veaf_libs.group_injector_worker import GroupInjectorWorker
 from veaf_libs.i18n import t, tn
@@ -624,6 +625,29 @@ class PresetsInjectorWorker(GroupInjectorWorker):
         assert self.dcs_mission is not None
         write_miz(mission=self.dcs_mission, miz_file_path=self.output_mission, additional_files=additional_files)
 
+    def warn_foreign_airfields(self) -> int:
+        """Warn once per channel a channel list names after an airfield of another theatre.
+
+        On 2026-11-16 the Syria campaign flew with the Caucasus airfields on its kneeboards: `prepare
+        --theatre Syria` had shipped the Caucasus plan, and nothing said so.
+
+        Returns:
+            The number of warnings given.
+        """
+        from presets_injector.airfield_channels_manager import foreign_airfield_aliases
+
+        if not self.presets_file or not self.presets_file.is_file() or self.dcs_mission is None:
+            return 0
+        theatre = self.dcs_mission.theatre_content or ""
+        try:
+            presets = yaml.safe_load(self.presets_file.read_text(encoding="utf-8")) or {}
+        except (OSError, yaml.YAMLError):
+            return 0
+        found = foreign_airfield_aliases(presets, theatre)
+        for alias, other in found:
+            logger.warning(t("presets_injector.foreign_airfield", channel=alias, other=other, theatre=theatre))
+        return len(found)
+
     def warn_dropped_channels(self) -> int:
         """Warn once per channel a channel list drops for lacking its band: it reaches no aircraft.
 
@@ -652,6 +676,7 @@ class PresetsInjectorWorker(GroupInjectorWorker):
             self.process_groups(silent)
 
         self.warn_dropped_channels()
+        self.warn_foreign_airfields()
 
         if self.generate_kneeboards:
             with spinner_context(t("presets_injector.spinner.generating_images"), silent=silent):

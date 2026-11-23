@@ -1,8 +1,9 @@
 # FEAT-DYNAMIC-CAMPAIGN — a Foothold-like persistent campaign, built on VMCT alone
 
-Status: ⏸ paused — after FEAT-MULTI-MISSION-CAMPAIGN, built on its bricks (David, 2026-10-06)
+Status: 🧑 waiting-human — V1 merged into the integration branch `feature/dynamic-campaign` (#1276, 2026-11-15) and checked in game by David; the V1.5 (tickets 11 to 19) merged into it too (#1282, 2026-11-16) and waits for David's in-game check of the test mission, then ticket 10 on a server (David: the lot is not merged into `develop` piece by piece)
 
-> **Paused 2026-10-06.** David wants a multi-mission campaign first ([`FEAT-MULTI-MISSION-CAMPAIGN`](../FEAT-MULTI-MISSION-CAMPAIGN/PRD.md)), then this persistent mission built on the bricks it leaves: the `campaign.yaml` format, garrisons drawn once and recorded, live capture, the F10 map and menu, the runtime state writer, stocks, scenery.
+> **Paused 2026-10-06, resumed 2026-11-15** for the V1 of the table below.
+> Paused 2026-10-06: David wants a multi-mission campaign first ([`FEAT-MULTI-MISSION-CAMPAIGN`](../FEAT-MULTI-MISSION-CAMPAIGN/PRD.md)), then this persistent mission built on the bricks it leaves: the `campaign.yaml` format, garrisons drawn once and recorded, live capture, the F10 map and menu, the runtime state writer, stocks, scenery.
 > When this lot is resumed, its tickets 01, 02 and 05 shrink to what those bricks do not cover (dormancy, caps, the periodic save's cadence), and ticket 03 is already done there.
 > One premise below did not hold: the VEAF group database has no era, role or side to draw garrisons from; that lot draws them with `veafCasMission`'s generators instead.
 
@@ -30,18 +31,29 @@ Section numbers point to the detailed notes under [`foothold-analysis/`](foothol
 | V1 | A task board of 3 or 4 tasks drawn from the situation, with a map mark and a credit reward; a briefing explains the particular points if needed | 05 §11 |
 | V1 | Intelligence: an enemy garrison's composition stays hidden until reconnoitred (overflight, JTAC, purchased intel) | 06 §5 |
 | V1.5 | Weapon stocks per warehouse, moved by players | 07 §9, §17 |
+| V1.5 | **Resources for the AI, credits for the players** (David, 2026-11-16). Each side has a stock of **resources**, made continuously by its means of production (factories: see the zone kinds), and everything the AI puts into play is paid from it — garrisons, reinforcements, SAMs, ships, convoys and their trucks, capture and resupply helicopters, CAP and strikes; an empty stock sends nothing, so destroying factories or cutting supply lines grounds the enemy's CAP in the end. **Credits** are the players' only: a side has them when it has players, who earn them by their actions (the V1 economy). What players buy does **not** come out of the resources, it is **added** to them: a bought convoy that survives and comes home is paid into its side's resources. Today the persistent campaign's AI is free and unlimited (no reserve declared); the multi-mission campaign's reserve (units by category, fed by logistics zones between missions) is its seed. **Production** (David, 2026-11-16): a small **background production** goes on even without any factory, so a side whose factories are all destroyed — they stand behind the front, well defended — can still just about defend a base, and no more; the factories make the bulk. **Supply network**: a factory feeds the zones of the network it is linked to, which feed the next ones, hop by hop, each hop taking time — as the alerts of the Skynet spotter network do, one relay at a time; capturing or destroying a node cuts part of the network, the rest is fed by a detour, so later, so less. Decided (David, 2026-11-16): **every zone** relays production, not only depots; a segment takes a time T; a **depot** stores part of the production and speeds the relay — a segment touching a depot takes T/2 (factory → base → base: 2T; factory → depot → base: T/2 + T/2 = T). Decided (David, 2026-11-16): **one stock of points** per side, with a price per unit type (a T-72 costs less than an SA-11 battery, a MiG-29 more than a lorry) | 07 §26–§28 |
+| later | **Supply convoys** (David, 2026-11-16, "for the Greek calends"): regular convoys that carry the equipment and resources along the supply network, which players can destroy or intercept; much more work than the hop-by-hop network above | 07 §26 |
+| later | **Munitions priced in the economy** (David, 2026-11-16): every weapon has a price, paid by the side that fires it — the players in credits, the AI from its resources — so that players and AI alike reach for cheap munitions rather than a CBU-105 on every target; the AI's payloads are chosen by what its stock can afford | — |
+| V1.5 | **VEAF spawn commands paid in credits** (David, 2026-11-16; point 9 of the player experience above, left out of the V1 rows): in a persistent campaign every VEAF spawn — `_spawn`, `-armor`, `-cap`, convoys, crates… — is a player's action, priced by category in `dynamic.economy` and paid from the credits of the side it spawns for; refused, with nothing charged, when they are short; game masters included; what survives joins the side's resources, like any purchase. Decided (David, 2026-11-16): a spawn for a side with no credits — red, which has no players — is **paid from that side's resources**; a spawn the side cannot pay, in credits or in resources, is refused with an **explicit error** saying what it costs and what is left, and nothing is charged | — |
 | V1.5 | Territory cells (Voronoi) tinted by owner on the F10 map | 01 §14 |
 | V2 | Foothold's Director (packages, feints, learning) | 04 |
 | V2 | Foothold's full player economy: personal credits banked on landing, ranks, career | 05 §3, §7–§10 |
 | V1 | Hunter: two enemy fighters scrambled against a player on a kill streak | 03 §8 |
 | V1 | Spy team: a CTLD troop that walks into an enemy zone and reveals it for an hour (feeds the intelligence line above) | 07 §10 |
 | V1.5 | Strategic bombers: an escorted red raid to intercept; a blue raid bought in the shop | 03 §12 |
-| V1.5 | Demolition team: CTLD sappers who blow up a zone's structures | 07 §10 |
+| V1.5 | **Zone kinds** (David, 2026-11-16): factories, air bases, naval bases… each played its own way. A factory is a set of statics (its buildings): it makes sense to demolish it, and destroying it costs the enemy something. An air base makes no sense to demolish: it is captured, after its defences are destroyed. Today every zone is the same — an airfield or a point, a garrison of vehicles, taken by ground presence — and `kind: logistics` is the only kind. Decided (David, 2026-11-16): **airfield** (as today: captured, its slots follow); **outpost** (as today: a garrison); **factory** — statics plus a small garrison, produces resources while its buildings stand, can be demolished (sappers, strikes) **and captured** like any zone, a captured factory producing for its new owner (small factories near the front of a large theatre shorten whoever holds them's supply); **depot** — see the supply network; **naval base** later (ships need an AI of their own) | 01 §1, §5; 07 §27–§29 |
+| V1.5 | Demolition team: CTLD sappers who blow up a zone's structures — needs the zone kinds above: only a kind made of statics, such as a factory, has anything to blow up | 07 §10 |
+| To decide | **FARP zone kind** (David, 2026-11-17, during the second server evening): the zone kinds decided on 2026-11-16 have no FARP, yet player experience point 5 below says slots exist at "airfields/FARPs their side owns". Today a Mission Editor FARP is left out of the campaign on purpose (`freezeAirfields`: "FARPs and ships are left alone"): it never changes side and its slots follow nobody; a Fat Cow FARP (CTLD) is not a node and does not survive the 12-hour restart. Proposed: a **farp** kind played like an airfield — captured through neutral, its helicopter slots follow the side that holds it — so helicopters can start near the front instead of from the airfields only, the counterpart of the capture by any landed helicopter. Foothold has it (facility `farp`, note 01) | 01 §1, §5 |
+| Decided | **A depot has buildings to destroy** (David, 2026-11-17, during the second server evening). Measured that evening on Saraqib: a depot has no statics, only a garrison; it ordered deliveries **from itself, delivered in 0 s**, out of a store that `supplyDelays` fills back to `depot_store` every time a working factory reaches it — four repairs in nine minutes, each bringing the whole damaged group back, so the players' Shilka and lorries were there again two minutes after they were destroyed. Decided: a depot is a set of **statics, its buildings**, like a factory; while they stand it is a depot (it stores, it shortens the hops, it may supply itself). **Its buildings destroyed, it can no longer supply itself and is played as an ordinary node.** It may rebuild its depot, but only after a **long** delay — long enough for the players to destroy every unit of the garrison and capture the zone (value to set; the evening suggests well beyond the 2-minute supply beat) | 07 §27–§29 |
 | CTLD | C-130J air-dropped crates that build themselves: a feature of our CTLD 2, not of this lot | 07 §13 |
 | left out | Trains (Normandy only) | 07 §30 |
 | left out | PvP, splash damage, EWRS, ten languages | — |
 
 The MCP side generates the dynamic mission in both modes from the same format; its actions come once the format has settled.
+
+**The two modes in V1 (David, 2026-11-15).** The V1 delivers the persistent mode only.
+Its live play (dormancy, sorties, credits, tasks, intelligence) is settings of `veafCampaign`, started only when `mode: persistent`.
+Running it inside a multi-mission campaign — carrying credits and intelligence from one mission to the next through `campaign apply`, deciding what tasks and counter-attacks become between missions — and the MCP actions are a later lot, opened once the V1 has proved itself in game.
 
 David, 2026-10-02/03: VEAF likes Foothold, but it is hard on our servers' performance, and his
 experience points at Moose (many modules, nearly all active all the time, many loops). He wants a
@@ -136,10 +148,15 @@ after it has run on a server (ticket 07).
 
 ## Out of scope
 
-Shop, economy and budget, ranks, Foothold's events and director, the player task board, JTAC, on-demand
-tankers. **MCP actions and the prompt** (`create_campaign`, `add_campaign_zone`, `connect_zones`, a
+Superseded on 2026-11-15 by the feature selection above: the shop, the coalition credits, the task board, the JTAC and the tanker are V1 now.
+Still out of V1: ranks, personal credits, Foothold's director and events (V2), and the rows marked V1.5, V2 or left out.
+Restoring aircraft and convoys in flight after a restart is not in V1 either: they are lost, the zones and garrisons are not.
+**MCP actions and the prompt** (`create_campaign`, `add_campaign_zone`, `connect_zones`, a
 composite from a theatre description, the authoring skill) are the **next lot**, opened once the
 `campaign.yaml` format has survived this one.
+Decided for that lot (David, 2026-11-16): what the MCP places in a persistent campaign is written into `campaign.yaml` as zones and garrisons, never as `#veafInterpreter` commands.
+The interpreter runs at every mission start, so what it spawns comes back whole after each restart, outside the save and paid by nobody; a zone is saved with its losses and rebuilt from its side's resources.
+`campaign next` already reports an interpreter command found in a persistent campaign's mission (ticket 14).
 
 ## Related
 
@@ -150,15 +167,32 @@ composite from a theatre description, the authoring skill) are the **next lot**,
 
 ## Tickets
 
+Realigned on the V1 on 2026-11-15: the seven tickets of 2026-10-03 predated both the multi-mission campaign, which built the format, the capture, the map and the state writer, and the feature selection.
+Their content is either done there, or carried into the tickets below.
+Tickets 11 to 19 are the V1.5 rows of the feature selection (2026-11-16), one branch and one pull request into `feature/dynamic-campaign`.
+
 | # | ticket | status |
 |---|---|---|
-| 01 | [`campaign.yaml`, validation and build generation](tickets/01-campaign-yaml-and-build.md) | ⬜ |
-| 02 | [Runtime: zones, garrisons, dormancy, F10, radio](tickets/02-runtime-zones.md) | ⬜ |
-| 03 | [Capture: neutral zones, any ground presence, airbase ownership and slots](tickets/03-capture.md) | 🚫 |
-| 04 | [AI sorties derived from the graph](tickets/04-ai-sorties.md) | ⬜ |
-| 05 | [Persistence, victory and reset](tickets/05-persistence-victory-reset.md) | ⬜ |
-| 06 | [Documentation and an example campaign](tickets/06-doc-and-example.md) | ⬜ |
-| 07 | [Measure it against Foothold, then tune the caps](tickets/07-measure-against-foothold.md) | ⬜ |
+| 01 | [Persistent mode: save, reload, win, defeat, reset](tickets/01-persistent-mode.md) | 🧑 |
+| 02 | [Dormant zones, caps and work counters](tickets/02-dormancy.md) | 🧑 |
+| 03 | [A front that moves on its own: counter-attacks, supply, CTLD 2](tickets/03-live-front.md) | 🧑 |
+| 04 | [AI helicopters capture and resupply zones](tickets/04-ai-supply-helicopters.md) | 🧑 |
+| 05 | [Enemy air: CAP, CAS and SEAD strikes, Hunter](tickets/05-enemy-air.md) | 🧑 |
+| 06 | [Coalition credits and a small shop](tickets/06-economy-shop.md) | 🧑 |
+| 07 | [A task board drawn from the situation](tickets/07-task-board.md) | 🧑 |
+| 08 | [Intelligence: hidden garrisons, reconnaissance, spy team](tickets/08-intelligence.md) | 🧑 |
+| 09 | [Documentation, example campaign, test mission, in-game check](tickets/09-doc-example-test-mission.md) | 🧑 |
+| 10 | [Measure it against Foothold, then tune the caps](tickets/10-measure-against-foothold.md) | ⬜ |
+| 11 | [Zone kinds: factories and depots](tickets/11-zone-kinds.md) | 🧑 |
+| 12 | [Resources for the AI: one stock per side, prices, production](tickets/12-resources-production.md) | 🧑 |
+| 13 | [The supply network: hop by hop, depots at half time](tickets/13-supply-network.md) | 🧑 |
+| 14 | [VEAF spawn commands paid in credits or resources](tickets/14-paid-spawns.md) | 🧑 |
+| 15 | [Demolition team: sappers who blow up a factory](tickets/15-demolition-team.md) | 🧑 |
+| 16 | [Weapon stocks per warehouse, moved by players](tickets/16-warehouse-stocks.md) | 🧑 |
+| 17 | [Strategic bombers: an escorted red raid, a blue raid bought](tickets/17-strategic-bombers.md) | 🧑 |
+| 18 | [Territory cells (Voronoi) tinted by owner](tickets/18-voronoi-territory.md) | 🧑 |
+| 19 | [V1.5: documentation, example, test mission, self-check](tickets/19-v15-doc-test-mission.md) | 🧑 |
+| 20 | [What the first server flight taught (2026-11-16)](tickets/20-first-server-flight-fixes.md) | 🔄 |
 
 ## Former index entry
 

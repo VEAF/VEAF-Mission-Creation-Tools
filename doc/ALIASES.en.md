@@ -62,6 +62,7 @@ The level drawn is itself shifted by ±1 one time in five each way, and the unit
 | `-rolandnoew` | Roland battery without EWR (US) |
 | `-nasams` | NASAMS battery with AIM-120C (US) |
 | `-nasams_b` | NASAMS battery with AIM-120B (US) |
+| `-iristslm` | IRIS-T SLM battery (US), from the Currenthill pack shipped with DCS |
 | `-hawk` | Hawk battery (US) |
 | `-patriot` | Patriot battery (US) |
 | `-stinger` | Stinger MANPAD squad (US) |

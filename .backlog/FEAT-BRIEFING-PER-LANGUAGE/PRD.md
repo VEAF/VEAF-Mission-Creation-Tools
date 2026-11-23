@@ -1,6 +1,6 @@
 # FEAT-BRIEFING-PER-LANGUAGE — a mission briefing in each language of a bilingual mission
 
-Status: ⬜ ready
+Status: ✅ done
 
 Origin: the demo mission's kneeboard step (VEAF/VEAF-Demo-Mission-v6#11, 2026-10-26).
 The demo builds every weather variant twice, a `_FR` and an `_EN` mission (`build_variants`, profiles `FR` and `EN`), and wants `build_mission_briefing` to put its pages in the kneeboard of both.

@@ -62,6 +62,7 @@ modules:
 | `last_line_of_defence_max_radius_km` | nombre | `15` | Borne haute du rayon, en kilomètres |
 | `last_line_of_defence_persistence_s` | nombre | `45` | Durée pendant laquelle le site reste allumé après le dernier passage, en secondes |
 | `coverage_refresh_interval_s` | nombre | `10` | Intervalle entre deux balayages du graphe de couverture, en secondes (`0` = jamais) |
+| `setup_warnings_on_screen` | booléen | `false` | Afficher à l'écran de tous les joueurs les avertissements de mise en place de Skynet (un groupe introuvable, par exemple). Ils vont toujours dans `dcs.log` |
 
 ---
 

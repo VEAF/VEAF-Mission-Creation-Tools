@@ -265,6 +265,7 @@ modules:
                             #   last_line_of_defence_max_radius_km: 15
                             #   last_line_of_defence_persistence_s: 45   how long it stays lit after the last pass
                             #   coverage_refresh_interval_s: 10  how often the coverage graph is swept (0 = never)
+                            #   setup_warnings_on_screen: false  Skynet's set-up warnings on every player's screen (always in dcs.log)
   TUM: false                # opt-in: off unless set to true; when enabled it auto-runs TUM.initialize() and REQUIRES BLUFOR/REDFOR territory zones
 
 # Note: SKYNET, CSAR and QRA are configured entirely inside the `modules:` block

@@ -679,6 +679,18 @@ def test_an_unreadable_last_line_of_defence_number_warns_and_does_not_kill_the_b
     assert "veafSkynet.initialize(" in lua
 
 
+def test_skynet_setup_warnings_can_be_put_back_on_screen():
+    """#1296: off by default in the Lua, so the line is written only when the key is given."""
+    lua_on = generate_config_lua({"external_modules": {"skynet": {"enabled": True, "setup_warnings_on_screen": True}}})
+    assert "veafSkynet.SetupWarningsOnScreen = true" in lua_on
+    lua_absent = generate_config_lua({"external_modules": {"skynet": {"enabled": True}}})
+    assert "SetupWarningsOnScreen" not in lua_absent
+
+
+def test_mission_yaml_template_documents_the_setup_warnings_key():
+    assert "setup_warnings_on_screen" in generate_mission_yaml_template()
+
+
 def test_mission_yaml_template_documents_the_last_line_of_defence():
     """It ships **on** and changes existing missions, so the one place a mission maker can discover
     how to switch it off has to name it."""

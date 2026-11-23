@@ -2629,6 +2629,11 @@ def generate_config_lua(
             skynet_block.append(
                 f"    veafSkynet.CoverageRefreshInterval = {_to_lua_scalar(_whole_if_it_can_be(coverage_s))}"
             )
+        # Skynet's set-up warnings reach every player's screen (#1296): the Lua keeps them off by
+        # default, so the line is written only when the key is given, under the same rule as above.
+        if "setup_warnings_on_screen" in skynet_cfg:
+            sw = "true" if skynet_cfg["setup_warnings_on_screen"] else "false"
+            skynet_block.append(f"    veafSkynet.SetupWarningsOnScreen = {sw}")
         if _initialized_by_mission(skynet_cfg):
             _emit_initialized_by_mission(lines, "SKYNET")
         else:
@@ -2829,6 +2834,7 @@ def generate_mission_yaml_template(
                 "  #   last_line_of_defence_max_radius_km: 15",
                 "  #   last_line_of_defence_persistence_s: 45   # how long it stays lit after the last pass",
                 "  #   coverage_refresh_interval_s: 10          # how often the radar coverage graph is swept (0 = never)",
+                "  #   setup_warnings_on_screen: false          # Skynet's set-up warnings on every player's screen (always in dcs.log)",
             ]
         elif upper == "CTLD":
             # CTLD 2's own configuration is the mission's ctld-config.yaml (ADR 0016), so it takes no

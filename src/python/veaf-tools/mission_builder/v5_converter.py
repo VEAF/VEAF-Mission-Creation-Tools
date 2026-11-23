@@ -337,6 +337,10 @@ class ConversionReport:
     """Relative paths of files the converter does not manage — listed for the maker to review/delete."""
     missionconfig_source: str = ""
     """Original (pre-migration) missionConfig.lua content — used to recover commented-out v5 elements."""
+    kept_from_v5: list[str] = field(default_factory=list)
+    """``mission.yaml`` lines written to keep the v5 behaviour, each a v6 feature left off (#1300)."""
+    global_log_level_written: str = "info"
+    """The ``global_log_level`` the generated ``mission.yaml`` carries."""
 
     # -----------------------------------------------------------------------
     # Report rendering
@@ -485,7 +489,12 @@ class ConversionReport:
                 f"**File**: `{rel_yaml}`",
                 "",
                 t("report.mission_yaml.created_with"),
-                f"- `global_log_level: debug` \u2014 {t('report.mission_yaml.log_level_warn')}",
+                f"- `global_log_level: {self.global_log_level_written}`"
+                + (
+                    f" \u2014 {t('report.mission_yaml.log_level_warn')}"
+                    if self.global_log_level_written in ("debug", "trace")
+                    else ""
+                ),
                 f"- `lua_modules:` \u2014 {t('report.mission_yaml.modules_count', enabled=tn('report.mission_yaml.enabled_frag', enabled_count), disabled=tn('report.mission_yaml.disabled_frag', disabled_count))}",
             ]
             if self.auto_resolved_deps:
@@ -504,6 +513,15 @@ class ConversionReport:
             else:
                 lines.append(f"- `pipeline:` — {t('report.mission_yaml.pipeline_none')}")
             lines.append("")
+            if self.kept_from_v5:
+                lines += [
+                    f"#### {t('report.mission_yaml.kept_from_v5')}",
+                    "",
+                    t("report.mission_yaml.kept_from_v5_desc"),
+                    "",
+                ]
+                lines += [f"- `{line}`" for line in self.kept_from_v5]
+                lines.append("")
         elif self.mission_yaml_existed:
             lines += [
                 f"### 2. `mission.yaml` \u2014 {t('report.mission_yaml.skipped')}",
@@ -698,6 +716,43 @@ def _ctld_csar_settings(mr: object, upper: str) -> dict:
     return getattr(mr, attr, None) or {}
 
 
+def _v5_mission_names(folder: Path, name: str) -> bool:
+    """Tell whether a v5 mission names a script where it loads scripts from.
+
+    Looks in the mission's own files under ``src/mission/`` (its triggers, its ``mapResource``) and in
+    its scripts under ``src/scripts/``. The ``published/`` bundle is not one of them: v5 copied every
+    community script there, loaded or not.
+
+    Args:
+        folder: The v5 mission folder.
+        name: The text to find, e.g. ``"AIEN"``.
+
+    Returns:
+        ``True`` when one of those files contains ``name``.
+    """
+    roots = [folder / "src" / "mission", folder / "src" / "scripts"]
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for path in root.rglob("*"):
+            if path.is_file() and path.suffix in ("", ".lua") and path.stat().st_size < 50_000_000:
+                if name in path.read_text(encoding="utf-8", errors="ignore"):
+                    return True
+    return False
+
+
+#: The v6 pipeline steps a v5 mission never had, with the file each takes (#1300).
+_PIPELINE_STEPS_BY_V5_CANDIDATE: dict[str, str] = {
+    "presets": "presets",
+    "waypoints": "waypoints",
+    "aircraft_groups": "spawnable_aircrafts",
+    "weather": "weather",
+}
+
+#: A v5 mission editor's warehouses granting dynamic slots somewhere.
+_DYNAMIC_SPAWN_RE = re.compile(r'\["dynamicSpawn"\]\s*=\s*true')
+
+
 _DECOMMENT_RE = re.compile(r"^(\s*)--+ ?(.*)$")
 
 
@@ -744,7 +799,10 @@ def _emit_qra_definitions(silence_all: bool | None, definitions: list[dict], ind
     item = " " * (indent + 2)
     field = " " * (indent + 4)
     sub = " " * (indent + 6)
-    lines = [f"{base}silence_all: {'true' if silence_all else 'false'}", f"{base}definitions:"]
+    lines = [f"{base}silence_all: {'true' if silence_all else 'false'}"]
+    if not definitions:
+        return lines
+    lines.append(f"{base}definitions:")
     for qra in definitions:
         lines.append(f"{item}- name: {_yaml_str(qra.get('name', 'QRA'))}")
         if coalition := qra.get("coalition"):
@@ -1146,6 +1204,12 @@ class V5Converter:
             report.mist_callers = mission_scripts_referencing_mist(folder / "src" / "scripts")
             if not report.mist_callers:
                 report.detected_community_script_ids.discard("mist")
+        # AIEN, the same way (#1300): v5 copied it into published/ whether the mission loaded it or not,
+        # and v6 leaves it off unless asked. Kept only when the v5 mission names it somewhere it loads
+        # scripts from — its triggers, its resource map, its own scripts.
+        if "aien" in report.detected_community_script_ids and not _v5_mission_names(folder, "AIEN"):
+            report.detected_community_script_ids.discard("aien")
+            report.warnings.append(t("convert_v5.warning.aien_not_loaded"))
 
         for step, v6_candidates in V6_PIPELINE_CANDIDATES.items():
             # Check v6-format files first (already converted or freshly created)
@@ -1422,6 +1486,62 @@ class V5Converter:
         block += [f"# {line}" for line in recovered]
         return active_yaml + "\n" + "\n".join(block) + "\n"
 
+    @staticmethod
+    def _pipeline_parity_lines(report: ConversionReport) -> list[str]:
+        """Write the ``pipeline:`` steps so that the converted mission builds as it did in v5 (#1300).
+
+        A step whose v5 file was converted runs, without the extras v6 adds to it (kneeboard pages, the
+        BULLSEYE waypoint). A step the v5 mission had no file for is off: left on, the build would copy
+        the shipped default and inject it — dynamic slot templates, opened warehouses, weather variants.
+        Each such line is also recorded in ``report.kept_from_v5`` for the report.
+
+        Args:
+            report: The conversion in progress; ``kept_from_v5`` is filled in place.
+
+        Returns:
+            The lines under ``pipeline:``, indented by two spaces.
+        """
+        detected = {pf.step: pf for pf in report.pipeline_files}
+        lines: list[str] = []
+
+        def off(key: str, comment: str) -> None:
+            lines.append(f"  {key}: false  {comment}")
+            report.kept_from_v5.append(f"{key}: false")
+
+        for v5_step, key in _PIPELINE_STEPS_BY_V5_CANDIDATE.items():
+            pf = detected.get(v5_step)
+            if pf is None:
+                off(key, t("converter.yaml.pipeline.not_in_v5"))
+            elif pf.needs_conversion:
+                lines.append(
+                    f"  {key}: false  "
+                    + t("converter.yaml.pipeline.v5_format", file=str(pf.relative), v6_target=pf.v6_target or "")
+                )
+            elif key in ("presets", "waypoints"):
+                extra = "kneeboards" if key == "presets" else "bullseye"
+                lines += [
+                    f"  {key}:",
+                    f"    enabled: true  {t('converter.yaml.pipeline.detected', file=str(pf.relative))}",
+                    f"    {extra}: false  {t('converter.yaml.pipeline.not_in_v5')}",
+                ]
+                report.kept_from_v5.append(f"{key}.{extra}: false")
+            else:
+                lines.append(f"  {key}: true  {t('converter.yaml.pipeline.detected', file=str(pf.relative))}")
+
+        warehouses_file = report.mission_folder / "src" / "mission" / "warehouses"
+        editor_warehouses = (
+            warehouses_file.read_text(encoding="utf-8", errors="ignore") if warehouses_file.is_file() else ""
+        )
+        if _DYNAMIC_SPAWN_RE.search(editor_warehouses):
+            lines.append(f"  dynamic_slot_templates: true  {t('converter.yaml.pipeline.dynamic_slots_found')}")
+        else:
+            off("dynamic_slot_templates", t("converter.yaml.pipeline.not_in_v5"))
+        if (report.mission_folder / "src" / "warehouses.yaml").is_file():
+            lines.append(f"  warehouses: true  {t('converter.yaml.pipeline.detected', file='src/warehouses.yaml')}")
+        else:
+            off("warehouses", t("converter.yaml.pipeline.not_in_v5"))
+        return lines
+
     def _build_mission_yaml(self, report: ConversionReport) -> str:
         """Produce the full mission.yaml content (with explanatory comments)."""
         import re as _re  # noqa: PLC0415 (avoid shadowing outer re)
@@ -1453,6 +1573,8 @@ class V5Converter:
 
         # ── Global log level ──────────────────────────────────────────────
         extracted_ll = mr.global_log_level_extracted if mr else None
+        report.global_log_level_written = extracted_ll or "info"
+        report.kept_from_v5 = []
         lines += [
             t("converter.yaml.header.loglevel"),
             t("converter.yaml.loglevel.desc1"),
@@ -1465,9 +1587,12 @@ class V5Converter:
         ]
 
         # ── Mission identity ───────────────────────────────────────────────
+        # Always written, for the language (#1300): without it the messages in game follow the
+        # language of whichever computer builds the mission.
+        lines.append(t("converter.yaml.header.identity"))
+        lines.append("mission:")
+        lines.append(f"  language: {current_language()}")
         if mr and (mr.mission_name or mr.mission_era or mr.mission_export_path is not None or mr.silence_atc):
-            lines.append(t("converter.yaml.header.identity"))
-            lines.append("mission:")
             if mr.mission_name:
                 lines.append(f"  name: {_yaml_str(mr.mission_name)}")
             if mr.mission_era:
@@ -1480,7 +1605,7 @@ class V5Converter:
             # understands "how it got here" (a mission-wide option, not identity).
             if mr.silence_atc:
                 lines.append("  silence_atc_on_all_airbases: true  # migrated from veaf.silenceAtcOnAllAirbases()")
-            lines.append("")
+        lines.append("")
 
         # ── Security ──────────────────────────────────────────────────────
         if mr and (mr.security_disabled is not None or mr.password_mm_hashes or mr.password_hashes):
@@ -1516,6 +1641,12 @@ class V5Converter:
                 )
                 lines.append(f"  {key}: {rendered}")
             lines.append("")
+        # A computed switch cannot be carried, but this one changes what the mission writes to disk at
+        # every start: offer it, commented, rather than let the JSON exports come back unnoticed (#1300).
+        if mr and any("DO_NOT_EXPORT_JSON_FILES" in line for line in mr.not_migrated_computed):
+            lines.append(t("converter.yaml.json_exports_hint"))
+            lines.append("#   veaf.DO_NOT_EXPORT_JSON_FILES: true")
+            lines.append("")
 
         # ── Module configuration ───────────────────────────────────────────
         # Base infrastructure modules that must always be explicitly enabled.
@@ -1543,8 +1674,15 @@ class V5Converter:
         }
         # QRA config now lives under modules.QRA, so the module must be enabled
         # whenever QRA definitions were extracted (MODULES-UNIFY).
-        if mr and mr.qra_definitions:
+        # A `ToggleAllSilence(true)` with no YAML QRA still silences the mission's own QRAs (#1300).
+        if mr and (mr.qra_definitions or mr.qra_silence_all):
             enabled_set.add("QRA")
+        # REMOTE is enabled by its `if veafRemote then` guard alone, even when the guard only sets
+        # options and v5 never started the module (#1300): kept only with its initialize() call.
+        remote_started = re.search(r"\bveafRemote\.initialize\s*\(", _strip_lua_comments(report.missionconfig_source))
+        remote_needed = remote_started or "REMOTE" in report.mission_initialized | report.mission_used
+        if "REMOTE" in enabled_set and not remote_needed and "REMOTE" not in _BASE_ALWAYS_ON:
+            enabled_set.discard("REMOTE")
         # Pre-resolve module dependencies (e.g. CASMISSION → GROUNDAI, SPAWN) so
         # the generated mission.yaml is self-consistent and the build no longer
         # needs to auto-enable them at config-generation time with a warning.
@@ -1579,7 +1717,7 @@ class V5Converter:
                     or (mid == "SANCTUARY" and mr and mr.sanctuary_zones_extracted)
                     or (mid == "COMBATZONE" and mr and (mr.combat_zone_settings_extracted or mr.combat_zones_extracted))
                     or (mid == "AIRWAVES" and mr and mr.airwave_zones_extracted)
-                    or (mid == "QRA" and mr and mr.qra_definitions)
+                    or (mid == "QRA" and mr and (mr.qra_definitions or mr.qra_silence_all))
                     or mid in report.mission_initialized
                 )
                 lines.extend(yaml_module_entry(yaml_key, mid, has_config=has_config))
@@ -1620,7 +1758,7 @@ class V5Converter:
                     lines.append("    airwave_zones:")
                     lines.extend(_yaml_list_block(mr.airwave_zones_extracted, indent=4))
 
-                elif mid == "QRA" and mr and mr.qra_definitions:
+                elif mid == "QRA" and mr and (mr.qra_definitions or mr.qra_silence_all):
                     lines.extend(_emit_qra_definitions(mr.qra_silence_all, mr.qra_definitions, indent=4))
 
         # Emit any enabled module not in any known category (safety net)
@@ -1753,30 +1891,9 @@ class V5Converter:
             "#",
         ]
 
-        detected_steps = {pf.step: pf for pf in report.pipeline_files}
-        pipeline_lines: list[str] = []
-        for step, v6_candidates in V6_PIPELINE_CANDIDATES.items():
-            if step in detected_steps:
-                pf = detected_steps[step]
-                if pf.needs_conversion:
-                    pipeline_lines.append(
-                        t(
-                            "converter.yaml.pipeline.step_needs_conversion",
-                            step=step,
-                            file=str(pf.relative),
-                            v6_target=pf.v6_target or "",
-                        )
-                    )
-                else:
-                    pipeline_lines.append(t("converter.yaml.pipeline.step_found", step=step, file=str(pf.relative)))
-            else:
-                pipeline_lines.append(t("converter.yaml.pipeline.step_missing", step=step, file=v6_candidates[0]))
-
-        if pipeline_lines:
-            lines.append("pipeline:")
-            lines.extend(pipeline_lines)
-        else:
-            lines.append(t("converter.yaml.pipeline.empty"))
+        lines.append("pipeline:")
+        lines.append(t("converter.yaml.pipeline.parity_header"))
+        lines.extend(self._pipeline_parity_lines(report))
 
         # ── Build configuration ────────────────────────────────────────────
         lines += [

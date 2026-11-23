@@ -4,10 +4,6 @@
 
 Lots written up and ready to take.
 
-### [FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT](FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT/PRD.md) · ⬜
-
-What the 22/11 evening on the Campagne server showed: the capture timer counting up, a repair let through with an enemy convoy at the gates, that convoy sitting two hours "in contact", Menagh to rename Minakh (campaign data), a respawned AWACS that lost its callsign and says nothing, scattered infantry. Six tickets, one PR into `develop` (2026-11-23); the radio menus went to FIX-RADIO-NEXT-PAGE-IN-F10, the Fat Cow remark belongs to `VEAF/CTLD`.
-
 ### [FEAT-CLEAR-GROUND-COVERAGE](FEAT-CLEAR-GROUND-COVERAGE/PRD.md) · ⬜
 
 Widen the shipped clear-ground catalogues to the places missions are built — round airfields, towns, road axes — under a weight ceiling per theatre. Needs a survey flown in DCS, so David's time; split from FIX-DEMO-VIDEO-FINDINGS (2026-10-23).

@@ -1,6 +1,6 @@
 # FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT — what the 22/11 evening on the Campagne server showed
 
-Status: ⬜ ready
+Status: 🧑 waiting-human — ticket 04 (campaign data, the control session at the next deploy), ticket 05's measure in DCS, the flight checks
 
 The persistent campaign "Bouclier de l'Oronte" (Northern Syria, `foothold2_server`), flown on 2026-11-22 in the evening. David's seven remarks, read in the server's `dcs.log` and the code on 2026-11-23. Six are this repository's; the seventh, the Fat Cow, belongs to `VEAF/CTLD` (below).
 

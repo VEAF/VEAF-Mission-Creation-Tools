@@ -1,6 +1,6 @@
 # 04 — Menagh becomes Minakh
 
-Status: ⬜ ready
+Status: ✅ done
 Type: chore (campaign data, no code)
 
 ## Read
@@ -18,3 +18,9 @@ No code change: the name is the campaign's data.
 ## Done when
 
 WP2 and every label read Minakh, and the save resumed with Minakh's garrison intact.
+
+## Done (2026-11-23, the control session)
+
+- `campaign.yaml`, `campaign-state.yaml` and `briefing.yaml` of `D:\dev\_VEAF\tmp\dynamic-syria`: `Menagh` → `Minakh` (backups `*.before-minakh`); `campaign validate` clean, `campaign next` run. The mission's briefing text (`src/mission/mission`, 4 occurrences in the descriptions) renamed too: `campaign next` does not rewrite it.
+- The save, server stopped: 10 occurrences of `Menagh` → `Minakh`, none left; uploaded and checked by hash (4937997CDD8E).
+- Mission built from `develop` (62f4fac1), hash DB2DCD9E6AB1, deployed on 2026-11-23 at 16:04 UTC: the campaign resumed from its save, Skynet initialized, no VEAF error. The `Menagh` left in `veaf-scripts.lua` are code comments.

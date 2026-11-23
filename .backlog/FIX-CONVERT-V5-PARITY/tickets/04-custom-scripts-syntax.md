@@ -1,6 +1,6 @@
 # 04 — `validate` and `build` check the syntax of `custom_scripts`
 
-Status: ⬜ ready
+Status: ✅ done
 
 Issue: [#1303](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1303).
 

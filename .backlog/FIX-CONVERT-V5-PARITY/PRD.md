@@ -1,6 +1,6 @@
 # FIX-CONVERT-V5-PARITY — a converted v5 mission behaves as it did in v5, or says what changed
 
-Status: ⬜ ready
+Status: ✅ done — ships in 6.39.0 (2026-11-23)
 
 Origin: Sharko (BFR) converted parts of SeaShepherd with 6.37.0 and filed, in French, on 2026-11-22: [#1300](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1300), [#1301](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1301), [#1302](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1302), [#1303](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1303).
 The runtime and docs findings of the same report are [FIX-BFR-PORT-FINDINGS](../FIX-BFR-PORT-FINDINGS/PRD.md).

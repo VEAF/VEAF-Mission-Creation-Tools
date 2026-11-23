@@ -141,8 +141,8 @@ What the script does:
 
 The `HOTLOAD:` lines are the ones hotload itself writes: a `grep HOTLOAD` on `dcs.log` finds them all.
 
-`VEAF_DYNAMIC_MISSIONPATH` is the folder the build writes the `.miz` to.
-By default it is the mission folder; if you give the build a `.miz` path elsewhere, it is that folder, and VMCT's dynamic loading also looks there for `src\scripts\`.
+`VEAF_DYNAMIC_MISSIONPATH` is the mission folder, where `mission.yaml` is, even when the build writes the `.miz` elsewhere.
+VMCT's dynamic loading looks there for `src\scripts\`.
 
 ## Checking with `status` {#status}
 

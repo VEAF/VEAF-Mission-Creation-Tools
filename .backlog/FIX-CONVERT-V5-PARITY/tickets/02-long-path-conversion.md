@@ -1,6 +1,6 @@
 # 02 — A conversion that cannot finish writes nothing, and the build refuses it
 
-Status: ⬜ ready
+Status: ✅ done
 
 Issue: [#1301](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1301).
 

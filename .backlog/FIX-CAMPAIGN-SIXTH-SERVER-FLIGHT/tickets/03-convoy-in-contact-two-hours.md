@@ -1,6 +1,6 @@
 # 03 — A convoy does not sit two hours "in contact"
 
-Status: 🧑 waiting-human — the flight check
+Status: ✅ done
 Type: fix
 
 ## Read

@@ -1,6 +1,6 @@
 # 03 — The IRIS-T SLM and the Rapier for blue
 
-Status: 🧑 waiting-human
+Status: ✅ done
 Type: feature
 
 ## To do

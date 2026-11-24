@@ -1,6 +1,6 @@
 # 03 — The AWACS holds well behind the front
 
-Status: 🧑 waiting-human — the in-game check
+Status: ✅ done
 Type: fix
 
 ## To do

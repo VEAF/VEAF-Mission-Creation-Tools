@@ -1,6 +1,6 @@
 # 03 — The campaign declares its SAM groups to Skynet
 
-Status: 🧑 waiting-human (in-game check)
+Status: ✅ done
 Type: feature
 
 ## To do

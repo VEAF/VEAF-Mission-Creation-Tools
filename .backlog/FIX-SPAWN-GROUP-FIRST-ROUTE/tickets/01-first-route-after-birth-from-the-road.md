@@ -1,6 +1,6 @@
 # 01 — The first route 5 s after the birth, from the road
 
-Status: 🧑 waiting-human
+Status: 🧑 waiting-human — the local check, in a test mission (David's DCS, through the bridge)
 Type: fix
 
 ## To do

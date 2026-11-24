@@ -1,6 +1,8 @@
 # FIX-GROUNDAI-CLOSE-IN-REACHABLE — a convoy closes in on a point it can reach, and checks that it moves
 
-Status: 🧑 waiting-human
+Status: ✅ done — merged in #1328 and #1331 (2026-11-22), on `develop` with #1336 (2026-11-23), shipped in 6.39.0
+
+Flight check: on the Campagne server, convoys close in on a reachable point, a push that moves nothing is replaced within 25 s, and a spawned convoy leaves within seconds (tickets 01 to 03's in-game checks).
 
 The cause behind FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT, which treats the consequence (a push that moves nothing is not a contact). David, 2026-11-22: create the lot, from a note of the dcs-cartographie session.
 

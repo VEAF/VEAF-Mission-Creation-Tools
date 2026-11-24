@@ -1,6 +1,6 @@
 # 04 — A supply helicopter's timeout from its distance
 
-Status: 🧑 waiting-human — the in-game check
+Status: ✅ done
 Type: fix
 
 ## To do

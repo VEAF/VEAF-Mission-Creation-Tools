@@ -1,6 +1,8 @@
 # FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY — every air defence DCS offers, red's medium range first
 
-Status: 🧑 waiting-human
+Status: ✅ done — merged in #1330 (2026-11-22), on `develop` with #1336 (2026-11-23), shipped in 6.39.0
+
+Flight check: on the Campagne server: a red modern short-range zone draws a Tor M2 or a Pantsir S1, a `medium_range_sam` zone an SA-11, SA-6 or SA-3 battery, and the shop sells the IRIS-T SLM and the Rapier (tickets 01 to 03's in-game checks).
 
 David, 2026-11-21, after the evening on the Campagne server: "il faudrait s'assurer qu'on a tous les SAM possibles. Par exemple, on ne spawn jamais de Tor M2."
 

@@ -1,6 +1,6 @@
 # 01 — `closeIn` aims at a reachable point on a checked path
 
-Status: 🧑 waiting-human
+Status: ✅ done
 Type: fix
 
 ## To do

@@ -1,6 +1,6 @@
 # 03 — The evening's summary is written when the last player disconnects
 
-Status: 🧑 waiting-human
+Status: ✅ done
 Type: fix
 
 ## Found (Campagne server, 2026-11-21)

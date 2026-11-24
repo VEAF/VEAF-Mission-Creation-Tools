@@ -1,6 +1,6 @@
 # 02 — A garrison's SAM in a group of its own
 
-Status: 🧑 waiting-human — the measure needs DCS running on David's machine
+Status: 🧑 waiting-human — measured on 2026-11-22, no code change; David's call on the Hawk
 Type: fix
 
 ## To do

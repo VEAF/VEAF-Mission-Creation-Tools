@@ -1,6 +1,6 @@
 # 01 — A ground kill is read before its target is gone
 
-Status: 🧑 waiting-human
+Status: ✅ done
 Type: fix
 
 ## To do

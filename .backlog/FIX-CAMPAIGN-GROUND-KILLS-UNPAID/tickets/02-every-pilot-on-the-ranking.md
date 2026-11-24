@@ -1,6 +1,6 @@
 # 02 — Every pilot who flew is on the ranking
 
-Status: 🧑 waiting-human
+Status: ✅ done
 Type: fix
 
 ## To do

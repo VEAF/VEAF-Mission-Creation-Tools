@@ -1,6 +1,6 @@
 # 01 — Skynet on in the campaign mission
 
-Status: 🧑 waiting-human (in-game check)
+Status: ✅ done
 Type: feature
 
 ## To do

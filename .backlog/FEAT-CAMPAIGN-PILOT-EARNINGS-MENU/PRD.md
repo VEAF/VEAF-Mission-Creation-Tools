@@ -1,6 +1,8 @@
 # FEAT-CAMPAIGN-PILOT-EARNINGS-MENU — each pilot sees in game what he earned
 
-Status: 🧑 waiting-human
+Status: ✅ done — merged in #1329 (2026-11-22), on `develop` with #1336 (2026-11-23), shipped in 6.39.0
+
+Flight check: on the Campagne server, each pilot opens Campaign → Mes gains and reads his own earnings, held credits, total, rank, kills and deaths, and the team's gains (ticket 01's in-game check).
 
 David, 2026-11-21, after the evening on the Campagne server: "il me semblait que j'avais demandé à avoir un menu pour savoir chaque pilote qu'est-ce qu'il a gagné".
 

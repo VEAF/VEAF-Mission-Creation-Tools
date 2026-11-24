@@ -1,6 +1,6 @@
 # 01 — "Next page" always in F10
 
-Status: 🧑 waiting-human — the flight check
+Status: ✅ done
 Type: fix
 
 ## Read

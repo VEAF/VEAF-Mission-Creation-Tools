@@ -3386,7 +3386,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "the questions to ask, the design rules and the build order. 'objective': a mission a group "
                 "plays once, in one session (a package, objectives, a threat, a briefing). 'open-training': "
                 "a VEAF training mission on a whole map (airfields, support, training and combat zones, "
-                "QRA). Load ONE prompt, the kind the user chose -- never both. The objective prompt comes "
+                "QRA). 'persistent-campaign': one mission that runs on a server for weeks, zones changing "
+                "hands and a front moving on its own (campaign.yaml, mode: persistent). Load ONE prompt, the "
+                "kind the user chose -- never two. The objective prompt comes "
                 "in two parts: the scenario first; its build part ('part': 'build') once the user has "
                 "approved a scenario. Read-only."
             ),

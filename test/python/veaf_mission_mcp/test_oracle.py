@@ -197,13 +197,20 @@ def test_the_authoring_guide_sends_a_mission_request_to_the_mission_prompts() ->
     """A user who only says "create a mission" must reach the prompts without naming them."""
     guide = describe_authoring_guide()["guide"]
     assert "describe_mission_prompt" in guide
-    assert "objective" in guide and "open-training" in guide
+    assert "objective" in guide and "open-training" in guide and "persistent-campaign" in guide
 
 
-@pytest.mark.parametrize("kind", ["objective", "open-training"])
+@pytest.mark.parametrize(
+    ("kind", "stem"),
+    [
+        ("objective", "new-objective-mission"),
+        ("open-training", "new-open-training-mission"),
+        ("persistent-campaign", "new-persistent-campaign"),
+    ],
+)
 @pytest.mark.parametrize("lang", ["fr", "en"])
-def test_describe_mission_prompt_returns_each_shipped_prompt(kind: str, lang: str) -> None:
-    expected = (_MCP_DATA / "mission-prompts" / f"new-{kind}-mission.{lang}.md").read_text(encoding="utf-8")
+def test_describe_mission_prompt_returns_each_shipped_prompt(kind: str, stem: str, lang: str) -> None:
+    expected = (_MCP_DATA / "mission-prompts" / f"{stem}.{lang}.md").read_text(encoding="utf-8")
     assert describe_mission_prompt(kind, lang, part="all") == {"kind": kind, "lang": lang, "prompt": expected}
 
 
@@ -369,7 +376,7 @@ def test_the_guide_has_every_new_mission_adapt_the_scaffold_first() -> None:
         assert item in checklist, item
 
 
-@pytest.mark.parametrize("kind", ["objective", "open-training"])
+@pytest.mark.parametrize("kind", ["objective", "open-training", "persistent-campaign"])
 @pytest.mark.parametrize("lang", ["fr", "en"])
 def test_a_mission_prompt_names_no_skill_that_does_not_ship(kind: str, lang: str) -> None:
     """The plugin and its skill are gone: a prompt asking to load it sends the assistant nowhere."""
@@ -387,7 +394,7 @@ def test_the_parking_limitation_says_dynamic_slots_are_not_concerned() -> None:
     assert "dynamic slots" in entry["title"].lower()
 
 
-@pytest.mark.parametrize("kind", ["objective", "open-training"])
+@pytest.mark.parametrize("kind", ["objective", "open-training", "persistent-campaign"])
 def test_an_english_prompt_builds_an_english_mission(kind: str) -> None:
     """FIX-MISSION-LANGUAGE-FOLLOWS-USER: the English prompts told the assistant to write the mission, its
     briefing and its README in French, and an English-speaking user got a French mission.
@@ -566,3 +573,26 @@ def test_the_guide_s_helicopter_rule_speaks_of_the_simulated_wind() -> None:
     guide = describe_authoring_guide()["guide"]
     assert not [rule for rule in _SETTING_WIND_RULES if rule in guide]
     assert "simulated_wind" in guide and "20 kt" in guide and "mission-check" in guide
+
+
+@pytest.mark.parametrize("lang", ["fr", "en"])
+def test_the_persistent_campaign_prompt_names_only_actions_that_exist(lang: str) -> None:
+    """FEAT-PERSISTENT-CAMPAIGN-AI 03: an action the prompt names and the catalogue lacks sends the AI nowhere."""
+    import re
+
+    from veaf_mission_mcp.actions import register_default_actions
+    from veaf_mission_mcp.catalog import ActionCatalog
+
+    catalog = ActionCatalog()
+    register_default_actions(catalog)
+    known = {spec.name for spec in catalog.list_catalog()} | {"capabilities"}
+    prompt = describe_mission_prompt("persistent-campaign", lang)["prompt"]
+    named = set(re.findall(r"`([a-z]+(?:_[a-z]+)+)`", prompt))
+    actions = {
+        name
+        for name in named
+        if name.split("_")[0]
+        in {"campaign", "describe", "read", "edit", "list", "resolve", "scaffold", "validate", "build", "inspect"}
+    }
+    assert {"campaign_init", "campaign_validate", "campaign_next", "edit_mission_file"} <= actions
+    assert actions <= known

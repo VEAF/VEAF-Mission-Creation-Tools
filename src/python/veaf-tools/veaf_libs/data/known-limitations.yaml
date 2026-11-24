@@ -2288,3 +2288,22 @@ limitations:
     Spawn again under a new name, or remove the old site first, as the persistent campaign does
     (`veafCampaign.declareToSkynet`: `veafSkynet.removeSkynetElement` on the site of that name, then
     `veafSkynet.rebuildRadarCoverage`).
+
+- id: aircraft-spawned-without-callsign-is-mute
+  kind: dcs
+  area: radio
+  title: "An aircraft spawned without a callsign is created without error, then never answers on the radio"
+  measured: "2026-11-22"
+  symptom: |
+    `coalition.addGroup` accepts an aircraft unit with no `callsign` field. Nothing goes wrong at the spawn; every
+    radio call to it fails later in DCS's speech, one `dcs.log` line per call:
+    `Error in wMessage::buildSpeech(), event = wMsgLeaderPicture … Callname -1 not found for AWACS Magic-1 !`
+    (also `wMsgLeaderVectorToNearestBandit`, `wMsgAWACSClean`). Read on the Campagne server from 2026-11-21 22:00
+    UTC and all of 2026-11-22, after the campaign's AWACS was bought back from the shop: VEAF's mission records
+    carried no callsign, so `veafAssets.respawn` submitted none.
+  workaround: |
+    Submit the editor's callsign with each aircraft unit: a table for a western aircraft
+    (`{ [1] = 1, [2] = 1, [3] = 1, name = "Magic11" }`), a number for an eastern one. VEAF's mission records carry it
+    since FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT, so a respawn or a teleport of a Mission Editor group keeps it.
+  cost: |
+    The campaign's AWACS answered no picture, bogey dope or "clean" for two evenings.

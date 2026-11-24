@@ -14,7 +14,9 @@ from its first section:
 - `objective` — a mission a group plays once, in one session: a package, one or more objectives, a threat,
   a way home, and its briefing;
 - `open-training` — a VEAF training mission on a whole map: airfields, support, air defence, graded
-  training zones, combat zones, QRA.
+  training zones, combat zones, QRA;
+- `persistent-campaign` — one mission that runs on a server for weeks: zones that change hands, a front
+  that moves on its own, enemy air, credits, a save (`campaign.yaml`, `mode: persistent`).
 
 Pass `lang: fr` to a user who writes in French. The mission takes the user's language too —
 `mission.language`, its briefing, its maps and its README — unless they ask for another. **Whatever a human reads

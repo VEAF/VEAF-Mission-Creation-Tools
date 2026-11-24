@@ -2026,8 +2026,8 @@ veaf.i18nCatalog = {
   ["campaign.map_label"] = { fr = "%s — %d %%", en = "%s — %d%%" },
   ["campaign.map_label_neutral"] = { fr = "%s — neutre", en = "%s — neutral" },
   ["campaign.map_label_capture"] = {
-    fr = "%s — capture %s en cours (%d s)",
-    en = "%s — %s capture in progress (%d s)",
+    fr = "%s — capture %s en cours, prise dans %s",
+    en = "%s — %s capture in progress, taken in %s",
   },
   ["campaign.situation.header"] = {
     fr = "Campagne %s — mission %d sur %d",
@@ -2035,8 +2035,8 @@ veaf.i18nCatalog = {
   },
   ["campaign.situation.zone"] = { fr = "- %s : %s, garnison %d %%", en = "- %s: %s, garrison %d%%" },
   ["campaign.situation.capture"] = {
-    fr = ", capture %s en cours (%d s)",
-    en = ", %s capture in progress (%d s)",
+    fr = ", capture %s en cours, prise dans %s",
+    en = ", %s capture in progress, taken in %s",
   },
   ["campaign.situation.objectives"] = { fr = "Objectifs :", en = "Objectives:" },
   ["campaign.objective.capture"] = { fr = "- prendre %s", en = "- capture %s" },

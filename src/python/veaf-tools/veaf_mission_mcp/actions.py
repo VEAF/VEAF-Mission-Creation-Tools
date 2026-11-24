@@ -19,7 +19,14 @@ from veaf_mission_mcp.briefing_picture import set_briefing_picture
 from veaf_mission_mcp.build_briefing import build_briefing
 from veaf_mission_mcp.build_promotion import build_promotion
 from veaf_mission_mcp.build_tools import build_mission, validate_mission
-from veaf_mission_mcp.campaign import campaign_apply, campaign_briefing, campaign_next, campaign_status
+from veaf_mission_mcp.campaign import (
+    campaign_apply,
+    campaign_briefing,
+    campaign_init,
+    campaign_next,
+    campaign_status,
+    campaign_validate,
+)
 from veaf_mission_mcp.carrier import CARRIER_TYPES, add_carrier_group
 from veaf_mission_mcp.catalog import ActionCatalog
 from veaf_mission_mcp.composites import add_combat_operation, create_cap_mission, create_combat_zone, create_qra
@@ -1599,7 +1606,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     _mission_file_param = {
         "type": "string",
         "description": "'mission.yaml' or 'src/<name>.yaml' (presets, versions, waypoints, warehouses, "
-        "spawnables, dynamic-slot-templates…), relative to the mission folder; nothing else is reachable. `path` is read as an alias.",
+        "spawnables, dynamic-slot-templates…), relative to the mission folder; in a CAMPAIGN folder "
+        "(campaign.yaml, no mission.yaml) 'campaign.yaml' or 'briefing.yaml'; nothing else is reachable. "
+        "`path` is read as an alias.",
     }
     catalog.register(
         ActionSpec(
@@ -1612,7 +1621,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "Line ends come back as \\n whatever the file uses. Without mission_path, reads the "
                 "scaffold shipped with the tools -- what scaffold_mission will lay down: the dynamic-slot "
                 "templates (types, frequencies), the presets plan, mission.yaml with each module's "
-                "commented example -- so a plan can be checked before any folder exists. Read-only."
+                "commented example -- so a plan can be checked before any folder exists. Given a campaign "
+                "folder as mission_path, reads its campaign.yaml or briefing.yaml. Read-only."
             ),
             parameters_schema={
                 "type": "object",
@@ -1649,7 +1659,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "mission.name or mission.era in mission.yaml, versions.yaml, waypoints.yaml, the presets plan. "
                 "Line ends are compared normalised (\\n or \\r\\n both match) and the file keeps its own. "
                 "Refused when the passage is missing or repeated, or when the result is no longer YAML: "
-                "nothing is written then. Backed up first. Prefer a dedicated action when one exists "
+                "nothing is written then. Backed up first. An EMPTY search creates a file that is not there "
+                "yet, 'replace' its whole content (never one that exists). Given a campaign folder as "
+                "mission_path, edits its campaign.yaml or briefing.yaml: how a campaign started from "
+                "campaign_init's example is rewritten. Prefer a dedicated action when one exists "
                 "(set_mission_module, set_mission_setting, set_forced_options…)."
             ),
             parameters_schema={
@@ -1708,6 +1721,56 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         "type": "string",
         "description": "Path to the campaign folder (campaign.yaml, campaign-state.yaml, template/, missions/).",
     }
+    catalog.register(
+        ActionSpec(
+            name="campaign_init",
+            description=(
+                "Start a campaign, multi-mission or persistent, in two calls. FIRST, with 'example' "
+                "('persistent' or 'multi-mission') on a folder with no campaign.yaml yet: copies the example "
+                "shipped with the tools (campaign.yaml, and briefing.yaml for the multi-mission one) into it, "
+                "creating the folder, and draws no state -- rewrite campaign.yaml for the user's campaign with "
+                "read_mission_file / edit_mission_file (mission_path = the campaign folder), lay down template/ "
+                "with scaffold_mission, and run campaign_validate until it reports no error. THEN, without "
+                "'example': draws the campaign's initial state (campaign-state.yaml) from campaign.yaml, so "
+                "campaign_next can lay down the first mission. Never overwrites a campaign.yaml nor a state: a "
+                "campaign already started is refused. For a new persistent campaign, load the "
+                "'persistent-campaign' mission prompt first (describe_mission_prompt)."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "campaign_folder": _campaign_folder,
+                    "example": {
+                        "type": "string",
+                        "enum": ["persistent", "multi-mission"],
+                        "description": "Copy this shipped example into the folder instead of starting it.",
+                    },
+                },
+                "required": ["campaign_folder"],
+            },
+        ),
+        handler=lambda p: campaign_init(Path(p["campaign_folder"]), p.get("example")),
+    )
+    catalog.register(
+        ActionSpec(
+            name="campaign_validate",
+            description=(
+                "Check a campaign folder as `veaf-tools campaign validate` does: campaign.yaml (zones, "
+                "connections, sides, the dynamic: block of a persistent campaign), the state against it once "
+                "started, briefing.yaml, and the template/ mission it reads (AWACS and tankers named in "
+                "dynamic.support.assets, a boom and a basket tanker, the radio plan's theatre, long-range "
+                "SAMs). Returns {valid, errors, warnings}. Run it after every change to campaign.yaml and "
+                "before campaign_init and campaign_next: an error blocks them, and a warning is a defect the "
+                "first evening on the server would show -- fix it, do not just report it. Read-only."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {"campaign_folder": _campaign_folder},
+                "required": ["campaign_folder"],
+            },
+        ),
+        handler=lambda p: campaign_validate(Path(p["campaign_folder"])),
+    )
     catalog.register(
         ActionSpec(
             name="campaign_status",
@@ -3323,7 +3386,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "the questions to ask, the design rules and the build order. 'objective': a mission a group "
                 "plays once, in one session (a package, objectives, a threat, a briefing). 'open-training': "
                 "a VEAF training mission on a whole map (airfields, support, training and combat zones, "
-                "QRA). Load ONE prompt, the kind the user chose -- never both. The objective prompt comes "
+                "QRA). 'persistent-campaign': one mission that runs on a server for weeks, zones changing "
+                "hands and a front moving on its own (campaign.yaml, mode: persistent). Load ONE prompt, the "
+                "kind the user chose -- never two. The objective prompt comes "
                 "in two parts: the scenario first; its build part ('part': 'build') once the user has "
                 "approved a scenario. Read-only."
             ),

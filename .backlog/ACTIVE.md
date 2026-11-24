@@ -36,6 +36,14 @@ The enemy's assault convoys sized for the players who can stop them (Griffin and
 
 ## 🧑 Waiting for a human
 
+### [FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT](FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT/PRD.md) · 🧑
+
+What the 22/11 evening on the Campagne server showed: the capture shows the time left, no repair with an enemy convoy within `network.threat_radius`, an assault convoy gives up the enemies it pressed on in vain, a respawned aircraft keeps its callsign, a garrison's infantry holds one position near the centre (one PR into `develop`). Waits for ticket 04 (Menagh → Minakh, campaign data, the control session at the next deploy), ticket 05's measure in DCS and the flight checks.
+
+### [FIX-RADIO-NEXT-PAGE-IN-F10](FIX-RADIO-NEXT-PAGE-IN-F10/PRD.md) · 🧑
+
+"Next page" is the last entry of every radio menu page. Done: DCS lists a menu's entries in the order they were created, so a per-group entry rendered when its pilot joins (the shop's escort, My earnings, My spawns, a secured command) or an entry recreated with new parameters landed below the "Next page" rendered before; `veafRadio` now renews the link, with the pages under it, when anything was created on its page. Waiting: the flight check on the Campagne server. PR into `develop`.
+
 ### [FIX-RECON-OT-FINDINGS](FIX-RECON-OT-FINDINGS/PRD.md) · 🧑
 
 The recon commands taught by the eight Open Training photo shoots (2026-11-17/18): one combat zone active at a time, DCS's own screenshot with the window in the background, terrain warm-up and positions read at the grab, one shot per combat zone from the kneeboard's objectives, one ring per group with plural category labels, names shown last in `veaf-config.lua`, a guard on a copy without its spawn database, and fourteen unit types of the spawn database called by their DCS ids. Five tickets, done in the code; waits for an Open Training shot end to end in David's DCS.

@@ -17,6 +17,23 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.39.1] — 2026-11-24
+
+- **"Next page" is the last entry of every radio menu page** (FIX-RADIO-NEXT-PAGE-IN-F10): on the Campagne server, several menus showed "Page suivante" in F9 and another entry in F10. DCS lists a menu's entries in the order they were created, so an entry for one pilot's group, created when he joined, or an entry recreated with new parameters, landed below a "Next page" created before. The link is now recreated after the page's entries, with the pages under it, when something was added to that page.
+
+- **What the 22/11 evening on the Campagne server showed** (FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT).
+  A capture in progress shows on the F10 map and in the situation the time left until the zone is taken ("blue capture in progress, taken in 4 min 30 s"), counted from `helicopter_capture_seconds` for landed helicopters alone, instead of the time held so far.
+  A zone is no longer repaired while a living vehicle of an enemy convoy stands within `network.threat_radius` (5 km, new) of its centre: on 2026-11-22 Menagh was repaired in a lull of its losses with the red assault 1.1 to 4.3 km out, and destroyed again at once.
+  An assault convoy that pressed on in vain onto enemies out of sight gives them up when it drives on, as it does those in sight: the red assault on Menagh saw the same garrison again as a new contact after each drive on, went round three times in front of the zone, and stayed "in contact" past its retirement time.
+  An aircraft respawned or teleported by VEAF (the campaign's AWACS and tankers bought back in the shop, `veafAssets.respawn`) keeps its Mission Editor callsign: without it every radio call failed in DCS's speech, "Callname -1 not found".
+  A drawn garrison's infantry holds one position within `infantry_radius` (600 m, new) of the zone's centre, off the concrete and the buildings, instead of each section at its own point of a 2 to 3 km zone; garrisons already saved keep their positions.
+
+- **A persistent campaign can be built with the AI assistant alone** (FEAT-PERSISTENT-CAMPAIGN-AI), with no terminal and no repository.
+  Two MCP actions: `campaign_init` lays down the shipped example (persistent or multi-mission) or starts the campaign, `campaign_validate` returns the errors and warnings of `campaign validate`.
+  `read_mission_file` and `edit_mission_file` reach a campaign folder's `campaign.yaml` and `briefing.yaml`, and an edit with an empty passage creates a file not there yet.
+  `describe_mission_prompt` serves a `persistent-campaign` prompt: the questions to ask, then the order of work from the example to the `.miz` to upload.
+  The *Persistent campaign* page gains a section *With an AI*, and the AI catalogue a *Persistent campaign* section.
+
 ## [6.39.0] — 2026-11-23
 
 ### Added

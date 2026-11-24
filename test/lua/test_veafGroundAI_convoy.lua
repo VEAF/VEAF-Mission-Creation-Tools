@@ -1370,6 +1370,28 @@ function TestConvoyWatch:test_a_press_on_out_of_sight_is_no_contact_either()
   luaunit.assertEquals(lastRealContact(handler), engaged)
 end
 
+-- FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT ticket 03: on 2026-11-22 the red assault convoy "Mule" pressed on three times onto
+-- Menagh's garrison out of sight, gave up and drove on, then saw the same garrison again, as a new contact, a few
+-- minutes later: three such rounds from 95 to 125 min, and the last sighting kept it "in contact" past its retirement.
+function TestConvoyWatch:test_an_enemy_pressed_on_in_vain_starts_no_new_fight_by_being_seen()
+  local handler, enemy = self:_heldAtStandoff()
+  local engaged = lastRealContact(handler)
+  dcs_mocks.visibilityAnswer = false
+  handler.enemies = { enemy }
+  dcs_mocks.logs = {}
+  dcs_mocks.runScheduled((ConvoyUnitHandler.FUTILE_PUSHES + 2) * ConvoyUnitHandler.QUIET_DELAY)
+  luaunit.assertEquals(#dcs_mocks.findLog("pushes moved nothing, driving on"), 1, "the press-ons moved nothing, it drove on")
+  luaunit.assertFalse(handler:isInContact())
+  -- back in sight, never having fired: no new fight, no new contact
+  dcs_mocks.visibilityAnswer = true
+  dcs_mocks.runScheduled(dcs_mocks.currentTime + 4 * ConvoyUnitHandler.WIDE_WATCH_PERIOD)
+  luaunit.assertFalse(handler:isInContact(), "the garrison it could not reach does not stop it again")
+  luaunit.assertEquals(lastRealContact(handler), engaged)
+  -- a shot from it is a fight again
+  veafGroundAI.eventHandler:onEvent({ id = world.event.S_EVENT_HIT, initiator = enemy, target = self.units[1] })
+  luaunit.assertTrue(handler:isInContact())
+end
+
 function TestConvoyWatch:test_the_watch_ends_when_the_convoy_is_gone()
   local handler = veafGroundAI.addConvoy("Watched")
   dcs_mocks.removeGroup("Watched")

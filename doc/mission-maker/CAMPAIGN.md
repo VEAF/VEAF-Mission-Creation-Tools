@@ -180,6 +180,7 @@ Le premier briefing parle donc en termes de renseignement (« force estimée »)
 - La **carte F10** montre chaque zone en cercle de la couleur de son propriétaire, avec son nom et la force de sa garnison, et les connexions en pointillés.
 - Le menu radio **Campagne → Situation** donne les zones, les objectifs et le numéro de la mission.
 - **Prendre une zone neutre** : des unités au sol d'un seul camp y restent `capture_seconds` (120 s par défaut) — troupes ou véhicules CTLD 2, convoi, groupe `_spawn`, véhicule Combined Arms, hélicoptère **posé**, caisse CTLD 2.
+  La carte F10 et la situation montrent le temps qui reste avant la prise (« capture bleu en cours, prise dans 4 min 30 s »).
   Les deux camps présents arrêtent le compteur ; tout le monde parti l'annule.
   Un avion en vol ne compte jamais, une épave non plus.
   Le journal DCS (`dcs.log`) note, à chaque changement, qui tient une zone neutre et par quelle unité : c'est là qu'on lit pourquoi une prise ne démarre pas.

@@ -81,7 +81,7 @@ It must answer with the installed version, the one `.\veaf-tools.exe about` show
 ## Using the assistant {#use}
 
 Ask in natural language.
-For a new mission, "create a mission" is enough: the assistant asks which of the two kinds you want, then loads the instructions that go with it.
+For a new mission, "create a mission" is enough: the assistant asks which of the three kinds you want, then loads the instructions that go with it.
 
 - **An objective mission, played in one session**: a package, one or more objectives, a threat, a way home.
   The assistant asks for the map, the aircraft and the number of pilots, the length of the session and the kind of mission, then **proposes a scenario**.
@@ -89,6 +89,8 @@ For a new mission, "create a mission" is enough: the assistant asks which of the
   Then it builds the mission and its briefing.
 - **An Open Training mission**: a VEAF training mission on a whole map — airfields, support, air defence, graded training zones, combat zones, QRA, CAP, weather.
   The assistant asks only four or five questions: the map, the era, the template, a mission to take after if any, the escorts.
+- **A persistent campaign**: one mission that runs for weeks on a server, zones that change hands, a front that moves on its own.
+  The assistant asks for the map, your side and the front, then builds the campaign and its mission; the [campaign page](PERSISTENT_CAMPAIGN.en.md#with-an-ai) says what to tell it, step by step.
 
 It also asks where to create the mission folder, if it has none yet.
 An objective mission's briefing — document and its PDF, maps, DCS briefing pictures — is produced by the tools themselves, even with Claude Desktop in chat mode; an Open Training's maps and README still take an AI that runs programs, and one that cannot tells you what it could not produce.

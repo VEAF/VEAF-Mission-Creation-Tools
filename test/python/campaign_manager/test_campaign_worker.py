@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 from pathlib import Path
 
+import pytest
 import yaml
 from campaign_fixture import VALID
 from campaign_manager.campaign_worker import CAMPAIGN_FILE, STATE_FILE, CampaignWorker
@@ -215,3 +216,45 @@ class TestTheCommands:
         raw["campaign"]["era"] = "VIKING"
         result = CliRunner().invoke(app, ["campaign-validate", str(_folder(tmp_path, raw))])
         assert result.exit_code == 1
+
+
+class TestScaffold:
+    """The shipped example laid down for an AI with no file access (FEAT-PERSISTENT-CAMPAIGN-AI 01)."""
+
+    def test_the_persistent_example_is_copied_into_a_new_folder(self, tmp_path: Path) -> None:
+        folder = tmp_path / "Georgie"
+        issues, copied = CampaignWorker(folder).scaffold("persistent")
+        assert issues == []
+        assert copied == [folder / CAMPAIGN_FILE]
+        assert "mode: persistent" in (folder / CAMPAIGN_FILE).read_text(encoding="utf-8")
+        assert not (folder / STATE_FILE).exists()
+
+    def test_the_multi_mission_example_brings_its_briefing(self, tmp_path: Path) -> None:
+        issues, copied = CampaignWorker(tmp_path).scaffold("multi-mission")
+        assert issues == []
+        assert sorted(path.name for path in copied) == ["briefing.yaml", CAMPAIGN_FILE]
+
+    def test_an_existing_campaign_yaml_is_never_overwritten(self, tmp_path: Path) -> None:
+        folder = _folder(tmp_path)
+        before = (folder / CAMPAIGN_FILE).read_text(encoding="utf-8")
+        issues, copied = CampaignWorker(folder).scaffold("persistent")
+        assert [i.message for i in issues] == [t("campaign.issue.campaign_exists", path=folder / CAMPAIGN_FILE)]
+        assert copied == []
+        assert (folder / CAMPAIGN_FILE).read_text(encoding="utf-8") == before
+
+    def test_an_unknown_example_is_refused(self, tmp_path: Path) -> None:
+        issues, copied = CampaignWorker(tmp_path).scaffold("galactic")
+        assert [i.message for i in issues] == [
+            t("campaign.issue.unknown_example", example="galactic", known="persistent, multi-mission")
+        ]
+        assert copied == []
+
+    def test_an_example_the_install_lacks_is_said(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        import campaign_manager.campaign_worker as worker_module
+
+        monkeypatch.setattr(worker_module, "shipped_defaults_dir", lambda name, base: None)
+        issues, copied = CampaignWorker(tmp_path / "c").scaffold("persistent")
+        assert [i.message for i in issues] == [
+            t("campaign.issue.example_missing", example="campaign-folder-persistent")
+        ]
+        assert copied == [] and not (tmp_path / "c").exists()

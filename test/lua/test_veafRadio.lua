@@ -2510,4 +2510,204 @@ function TestVeafRadioRootOrder:test_add_root_menu_registers_under_the_mission_r
   luaunit.assertTrue(registered)
 end
 
+-------------------------------------------------------------------------------------------------
+-- FIX-RADIO-NEXT-PAGE-IN-F10 — "Next page" is the last entry of a page, whatever is added and when
+-------------------------------------------------------------------------------------------------
+-- The F10 menu is modelled as DCS shows it: one tree for the whole server, each entry seen by everyone, a
+-- coalition or a group, and the entries of a menu listed in the order they were created. An entry created
+-- under a page after its "Next page" link shows below it (Campagne server, 2026-11-22).
+
+TestVeafRadioNextPageLast = {}
+
+local NEXT_PAGE_API = {
+  "addSubMenu",
+  "addSubMenuForCoalition",
+  "addSubMenuForGroup",
+  "addCommand",
+  "addCommandForCoalition",
+  "addCommandForGroup",
+  "removeItem",
+  "removeItemForCoalition",
+  "removeItemForGroup",
+}
+
+function TestVeafRadioNextPageLast:setUp()
+  self._orig = { humanGroups = veafRadio.humanGroups, humanUnits = veafRadio.humanUnits }
+  for _, name in ipairs(NEXT_PAGE_API) do
+    self._orig[name] = missionCommands[name]
+  end
+  local top = { children = {} }
+  self.top = top
+  local function add(audience, label, parent)
+    local entry = { label = label, audience = audience, children = {}, parent = parent or top }
+    table.insert(entry.parent.children, entry)
+    return entry
+  end
+  local function remove(entry)
+    if not entry then
+      return
+    end
+    for i, child in ipairs(entry.parent.children) do
+      if child == entry then
+        table.remove(entry.parent.children, i)
+        return
+      end
+    end
+  end
+  missionCommands.addSubMenu = function(label, parent)
+    return add("A", label, parent)
+  end
+  missionCommands.addSubMenuForCoalition = function(side, label, parent)
+    return add("C" .. side, label, parent)
+  end
+  missionCommands.addSubMenuForGroup = function(groupId, label, parent)
+    return add("G" .. groupId, label, parent)
+  end
+  missionCommands.addCommand = function(label, parent)
+    return add("A", label, parent)
+  end
+  missionCommands.addCommandForCoalition = function(side, label, parent)
+    return add("C" .. side, label, parent)
+  end
+  missionCommands.addCommandForGroup = function(groupId, label, parent)
+    if groupId == veafRadio.PARKING_GROUP_ID then
+      return {}
+    end
+    return add("G" .. groupId, label, parent)
+  end
+  missionCommands.removeItem = function(entry)
+    remove(entry)
+  end
+  missionCommands.removeItemForCoalition = function(_, entry)
+    remove(entry)
+  end
+  missionCommands.removeItemForGroup = function(_, entry)
+    remove(entry)
+  end
+  veafRadio.humanGroups = {}
+  veafRadio.humanUnits = {}
+  self.root = { title = "Root", subMenus = {}, commands = {} }
+  self.builder = veafRadio.RadioMenuBuilder:new(self.root)
+end
+
+function TestVeafRadioNextPageLast:tearDown()
+  for name, value in pairs(self._orig) do
+    if name == "humanGroups" or name == "humanUnits" then
+      veafRadio[name] = value
+    else
+      missionCommands[name] = value
+    end
+  end
+end
+
+function TestVeafRadioNextPageLast:_addHumanGroup(groupId, unitName)
+  veafRadio.humanGroups[groupId] =
+    { coalition = coalition.side.BLUE, callsigns = { unitName }, units = { [unitName] = { name = unitName } } }
+  veafRadio.humanUnits[unitName] = { name = unitName, spawned = true }
+  dcs_mocks.addUnit(unitName)
+end
+
+--- The labels a pilot of `groupId` reads in the menu at `path` (a list of labels from the top), in DCS order.
+function TestVeafRadioNextPageLast:_view(groupId, path)
+  local function sees(entry)
+    return entry.audience == "A" or entry.audience == "C" .. coalition.side.BLUE or entry.audience == "G" .. groupId
+  end
+  local menu = self.top
+  for _, label in ipairs(path) do
+    local found
+    for _, child in ipairs(menu.children) do
+      if sees(child) and child.label == label then
+        found = child
+      end
+    end
+    luaunit.assertNotNil(found, "no menu " .. label)
+    menu = found
+  end
+  local labels = {}
+  for _, child in ipairs(menu.children) do
+    if sees(child) then
+      table.insert(labels, child.label)
+    end
+  end
+  return labels
+end
+
+--- Every page of the menu at `path`, as `_view` reads them: "Next page" must be the last entry of each.
+function TestVeafRadioNextPageLast:_assertNextPageLast(groupId, path)
+  local nextPage = veaf.t("radio.next_page")
+  path = { unpack(path) }
+  while true do
+    local labels = self:_view(groupId, path)
+    for i, label in ipairs(labels) do
+      if label == nextPage then
+        luaunit.assertEquals(
+          i,
+          #labels,
+          "an entry after Next page under " .. table.concat(path, " > ") .. ": " .. table.concat(labels, ", ")
+        )
+      end
+    end
+    if labels[#labels] ~= nextPage then
+      return
+    end
+    table.insert(path, nextPage)
+  end
+end
+
+--- The DCS entry of the shop menu.
+function TestVeafRadioNextPageLast:_shopMenu()
+  return self.top.children[1].children[1]
+end
+
+--- A shop: a page and a half of entries for everyone, and one for the caller's own group.
+function TestVeafRadioNextPageLast:_shop()
+  local menu = self.builder:addMenu("Shop", nil, coalition.side.BLUE)
+  for i = 1, veafRadio.MENU_PAGE_SIZE + 3 do
+    self.builder:addCommand(string.format("item%02d", i), menu, function() end)
+  end
+  self.builder:addCommand("Escort", menu, function() end, nil, veafRadio.USAGE_ForGroup)
+  return menu
+end
+
+function TestVeafRadioNextPageLast:test_a_group_entry_added_when_its_pilot_joins_stays_above_next_page()
+  self:_shop()
+  self.builder:rebuild()
+  self:_addHumanGroup(1, "Pilot1")
+  self.builder:rebuild()
+  luaunit.assertStrContains(table.concat(self:_view(1, { "Root", "SHOP" }), ","), "Escort", "on page 1")
+  self:_assertNextPageLast(1, { "Root", "SHOP" })
+end
+
+function TestVeafRadioNextPageLast:test_a_second_pilot_joining_leaves_next_page_last_for_both()
+  self:_shop()
+  self:_addHumanGroup(1, "Pilot1")
+  self.builder:rebuild()
+  self:_addHumanGroup(2, "Pilot2")
+  self.builder:rebuild()
+  self:_assertNextPageLast(1, { "Root", "SHOP" })
+  self:_assertNextPageLast(2, { "Root", "SHOP" })
+end
+
+function TestVeafRadioNextPageLast:test_an_entry_recreated_with_new_parameters_stays_above_next_page()
+  local menu = self.builder:addMenu("Zones", nil)
+  for i = 1, veafRadio.MENU_PAGE_SIZE + 3 do
+    self.builder:addCommand(string.format("cmd%02d", i), menu, function() end, { i })
+  end
+  self.builder:rebuild()
+  menu.commands[1].parameters = { "changed" }
+  self.builder:rebuild()
+  self:_assertNextPageLast(1, { "Root", "ZONES" })
+end
+
+function TestVeafRadioNextPageLast:test_a_page_with_nothing_new_keeps_its_next_page_and_what_follows()
+  self:_shop()
+  self:_addHumanGroup(1, "Pilot1")
+  self.builder:rebuild()
+  local before = self:_view(1, { "Root", "SHOP", veaf.t("radio.next_page") })
+  local link = self:_shopMenu().children[#self:_shopMenu().children]
+  self.builder:rebuild()
+  luaunit.assertIs(self:_shopMenu().children[#self:_shopMenu().children], link, "the same DCS entry")
+  luaunit.assertEquals(self:_view(1, { "Root", "SHOP", veaf.t("radio.next_page") }), before)
+end
+
 os.exit(luaunit.LuaUnit.run())

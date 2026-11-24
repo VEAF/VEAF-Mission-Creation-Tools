@@ -100,6 +100,9 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 55 | [Écrire le plan de vol des joueurs](#set-route) | 🕰️ Réglages de mission | Recette (dossier) | ⭐ |
 | 56 | [Annoncer la mission (affiche, bandeau du calendrier, message Discord)](#mission-promotion) | 🕰️ Réglages de la mission | Dossier (construit) | ⭐ |
 | 57 | [Générer aussi les versions d'entraînement par rôle](#training-versions) | 🏁 Valider & construire | Recette (dossier) | ⭐ |
+| 58 | [Construire une campagne persistante de bout en bout](#build-persistent-campaign) | 🎖️ Campagne persistante | Campagne (dossier) | ⭐ |
+| 59 | [Démarrer une campagne](#campaign-init) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
+| 60 | [Vérifier une campagne](#campaign-validate) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
 
 ---
 
@@ -197,11 +200,12 @@ carte directement, prête à recevoir des combat zones / QRA — **sans passer p
 ### Construire une mission complète, de la question au briefing {#build-whole-mission}
 
 *Dossier · ⭐* — Il suffit de dire « crée une mission ».
-L'IA demande laquelle des deux sortes vous voulez, puis charge les consignes VEAF qui la décrivent de bout en bout : les questions à poser, les règles de conception, l'ordre de construction.
+L'IA demande laquelle des trois sortes vous voulez, puis charge les consignes VEAF qui la décrivent de bout en bout : les questions à poser, les règles de conception, l'ordre de construction.
 
 - **Mission à objectifs, jouée en une séance** — un package, des objectifs, une menace, un retour.
   L'IA propose un scénario, en propose d'autres tant que vous voulez, et n'écrit rien avant que vous en ayez validé un ; puis elle construit la mission et son briefing.
 - **Open Training** — une mission d'entraînement VEAF sur une carte entière : bases, soutien, défense aérienne, zones d'entraînement graduées, zones de combat, QRA.
+- **Campagne persistante** — une seule mission qui tourne des semaines sur un serveur, son front bougeant tout seul ([plus bas](#build-persistent-campaign)).
 
 Ces consignes sont livrées avec les outils : rien à coller, rien à aller chercher.
 
@@ -243,6 +247,35 @@ Après chaque mission, l'IA réécrit la page de la mission suivante d'après le
 Une fois la mission construite, les outils écrivent aussi son [briefing de mission](CAMPAIGN.md#mission-briefing) — ATO, carte tactique, un zoom par objectif, fréquences —, lu dans la mission elle-même.
 
 > 💬 *« Écris le briefing de campagne : les rouges ont franchi l'Inguri, la coalition a trois missions pour reprendre Senaki. »*
+
+### Démarrer une campagne {#campaign-init}
+
+*Campagne (dossier) · ⭐* — En deux temps.
+D'abord l'IA pose dans un dossier vide l'exemple livré avec les outils — persistant (le front de Géorgie) ou multi-missions —, pour le réécrire à votre campagne.
+Puis, une fois `campaign.yaml` propre, elle démarre la campagne : elle tire son état de départ, d'où partira la première mission.
+Elle n'écrase jamais un `campaign.yaml` ni une campagne commencée.
+
+> 💬 *« Pars de l'exemple de campagne persistante, dans Documents\VEAF\Campagnes\Levant. »*
+
+### Vérifier une campagne {#campaign-validate}
+
+*Campagne (dossier) · ⭐* — Ce que fait `campaign validate` : `campaign.yaml`, l'état, `briefing.yaml` et la mission template (AWACS et ravitailleurs déclarés, plan radio du bon théâtre, SAM longue portée).
+L'IA reçoit la liste des erreurs et des avertissements, et corrige jusqu'à ce qu'il n'en reste aucun.
+
+> 💬 *« Vérifie la campagne et corrige ce qui ne va pas. »*
+
+## 🎖️ Campagne persistante
+
+*Une [campagne persistante](PERSISTENT_CAMPAIGN.md) : une seule mission qui tourne des semaines sur un serveur, des zones qui changent de camp, un front qui bouge tout seul, une sauvegarde.
+L'IA la construit de bout en bout avec les actions ci-dessus ; la page de la campagne dit [quoi lui dire, étape par étape](PERSISTENT_CAMPAIGN.md#with-an-ai).*
+
+### Construire une campagne persistante de bout en bout {#build-persistent-campaign}
+
+*Campagne (dossier) · ⭐* — L'IA charge les consignes VEAF de la campagne persistante, livrées avec les outils, et pose ses questions une par une : la carte et l'époque, votre camp, le front et ses zones, les usines et les dépôts, les SAM.
+Elle part de l'exemple livré, écrit `campaign.yaml`, prépare la mission template avec son AWACS et ses deux ravitailleurs, vérifie jusqu'à zéro avertissement, écrit les axes d'effort du briefing, prépare puis construit la mission.
+Elle vous rend le `.miz` à mettre sur le serveur, le dossier de théâtre et les pages de planchette pour les pilotes, et ce que le serveur doit avoir.
+
+> 💬 *« Crée une campagne persistante sur la Syrie : les bleus tiennent la côte, les rouges l'intérieur. »* · *« Ajoute une zone à Hama dans la campagne, et reconstruis la mission. »* · *« Les pilotes trouvent l'ennemi trop passif : qu'est-ce qu'on peut régler ? »*
 
 ## 🗺️ Carte & coordonnées
 
@@ -697,7 +730,9 @@ partie de la recette.
 ### Lire et modifier les fichiers du dossier de mission {#mission-files}
 
 *Recette · ⭐* — Pour une IA qui n'a pas accès à tes fichiers (Claude Desktop en mode chat) : elle lit et modifie `mission.yaml` et les fichiers `src/*.yaml` (presets, variantes météo et horaires, waypoints, slots…) du dossier de mission, et rien d'autre.
+Dans un dossier de campagne, ce sont `campaign.yaml` et `briefing.yaml`.
 Elle remplace un passage précis, après une sauvegarde ; une modification qui rendrait le fichier illisible est refusée, et le fichier reste intact.
+Elle peut aussi créer un de ces fichiers quand il n'existe pas encore, jamais en écraser un.
 C'est ce qui lui permet de renommer la mission ou de changer son époque.
 
 > 💬 *« Renomme la mission helico_convoi_Montagnes. »*

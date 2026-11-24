@@ -33,6 +33,28 @@ def defaults_source_candidates(mission_folder: Path) -> list[Path]:
     ]
 
 
+def shipped_defaults_dir(name: str, base: Path) -> Path | None:
+    """Return one folder of the shipped defaults, e.g. ``campaign-folder-persistent``.
+
+    Same resolution order as the mission scaffold: under ``<base>/published/`` where the updater
+    installs ``published.zip``, else in the checkout.
+
+    Args:
+        name: The folder's name under ``src/defaults/``.
+        base: Where the updater installed the tools: the executable's folder.
+
+    Returns:
+        The existing folder, or ``None`` when neither location has it.
+    """
+    for candidate in (
+        base / "published" / "src" / "defaults" / name,
+        Path(__file__).resolve().parents[3] / "defaults" / name,
+    ):
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
 def resolve_defaults_source(mission_folder: Path) -> Path | None:
     """Return the first existing default-scaffold directory, or ``None``.
 

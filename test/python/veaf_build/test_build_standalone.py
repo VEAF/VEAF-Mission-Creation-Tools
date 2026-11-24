@@ -139,7 +139,7 @@ def test_veaf_tools_extra_data_bundles_the_guide_and_the_mission_prompts(tmp_pat
     bundled = dict((dest, src) for src, dest in worker._veaf_tools_extra_data(None))
     data = bundled["veaf_mission_mcp/data"]
     assert (data / "authoring-guide.md").is_file()
-    assert len(list((data / "mission-prompts").glob("new-*-mission.*.md"))) == 4
+    assert len(list((data / "mission-prompts").glob("new-*.md"))) == 6
 
 
 def test_veaf_tools_extra_data_bundles_airfield_frequencies(tmp_path: Path) -> None:

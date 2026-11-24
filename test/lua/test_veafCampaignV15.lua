@@ -611,6 +611,21 @@ function TestCampaignResources:test_landed_helicopters_alone_take_a_zone_slower(
   luaunit.assertEquals(veafCampaign.captureSeconds(false), veafCampaign.data.capture_seconds or veafCampaign.CAPTURE_SECONDS)
 end
 
+function TestCampaignResources:test_a_helicopter_capture_counts_down_from_its_own_delay()
+  -- FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT ticket 01
+  start()
+  veaf.config.language = "en"
+  local poti = veafCampaign.zones["Poti"]
+  poti:becomeNeutral()
+  poti.sidesPresent = function()
+    return { [coalition.side.BLUE] = "a landed helicopter" }, {}
+  end
+  poti:checkCapture(120)
+  luaunit.assertTrue(poti.entry.capture.byHelicopter)
+  luaunit.assertStrContains(poti:mapLabel(), "taken in 8 min")
+  luaunit.assertStrContains(veafCampaign.situationText(), "taken in 8 min")
+end
+
 function TestCampaignResources:test_the_ai_starts_with_enough_to_last_an_evening()
   -- 2026-11-16: red ran dry after 1 h 20 with 500 points, 30 an hour and 120 a factory
   luaunit.assertEquals(veafCampaign.DYNAMIC_DEFAULTS.resources.start, 1000)
@@ -818,6 +833,48 @@ function TestCampaignNetwork:test_a_delivery_waits_while_the_zone_is_under_fire(
   veafCampaignLogistics.arriveDeliveries(1600)
   luaunit.assertFalse(senaki:garrisonDamaged())
   luaunit.assertEquals(#veafCampaignLogistics.deliveries, 0)
+end
+
+-- FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT 02: on 2026-11-22 Menagh was repaired in a lull of its losses while the red assault
+-- convoy stood 1.1 to 4.3 km out, and destroyed again at once
+local function enemyConvoyAt(name, side, point)
+  table.insert(veafCampaign.convoys, { name = name, side = side, from = "Poti", to = "Senaki", sent = {}, absorbed = {} })
+  dcs_mocks.addGroup(name, {
+    getUnits = function()
+      return { unitAt(point, { type = "M-2 Bradley" }) }
+    end,
+  })
+end
+
+function TestCampaignNetwork:test_a_delivery_waits_while_an_enemy_convoy_stands_at_the_gates()
+  network()
+  local senaki = veafCampaign.zones["Senaki"]
+  senaki.entry.garrison = garrison("Senaki", { 1 })
+  veafCampaignLogistics.dispatchDeliveries(0)
+  local center = senaki:getCenter()
+  enemyConvoyAt("assault", "blue", { x = center.x + 2200, z = center.z })
+  dcs_mocks.logs = {}
+  veafCampaignLogistics.arriveDeliveries(1200)
+  veafCampaignLogistics.arriveDeliveries(1300)
+  luaunit.assertTrue(senaki:garrisonDamaged(), "no repair under the enemy's guns, though nothing was lost lately")
+  luaunit.assertEquals(#veafCampaignLogistics.deliveries, 1, "kept, not lost")
+  luaunit.assertEquals(#dcs_mocks.findLog("the red supply for %[Senaki%] waits: an enemy convoy 2.2 km away"), 1, "said once")
+  -- the convoy gone, the repair arrives
+  veafCampaign.convoys[#veafCampaign.convoys].ended = true
+  veafCampaignLogistics.arriveDeliveries(1400)
+  luaunit.assertFalse(senaki:garrisonDamaged())
+end
+
+function TestCampaignNetwork:test_an_enemy_convoy_beyond_the_threat_radius_holds_nothing()
+  network()
+  local senaki = veafCampaign.zones["Senaki"]
+  senaki.entry.garrison = garrison("Senaki", { 1 })
+  veafCampaignLogistics.dispatchDeliveries(0)
+  local center = senaki:getCenter()
+  enemyConvoyAt("far", "blue", { x = center.x + veafCampaign.setting("network", "threat_radius") + 500, z = center.z })
+  enemyConvoyAt("friend", "red", { x = center.x + 500, z = center.z })
+  veafCampaignLogistics.arriveDeliveries(1200)
+  luaunit.assertFalse(senaki:garrisonDamaged())
 end
 
 -- FIX-CAMPAIGN-SECOND-SERVER-FLIGHT 09: "lost: the zone is no longer theirs" said of Aleppo, still red, whole again

@@ -11,7 +11,10 @@
 - **Une zone ne change jamais de camp directement** : quand sa garnison est détruite, elle devient **neutre** (grise).
   Une zone neutre se prend en y tenant le terrain : des unités au sol d'un seul camp y restent `capture_seconds` (120 s par défaut) — troupes ou caisse CTLD 2, convoi, groupe `_spawn`, véhicule Combined Arms, hélicoptère **posé**.
   Des hélicoptères posés, seuls, mettent `helicopter_capture_seconds` (600 s), et ne laissent qu'une garnison symbolique : ce qu'emporte un hélicoptère, `helicopter_garrison` fantassins (6) et aucun véhicule, quelle que soit la classe de la zone.
+  La carte F10 et la situation montrent le temps qui reste avant la prise.
   La nouvelle garnison apparaît aussitôt.
+  Son infanterie tient une seule position, à moins de `infantry_radius` (600 m) du centre de la zone, hors du béton et des bâtiments ; blindés et défense sol-air gardent toute la zone.
+  Une garnison déjà dans la sauvegarde garde ses positions : seule une garnison tirée de nouveau (une prise, un nouveau tirage) se place ainsi.
 - **Un pilote au sol après une éjection n'est l'ennemi de personne** : le rescapé que pose le module CSAR ne tient ni ne conteste une zone, ne réveille aucune zone et n'arrête aucun convoi, dans tous les scripts VEAF.
 - **Les slots suivent les bases** : un aérodrome pris passe dans le camp du preneur, avec ses slots dynamiques.
   Tous les aérodromes de la campagne ont leurs slots prêts dès la construction, même ceux que le camp des joueurs ne tient pas encore (voir [Construire la mission](#build)).
@@ -23,6 +26,35 @@
 - **Le menu F10 → Autres → VEAF → Campagne** donne la situation, les crédits, [mes gains](#my-earnings), les tâches, le renseignement et la boutique ; les commandes « (admin) » viennent en dernier.
 - **La partie se termine** quand un camp ne tient plus aucune zone : victoire si c'est l'ennemi, défaite si c'est nous.
   C'est annoncé à tous, et la campagne repart de zéro au prochain chargement de la mission.
+
+## Avec une IA {#with-an-ai}
+
+L'assistant IA construit une campagne persistante de bout en bout, sans terminal et sans le dépôt des outils : il lui faut les outils VEAF installés et l'assistant branché ([installer l'assistant](AI_ASSISTANT_INSTALL.md#for-an-ai-assistant)).
+Il connaît les règles de cette page et celles apprises sur la première campagne ; vous apportez le théâtre, le front et vos choix.
+
+1. **Demandez la campagne.**
+   > « Crée une campagne persistante sur la Syrie : les bleus tiennent la côte, les rouges l'intérieur. »
+
+   L'assistant charge ses consignes, puis pose ses questions une par une : la carte et l'époque, votre camp, le nom de la campagne et celui du fichier de la mission.
+2. **Validez le front.** Il propose un tableau des zones : les aérodromes de chaque camp, les avant-postes entre eux, les zones neutres, les liaisons.
+   Corrigez-le en langage courant, puis validez-le.
+   > « Ajoute un avant-poste au col de Bab al-Hawa, et rends Hama neutre. »
+3. **Choisissez usines, dépôts et SAM.** Il recommande une usine et un dépôt par camp, et deux SAM longue portée par camp au plus.
+   > « D'accord pour ta reco, mais mets le SAM rouge sur l'usine. »
+4. **Donnez-lui un dossier.** Il y pose l'exemple livré, le réécrit pour votre campagne, prépare la mission modèle (`template\`) avec son AWACS et ses deux ravitailleurs, et vérifie la campagne jusqu'à zéro avertissement.
+   > « Crée-la dans Documents\VEAF\Campagnes\Levant. »
+5. **Relisez les axes d'effort.** Il écrit le briefing des pilotes dans `briefing.yaml` : le nom de l'opération, la situation, les priorités du moment.
+   > « Mets en premier la prise des ponts de l'Oronte. »
+6. **Laissez-le construire.** Il démarre la campagne, prépare la mission, la construit et la contrôle.
+   Il vous rend le `.miz` à mettre sur le serveur, le [dossier de théâtre et la planchette](#theatre-dossier) à donner aux pilotes, et ce que le serveur doit avoir pour la [sauvegarde](#save).
+7. **Plus tard, demandez les changements.** Il modifie la campagne, la vérifie, reconstruit la mission, et vous redéployez le même fichier.
+   > « Ajoute une zone à Idlib et reconstruis la mission. »
+
+   Une campagne déjà en cours garde ce que sa sauvegarde a tiré : l'assistant vous dit ce qui changera tout de suite, et ce qui attend une remise à zéro.
+
+**Une zone ajoutée après le démarrage est refusée** par la vérification, tant que le fichier `campaign-state.yaml` du dossier existe.
+Pour une campagne persistante, ce fichier ne garde rien d'utile : supprimez-le dans l'Explorateur, et l'assistant redémarre la campagne.
+La partie en cours, elle, vit dans la sauvegarde du serveur, et ne change pas.
 
 ## Déclarer une campagne persistante {#declare}
 
@@ -605,6 +637,7 @@ Les usines d'un camp nourrissent ses zones de proche en proche, le long des liai
   Après le délai de la zone, la livraison ramène les unités mortes de son premier groupe touché, **les moins chères d'abord et à hauteur de ce qu'elle a payé** : une unité tuée depuis la commande reste morte.
   Les unités ramenées apparaissent à leur place, les vivantes ne bougent pas.
   **Une zone sous le feu** — une unité perdue il y a moins de `network.under_fire_seconds` (600 s) — n'est pas renforcée : la livraison attend.
+  **Une zone assiégée** — un véhicule vivant d'un convoi ennemi à moins de `network.threat_radius` (5 000 m) de son centre — non plus : la livraison attend que le convoi soit parti ou détruit.
   Une zone perdue entre-temps ne reçoit rien ; une livraison qui n'a plus rien à réparer, ou ce qu'elle n'a pas dépensé, retourne au stock.
   Les joueurs qui font de la logistique vont plus vite : une caisse, des troupes ou un hélicoptère renforcent sur-le-champ, sans attendre le réseau ; les unités ramenées se paient sur le stock, au prix de leur spawn (voir **Ravitaillement** dans [Un front qui bouge tout seul](#front)).
 - **Une zone coupée** de toute usine et de tout dépôt est encore servie, sur la production de fond, au bout de `network.isolated_seconds` (3 600 s).
@@ -821,6 +854,7 @@ Une ligne `KO` suffit à dire où regarder.
 | `max_convoys` | 3 | convois d'assaut d'un camp sur la route, au plus |
 | `players_per_convoy` | 4 | joueurs adverses armés pour arrêter un convoi qui valent un convoi de plus sur la route |
 | `defended_radius` | 30000 | mètres : une zone avec un de ces joueurs aussi près de son centre est défendue, une contre-attaque la laisse de côté |
+| `infantry_radius` | 600 | mètres : l'infanterie d'une garnison tirée tient une seule position aussi près du centre de la zone |
 | `supply` | `[red]` | les camps dont les hélicoptères IA capturent et ravitaillent |
 | `supply_seconds` | 600 | intervalle entre deux hélicoptères d'un camp |
 | `max_helicopters` | 2 | hélicoptères de ravitaillement d'un camp en vol |
@@ -843,7 +877,7 @@ Une ligne `KO` suffit à dire où regarder.
 | `intel` | voir [le renseignement](#intel) | `hidden`, `seconds`, `overflight_altitude`, `spy_troops`, `spy_range` |
 | `resources` | voir [les ressources](#resources) | `enabled` (true), `start` (1000), `background_per_hour` (60), `reserve` (100), `prices` |
 | `factory` | voir [les usines](#zone-kinds) | `buildings` (3), `per_hour` (180), `types` |
-| `network` | voir [le réseau](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3), `under_fire_seconds` (600), `depot_buildings` (3), `depot_types`, `depot_rebuild_seconds` (2700) |
+| `network` | voir [le réseau](#network) | `hop_seconds` (600), `isolated_seconds` (3600), `depot_store` (4), `max_deliveries` (3), `under_fire_seconds` (600), `threat_radius` (5000), `depot_buildings` (3), `depot_types`, `depot_rebuild_seconds` (2700) |
 | `demolition` | voir [la démolition](#demolition) | `troops` (`Sappers`), `range` (5000), `fuse` (120) |
 | `warehouse` | voir [les stocks](#warehouses) | `enabled` (true), `load` (10) |
 | `bombers` | voir [les bombardiers](#bombers) | `enabled` (true), `seconds` (3600), `min_distance` (80000), `escort` (false), `package_delay` (30) |

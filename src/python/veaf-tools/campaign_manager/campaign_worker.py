@@ -8,6 +8,7 @@ sub-folder per mission under `missions/` (tickets 08 and 09).
 from __future__ import annotations
 
 import shutil
+import sys
 import zipfile
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -16,6 +17,7 @@ from typing import Any
 from veaf_libs.i18n import language, t
 from veaf_libs.map_tiles import Fetch
 from veaf_libs.mission_validator import ERROR, WARNING, ValidationIssue
+from veaf_libs.shipped_defaults import shipped_defaults_dir
 
 from campaign_manager.briefing_deck import DeckReport, campaign_deck
 from campaign_manager.briefing_prose import BriefingProse, load_prose
@@ -53,6 +55,9 @@ DEBRIEFING_FILE = "debriefing.{lang}.txt"
 
 #: The mission folder itself, inside a mission's sub-folder.
 MISSION_SUBFOLDER = "mission"
+
+#: The examples shipped under `src/defaults/`, by the name `scaffold` takes.
+EXAMPLES = {"persistent": "campaign-folder-persistent", "multi-mission": "campaign-folder"}
 
 
 @dataclass(frozen=True)
@@ -102,6 +107,34 @@ class CampaignWorker:
             return issues
         save_state(initial_state(campaign), self.state_file)
         return issues
+
+    def scaffold(self, example: str) -> tuple[list[ValidationIssue], list[Path]]:
+        """Copy a shipped example campaign into the folder, creating it, for its author to rewrite.
+
+        No state is drawn: the zones are about to change. `campaign.yaml` is never overwritten.
+
+        Args:
+            example: `persistent` or `multi-mission`, a key of :data:`EXAMPLES`.
+
+        Returns:
+            Every issue found, and the files written — none when any issue is an error.
+        """
+        if example not in EXAMPLES:
+            known = ", ".join(EXAMPLES)
+            return [ValidationIssue(ERROR, t("campaign.issue.unknown_example", example=example, known=known))], []
+        if self.campaign_file.exists():
+            return [ValidationIssue(ERROR, t("campaign.issue.campaign_exists", path=self.campaign_file))], []
+        source = shipped_defaults_dir(EXAMPLES[example], Path(sys.executable).parent)
+        if source is None:
+            return [ValidationIssue(ERROR, t("campaign.issue.example_missing", example=EXAMPLES[example]))], []
+        self.folder.mkdir(parents=True, exist_ok=True)
+        copied = []
+        for path in sorted(source.glob("*.yaml")):
+            target = self.folder / path.name
+            if not target.exists():
+                shutil.copyfile(path, target)
+                copied.append(target)
+        return [], copied
 
     def mission_folder(self, mission: int) -> Path:
         """Return the sub-folder that keeps one mission's history.

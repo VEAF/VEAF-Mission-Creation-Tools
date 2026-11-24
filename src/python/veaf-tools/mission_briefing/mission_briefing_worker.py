@@ -280,6 +280,29 @@ def objective_waypoint(area: ObjectiveArea, picture: MissionPicture) -> str:
     return min(inside)[1] if inside else ""
 
 
+def waypoint_numbers(name: str, picture: MissionPicture) -> str:
+    """The numbers a flight plan's point answers to on the maps: ``W4/H4``, as the overview labels it.
+
+    Planes first, then helicopters; a route that does not carry the point adds nothing.
+
+    Args:
+        name: The waypoint's name (``TALBISEH``), compared without regard to case.
+        picture: What the built mission says.
+
+    Returns:
+        The numbers joined by ``/``; empty when no route carries a waypoint of that name.
+    """
+    prefixes = {"plane": "W", "helicopter": "H"}
+    found: list[str] = []
+    for plan in sorted(picture.flight_plans, key=lambda plan: plan.category != "plane"):
+        prefix = prefixes.get(plan.category, "W")
+        for index, waypoint in enumerate(plan.waypoints, 1):
+            number = f"{prefix}{index}"
+            if waypoint.name.lower() == name.lower() and number not in found:
+                found.append(number)
+    return "/".join(found)
+
+
 def _placed(
     areas: list[tuple[Objective, ObjectiveArea]], picture: MissionPicture, folder: Path
 ) -> list[tuple[Objective, ObjectiveArea]]:
@@ -869,7 +892,9 @@ def objective_notes(objective: Objective, area: ObjectiveArea, picture: MissionP
         notes.append((t("mission_briefing.for", flights=_join(list(objective.flights))), False))
     notes.append((bullseye_text(picture, area.x, area.y), False))
     if area.label:
-        notes.append((t("mission_briefing.waypoint", name=area.label), False))
+        numbers = waypoint_numbers(area.label, picture)
+        key = "mission_briefing.waypoint_numbered" if numbers else "mission_briefing.waypoint"
+        notes.append((t(key, name=area.label, numbers=numbers), False))
     if area.targets:
         notes += [(t("mission_briefing.heading.targets"), True), (_join([x.name for x in area.targets]), False)]
     return notes

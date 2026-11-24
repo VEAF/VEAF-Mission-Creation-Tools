@@ -1998,6 +1998,7 @@
   "mission_briefing.heading.secondary_objectives": "Objectifs secondaires",
   "mission_briefing.for": "Pour : {flights}",
   "mission_briefing.waypoint": "Point : {name} du plan de vol",
+  "mission_briefing.waypoint_numbered": "Point : {numbers} — {name} du plan de vol",
   "mission_briefing.slot_base": "{base} (slot dyn)",
   "mission_briefing.ato.flight": "Vol",
   "mission_briefing.ato.aircraft": "Appareils",

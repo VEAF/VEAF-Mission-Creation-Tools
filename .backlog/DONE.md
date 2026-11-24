@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FIX-BRIEFING-ZONE-WAYPOINT-NUMBER](FIX-BRIEFING-ZONE-WAYPOINT-NUMBER/PRD.md) · ✅
+
+Every zone page of a mission briefing gives its waypoint as the maps label it (`Point : W4/H4 — TALBISEH du plan de vol`). Closed 2026-11-24.
+
 ### [FEAT-ASSIST-FOLLOWUP](FEAT-ASSIST-FOLLOWUP/PRD.md) · ✅
 
 What `FEAT-ASSIST-CHECKLISTS` left open: content-hashed resource names (DCS caches images by name), two pilots at once, and a pilot's review of the F-16C slice. Closed 2026-11-24. Flight check: change a label, rebuild and fly without restarting DCS (ticket 01); two assisted pilots at once, and an F-16C pilot through the checklist (tickets 02, 03). Ticket 04, the `c_cockpit_param_in_range` probe, was dropped.

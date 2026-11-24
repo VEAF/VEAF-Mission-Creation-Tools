@@ -1,6 +1,6 @@
 # 08 — The server rewrote the mission's date, time and weather
 
-Status: 🧑 waiting-human
+Status: 🚫 wontfix — the Kolkhida campaign was won (2026-11-24) without this having been checked in game
 Type: config + fix
 
 ## Found

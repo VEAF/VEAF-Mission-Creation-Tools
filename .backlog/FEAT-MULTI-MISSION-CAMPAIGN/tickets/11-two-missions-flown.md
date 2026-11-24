@@ -1,6 +1,6 @@
 # 11 — Two missions flown end to end
 
-Status: 🧑 waiting-human
+Status: ✅ done — accepted by the Kolkhida campaign (David, 2026-11-24)
 
 The acceptance of the lot is the loop itself, in game:
 
@@ -10,3 +10,7 @@ The acceptance of the lot is the loop itself, in game:
 4. Mission 2 flown long enough to see it, then the server killed mid-flight: the state file holds the last interval.
 
 Each point read in game and recorded in the PRD with its date; what fails reopens its ticket.
+
+## Done (2026-11-24)
+
+The loop was flown end to end for real: the Kolkhida campaign was won in three missions, each built from the state the last one left. David accepts that as this ticket's acceptance.

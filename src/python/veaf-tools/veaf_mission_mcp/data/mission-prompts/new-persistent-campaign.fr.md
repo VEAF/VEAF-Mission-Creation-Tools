@@ -50,7 +50,7 @@ Tout le reste, tu le décides avec le guide et l'exemple livré, et tu l'annonce
    - le bloc `campaign:` (`name`, `theatre`, `era`, `mode: persistent`, `player_side`, `mission_file`) ;
    - `zones:` et `connections:` ;
    - dans `dynamic:`, garde les valeurs livrées ; adapte `support.assets` et `economy.tanker` aux noms des groupes que tu poseras dans le template (étape 3).
-   Puis `campaign_validate`. À ce stade, il signale le template manquant ; le reste doit être propre.
+   Puis `campaign_validate`, jusqu'à ce qu'il soit propre. Il ne contrôle le template (AWACS, ravitailleurs, plan radio) qu'une fois celui-ci posé : son silence à ce stade ne dit rien du template.
 3. **Le template** : `scaffold_mission` dans `<dossier de campagne>\template`, avec le `theatre` de la campagne (gabarit `standard`).
    Applique ensuite le guide, paragraphes « A campaign mission » et « A persistent campaign » : un AWACS et deux ravitailleurs (une perche, un panier) en orbite au-dessus de vos arrières, leurs canaux dans `src/presets.yaml`, `modules.ASSETS`, les noms exacts repris dans `dynamic.support.assets` et `dynamic.economy.tanker`.
    **Aucune unité `#veafInterpreter`** dans le template : ce que la campagne doit tenir se déclare en zone.

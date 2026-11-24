@@ -1,6 +1,8 @@
 # FIX-CAMPAIGN-ASSAULT-ORDER-OPEN — every player can order a paid blue assault
 
-Status: 🔄 in-progress
+Status: ✅ done — merged in #1325 (2026-11-21), on `develop` with #1336 (2026-11-23), shipped in 6.39.0
+
+Flight check: on the Campagne server, as a player who has not logged in to VEAF security: Campaign → Assaults has no "+", an order with 300 credits or more sends a blue convoy and charges 300, one with fewer is refused (ticket 01's in-game check).
 
 Rex, relayed by David on 2026-11-21: "ça serait pas mal d'avoir des convois bleus, soit payants soit automatiques".
 

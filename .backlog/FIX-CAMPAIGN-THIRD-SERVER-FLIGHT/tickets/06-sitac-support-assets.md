@@ -1,6 +1,6 @@
 # 06 — The sitac shows the AWACS and the tankers
 
-Status: 🧑 waiting-human — implemented, waits for the in-game check
+Status: ✅ done
 Type: feature
 
 ## Decided

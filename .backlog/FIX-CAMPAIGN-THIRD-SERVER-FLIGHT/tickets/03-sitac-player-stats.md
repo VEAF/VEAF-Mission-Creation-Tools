@@ -1,6 +1,6 @@
 # 03 — The sitac ranks the pilots, as Foothold's does
 
-Status: 🧑 waiting-human — implemented, waits for the in-game check
+Status: ✅ done
 Type: feature
 
 ## Decided

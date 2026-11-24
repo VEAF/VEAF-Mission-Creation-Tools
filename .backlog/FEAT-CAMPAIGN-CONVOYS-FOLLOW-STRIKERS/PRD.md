@@ -1,6 +1,8 @@
 # FEAT-CAMPAIGN-CONVOYS-FOLLOW-STRIKERS — the enemy's assault convoys sized for the players who can stop them
 
-Status: 🔄 in-progress
+Status: ✅ done — merged in #1324 (2026-11-21), on `develop` with #1336 (2026-11-23), shipped in 6.39.0
+
+Flight check: on the Campagne server, with one to four ground-attack players `dcs.log` never shows two `red assault convoy [...] left` without a `destroyed`, `arrived` or retirement between them; an air-to-air-only or AGM-88-only aircraft is not counted; a counter-attack skips a zone a striker defends (tickets 01 and 02's in-game checks).
 
 Griffin, relayed by David on 2026-11-21: "ça serait chouette d'adapter le nombre et la fréquence des colonnes ennemies qui partent capturer des points en fonction des forces bleues en présence. Hier on était 3 et il y avait en permanence au moins deux convois rouges à aller intercepter. Du coup, on ne peut pas aller attaquer une base rouge sans laisser se faire capturer au moins deux points bleus."
 

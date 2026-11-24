@@ -1,6 +1,8 @@
 # FEAT-CAMPAIGN-SHOP-UPGRADES — air defence and the CAS and SEAD flights in the campaign shop
 
-Status: 🔄 in-progress
+Status: ✅ done — merged in #1322 (2026-11-20), on `develop` with #1336 (2026-11-23), shipped in 6.39.0
+
+Flight check: on the Campagne server, a pilot buys a Hawk on Hatay (it stands in the circle, survives a restart, a third upgrade is refused) and a SEAD flight on Aleppo (it leaves, fires HARMs, a second SEAD is refused while it flies).
 
 David, 2026-11-19, during the third server evening of "Bouclier de l'Oronte": "pourquoi on peut pas acheter de défense aérienne dans la boutique ? Regarde dans Foothold tout ce qu'on pouvait faire."
 The V1 kept a small shop of items VEAF already had (`FEAT-DYNAMIC-CAMPAIGN`, "a small shop of 6 to 8 items"); it holds 11 today (`veafCampaignEconomy.lua`): JTAC drone, illumination, smoke, intel, CAP, BARCAP, capture, resupply, bombers, escort, tanker.

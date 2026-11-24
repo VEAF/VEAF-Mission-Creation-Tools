@@ -6,6 +6,30 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-CAMPAIGN-CONVOYS-FOLLOW-STRIKERS](FEAT-CAMPAIGN-CONVOYS-FOLLOW-STRIKERS/PRD.md) · ✅
+
+The enemy's assault convoys sized for the players who can stop them (Griffin and David, 2026-11-21): one convoy on the road per 4 strikers, CAS aircraft or attack helicopters, neutral-zone assaults included, fighters and SEAD-only aircraft not counted; a counter-attack prefers a zone no such player is defending. Two tickets, merged in #1324 (2026-11-21), shipped in 6.39.0. Flight check: on the Campagne server, never two red convoys on the road for one or two strikers.
+
+### [FIX-CAMPAIGN-ECONOMY-BALANCE](FIX-CAMPAIGN-ECONOMY-BALANCE/PRD.md) · ✅
+
+What the players earn pays for what the shop sells (David, 2026-11-20): rewards aligned on Foothold's (SAM 30, aircraft 50, building 100, rescue 200), the NASAMS and the Patriot at Foothold's prices, an evening's balance of earned and spent in the log for both sides, an economy simulator and one price rule. Five tickets, merged in #1323 (2026-11-20), shipped in 6.39.0. Flight check: read an evening's `ECONOMY SUMMARY` and tune the prices.
+
+### [FEAT-CAMPAIGN-SHOP-UPGRADES](FEAT-CAMPAIGN-SHOP-UPGRADES/PRD.md) · ✅
+
+Air defence and the CAS and SEAD flights in the campaign shop (David, 2026-11-19, after comparing with Foothold's catalogue): zone upgrades — Hawk, NASAMS, Patriot, Avenger, Gepard, infantry, armour — that join the zone's garrison, two per zone, priced at their spawn price; CAS and SEAD flights against an enemy zone. Two tickets, merged in #1322 (2026-11-20), shipped in 6.39.0. Flight check: a pilot buys an upgrade and a SEAD flight on the Campagne server.
+
+### [FEAT-CAMPAIGN-MISSION-FILE](FEAT-CAMPAIGN-MISSION-FILE/PRD.md) · ✅
+
+A persistent campaign names its mission file in `campaign.yaml` (`campaign.mission_file`), and the build writes it with no date (`mission.date_suffix: false` in `mission.yaml`), so the DCS server browser shows a readable name and a redeploy just replaces the file. Decided by David on 2026-11-18 for "Bouclier de l'Oronte": `Campagne_Oronte.miz`. One ticket, merged in #1313 (2026-11-18), shipped in 6.39.0. Flight check: the server browser lists the mission without a date.
+
+### [FEAT-CAMPAIGN-SITAC-STATE](FEAT-CAMPAIGN-SITAC-STATE/PRD.md) · ✅
+
+The persistent campaign's `persistent.state` gains a `sitac` block for VEAF's web map `foothold-sitac`: zones with position, kind, waypoint, owner, garrison counts, capture, buildings and dormancy; the connections; the convoys under way; each side's credits and stock. One file, ignored by the reload. Merged in #1309 (2026-11-18), shipped in 6.39.0; the reader landed in `VEAF/foothold-sitac` (#148, 2026-11-18). Flight check: the web map draws the Campagne server's live save.
+
+### [FIX-CAMPAIGN-ASSAULT-ORDER-OPEN](FIX-CAMPAIGN-ASSAULT-ORDER-OPEN/PRD.md) · ✅
+
+Every player can order a paid blue assault (Rex and David, 2026-11-21): in a persistent campaign the Campaign → Assaults order is a purchase, so it is no longer secured, and the shop and the player guide say where it is and what it costs. One ticket, merged in #1325 (2026-11-21), on `develop` with #1336, shipped in 6.39.0. Flight check: on the Campagne server, a player who has not logged in to VEAF security orders an assault and a blue convoy leaves.
+
 ### [FEAT-PERSISTENT-CAMPAIGN-AI](FEAT-PERSISTENT-CAMPAIGN-AI/PRD.md) · ✅
 
 Build a persistent campaign with the AI assistant alone, no repository and no terminal (David, 2026-11-24): MCP actions `campaign_init` (with the shipped example) and `campaign_validate`, `campaign.yaml` and `briefing.yaml` reachable by `read_mission_file` / `edit_mission_file`, a `persistent-campaign` mission prompt, and a "With an AI" section in the campaign page and the AI catalogue. Four tickets, one PR; done 2026-11-24.

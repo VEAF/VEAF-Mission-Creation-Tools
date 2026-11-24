@@ -1,6 +1,6 @@
 # 10 — Air defence costs more
 
-Status: 🧑 waiting-human — implemented, the prices to tune after an evening
+Status: ✅ done
 Type: fix
 
 ## Found

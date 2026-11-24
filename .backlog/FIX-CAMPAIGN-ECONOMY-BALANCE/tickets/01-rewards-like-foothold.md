@@ -1,6 +1,6 @@
 # 01 — Rewards aligned on Foothold's
 
-Status: ✅ done (in-game check pending)
+Status: ✅ done
 Type: fix
 
 ## Decided

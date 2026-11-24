@@ -1,6 +1,6 @@
 # 09 — Units revived by a delivery are paid at their spawn price
 
-Status: 🧑 waiting-human — implemented, waits for the in-game check
+Status: ✅ done
 Type: fix
 
 ## Found

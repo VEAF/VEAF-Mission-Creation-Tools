@@ -1,6 +1,8 @@
 # FIX-CAMPAIGN-ECONOMY-BALANCE — what the players earn pays for what the shop sells
 
-Status: 🔄 in-progress
+Status: ✅ done — merged in #1323 (2026-11-20), on `develop` with #1336 (2026-11-23), shipped in 6.39.0
+
+Flight check: after an evening on the Campagne server, the `ECONOMY SUMMARY` block follows the `CREDITS SUMMARY` one and its balances match `CAMPAIGN STATUS`; compare it with the simulator's rates and tune the prices if they differ (tickets 03, 04 and 05's in-game checks).
 
 David, 2026-11-20, after the shop got zone upgrades (FEAT-CAMPAIGN-SHOP-UPGRADES): "il faut que les gains permettent d'acheter les trucs. Niveau équilibrage, tu t'es inspiré de Foothold ?"
 Only partly, and nothing was calibrated by measurement. Compared with Foothold's rewards (`../FEAT-DYNAMIC-CAMPAIGN/foothold-analysis/05-economy-shop-ranks-missions.md`, §3) and prices (§5):

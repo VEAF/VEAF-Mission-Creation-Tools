@@ -1,7 +1,6 @@
 # FEAT-ASSIST-FOLLOWUP — the three things the first checklist flight could not close
 
-Status: 🧑 waiting-human — ticket 01 delivered. 02 and 03 need cockpit time, 04 is deferred on
-purpose. Nothing here is waiting on an agent: 02 needs a flight with a second pilot, 03 an F-16C pilot.
+Status: ✅ done — closed 2026-11-24 (David, "fermons tout ça"). Tickets 01 to 03 are checked at flights, not blockers; ticket 04 is dropped (🚫).
 
 ## Why this lot exists
 
@@ -17,9 +16,9 @@ and one of those needs *two*.
 | # | Ticket | Status |
 |---|--------|--------|
 | 01 | [Resource names should carry a content hash](tickets/01-resource-content-hash.md) | ✅ |
-| 02 | [Two pilots at once, and whether a highlight leaks](tickets/02-two-pilots-at-once.md) | 🧑 |
-| 03 | [A pilot review of the F-16C slice](tickets/03-f16c-pilot-review.md) | 🧑 |
-| 04 | [Probe `c_cockpit_param_in_range`, then decide](tickets/04-cockpit-param-in-range-probe.md) | ⬜ |
+| 02 | [Two pilots at once, and whether a highlight leaks](tickets/02-two-pilots-at-once.md) | ✅ |
+| 03 | [A pilot review of the F-16C slice](tickets/03-f16c-pilot-review.md) | ✅ |
+| 04 | [Probe `c_cockpit_param_in_range`, then decide](tickets/04-cockpit-param-in-range-probe.md) | 🚫 |
 
 The four are independent of each other, and only one is worth doing now:
 

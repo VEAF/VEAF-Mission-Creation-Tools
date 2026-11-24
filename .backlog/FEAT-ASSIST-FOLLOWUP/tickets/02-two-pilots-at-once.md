@@ -1,6 +1,6 @@
 # 02 — Two pilots at once, and whether a highlight leaks
 
-Status: 🧑 waiting-human
+Status: ✅ done — checked at the next flight with a second pilot (David, 2026-11-24: not a blocker)
 Type: test
 
 ## The question, open since the parent lot's first ticket

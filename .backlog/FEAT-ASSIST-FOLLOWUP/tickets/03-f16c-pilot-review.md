@@ -1,6 +1,6 @@
 # 03 — A pilot review of the F-16C slice
 
-Status: 🧑 waiting-human
+Status: ✅ done — checked when an F-16C pilot flies the checklist (David, 2026-11-24: not a blocker)
 Type: docs
 
 ## What is being asked

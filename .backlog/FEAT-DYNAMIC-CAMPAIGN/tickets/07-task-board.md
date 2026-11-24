@@ -1,6 +1,6 @@
 # 07 — A task board drawn from the situation
 
-Status: 🧑 waiting-human — code and tests done on `feature/dynamic-campaign-v1` (2026-11-15); the in-game check of the test mission is David's
+Status: ✅ done
 
 Analysis note 05 §11, kept to 3 or 4 tasks.
 

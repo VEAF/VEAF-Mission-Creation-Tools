@@ -1,6 +1,8 @@
 # FIX-BUNDLE-LOCAL-LIMIT — the VEAF bundle no longer loads in DCS: more than 200 top-level locals
 
-Status: 🧑 waiting-human — merged on `develop` (#1102); waits for Kolkhida mission 1 loading in DCS
+Status: ✅ done — merged on `develop` (#1102, 2026-10-08)
+
+Flight check: a mission built from `develop` loads its VEAF bundle in DCS, with no `too many local variables` error in `dcs.log`.
 
 ## Problem
 

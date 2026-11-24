@@ -1,6 +1,6 @@
 # 02 — spawned ground vehicles start with their engines running
 
-Status: 🧑 waiting-human — built 2026-09-29; the script half seen in game 2026-10-03, the thermal look is left.
+Status: ✅ done
 Type: fix
 
 ## 2026-09-29 — what was found and built

@@ -1,6 +1,8 @@
 # FEAT-CAMPAIGN-INTEL-DELAY — the other side hears of an assault convoy later, as intelligence would
 
-Status: 🧑 waiting-human — merged on `develop` (#1106); to be checked in game
+Status: ✅ done — merged on `develop` (#1106, 2026-10-08)
+
+Flight check: on a multi-mission campaign flight, the other side hears of an assault convoy `rules.intel_seconds` after it left, message and map line together; its own side at once.
 
 ## Need
 

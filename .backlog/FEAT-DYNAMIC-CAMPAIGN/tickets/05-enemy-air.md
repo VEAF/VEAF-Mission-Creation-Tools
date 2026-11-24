@@ -1,6 +1,6 @@
 # 05 — Enemy air: CAP over the front, CAS and SEAD strikes, Hunter
 
-Status: 🧑 waiting-human — code and tests done on `feature/dynamic-campaign-v1` (2026-11-15); the in-game check of the test mission is David's
+Status: ✅ done
 
 Replaces the former "AI sorties derived from the graph" for the air (the ground sorties are tickets 03 and 04).
 No Director (David, 2026-11-15): a simple target rule, scaled by the number of players (analysis note 03 §2–§5, §8; note 04 §2, §4).

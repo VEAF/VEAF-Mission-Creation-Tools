@@ -1,6 +1,6 @@
 # 04 — AI helicopters capture and resupply zones
 
-Status: 🧑 waiting-human — code and tests done on `feature/dynamic-campaign-v1` (2026-11-15); the in-game check of the test mission is David's
+Status: ✅ done
 
 David, 2026-11-15: as in Foothold, rather than convoys only — convoys would be too slow.
 The DCS traps on scripted landings are known (`docs/agents/dcs-runtime-traps.md`: a `Land` waypoint goes to the nearest airfield's parking, a helicopter sent into a forest hovers at its edge); the decision is to try, and to find another way if it does not work.

@@ -1,6 +1,6 @@
 # 01 — a listed pilot's level does not reach the radio menu; `/secu login` promises what it cannot give
 
-Status: 🧑 waiting-human — fixed and tested; the in-game check needs the redeployed hook
+Status: ✅ done
 
 David, in flight on private1, 2026-09-29: *"the radio menu for activating combat zones is not
 unlocked although I am in the server's pilot file. And even after `/secu login` — it answers

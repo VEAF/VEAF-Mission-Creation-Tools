@@ -1,6 +1,8 @@
 # FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP — a combat zone loses track of what it has lost
 
-Status: 🧑 waiting-human — ticket 01 closed as no defect (2026-09-28); ticket 03 measured on the server (2026-09-29) and found the panel blind to static targets, fixed here; ticket 02 built, its script half seen in game 2026-10-03 (every zone vehicle reaches DCS with `coldAtStart = false`), the thermal look left.
+Status: ✅ done — ticket 01 closed as no defect (2026-09-28); ticket 03 measured on the server (2026-09-29), the panel blind to static targets fixed in #1030; ticket 02 built, its script half seen in game 2026-10-03
+
+Flight check: an IR pod in white-hot finds a combat zone's vehicles at a distance where a `coldAtStart = true` control stays dark (ticket 02's thermal look, R35 of `DCS-SESSION-TODO.md`).
 
 > **The lot's name is now misleading, and is kept only so links do not break.** "A dead unit has no
 > group" was the symptom that started it, and it turned out to be CTLD announcing a perfectly normal

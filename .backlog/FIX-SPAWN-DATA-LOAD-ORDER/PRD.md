@@ -1,6 +1,8 @@
 # FIX-SPAWN-DATA-LOAD-ORDER — campaign garrisons drawn from an empty groups database: no air defence
 
-Status: 🧑 waiting-human
+Status: ✅ done — merged on `develop` (#1104, 2026-10-08)
+
+Flight check: on a campaign mission, Senaki has its SA-10 and `dcs.log` has no `cannot find group`.
 
 ## Problem
 

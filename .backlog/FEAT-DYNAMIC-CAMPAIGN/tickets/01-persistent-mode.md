@@ -1,6 +1,6 @@
 # 01 — Persistent mode: one mission that saves and reloads itself, win, defeat, reset
 
-Status: 🧑 waiting-human — code and tests done on `feature/dynamic-campaign-v1` (2026-11-15); the in-game check of the test mission is David's
+Status: ✅ done
 
 The multi-mission campaign already has the format (`campaign.yaml`), the zones, the garrisons drawn once and recorded, the capture, the F10 map and menu and the state writer (`veafCampaign.lua`, `campaign_manager/`).
 This ticket adds the second mode the decision of 2026-11-15 asks for: a single mission that runs on a server for weeks, saves itself and starts again where it stopped.

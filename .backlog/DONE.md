@@ -6,6 +6,42 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS](FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS/PRD.md) · ✅
+
+`campaign next` writes the mission's objectives as waypoints for the players' side (planes at 10 000 ft, helicopters at 500 ft above the ground), and the mission briefing gains a navigation page read from the built mission. Merged on `develop` (#1107, 2026-10-08). Flight check: on a campaign mission, the waypoints are on the players' route and the briefing's navigation page matches them.
+
+### [FIX-BUNDLE-LOCAL-LIMIT](FIX-BUNDLE-LOCAL-LIMIT/PRD.md) · ✅
+
+The VEAF bundle built from `develop` no longer loaded in DCS: concatenated, its modules declared more than the 200 top-level locals a Lua 5.1 chunk accepts. Each module goes into its own `do … end` block, and a test runs the bundle under Lua 5.1. Merged on `develop` (#1102, 2026-10-08). Flight check: a mission built from `develop` loads its VEAF bundle in DCS.
+
+### [FIX-SPAWN-DATA-LOAD-ORDER](FIX-SPAWN-DATA-LOAD-ORDER/PRD.md) · ✅
+
+A campaign draws its garrisons while `veaf-config.lua` runs, but the groups database loaded from a last trigger, after it: every garrison came out without its air defence (no SA-10 at Senaki). The spawn data loads with the framework instead, as the last action of its load triggers. Merged on `develop` (#1104, 2026-10-08). Flight check: a campaign mission's garrisons come with their air defence and `dcs.log` has no `cannot find group`.
+
+### [FIX-CAMPAIGN-ARROW-ALTITUDE](FIX-CAMPAIGN-ARROW-ALTITUDE/PRD.md) · ✅
+
+DCS drew each assault-convoy arrow twice on the F10 map, one copy sliding as the map was panned; points on the terrain (#1103) did not change it. The axis becomes a line in the side's colour over the link. Merged on `develop` (#1105, 2026-10-08). Flight check: one line, which does not slide when the map is panned.
+
+### [FEAT-CAMPAIGN-INTEL-DELAY](FEAT-CAMPAIGN-INTEL-DELAY/PRD.md) · ✅
+
+The other side hears of an assault convoy `rules.intel_seconds` after it left (20 minutes by default), message and map line together; its own side at once. Merged on `develop` (#1106, 2026-10-08). Flight check: on a campaign mission, the other side hears of a convoy 20 minutes late.
+
+### [FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP](FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP/PRD.md) · ✅
+
+A combat zone's info panel and its completion disagreed: the panel was blind to static targets (fixed, #1030) and spawned vehicles now start warm — the scripts were seen asking for it in game on 2026-10-03. Flight check: the thermal look (R35 of `DCS-SESSION-TODO.md`), an IR pod finding a zone's vehicles.
+
+### [FIX-SECU-VERB-AND-LOG-NOISE](FIX-SECU-VERB-AND-LOG-NOISE/PRD.md) · ✅
+
+A private1 session where a level-99 pilot could not activate a zone, plus traceback-raising chat commands and log noise. Merged in #1032 (2026-09-30), deployed (6.26.0, hook on the six servers 2026-10-01). Flight check: R38 — a listed pilot clicks a secured command on a live server, before and after a reload.
+
+### [FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST](FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST/PRD.md) · ✅
+
+12 `attempt to call method 'isExist' (a nil value)` in the Privé 1 log of the Sinai Open Training (2026-10-12): `weapon:getTarget()` returned an object with no `isExist`. The sanctuary now ignores such a target and logs its category once per mission. Merged in #1139 (2026-10-14). Measured: a Maverick on a unit gets a complete `Unit`. Flight check: R50 — the logged category in the next server `dcs.log`, or a pilot's shots on a house and a hangar.
+
+### [FEAT-COMBAT-LOG](FEAT-COMBAT-LOG/PRD.md) · ✅
+
+A combat log for an exact debrief: every shot, hit, kill and gun burst written as JSON lines by the mission, and `veaf-tools mission combat-log` for the recap per pilot. Merged (#1222, #1223, 2026-10-30). Flight check: R54 of `DCS-SESSION-TODO.md`, a fight flown by two pilots, one in a helicopter with a gun, to measure what DCS gives for gun shells.
+
 ### [FIX-CAMPAIGN-GROUND-KILLS-UNPAID](FIX-CAMPAIGN-GROUND-KILLS-UNPAID/PRD.md) · ✅
 
 Since 2026-11-15 a player's kill of a ground unit paid nothing and counted nothing: the kill's target was read by name after the unit was gone, so it looked neutral and `readPlayerKill` dropped it (31, 24, 13, 10 and 8 kills unpaid on 2026-11-21; only air kills paid). Fixed: the raw target is asked, then the campaign's own records; every pilot who took a slot is on the sitac's ranking; the evening's summary is written when the last player leaves his slot. Merged in #1327 (2026-11-22), shipped in 6.39.0. Flight check: an evening's ground kills paid and ranked on the Campagne server.

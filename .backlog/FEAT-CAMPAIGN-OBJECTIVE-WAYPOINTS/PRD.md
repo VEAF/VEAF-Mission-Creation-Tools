@@ -1,6 +1,8 @@
 # FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS — a campaign mission's flight plans carry its objectives, not the shipped example
 
-Status: 🧑 waiting-human
+Status: ✅ done — merged on `develop` (#1107, 2026-10-08)
+
+Flight check: on a campaign mission, the objectives are waypoints of the players' side (planes at 10 000 ft, helicopters at 500 ft above the ground) and the briefing's navigation page lists the same ones.
 
 ## Found
 

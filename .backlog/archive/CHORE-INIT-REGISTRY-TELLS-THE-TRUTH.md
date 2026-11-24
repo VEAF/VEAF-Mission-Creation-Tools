@@ -3,7 +3,7 @@
 Status: ✅ done · archived 2026-09-28
 
 David's call, 2026-09-01, on route (a) of
-[`FIX-PER-MODULE-LOGLEVEL-INERT`](../FIX-PER-MODULE-LOGLEVEL-INERT/PRD.md), split in two so the risky
+[`FIX-PER-MODULE-LOGLEVEL-INERT`](FIX-PER-MODULE-LOGLEVEL-INERT.md), split in two so the risky
 half is taken with the facts in hand.
 
 **This lot changes no behaviour.** It makes the registry an accurate description of today's

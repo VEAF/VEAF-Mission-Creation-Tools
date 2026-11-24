@@ -3,7 +3,7 @@
 Status: ✅ done — 2026-09-28, finding 2 fixed: `findEscortTask` returns the task's waypoint index and the teleport rewrites that waypoint and the one before it. Finding 1 was answered in game on 2026-09-01. · archived 2026-10-02
 
 Origin: two things found while sizing option (b) of
-[`FIX-ESCORT-RESPAWN-DISTANCE`](../FIX-ESCORT-RESPAWN-DISTANCE/PRD.md) on 2026-08-28, and ruled out
+[`FIX-ESCORT-RESPAWN-DISTANCE`](FIX-ESCORT-RESPAWN-DISTANCE.md) on 2026-08-28, and ruled out
 of that lot on 2026-09-01 with the reasons recorded there. Nothing shipped in that lot depends on
 either of them: it respawns the escort and repairs the task, and never touches the teleport's
 waypoint arithmetic.

@@ -4,7 +4,7 @@ Status: ✅ done — ships in 6.39.0 (2026-11-23)
 
 Origin: Sharko (BFR) converted parts of SeaShepherd with 6.37.0 and filed, in French, on 2026-11-22: [#1300](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1300), [#1301](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1301), [#1302](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1302), [#1303](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/1303).
 The runtime and docs findings of the same report are [FIX-BFR-PORT-FINDINGS](../FIX-BFR-PORT-FINDINGS/PRD.md).
-Follows [FIX-CONVERT-V5-SILENT-LOSSES](../FIX-CONVERT-V5-SILENT-LOSSES/PRD.md) (6.15), whose rule still holds: what v6 cannot express is said.
+Follows [FIX-CONVERT-V5-SILENT-LOSSES](../archive/FIX-CONVERT-V5-SILENT-LOSSES.md) (6.15), whose rule still holds: what v6 cannot express is said.
 This lot adds the other half: what v6 *adds* by default, a converted mission must not get silently.
 
 Lot opened 2026-11-23, after each claim was re-read against `develop` (6.38.0, `5d06d123`); David validated the recommendations the same day.

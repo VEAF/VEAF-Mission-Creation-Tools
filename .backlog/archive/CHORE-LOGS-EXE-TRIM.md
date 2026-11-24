@@ -74,7 +74,7 @@ The single `__mypyc` entry left belongs to `charset_normalizer` (mypyc runtime, 
 of `requests`), not to `mypy`.
 
 **Cold start barely moves** (−0.5 s): the 14 s are not the archive size. Not investigated here. Filed as
-[FIX-LOGS-EXE-STARTUP-AND-VERSION](../FIX-LOGS-EXE-STARTUP-AND-VERSION/PRD.md) ticket 01.
+[FIX-LOGS-EXE-STARTUP-AND-VERSION](FIX-LOGS-EXE-STARTUP-AND-VERSION.md) ticket 01.
 
 ### Checked in the built executable
 
@@ -89,7 +89,7 @@ of `requests`), not to `mypy`.
   the recipe bundles no `veaf-tools` metadata, and `veaf-build` restores the `_version.py` stub
   before the release workflow runs `pyinstaller veaf-logs.spec`. Read from the code, not measured in
   a running exe. Filed as
-  [FIX-LOGS-EXE-STARTUP-AND-VERSION](../FIX-LOGS-EXE-STARTUP-AND-VERSION/PRD.md) ticket 02.
+  [FIX-LOGS-EXE-STARTUP-AND-VERSION](FIX-LOGS-EXE-STARTUP-AND-VERSION.md) ticket 02.
 
 ## Tickets, in full
 

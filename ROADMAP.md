@@ -124,7 +124,7 @@ Validated by David the day it was proposed. **Orders 1 to 3 are delivered** — 
 
 ### New since that order — DROP-MIST and FIX-PLACEMENT-IGNORES-SCENERY (2026-08-27)
 
-[`FIX-PLACEMENT-IGNORES-SCENERY`](.backlog/FIX-PLACEMENT-IGNORES-SCENERY/PRD.md) came out of `DROP-MIST`'s
+[`FIX-PLACEMENT-IGNORES-SCENERY`](.backlog/archive/FIX-PLACEMENT-IGNORES-SCENERY.md) came out of `DROP-MIST`'s
 own measurement rather than a report, and it goes **before** the campaign: it fixes two ground-placement
 paths `FEAT-SCENERY-AWARE-SPAWN` missed — a *"Full Combat Group"* of real ground units, and every combat
 zone element with a non-zero spawn radius — plus a FARP escort that searches for clear ground without
@@ -266,7 +266,7 @@ running order and with the commands to paste, in [DCS-SESSION-TODO.md](DCS-SESSI
 |-----|--------|------|
 | [`FIX-WAREHOUSES-LIST-FORM`](.backlog/FIX-WAREHOUSES-LIST-FORM/PRD.md) | 🧑 | Fixed, tested and **shipped in 6.15.0**. Waiting on Tripack rebuilding his mission on it and confirming the airfields come back. |
 | [`FIX-WAREHOUSES-INCREMENTAL`](.backlog/FIX-WAREHOUSES-INCREMENTAL/PRD.md) | 🧑 | Implemented 2026-08-16; one in-game confirmation that a mission with a single assigned airfield still ships all the others. |
-| [`FIX-CONVERT-V5-SILENT-LOSSES`](.backlog/FIX-CONVERT-V5-SILENT-LOSSES/PRD.md) | 🧑 | All five tickets shipped 2026-08-17 and released. Waiting on Sharko's two harnesses, which are the acceptance test we agreed to. |
+| [`FIX-CONVERT-V5-SILENT-LOSSES`](.backlog/archive/FIX-CONVERT-V5-SILENT-LOSSES.md) | 🧑 | All five tickets shipped 2026-08-17 and released. Waiting on Sharko's two harnesses, which are the acceptance test we agreed to. |
 | [`FEAT-AWACS-ESCORT-COMMANDS`](.backlog/FEAT-AWACS-ESCORT-COMMANDS/PRD.md) | 🧑 | Blocked **on a lot rather than a person since 2026-08-18**: `FIX-ESCORT-RESPAWN-TASK` located the escort bug, so shipping `-escortme` on top of it would hand a pilot a decorative escort. Unblocks itself at order 4 above; the AWACS half never depended on it and can ship first. |
 | [`CHORE-SMS-QUICK-WINS`](.backlog/CHORE-SMS-QUICK-WINS/PRD.md) | 🔄 | Ticket 02 is **delivered but unproven**: Gemini CLI is not installed here, so "tested rather than assumed" is unmet. One command validates it. |
 | [`FEAT-ASSIST-FOLLOWUP`](.backlog/FEAT-ASSIST-FOLLOWUP/PRD.md) | 🔄 | Ticket 01 shipped 2026-08-11 and still wants one flight — no unit test can see DCS's resource cache. 02 needs a second pilot, 03 needs cockpit time, 04 deferred on purpose. |

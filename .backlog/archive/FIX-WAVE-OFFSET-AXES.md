@@ -3,7 +3,7 @@
 Status: ✅ done — **option (a) chosen by David, 2026-09-01**: the code is wrong, the axes are corrected and the migration is announced · archived 2026-09-28
 
 Found on 2026-09-01 while fixing
-[`FIX-AIRWAVES-COMMAND-EASTING`](../FIX-AIRWAVES-COMMAND-EASTING/PRD.md), on the line above the one
+[`FIX-AIRWAVES-COMMAND-EASTING`](FIX-AIRWAVES-COMMAND-EASTING.md), on the line above the one
 that lot fixes. **Deliberately not fixed there**: that lot restores a missing coordinate, while this
 one changes where every existing mission with a non-zero offset puts its groups. Folding the two
 together would make a regression indistinguishable from the fix, and this one needs David's call

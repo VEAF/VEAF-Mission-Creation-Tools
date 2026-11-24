@@ -1,0 +1,302 @@
+# FIX-ESCORT-RESPAWN-DISTANCE — a respawned asset reappears 80 km from its escort
+
+Status: ✅ done — verified in game 2026-10-03 (R5) · archived 2026-11-24
+
+Origin: the in-game verification of [`FIX-ESCORT-RESPAWN-TASK`](FIX-ESCORT-RESPAWN-TASK.md),
+run 2026-08-28 on `VEAF-session-2026-08-27`. That lot's repair is now proven to work; the escort
+still goes home, and this is why.
+
+## What was measured
+
+`veafAssets.respawn` calls `mist.respawnGroup(name, true)`, which recreates the asset **at its
+mission start position**. Its escort is not respawned — it keeps flying wherever it had got to. So
+the moment the tanker reappears, the two are wherever the elapsed mission time has put them apart.
+
+Measured on the demo mission's tanker, minutes after a respawn from the F10 menu:
+
+```
+t+0s  | Arco escort: 78497 m from Arco, alt 14 m   (landed, stationary)
+t+20s | Arco escort: 78639 m from Arco, alt 14 m
+t+0s  | Arco-escort1: 82750 m from Arco, alt 317 m (descending)
+t+20s | Arco-escort1: 81562 m from Arco, alt 207 m
+```
+
+**~80 km.** The Escort task's own `engagementDistMax` is **60 000 m**, read off the live task. The
+escort is out of range of its charge before the repair has even run.
+
+> One correction to the paragraph above, 2026-09-01: `veafAssets.respawn` no longer calls
+> `mist.respawnGroup` — `DROP-MIST` replaced it with
+> `VeafGroupSpawn:new():forGroup(name):withRoute(veaf.getGroupRoute(name)):respawn()`. The behaviour
+> the measurement describes is unchanged, and the code says why: `mist.respawnGroup(name, true)` was
+> a wrapper around the teleport with no point and the group's own route, which is that chain without
+> an `at`. Nothing else in this PRD is affected — but do not go looking for MiST here.
+
+The repair itself is not at fault, and that is established rather than assumed — the instrumented
+trace in [ticket 03](FIX-ESCORT-RESPAWN-TASK.md#03--find-the-escort-task-on-any-waypoint-not-only-the-last)
+shows `reestablishEscortTask` → `actualReestablishEscortTask` → `replaceMission` running to
+completion and writing the runtime group id (`1000031` → `18`) into the task.
+
+## Two things tried in game, and ruled out
+
+Both were run through the fiddle bridge against `Arco-escort1`, which was airborne and not escorting:
+
+1. **`airborne = true` on the Mission task.** `veafMove.replaceMission` hands DCS the *whole group
+   definition* (`units`, `start_time`, `uncontrolled`, `radioSet`, … 17 keys) as the params of a
+   `Mission` task, and never sets `airborne`. Re-applied by hand as a proper Mission task with
+   `airborne = true` and the route alone: **no change**.
+2. **Pushing the `Escort` task straight onto the controller**, instead of a route whose waypoint 2
+   carries it: **no change** within the observation window. Worth noting the window was short and the
+   aircraft was 84 km out — this one is *not conclusively* ruled out and should be retried at close
+   range before being discarded.
+
+## What to decide
+
+The choice is about what a respawn is supposed to mean, and it is a design call, not a bug fix:
+
+- **(a) Respawn the escort with its charge.** Simple, predictable, and consistent with what `linked`
+  already does — but `linked` is explicitly *not* how escorts are found (documented on the ASSETS
+  page), so this would blur two mechanisms the documentation separates on purpose.
+- **(b) Teleport the escort next to the respawned asset**, then repair the task. The teleport path
+  already exists (`veafMove.teleportEscort`), so this is mostly wiring.
+- **(c) Leave the escort where it is and let it fly to its charge.** Nothing to write, but it means
+  minutes of transit each respawn, and it only works if the Escort task really does make an aircraft
+  rally from beyond `engagementDistMax` — which is exactly what test 2 above failed to demonstrate.
+
+## Decision — (a), David, 2026-08-28
+
+**The escort respawns with its charge.** `veafAssets.respawn` already does exactly this for `linked`
+groups; the group following the `<asset name> escort` convention gets the same treatment.
+
+Why (a) and not the other two, in the terms the choice was put:
+
+- It is **the only one of the three whose outcome is certain without a further measurement**. A respawn
+  already means "put this back the way it started", and the escort is part of that.
+- **(b) rests on a component the repository itself says does not work.** `veafMove.teleportEscort`
+  carries its author's note that the escort *"just doesn't defend the group"*, and it still assumes the
+  Escort task sits on the last waypoint. Its advertised cheapness was the reason to prefer it, and that
+  reason does not survive reading it.
+- **(c) rests on DCS behaviour nobody has seen.** The Escort task's `engagementDistMax` is 60 km and the
+  escort is ~80 km out; that a task makes an aircraft rally from beyond its own engagement distance was
+  never demonstrated. The one attempt on 2026-08-28 showed nothing, and was too short to count either
+  way.
+
+What (a) costs, stated rather than glossed: an escort that was engaged, damaged or low on fuel is
+replaced by a fresh one, and the two mechanisms the ASSETS page separates on purpose — `linked` and the
+naming convention — end up doing the same thing at respawn time. The page has to say so.
+
+### What implementing it means
+
+- `veafAssets.respawn` respawns `<asset name> escort` alongside the asset, if such a group exists.
+- The task repair still runs afterwards: respawning both does not by itself restore the Escort task,
+  since it is the **escorted** group's id changing that breaks it. Both halves are needed.
+- The order matters — the asset first, then the escort, then the repair — because the repair reads
+  `Group.getID` of the freshly created asset.
+- Documented on the ASSETS page, both languages: respawning an asset respawns its escort.
+- Tests: an asset with an escort respawns both; an asset without one is unaffected; the repair still
+  runs and writes the new id.
+
+## Scope
+
+| # | Ticket | Status |
+|---|--------|--------|
+| 01 | [Respawn the escort with its charge](FIX-ESCORT-RESPAWN-DISTANCE.md) | ✅ |
+
+## Definition of done
+
+- [x] One of (a)/(b)/(c) chosen, with the reason recorded here — **(a)**, David, 2026-08-28
+- [x] Implemented with unit tests covering the distance case — `veafMove.respawnEscort`, called by
+      `veafAssets.respawn` before the task repair; 8 tests, each shown red before the fix and red
+      again under a deliberate sabotage of the finished code (ticket 01 lists the three sabotages)
+- [ ] Verified in game: respawn the asset, and the escort is with it — not merely tasked with it.
+      Written up as item **R5** of [`DCS-SESSION-TODO.md`](../../DCS-SESSION-TODO.md), with what to run
+      and what both outcomes mean, so the wait has somewhere to end
+- [x] The ASSETS page says what a respawn does to an escort — new section *What a respawn does to an
+      escort* in both languages, including the cost: the escort that comes back is a fresh one
+- [x] [#107](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/107) closed, citing the
+      in-game measurement. Inherited from `FIX-ESCORT-RESPAWN-TASK` when that lot was archived on
+      2026-09-26: it shipped the task repair, but #107's symptom — *the respawned escort does not
+      follow* — is the distance this lot fixes, so the issue closes on **R5**, not on that lot
+
+### What the unit tests cannot settle, and what to look for in game
+
+The mocks do not model what DCS does with an Escort task, so what is proven here is that the escort
+is **put back** and that the repair still runs, in that order. What the in-game check has to add is
+the distance itself: respawn the asset from the F10 menu and read the escort's distance to its charge
+straight away. The measurement to beat is the one at the top of this page — 78 km and 82 km. Anything
+of that order means the escort was not respawned; a few hundred metres means it was.
+
+Worth watching for separately: the escort now comes back **fresh**, so an escort that had been
+engaged is replaced mid-fight. That is the cost of (a), accepted when it was chosen; the check is
+that it happens, not whether it is liked.
+
+One assumption the mocks cannot exercise, worth a second run: for an escort that had been **shot
+down**, `reestablishEscortTask`'s own guard — `Group.getByName(<asset> escort)` — has to resolve the
+group `coalition.addGroup` created a few instructions earlier, in the same tick. That is the same
+same-tick lookup `teleportEscort` already relies on after its teleport, so the assumption is not a
+new one; the mocked `coalition.addGroup` simply does not register the group it is handed, so no unit
+test can show it either way. Shoot the escort down, respawn the asset, and check the escort is both
+back **and** escorting.
+
+## Two things found in `teleportEscort` while sizing option (b), 2026-08-28
+
+Option (b) was written up as *"mostly wiring"* because the teleport path already exists. Reading it
+says otherwise, twice.
+
+**1. Its author recorded that it does not work.** [`veafMove.teleportEscort`](../../src/scripts/veaf/veafMove.lua),
+right after the call that is supposed to make the escort escort:
+
+```lua
+  veafMove.replaceMission(unitGroup_escort, EscortData)
+  --this method appears to not work very well, the escort just doesn't defend the group
+```
+
+That contradicts [`FIX-ESCORT-RESPAWN-TASK`](FIX-ESCORT-RESPAWN-TASK.md), which states the
+teleport path *"works (escort held for 30 min)"* and used it as the reference the respawn path was
+ported from. One of the two is wrong, and it matters: option (b) is only cheap if the thing it reuses
+does what it claims. **Settle this before choosing (b)** — and note that "held for 30 min" and "does
+not defend" are not even contradictory: an escort can fly formation without engaging anything.
+
+**2. It still assumes the Escort task is on the last waypoint.** It rewrites the last two waypoints and
+comments the last one as *"Waypoint 1 where the escort tasking will come into play"*:
+
+```lua
+  local point1_escort = points_escort[#points_escort - 1] --second to last waypoint
+  local point2_escort = points_escort[#points_escort] --last waypoint where the escort has to be set up in the editor
+```
+
+`FIX-ESCORT-RESPAWN-TASK` ticket 03 fixed that assumption in the *lookup*; it is still here in the
+*rewrite*. On the demo mission (3 waypoints, task on wp2) the task sits on `point1_escort`, the one
+this code treats as a mere approach waypoint. Whether that breaks the teleport or merely works by
+accident is unmeasured — but it is the same defect, in the same file, and it belongs to whichever lot
+touches this path next.
+
+### Verdict, 2026-09-01 — both **out of scope** for this lot, and filed rather than dropped
+
+Both live in `veafMove.teleportEscort`, which this lot does not touch: option (a) respawns the escort
+and repairs the task, and neither half goes anywhere near the teleport's waypoint arithmetic. The
+reasons are specific, not "it is a different function":
+
+1. **The contradiction about whether the teleport escort works** can only be settled by a
+   measurement in DCS, and nothing implemented here depends on the answer — option (b) was the only
+   thing that rested on it, and it was not chosen. Deciding it from the code is exactly the mistake
+   the note warns against: *"held for 30 min"* and *"does not defend"* are both compatible with an
+   escort flying formation without engaging.
+2. **The last-waypoint assumption in the rewrite** is a real defect, but repairing it means
+   rewriting the waypoint arithmetic around the task's actual index — a design change to a path
+   whose author says it does not do its job, which is finding 1 again. Fixing the arithmetic of a
+   function before knowing whether the function works is work in the wrong order, and it cannot be
+   verified from a workstation either way. Doing it here would also break RULE N°1: it is not
+   adjacent to this change, it is a different change in the same file.
+
+Filed as [`FIX-TELEPORT-ESCORT-WAYPOINT`](FIX-TELEPORT-ESCORT-WAYPOINT.md), which carries both
+in the order they have to be taken: measure first, then fix the arithmetic.
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+Arco respawned: `Arco escort` came back with it and held 1.0–2.5 km, at its altitude; the control
+`Arco-escort1`, deliberately misnamed, was left behind and drifted to 15 km. `Arco escort` destroyed
+by script, then Arco respawned: a fresh escort came back and held 1.0–1.8 km.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**a respawned asset reappears ~80 km from its escort.** `mist.respawnGroup` puts the tanker back at its mission start while its escorts fly on, so repairing the Escort task — which now demonstrably works — hands the escort a charge outside the task's own 60 km `engagementDistMax`. Measured 2026-08-28: 78 km and 82 km, one escort already landed at 14 m altitude. Two remedies tried in game and ruled out (`airborne=true`, pushing the Escort task straight onto the controller). **Design call made 2026-08-28: the escort respawns with its charge** (option a) — the only one of the three whose outcome is certain without a further measurement; the teleport path carries its own author's note that the escort does not defend, and nobody has seen an Escort task rally an aircraft from beyond its 60 km engagement distance. **Implemented 2026-09-01**: `veafMove.respawnEscort` puts `<asset> escort` back with its charge, and `veafAssets.respawn` runs asset → escort → repair — the order matters, since the repair reads the asset's fresh `Group.getID` and looks the escort up as a live group. Both halves are needed: putting the escort back does not restore the task, because what breaks it is the *escorted* group's id changing. The guard is the escort's **mission record**, not a live group, so an escort that was shot down comes back too. 8 tests, each shown red before the fix and red again under a deliberate sabotage of the finished code. The two `teleportEscort` defects the option-(b) sizing turned up are **out of scope** and filed as `FIX-TELEPORT-ESCORT-WAYPOINT` rather than dropped: both need a measurement in DCS, and nothing shipped here depends on them. Only the in-game check is left.
+
+## Tickets, in full
+
+## 01 — Respawn the escort with its charge
+
+Status: ✅ done — 8 Lua tests, each verified red before the fix and red again under a deliberate
+sabotage; the in-game confirmation is tracked on the PRD, not here
+Type: fix
+Files: `src/scripts/veaf/veafMove.lua`, `src/scripts/veaf/veafAssets.lua`,
+`test/lua/test_veafMove_escort.lua`, `test/lua/test_veafAssets.lua`,
+`doc/mission-maker/scripts/veafAssets.md`, `doc/mission-maker/scripts/veafAssets.en.md`,
+`DCS-SESSION-TODO.md` (item R5 — the in-game check, with both outcomes stated)
+
+Implements option **(a)** as decided by David on 2026-08-28 (see the PRD). The decision is not
+reopened here.
+
+### What was written
+
+`veafMove.respawnEscort(escorted_groupName)` — one thing: put `<group> escort` back where the Mission
+Editor drew it. It sits next to `reestablishEscortTask` because the naming convention it reads
+(`veafMove.EscortGroupNameSuffix`) already lives there, and because `veafAssets` already guards the
+whole escort branch on `veafMove` being loaded at all.
+
+`veafAssets.respawn` then runs **asset → escort → repair**, inside the existing `if veafMove then`
+guard. The order is not cosmetic:
+
+- the asset first, because the repair reads `Group.getID` of the freshly created asset;
+- the escort before the repair, because `reestablishEscortTask`'s own guard is
+  `Group.getByName(<group> escort)` — a repair asked for before the escort is back finds nothing and
+  returns false.
+
+Nothing is positioned by hand, so `docs/agents/dcs-coordinates.md` has no bearing on the change: a
+respawn with no `:at()` puts the group back at its editor position, and that is the whole point —
+the escort lands back exactly where its charge has just been put back.
+
+### The one judgement call: what "has an escort" means
+
+The guard is the escort's **mission record** (`veaf.getGroupRecord`), not a live group. The PRD says
+"if such a group exists", which is ambiguous between *defined in the mission* and *currently flying*.
+The mission record was chosen because:
+
+- it is the precondition of the action itself — `VeafGroupSpawn:respawn()` reads the editor
+  definition, so this guard tests exactly what the respawn needs;
+- an escort that was shot down is precisely the case a respawn is for. `Group.getByName` answers nil
+  for it, so the live-group guard would leave the asset back on station with no escort at all;
+- it costs no extra code.
+
+Covered by `test_an_escort_that_is_no_longer_flying_is_still_put_back`.
+
+### Considered and deliberately not written
+
+**Skipping the escort when `linked` already names it.** A mission maker who lists the escort in
+`linked` — documented as unnecessary, not forbidden — gets it submitted to `coalition.addGroup`
+twice in one call. Not guarded: a respawn keeps the group's name and its editor position, so the
+second submission recreates the same group at the same place, which is what the first did. Adding a
+de-duplication would be untestable in game from here and is code with no measured defect behind it.
+
+### Tests, and the proof they can fail
+
+`test/lua/test_veafMove_escort.lua`, `TestVeafMoveRespawnEscort` (5) — the escort reaches DCS; the
+escorted group does not (this function does one thing); the escort comes back **with its route**, so
+the Escort task the repair fixes is there; a group with no escort respawns nothing; a shot-down
+escort is still put back.
+
+`test/lua/test_veafAssets.lua`, `TestVeafAssetsRespawnBringsBackTheEscort` (3) — the **wiring**,
+which is where this can silently do nothing: both groups reach DCS **in the order asset, escort**;
+the repair is still asked for, and is asked for *after* both are back (asserted by capturing
+`#dcs_mocks.groupsAdded` at the moment the repair is called); an asset with no escort respawns only
+itself.
+
+Red before the fix:
+
+- `TestVeafMoveRespawnEscort` — 5 errors, *"attempt to call field 'respawnEscort' (a nil value)"*.
+- `TestVeafAssetsRespawnBringsBackTheEscort` — 2 failures: `{"Arco"}` where `{"Arco", "Arco escort"}`
+  was expected, and the repair running with 1 group back instead of 2.
+
+Red again under three deliberate sabotages of the finished code, each applied and reverted on its
+own:
+
+| Sabotage | What went red |
+|---|---|
+| Swap the two calls in `veafAssets.respawn` so the repair runs before the escort respawn | `test_the_task_repair_runs_after_both_are_back` — expected 2, actual 1 |
+| Delete the `VeafGroupSpawn` chain in `respawnEscort`, keeping `return true` | 4 of the 5 `TestVeafMoveRespawnEscort` tests; the "no escort" one correctly stayed green |
+| Swap the guard to `Group.getByName` instead of `veaf.getGroupRecord` | `test_an_escort_that_is_no_longer_flying_is_still_put_back` — expected true, actual false |
+
+The whole Lua suite is green after each revert: 45 suites, `test_veafMove_escort` 25 tests,
+`test_veafAssets` 32.
+
+### Documentation
+
+`doc/mission-maker/scripts/veafAssets.md` and `.en.md`, new section *What a respawn does to an
+escort* (`{#respawn-and-escorts}`): a respawn brings the escort back **and** repairs the task, why
+both halves are needed with the measured 78/82 km against the 60 km `engagementDistMax`, and the cost
+stated rather than glossed — the escort that comes back is a fresh one. The `linked` warning is
+reworded rather than deleted: the two mechanisms now have the same effect on the escort at respawn
+time, and the page has to say so, but only the naming convention repairs the task.

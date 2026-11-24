@@ -130,4 +130,8 @@ The kneeboard pages of an Open Training, as the eight OTs regenerated with 6.37.
 
 A group a combat zone spawns from a VEAF command gets its route from the zone's hook in its creation frame, where DCS drops it; give it through `veafSpawn.giveFirstRoute`, 5 s later. Left over by FIX-SPAWN-GROUP-FIRST-ROUTE (2026-11-22). Merged into `feature/dynamic-campaign` (#1332). Done 2026-11-22: checked in game, the command group drove off 5 to 10 s after the zone's activation and followed its route north.
 
+### [FIX-OPEN-TRAINING-SYRIA-FINDINGS](FIX-OPEN-TRAINING-SYRIA-FINDINGS/PRD.md) · ✅
+
+What building the Syria Open Training v6 through the MCP found: callsigns, loadouts, QRA simple groups, FARP ammo, FAC task, METAR and more. All 18 tickets done on 2026-11-24; the last, the CTLD JTAC imposed laser code and ASSETS radio, shipped with CTLD `2.0.0-rc13` in 6.29.0.
+
 ## 🚫 Won't fix

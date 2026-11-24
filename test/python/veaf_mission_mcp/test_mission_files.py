@@ -197,3 +197,68 @@ def test_edit_still_needs_a_mission_folder() -> None:
 
     with pytest.raises(ValueError, match="mission_path"):
         CATALOG.run_action("edit_mission_file", {"file": "mission.yaml", "search": "a", "replace": "b"})
+
+
+# --- a campaign folder (FEAT-PERSISTENT-CAMPAIGN-AI 02) ------------------------------------------
+
+CAMPAIGN_YAML = "campaign:\n  name: Georgian Front\n  mode: persistent\n"
+
+
+@pytest.fixture
+def campaign(tmp_path: Path) -> Path:
+    (tmp_path / "campaign.yaml").write_text(CAMPAIGN_YAML, encoding="utf-8", newline="\n")
+    (tmp_path / "campaign-state.yaml").write_text("mission: 0\n", encoding="utf-8", newline="\n")
+    return tmp_path
+
+
+def test_a_campaign_folder_serves_its_campaign_yaml(campaign: Path) -> None:
+    assert read_mission_file(campaign, "campaign.yaml")["content"] == CAMPAIGN_YAML
+
+
+def test_a_campaign_yaml_is_edited_like_a_mission_file(campaign: Path) -> None:
+    edit_mission_file(campaign, "campaign.yaml", search="Georgian Front", replace="Front de Géorgie")
+
+    assert "name: Front de Géorgie" in (campaign / "campaign.yaml").read_text(encoding="utf-8")
+
+
+def test_an_empty_search_creates_a_briefing_yaml_that_is_not_there(campaign: Path) -> None:
+    result = edit_mission_file(campaign, "briefing.yaml", search="", replace="operation: Bouclier\n")
+
+    assert (campaign / "briefing.yaml").read_text(encoding="utf-8") == "operation: Bouclier\n"
+    assert result == {"file": "briefing.yaml", "created": True}
+
+
+def test_an_empty_search_never_overwrites_an_existing_file(campaign: Path) -> None:
+    with pytest.raises(ValueError, match="passage not found"):
+        edit_mission_file(campaign, "campaign.yaml", search="", replace="campaign: {}\n")
+    assert (campaign / "campaign.yaml").read_text(encoding="utf-8") == CAMPAIGN_YAML
+
+
+def test_a_created_file_must_read_as_yaml(campaign: Path) -> None:
+    with pytest.raises(ValueError, match="YAML"):
+        edit_mission_file(campaign, "briefing.yaml", search="", replace="axes: [unclosed\n")
+    assert not (campaign / "briefing.yaml").exists()
+
+
+def test_a_missing_file_still_needs_an_empty_search(campaign: Path) -> None:
+    with pytest.raises(FileNotFoundError):
+        edit_mission_file(campaign, "briefing.yaml", search="operation", replace="x")
+
+
+@pytest.mark.parametrize("file", ["campaign-state.yaml", "mission.yaml", "src/presets.yaml", "template/mission.yaml"])
+def test_a_campaign_folder_reaches_campaign_yaml_and_briefing_yaml_only(campaign: Path, file: str) -> None:
+    with pytest.raises(ValueError, match="campaign.yaml"):
+        read_mission_file(campaign, file)
+    with pytest.raises(ValueError, match="campaign.yaml"):
+        edit_mission_file(campaign, file, search="", replace="a: 1\n")
+
+
+def test_a_mission_folder_does_not_reach_a_campaign_file(folder: Path) -> None:
+    with pytest.raises(ValueError, match="mission.yaml"):
+        edit_mission_file(folder, "briefing.yaml", search="", replace="a: 1\n")
+
+
+def test_a_mission_folder_can_create_a_src_yaml(folder: Path) -> None:
+    edit_mission_file(folder, "src/waypoints.yaml", search="", replace="waypoints: []\n")
+
+    assert (folder / "src" / "waypoints.yaml").read_text(encoding="utf-8") == "waypoints: []\n"

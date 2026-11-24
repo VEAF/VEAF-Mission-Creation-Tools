@@ -1,6 +1,7 @@
 """Drive a multi-mission campaign from the MCP: read it, apply a flown mission, build the next one.
 
-The actions are the loop of FEAT-MULTI-MISSION-CAMPAIGN as Claude runs it: ``campaign_status``
+``campaign_init`` and ``campaign_validate`` start and check a campaign, a persistent one included
+(FEAT-PERSISTENT-CAMPAIGN-AI). The other actions are the loop of FEAT-MULTI-MISSION-CAMPAIGN as Claude runs it: ``campaign_status``
 before deciding anything, ``campaign_apply`` once the squadron has flown and the state file has been
 fetched, ``campaign_next`` to lay down the next mission folder — which Claude then designs with the
 other actions —, ``campaign_briefing`` for the strategic briefing deck around `briefing.yaml`. Each
@@ -25,6 +26,55 @@ def _refuse(issues: list[ValidationIssue]) -> None:
     errors = [issue.message for issue in issues if issue.level == ERROR]
     if errors:
         raise ValueError("\n".join(errors))
+
+
+def campaign_init(campaign_folder: Path, example: str | None = None) -> dict[str, Any]:
+    """Lay down a shipped example campaign, or start the campaign: ``campaign init``.
+
+    Args:
+        campaign_folder: The campaign folder; created when an example is laid down in it.
+        example: `persistent` or `multi-mission`: copy that shipped example into a folder that has no
+            `campaign.yaml` yet, and draw no state. Omitted: draw the initial state from `campaign.yaml`.
+
+    Returns:
+        ``{started: False, copied}`` for an example, the files written; ``{started: True, state_file,
+        warnings}`` for a campaign started.
+
+    Raises:
+        ValueError: An unknown example, a `campaign.yaml` already there, an invalid campaign, or a
+            campaign already started. Nothing is written then.
+    """
+    worker = CampaignWorker(campaign_folder)
+    if example is not None:
+        issues, copied = worker.scaffold(example)
+        _refuse(issues)
+        return {"started": False, "copied": [str(path) for path in copied]}
+    issues = worker.init()
+    _refuse(issues)
+    return {
+        "started": True,
+        "state_file": str(worker.state_file),
+        "warnings": [issue.message for issue in issues if issue.level != ERROR],
+    }
+
+
+def campaign_validate(campaign_folder: Path) -> dict[str, Any]:
+    """Check a campaign folder: `campaign.yaml`, the state against it, and `briefing.yaml`.
+
+    Args:
+        campaign_folder: The campaign folder.
+
+    Returns:
+        ``{valid, errors, warnings}``, the messages ``campaign validate`` prints; ``valid`` is true when
+        there is no error. Never raises on an invalid campaign: reporting it is the point.
+    """
+    issues = CampaignWorker(campaign_folder).validate()
+    errors = [issue.message for issue in issues if issue.level == ERROR]
+    return {
+        "valid": not errors,
+        "errors": errors,
+        "warnings": [issue.message for issue in issues if issue.level != ERROR],
+    }
 
 
 def campaign_status(campaign_folder: Path) -> dict[str, Any]:

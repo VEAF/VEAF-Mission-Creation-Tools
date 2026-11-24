@@ -1,6 +1,8 @@
 # FIX-SECU-VERB-AND-LOG-NOISE — what a live private1 session showed on 2026-09-29
 
-Status: 🧑 waiting-human — merged in #1032; 6.26.0 is out and the hook is deployed on the six servers (2026-10-01), so only ticket 01's in-game check is left
+Status: ✅ done — merged in #1032 (2026-09-30); 6.26.0 is out and the hook is deployed on the six servers (2026-10-01)
+
+Flight check: on a VEAF server running a 6.26.0+ mission, a pilot listed at level 10 or more takes a slot and clicks a secured `+` command with no verb, before and after a mission reload; `/secu login` answers that there is no global login (R38 of `DCS-SESSION-TODO.md`).
 
 Open Training **Caucasus v6** on private1, evening of 2026-09-29, six pilots, mission built that
 day from `develop` (`dd60e7a5`, so with `FIX-SECURED-FORALL-AND-UPDATER-BAT` already in). David
@@ -31,7 +33,7 @@ same file; none blocks anything on its own.
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [`/secu login` promises an authentication it no longer grants](tickets/01-secu-login-promises-nothing.md) | 🧑 |
+| 01 | [`/secu login` promises an authentication it no longer grants](tickets/01-secu-login-promises-nothing.md) | ✅ |
 | 02 | [a mistyped chat command raises a Lua error instead of answering the pilot](tickets/02-unknown-module-raises.md) | ✅ |
 | 03 | [the combat-zone watchdog logs its whole inventory at INFO](tickets/03-combatzone-diag-verbosity.md) | ✅ |
 | 04 | [a normal disconnect logs an ERROR from the server hook](tickets/04-playerdetails-nil-on-disconnect.md) | ✅ |

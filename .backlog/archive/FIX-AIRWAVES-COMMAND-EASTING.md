@@ -1,0 +1,335 @@
+# FIX-AIRWAVES-COMMAND-EASTING — a command-driven air wave spawns with no easting
+
+Status: ✅ done — 2026-10-03, both halves seen in game · archived 2026-11-24
+
+Code shipped; the in-game look is ticket 02 and needs DCS started.
+
+Found while porting `mist.getRandPointInCircle` in [`DROP-MIST`](DROP-MIST.md) ticket 06, on
+2026-08-28. Not fixed there: that ticket removes a dependency and must not also move where things
+spawn, or a regression would be indistinguishable from the port going wrong.
+
+## The defect
+
+[`veafAirWaves.lua:1012`](../../src/scripts/veaf/veafAirWaves.lua) — the branch that runs when a wave's
+element is a **VEAF command** rather than a DCS group:
+
+```lua
+local position = { x = zoneCenter.x - lonDelta, y = zoneCenter.y, z = zoneCenter.z + latDelta }
+local randomPosition = veaf.getRandomPointInCircle(position, self.respawnRadius)
+veafInterpreter.execute(command, randomPosition, self.coalition, nil, spawnedGroupsNames)
+```
+
+`getRandomPointInCircle` answers the **mission-table shape** — `{ x, y }`, where `y` is the easting and
+there is no `z`. That is what MiST's `getRandPointInCircle` always returned, and it is the contract the
+port kept.
+
+But a command expects a **vec3**. `veafInterpreter.execute`'s own documentation says so, and
+[`veafSpawnGround.lua:89`](../../src/scripts/veaf/veafSpawnGround.lua) reads it that way:
+
+```lua
+["y"] = spawnPosition.z,
+```
+
+So the spawned group's easting is `nil`, and its altitude is whatever the easting happened to be.
+
+**The sibling call twenty lines down does the conversion**, which is what makes this a slip rather
+than a misunderstanding:
+
+```lua
+vars.point = veaf.getRandomPointInCircle(spawnSpot, self.respawnRadius)
+vars.point.z = vars.point.y
+vars.point.y = spawnSpot.y
+```
+
+> **Correction, 2026-09-01 — that sibling no longer exists.** The DCS-group branch was rewritten to
+> go through the `VeafGroupSpawn` chain, whose own comment says so: *"The scatter is the chain's
+> business now, which is what removes the three lines of point.z/point.y juggling this used to copy
+> from its twin in veafQraCore."* So the three quoted lines are gone from `develop` and the branch
+> below the defect no longer converts anything — the *contrast* the PRD rested on is stale, though
+> the defect itself is exactly as described. The evidence that it is a slip and not a
+> misunderstanding is now the twin instead: `veafQraCore.lua` carries the same branch, word for word.
+
+## Why nobody saw it
+
+`test_veafAirWaves.lua` covered this path and passed. The stub in `dcs_mocks.lua` answered a **vec3**:
+
+```lua
+mist.getRandPointInCircle = function(spot, r)
+  return { x = spot.x or 0, y = spot.y or 0, z = spot.z or 0 }
+end
+```
+
+MiST itself answers a vec2. The test was asserting the mock, and the mock was wrong about the very
+thing that matters here. Compare [[assert-the-applied-value-not-the-constant]].
+
+The test now asserts the behaviour as it really is — easting in `y`, `z` nil — with a comment naming
+this lot, so the defect stays visible instead of going back into hiding. **Fixing it flips those two
+assertions**, which is the check that this lot actually changed something.
+
+## What to do
+
+Convert like the sibling call, and take the altitude from the zone centre:
+
+```lua
+local randomPosition = veaf.getRandomPointInCircle(position, self.respawnRadius)
+randomPosition.z = randomPosition.y
+randomPosition.y = position.y
+```
+
+Worth considering rather than assuming: whether `veaf.getRandomPointInCircle` should offer a vec3
+variant so this conversion stops being copied by hand at every call site. There are 18 call sites and
+two of them convert; the other sixteen hand the vec2 to `veaf.placePointOnLand`, which expects exactly
+that shape. A blanket change would be wrong — see `docs/agents/dcs-coordinates.md`.
+
+> **Correction, 2026-09-01 — both numbers in that paragraph are wrong.** 18 call sites is right.
+> **Eleven** hand the vec2 to `veaf.placePointOnLand`, not sixteen; **three** convert, not two, the
+> third being `veafSpawnAircraft:1037`. The remaining four read the vec2 themselves and are correct.
+> The conclusion stands and gets firmer — see point 4 above for why the third converter is what
+> actually rules the variant out.
+
+## Impact
+
+Any air wave whose element is a command in `[lat,lon]cmd` form — **and, found on implementation, any
+QRA with such an element too**. A DCS-group element takes the sibling branch and is unaffected.
+Unmeasured in game: what a nil easting does to a spawn is worth seeing before deciding how loudly this
+should fail — that is ticket 02.
+
+## Scope
+
+| # | Ticket | Risk | Status |
+|---|---|---|---|
+| 01 | A command element is handed a vec3, in both modules that run one | low — two lines per site, covered by tests that fail two ways | ✅ |
+| 02 | See a command-driven wave arrive where it should | needs DCS | ✅ |
+
+## What implementation found that this document did not say
+
+Written down rather than folded in silently, because a PRD is a dated note and this one was three
+days old:
+
+1. **A second site, same defect.** `veafQraCore.lua:994` — `VeafQRACore:deploy` — hands
+   `veafInterpreter.execute` the same unconverted draw. Found by enumerating the three callers of
+   `veafInterpreter.execute` instead of trusting the PRD's list of one. `veafCombatZone.lua:1608`,
+   the third, builds its vec3 by hand and is correct. Both defective sites are fixed under ticket 01.
+2. **The "sibling call twenty lines down" is gone**, see the correction above. The PRD's supporting
+   argument is stale; its diagnosis is not.
+3. **The counts in "What to do" below are both wrong.** Enumerated from `src/scripts/veaf/`: there are
+   indeed 18 call sites, but **eleven** hand the vec2 to `veaf.placePointOnLand` (not sixteen) and
+   **three** convert to a vec3 (not two) — `veafSpawnAircraft:1037` has been doing it all along. Four
+   more read the vec2 themselves and are correct, so fifteen of eighteen want it as it comes. Full
+   table in ticket 01.
+4. **The vec3 variant is declined**, and the corrected numbers are what decide it rather than the
+   headcount: `veafSpawnAircraft:1037` converts with a **computed** altitude, not the zone centre's,
+   so the three converting sites have no common altitude source and no single helper can serve them
+   without being handed the altitude anyway — at which point it saves nothing over the two lines it
+   would replace. On top of that, a second shape to pick between is the exact hazard
+   `docs/agents/dcs-coordinates.md` exists to describe.
+
+## Definition of done
+
+- [x] `veafAirWaves.lua` hands `veafInterpreter.execute` a vec3
+- [x] `veafQraCore.lua` does too — its twin, outside the scope written above
+- [x] The two assertions in `test_veafAirWaves.lua` flipped, and the comment naming this lot removed
+- [x] A test that would have caught it, telling *correct*, *zero* and *absent* apart, in both modules
+- [x] Each new test proven able to fail, by two sabotages of the fixed code
+- [ ] Checked in game on an air wave with a command element — ticket 02
+- [x] `stylua --check` clean locally; `luacheck` is not installed on this workstation and **passed on
+      the CI Lua gate** (PR #884), so the gate is met rather than merely deferred
+
+## In-game check — 2026-10-03
+
+From `FIX-IN-GAME-SESSION-2026-10-03`.
+
+Ticket 02, wave half (R7): a wave element `[0,0]-shilka` spawned 150 m from its zone centre,
+`[5000,0]-shilka` 5.2 km north, a bare `-shilka` at the default offset (4 km N, 7 km W). The QRA
+half was not run: the session mission's QRA deploys an editor group, which keeps its editor position.
+
+## The wave half is re-opened (2026-10-03, afternoon)
+
+The morning's in-game check of the wave half used waves written `-spawn shilka`, and `-spawn` is no
+alias: re-run in the afternoon, the zone logged `VeafAlias [-spawn] was not found` and spawned nothing.
+The morning's numbers cannot have come from those waves, so the wave half goes back to
+`DCS-SESSION-TODO.md` R7 with a valid alias. The QRA half was verified that afternoon.
+
+## The wave half verified (2026-10-03, evening)
+
+Session `dcs-session-2026-10-03c`, mission built from `develop` `d3823f7e`. Zone `AW-CommandTest`,
+`respawn_default_offset: [4000, -7000]`, waves `"-shilka"` then `"[5000,0]-shilka"`, triggered by an
+AI C-130 declared as the zone's human. Positions read from the zone centre:
+
+| Wave | Expected | Measured | Miss |
+|---|---|---|---|
+| `-shilka` | N +4000 / E −7000 (the default offset) | N +3853 / E −6954 | 154 m |
+| `[5000,0]-shilka` | N +5000 / E 0 (the bracket replaces the default) | N +4989 / E −181 | 181 m |
+
+Both inside 250 m, which is the floor `AirWaveZone:setRespawnRadius` puts on any scatter
+(`respawn_radius: 0` is not even emitted by the generator). Northing first, easting second, no
+easting lost: the lot closes.
+
+## Former index entry
+
+The row this lot had in `.backlog/README.md` until the index was split into short summaries (CHORE-BACKLOG-INDEX-SPLIT, 2026-10-03), kept verbatim.
+
+**a command-driven air wave spawns with a nil easting.** `veafAirWaves.lua:1012` hands `veafInterpreter.execute` the vec2 that `getRandomPointInCircle` answers, while a command expects a vec3 whose `z` is the easting — `veafSpawnGround` reads `spawnPosition.z`. Hidden because the MiST stub in `dcs_mocks` answered a vec3 where MiST answers a vec2, so the test was asserting the mock. Found while porting ticket 06 of DROP-MIST, 2026-08-28. **Fixed 2026-09-01, in two places rather than one:** enumerating the three callers of `veafInterpreter.execute` instead of trusting the PRD found `veafQraCore.lua:994` carrying the identical branch — `veafCombatZone` builds its vec3 by hand and was fine. The PRD's own supporting argument had gone stale meanwhile: the converting "sibling twenty lines down" no longer exists, the `VeafGroupSpawn` chain having absorbed it. Tests tell *correct*, *zero* and *absent* apart and are proven to fail two different ways. Remaining: the in-game look, ticket 02.
+
+## Tickets, in full
+
+## 01 — A command element is handed a vec3, in both modules that run one
+
+Status: ✅ done
+Type: fix
+
+### What was wrong
+
+`veaf.getRandomPointInCircle` answers the **mission-table** shape — `{ x, y }`, easting in `y`, no
+`z` at all — because most of its call sites hand the result straight to
+`veaf.placePointOnLand`, which takes exactly that. `veafInterpreter.execute` takes the other shape: a
+runtime vec3 whose easting is `z` and whose `y` is the altitude. `veafSpawnGround.lua:89` writes
+`["y"] = spawnPosition.z` into the spawned table, which is where the easting has to be.
+
+Handing the draw across untouched therefore left the easting **absent** and put it in the altitude.
+A command-driven wave spawned on the theatre's central meridian — hundreds of kilometres from its
+zone — at an altitude equal to its easting. No error is raised on either side; both shapes are three
+plausible numbers under plausible names. See `docs/agents/dcs-coordinates.md`.
+
+### Two sites, not one
+
+The PRD named `veafAirWaves.lua:1012`. Enumerating the three callers of `veafInterpreter.execute`
+rather than trusting the list found a second, identical one:
+
+| Caller | Position it hands over | Verdict |
+|---|---|---|
+| `veafAirWaves.lua:1012` — `AirWaveZone:deployWaves` | the raw draw | **defective**, the PRD's case |
+| `veafQraCore.lua:994` — `VeafQRACore:deploy` | the raw draw | **defective**, same three lines, not in the PRD |
+| `veafCombatZone.lua:1608` — `VeafCombatZone:spawnElement` | a vec3 built by hand from `findSpawnPoint` | correct |
+
+The two defective branches are textual twins — same variable names, same comment, same offset
+arithmetic — which is why the slip is in both. Fixing one and leaving the other would have left the
+family half-closed.
+
+### The fix
+
+At both sites, the conversion the PRD prescribes:
+
+```lua
+local randomPosition = veaf.getRandomPointInCircle(position, self.respawnRadius)
+randomPosition.z = randomPosition.y
+randomPosition.y = position.y
+```
+
+The altitude comes from the zone centre, which is the same one the DCS-group branch below already
+uses for its spawn spot — so a command element and a group element now start from the same point.
+
+#### The vec3 variant the PRD asked us to consider — declined, and the PRD's tally was wrong
+
+`veafGeo.getRandomPointInCircle` is **not** given a vec3-returning sibling.
+
+First, the numbers, because the PRD's are wrong in both directions and the real ones are what decide
+this. Enumerated from `src/scripts/veaf/` — **18 call sites**, which the PRD had right:
+
+| What the site does with the draw | Count | Where |
+|---|---|---|
+| Hands it straight to `veaf.placePointOnLand` | **11** | `veafSpawnGround` ×4, `veafSpawnEffects` ×6, `veafSpawnAircraft:115` |
+| Reads the vec2 itself, correctly | **4** | `veaf.lua:1267` (→ `acceptableGroundPoint`), `veaf.lua:1646` (→ `land.getSurfaceType`), `veafDcsSpawner:919` and `:1021` (both write mission-table `x`/`y`) |
+| Converts to a vec3 by hand | **3** | `veafSpawnAircraft:1037`, plus the two this ticket fixes |
+
+The PRD said *"sixteen hand the vec2 to `veaf.placePointOnLand`"* — it is eleven; and *"two of them
+convert"* — it is **three**, `veafSpawnAircraft:1037` having done it all along.
+
+That third converter is what settles the question rather than the count: it does
+`position.z = position.y; position.y = altitude`, where `altitude` is a **computed** value (a base
+altitude plus a random delta), not the centre's `y`. So the three converting sites do not share an
+altitude source, and no single vec3-returning helper could serve them — it would need the altitude
+passed in, at which point it saves nothing over the two lines it replaces.
+
+Add to that: fifteen of the eighteen want the vec2 exactly as it comes, and a second function would
+put a third shape in front of every future caller, in a code base whose recorded failure mode is
+precisely that choice being made wrong in silence. Two hand conversions, each carrying its reason
+above it, are cheaper to read than a name whose difference a caller has to remember.
+
+### The tests, and the proof they can fail
+
+New suites `TestAirWavesCommandEasting` (`test/lua/test_veafAirWaves.lua`) and
+`TestVeafQraCommandEasting` (`test/lua/test_veafQraManager.lua`), plus the two flipped assertions in
+`TestSecrev2AirWavesZoneCenter.test_an_existing_trigger_zone_is_still_preferred` — the ones the PRD
+left deliberately asserting the defect, comment and all, now removed.
+
+Each suite asserts **absent**, **zero** and **correct** apart, because a missing easting reads as
+`nil` in Lua and as `0` once anything has defaulted it, and a single loose assertion would accept one
+of the two. Values are chosen so no two are equal: northing 77 / easting 88 for the trigger-zone
+path, and 1000 / 1500 (altitude) / 2000 (easting) for the zone-centre path.
+
+**Red before the fix** — the failures name the real defect, not a stale expectation:
+
+```
+TestAirWavesCommandEasting.test_the_easting_reaches_the_interpreter_in_z
+  the easting is absent — the interpreter was handed a vec2: expected: not nil, actual: nil
+TestAirWavesCommandEasting.test_the_altitude_reaches_the_interpreter_in_y
+  the altitude is the easting — the two shapes were confused: received the not expected value: 2000
+```
+
+**Green after**, all 45 suites.
+
+**Sabotage A — the two conversion lines swapped**, a plausible ordering slip that produces a *zero*
+easting rather than an absent one:
+
+```lua
+randomPosition.y = position.y
+randomPosition.z = randomPosition.y   -- z now holds the altitude; the easting is lost
+```
+
+Red in both modules, and precisely on the assertion written for that case:
+`the easting is zero — that is the central meridian, not the zone: received the not expected value: 0`.
+The flipped legacy assertion also caught it (`expected: 88, actual: 0`). This is the check that the
+absent/zero distinction is load-bearing and not decoration.
+
+**Sabotage B — the altitude hardcoded**, `randomPosition.y = 0` instead of `position.y`. Red in both
+modules: `the altitude must come from the zone centre: expected: 1500, actual: 0`, while the easting
+assertions stay green — so the altitude assertion carries its own weight rather than riding on the
+easting one.
+
+Both sabotages reverted; the full suite is green.
+
+### Definition of done
+
+- [x] `veafAirWaves.lua` hands `veafInterpreter.execute` a vec3
+- [x] `veafQraCore.lua` too — found by enumeration, outside the PRD's stated scope
+- [x] The two assertions in `test_veafAirWaves.lua` flipped, and the comment naming this lot removed
+- [x] A test that would have caught it, distinguishing correct / zero / absent, in both modules
+- [x] Each new test proven able to fail, by two different sabotages
+- [x] `stylua --check` clean locally; `luacheck` is not installed on this workstation and **passed on
+      the CI Lua gate** (PR #884)
+
+## 02 — See a command-driven wave arrive where it should
+
+Status: ✅ done — 2026-10-03 (QRA half in the afternoon, wave half in the evening)
+Type: chore
+
+Needs DCS started, so it is David's to run. Listed in
+[`DCS-SESSION-TODO.md`](../../DCS-SESSION-TODO.md).
+
+### Why it is worth looking at rather than assuming
+
+The unit tests prove the vec3 leaves `deployWaves` and `deploy` correctly shaped. They cannot say
+what DCS *did* with the broken one, and the PRD flagged that as unmeasured: a nil easting reads as
+the theatre's central meridian, so the expected before/after is a group appearing hundreds of
+kilometres west of its zone versus inside it. Worth confirming once, because it also tells us whether
+this failed loudly (a group visibly nowhere) or quietly (a group that never engaged and was written
+off as an AI quirk) — which is the difference between a fixed annoyance and a fixed mystery.
+
+### What to run
+
+An air wave zone whose element is a command in `[lat,lon]cmd` form — e.g. `[0,0]-shilka` — and a QRA
+zone with the same kind of element, since both branches were fixed. Deploy each and look at where the
+group arrives on the F10 map.
+
+**Expected:** inside the trigger zone, within the respawn radius of its centre.
+
+**A result that would contradict the fix:** the group still lands away from the zone, or at an
+implausible altitude. Either would mean the vec3 is right and something downstream reads it
+differently — say the fix and the reading, and reopen.
+
+### Definition of done
+
+- [x] An air wave with a command element spawns inside its zone — 154 m and 181 m from their spots
+- [x] A QRA with a command element spawns inside its zone
+- [x] The line removed from `DCS-SESSION-TODO.md` and the lot closed

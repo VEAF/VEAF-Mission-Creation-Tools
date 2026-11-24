@@ -1,6 +1,6 @@
 # 07 — An assault convoy vanishes in front of the players when it is attacked
 
-Status: 🧑 waiting-human — implemented, waits for the in-game check
+Status: ✅ done
 Type: fix
 
 ## Found

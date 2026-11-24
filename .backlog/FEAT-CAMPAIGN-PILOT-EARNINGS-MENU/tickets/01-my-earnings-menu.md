@@ -1,6 +1,6 @@
 # 01 — A "My earnings" entry in the Campaign menu
 
-Status: 🧑 waiting-human
+Status: ✅ done
 Type: feature
 
 ## To do

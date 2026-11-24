@@ -1,6 +1,6 @@
 # 13 — The supply network: hop by hop, depots at half time
 
-Status: 🧑 waiting-human — built and tested outside DCS in #1282 (2026-11-16); the in-game check of the test mission is David's
+Status: ✅ done
 
 PRD row "Resources for the AI", supply network (David, 2026-11-16); analysis note 07 §26–§28.
 

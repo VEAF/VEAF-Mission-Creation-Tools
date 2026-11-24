@@ -4,7 +4,7 @@ status: accepted
 
 # `veaf-logs` ships in Go; the rest of the tools stay in Python
 
-Lot: [FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](../../.backlog/FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL/PRD.md), decision 6.
+Lot: [FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](../../.backlog/archive/FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL.md), decision 6.
 Decided by David on 2026-10-25.
 
 ## Context
@@ -21,7 +21,7 @@ The question left open was whether the Go viewer replaces the Python one, and wh
 
 ## Consequences
 
-- Shipping the Go viewer is a lot of its own, [FEAT-GO-VEAF-LOGS-SHIP](../../.backlog/FEAT-GO-VEAF-LOGS-SHIP/PRD.md): the release pipeline builds it, the PySide6 viewer leaves.
+- Shipping the Go viewer is a lot of its own, [FEAT-GO-VEAF-LOGS-SHIP](../../.backlog/archive/FEAT-GO-VEAF-LOGS-SHIP.md): the release pipeline builds it, the PySide6 viewer leaves.
 - The Python `veaf_logs` package does not disappear with its window: the support bot imports its core (`rules`, `store`, `buffer`, `profiles`, `excerpt`, `catalogue`), and the Go parity tests compare against goldens generated from it.
   Which parts stay, and which side becomes the reference, is that lot's first question.
 - A future Go rewrite of another tool is not ruled out, but needs a decision of its own; this one does not open the door.

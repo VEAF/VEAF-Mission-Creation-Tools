@@ -1,6 +1,8 @@
 # FEAT-DYNAMIC-CAMPAIGN — a Foothold-like persistent campaign, built on VMCT alone
 
-Status: 🧑 waiting-human — V1 merged into the integration branch `feature/dynamic-campaign` (#1276, 2026-11-15) and checked in game by David; the V1.5 (tickets 11 to 19) merged into it too (#1282, 2026-11-16) and waits for David's in-game check of the test mission, then ticket 10 on a server (David: the lot is not merged into `develop` piece by piece)
+Status: 🧑 waiting-human — ticket 10, the measure against Foothold on the server: David's call (the profiler plugin goes into `opt_plugins` on the production bot) and the FPS comparison of a Foothold evening and a campaign evening
+
+Flight check: the V1.5 features (tickets 11 to 19) run in the campaign's evenings on the Campagne server since 2026-11-16; watch the ones no evening has shown yet — the demolition team, warehouse stocks, strategic bombers and territory cells.
 
 > **Paused 2026-10-06, resumed 2026-11-15** for the V1 of the table below.
 > Paused 2026-10-06: David wants a multi-mission campaign first ([`FEAT-MULTI-MISSION-CAMPAIGN`](../FEAT-MULTI-MISSION-CAMPAIGN/PRD.md)), then this persistent mission built on the bricks it leaves: the `campaign.yaml` format, garrisons drawn once and recorded, live capture, the F10 map and menu, the runtime state writer, stocks, scenery.
@@ -173,26 +175,26 @@ Tickets 11 to 19 are the V1.5 rows of the feature selection (2026-11-16), one br
 
 | # | ticket | status |
 |---|---|---|
-| 01 | [Persistent mode: save, reload, win, defeat, reset](tickets/01-persistent-mode.md) | 🧑 |
-| 02 | [Dormant zones, caps and work counters](tickets/02-dormancy.md) | 🧑 |
-| 03 | [A front that moves on its own: counter-attacks, supply, CTLD 2](tickets/03-live-front.md) | 🧑 |
-| 04 | [AI helicopters capture and resupply zones](tickets/04-ai-supply-helicopters.md) | 🧑 |
-| 05 | [Enemy air: CAP, CAS and SEAD strikes, Hunter](tickets/05-enemy-air.md) | 🧑 |
-| 06 | [Coalition credits and a small shop](tickets/06-economy-shop.md) | 🧑 |
-| 07 | [A task board drawn from the situation](tickets/07-task-board.md) | 🧑 |
-| 08 | [Intelligence: hidden garrisons, reconnaissance, spy team](tickets/08-intelligence.md) | 🧑 |
-| 09 | [Documentation, example campaign, test mission, in-game check](tickets/09-doc-example-test-mission.md) | 🧑 |
+| 01 | [Persistent mode: save, reload, win, defeat, reset](tickets/01-persistent-mode.md) | ✅ |
+| 02 | [Dormant zones, caps and work counters](tickets/02-dormancy.md) | ✅ |
+| 03 | [A front that moves on its own: counter-attacks, supply, CTLD 2](tickets/03-live-front.md) | ✅ |
+| 04 | [AI helicopters capture and resupply zones](tickets/04-ai-supply-helicopters.md) | ✅ |
+| 05 | [Enemy air: CAP, CAS and SEAD strikes, Hunter](tickets/05-enemy-air.md) | ✅ |
+| 06 | [Coalition credits and a small shop](tickets/06-economy-shop.md) | ✅ |
+| 07 | [A task board drawn from the situation](tickets/07-task-board.md) | ✅ |
+| 08 | [Intelligence: hidden garrisons, reconnaissance, spy team](tickets/08-intelligence.md) | ✅ |
+| 09 | [Documentation, example campaign, test mission, in-game check](tickets/09-doc-example-test-mission.md) | ✅ |
 | 10 | [Measure it against Foothold, then tune the caps](tickets/10-measure-against-foothold.md) | ⬜ |
-| 11 | [Zone kinds: factories and depots](tickets/11-zone-kinds.md) | 🧑 |
-| 12 | [Resources for the AI: one stock per side, prices, production](tickets/12-resources-production.md) | 🧑 |
-| 13 | [The supply network: hop by hop, depots at half time](tickets/13-supply-network.md) | 🧑 |
-| 14 | [VEAF spawn commands paid in credits or resources](tickets/14-paid-spawns.md) | 🧑 |
-| 15 | [Demolition team: sappers who blow up a factory](tickets/15-demolition-team.md) | 🧑 |
-| 16 | [Weapon stocks per warehouse, moved by players](tickets/16-warehouse-stocks.md) | 🧑 |
-| 17 | [Strategic bombers: an escorted red raid, a blue raid bought](tickets/17-strategic-bombers.md) | 🧑 |
-| 18 | [Territory cells (Voronoi) tinted by owner](tickets/18-voronoi-territory.md) | 🧑 |
-| 19 | [V1.5: documentation, example, test mission, self-check](tickets/19-v15-doc-test-mission.md) | 🧑 |
-| 20 | [What the first server flight taught (2026-11-16)](tickets/20-first-server-flight-fixes.md) | 🔄 |
+| 11 | [Zone kinds: factories and depots](tickets/11-zone-kinds.md) | ✅ |
+| 12 | [Resources for the AI: one stock per side, prices, production](tickets/12-resources-production.md) | ✅ |
+| 13 | [The supply network: hop by hop, depots at half time](tickets/13-supply-network.md) | ✅ |
+| 14 | [VEAF spawn commands paid in credits or resources](tickets/14-paid-spawns.md) | ✅ |
+| 15 | [Demolition team: sappers who blow up a factory](tickets/15-demolition-team.md) | ✅ |
+| 16 | [Weapon stocks per warehouse, moved by players](tickets/16-warehouse-stocks.md) | ✅ |
+| 17 | [Strategic bombers: an escorted red raid, a blue raid bought](tickets/17-strategic-bombers.md) | ✅ |
+| 18 | [Territory cells (Voronoi) tinted by owner](tickets/18-voronoi-territory.md) | ✅ |
+| 19 | [V1.5: documentation, example, test mission, self-check](tickets/19-v15-doc-test-mission.md) | ✅ |
+| 20 | [What the first server flight taught (2026-11-16)](tickets/20-first-server-flight-fixes.md) | ✅ |
 
 ## Former index entry
 

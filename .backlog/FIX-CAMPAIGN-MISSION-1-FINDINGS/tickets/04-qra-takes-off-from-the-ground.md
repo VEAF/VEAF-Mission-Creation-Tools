@@ -30,4 +30,4 @@ Left: the minutes from scramble to wheels up, measured in game (`R47` item 3), a
 
 ## Seen in game (2026-10-10)
 
-The conclusion above that no runtime code was needed was wrong: the runway start was destroyed 5 s after its scramble, fixed in [`FIX-QRA-GROUND-START`](../../FIX-QRA-GROUND-START/PRD.md) (#1118). With it, the Senaki pair's wheels were up 25–35 s after the scramble; the time is in the QRA page. Mission 2's own QRA design stays on the campaign's to-do list.
+The conclusion above that no runtime code was needed was wrong: the runway start was destroyed 5 s after its scramble, fixed in [`FIX-QRA-GROUND-START`](../../archive/FIX-QRA-GROUND-START.md) (#1118). With it, the Senaki pair's wheels were up 25–35 s after the scramble; the time is in the QRA page. Mission 2's own QRA design stays on the campaign's to-do list.

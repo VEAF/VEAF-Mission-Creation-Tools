@@ -1,6 +1,6 @@
 # 01 — `campaign.mission_file` and `mission.date_suffix`
 
-Status: 🔄 in-progress
+Status: ✅ done
 Type: feature
 
 ## What

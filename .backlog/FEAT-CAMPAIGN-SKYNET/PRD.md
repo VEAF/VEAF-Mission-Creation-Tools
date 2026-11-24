@@ -1,6 +1,8 @@
 # FEAT-CAMPAIGN-SKYNET — the persistent campaign's SAM sites run under Skynet
 
-Status: 🧑 waiting-human
+Status: ✅ done — merged in #1335 (2026-11-22), on `develop` with #1336 (2026-11-23), shipped in 6.39.0
+
+Flight check: on the Campagne server after the redeploy: Skynet is on, Hatay's Hawk stands in a `<zone> SAM` group, each SAM group spawned (draw, delivery, shop upgrade) logs one `[CAMPAIGN SKYNET]` line and the sites fight as a network (tickets 01 to 03's in-game checks).
 
 David, 2026-11-22: "il faudrait activer Skynet sur la mission de campagne". Asked while looking for why Hatay's Hawk does not fire (FIX-CAMPAIGN-FIFTH-SERVER-FLIGHT 02); Skynet is not that cause — it is not running in the campaign —, this lot is a feature of its own.
 

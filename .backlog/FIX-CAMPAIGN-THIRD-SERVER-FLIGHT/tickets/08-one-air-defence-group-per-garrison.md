@@ -1,6 +1,6 @@
 # 08 — One air defence group per garrison, up to level 5
 
-Status: 🧑 waiting-human — implemented, waits for the redraw of the Oronte red garrisons and the in-game check
+Status: 🧑 waiting-human — implemented; waits for the redraw of the Oronte red garrisons (live server, server empty, David's go), then the in-game check
 Type: fix
 
 ## Found

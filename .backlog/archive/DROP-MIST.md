@@ -165,7 +165,7 @@ things that are **not MiST's doing** and are recorded so the campaign does not a
 
 They pre-date this campaign. Ticket 06 carries the full classification. **A ticket whose job is to
 remove a dependency must not also move where things spawn**, so nothing here is fixed by this lot —
-they are now [`FIX-PLACEMENT-IGNORES-SCENERY`](../FIX-PLACEMENT-IGNORES-SCENERY/PRD.md), opened
+they are now [`FIX-PLACEMENT-IGNORES-SCENERY`](FIX-PLACEMENT-IGNORES-SCENERY.md), opened
 2026-08-27 with David's arbitration: the FARP, FOB and beacon stay exact, the FARP's escort becomes
 scenery-aware, and the FARP is refused with a message when its escort cannot be placed.
 
@@ -1131,7 +1131,7 @@ ticket whose job is to remove a dependency must not also move where things spawn
 family D would be indistinguishable from the port going wrong.
 
 **The gaps got their own lot**, opened 2026-08-27:
-[`FIX-PLACEMENT-IGNORES-SCENERY`](../FIX-PLACEMENT-IGNORES-SCENERY/PRD.md). David arbitrated the
+[`FIX-PLACEMENT-IGNORES-SCENERY`](FIX-PLACEMENT-IGNORES-SCENERY.md). David arbitrated the
 family-D questions the same day — the FARP, FOB and beacon are placed **exactly** where the user asked
 (confirming the current `radius or 0`), while the FARP's **escort** must become scenery-aware, and the
 FARP is **refused with a message** when the escort cannot be placed. The classification above is kept
@@ -1205,7 +1205,7 @@ orientation `getPosition` really carries.
 
 **One of those red tests was a real defect**, not a test artefact: the stub answered a **vec3** where
 MiST answers a vec2, and `veafAirWaves.lua:1012` relies on that difference. Opened as
-[`FIX-AIRWAVES-COMMAND-EASTING`](../FIX-AIRWAVES-COMMAND-EASTING/PRD.md); not fixed here, because
+[`FIX-AIRWAVES-COMMAND-EASTING`](FIX-AIRWAVES-COMMAND-EASTING.md); not fixed here, because
 this ticket removes a dependency and must not also move where things spawn.
 
 ---
@@ -1358,7 +1358,7 @@ test bed for this half**: one feature, many objects, and a placement already ver
 
 - **`respawnGroup`** — 2 calls, both in `veafAssets.respawn` (the asset itself, then each `linked`
   group). Both start from an **editor** group name. Note that
-  [`FIX-ESCORT-RESPAWN-DISTANCE`](../FIX-ESCORT-RESPAWN-DISTANCE/PRD.md) will add a third here.
+  [`FIX-ESCORT-RESPAWN-DISTANCE`](FIX-ESCORT-RESPAWN-DISTANCE.md) will add a third here.
 - **`getGroupData`** — 1 direct call (`veafAirWaves:1022`) plus `veaf.mist.getGroupData`, through which
   `veafCarrierOperations` 342 and 488 ask whether a Pedro or a tanker exists in the mission at all.
 - **`getGroupRoute`** — 8 calls, **every one with `"task"` as the second argument**. The other output

@@ -1,6 +1,8 @@
 # FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT — a convoy that cannot close in is never retired
 
-Status: 🧑 waiting-human
+Status: ✅ done — merged in #1326 (2026-11-22), on `develop` with #1336 (2026-11-23), shipped in 6.39.0
+
+Flight check: on the Campagne server, a convoy that cannot reach its enemy drives on after 3 pushes that move nothing instead of staying "in contact" (ticket 01's in-game check).
 
 Found while watching "Bouclier de l'Oronte" on the Campagne server, 2026-11-21; David asked for the lot the same night.
 

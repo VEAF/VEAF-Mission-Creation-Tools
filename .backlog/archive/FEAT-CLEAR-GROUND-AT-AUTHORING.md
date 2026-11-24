@@ -3,7 +3,7 @@
 Status: ✅ done — merged in #1019 on 2026-09-28; tickets 01 to 05 built and verified in game (see *What was · archived 2026-10-02
 built*).
 David asked for the lot on 2026-09-26 evening, after
-[`FIX-PLACEMENT-IGNORES-SCENERY`](../FIX-PLACEMENT-IGNORES-SCENERY/PRD.md) ticket 11 reached its
+[`FIX-PLACEMENT-IGNORES-SCENERY`](FIX-PLACEMENT-IGNORES-SCENERY.md) ticket 11 reached its
 ceiling.
 
 Origin: ticket 11 fixed `veafUnits.settleGroup` at runtime and measured the result — 19 group alerts
@@ -68,7 +68,7 @@ happen on an empty map.**
 **2. Sweeping with the probe works where the singleton refuses to answer.** `combatZone_Wittstock`'s
 S-300 was on record as having no way out at any clearance; a ring sweep found it a clearing at
 **200 m**. The dead end was a property of the query, not of the terrain. This is the same insight
-that opened [`FIX-PLACEMENT-IGNORES-SCENERY` ticket 12](../FIX-PLACEMENT-IGNORES-SCENERY/tickets/12-settle-sweeps-with-the-probe.md),
+that opened [`FIX-PLACEMENT-IGNORES-SCENERY` ticket 12](FIX-PLACEMENT-IGNORES-SCENERY.md),
 and it is what makes this lot buildable at all.
 
 **3. The probe's throughput is measured: 0.38 ms per call, ~2600/s.** The PRD used to say this was
@@ -103,7 +103,7 @@ findings above raised.
    150 m" and filter. The large groups are the ones this lot exists for, and a flag cannot answer
    the only question they raise. Read it with a margin rather than exactly: **a group's footprint
    moves by up to 38.8 m between draws**
-   ([ticket 11](../FIX-PLACEMENT-IGNORES-SCENERY/tickets/11-settle-verifies-the-candidate-it-trusts.md)).
+   ([ticket 11](FIX-PLACEMENT-IGNORES-SCENERY.md)).
 
 3. **Sweep from a dedicated empty mission.** A `.miz` holding no units at all, loaded only to sweep,
    so the probe sees vegetation and buildings and never a vehicle. It is reusable as-is for every
@@ -315,7 +315,7 @@ terrain was measured once and is now just data.
 
 **Read the stored radius with a margin, never exactly.** A group's footprint moves by up to
 **38.8 m** between draws
-([ticket 11](../FIX-PLACEMENT-IGNORES-SCENERY/tickets/11-settle-verifies-the-candidate-it-trusts.md)),
+([ticket 11](FIX-PLACEMENT-IGNORES-SCENERY.md)),
 so a group asking for 150 m must be served points comfortably above it, and the size asked for
 should be the group's **worst-case** footprint rather than a drawn one.
 

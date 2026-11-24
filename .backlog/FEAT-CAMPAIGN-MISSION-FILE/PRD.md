@@ -1,6 +1,8 @@
 # FEAT-CAMPAIGN-MISSION-FILE — a persistent campaign names its mission file, with no date
 
-Status: 🔄 in-progress
+Status: ✅ done — merged in #1313 (2026-11-18), on `develop` with #1336 (2026-11-23), shipped in 6.39.0
+
+Flight check: on the Campagne server the mission is listed as `Campagne_Oronte`, with no date, and a redeploy replaces the file.
 
 The DCS server browser shows the mission's file name, and the persistent campaign's is too long to read: `Campaign_Northern-Syria_Mission_01_Bouclier-de-l-Oronte_20261117.miz`.
 The date the build appends also changes the name at every redeploy, and each redeploy then forces edits to the server bot's `servers.yaml`, its scheduler and the calendar.

@@ -1,6 +1,6 @@
 # 20 — What the first server flight taught (2026-11-16)
 
-Status: 🔄 in-progress — one branch (`fix/campaign-cap-follows-fighters`), one pull request into `feature/dynamic-campaign`
+Status: ✅ done
 
 ## Why
 

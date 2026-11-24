@@ -6,51 +6,19 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [FIX-CAMPAIGN-ASSAULT-ORDER-OPEN](FIX-CAMPAIGN-ASSAULT-ORDER-OPEN/PRD.md) · 🔄
-
-Every player can order a paid blue assault (Rex and David, 2026-11-21): in a persistent campaign the Campaign → Assaults order is a purchase, so it is no longer secured, and the shop and the player guide say where it is and what it costs. One ticket; PR into `feature/dynamic-campaign`.
-
-### [FEAT-CAMPAIGN-SITAC-STATE](FEAT-CAMPAIGN-SITAC-STATE/PRD.md) · 🔄
-
-The persistent campaign's `persistent.state` gains a `sitac` block for VEAF's web map `foothold-sitac`: zones with position, kind, waypoint, owner, garrison counts, capture, buildings and dormancy; the connections; the convoys under way; each side's credits and stock. One file, ignored by the reload. The reader is a pull request of its own in `VEAF/foothold-sitac`.
-
-### [FEAT-CAMPAIGN-MISSION-FILE](FEAT-CAMPAIGN-MISSION-FILE/PRD.md) · 🔄
-
-A persistent campaign names its mission file in `campaign.yaml` (`campaign.mission_file`), and the build writes it with no date (`mission.date_suffix: false` in `mission.yaml`), so the DCS server browser shows a readable name and a redeploy just replaces the file. Decided by David on 2026-11-18 for "Bouclier de l'Oronte": `Campagne_Oronte.miz`. One ticket, one PR into `feature/dynamic-campaign`.
-
-### [FIX-CAMPAIGN-THIRD-SERVER-FLIGHT](FIX-CAMPAIGN-THIRD-SERVER-FLIGHT/PRD.md) · 🔄
-
-What the third evening of "Bouclier de l'Oronte" taught (2026-11-19): a captured airfield offers no slot, since only the airbases owned at build time get Dynamic Slots; the sitac should show what Foothold's does. Scope decided by David: slots on every campaign airfield; players, ranking, ejected pilots, task board and support aircraft in the sitac block. One PR into `feature/dynamic-campaign`, one in `VEAF/foothold-sitac`.
-
-### [FEAT-CAMPAIGN-SHOP-UPGRADES](FEAT-CAMPAIGN-SHOP-UPGRADES/PRD.md) · 🔄
-
-Air defence and the CAS and SEAD flights in the campaign shop (David, 2026-11-19, after comparing with Foothold's catalogue): zone upgrades — Hawk, NASAMS, Patriot, Avenger, Gepard, infantry, armour — that join the zone's garrison, two per zone, priced at their spawn price; CAS and SEAD flights against an enemy zone. Two tickets, implemented in one PR into `feature/dynamic-campaign`.
-
-### [FIX-CAMPAIGN-ECONOMY-BALANCE](FIX-CAMPAIGN-ECONOMY-BALANCE/PRD.md) · 🔄
-
-What the players earn pays for what the shop sells (David, 2026-11-20): rewards aligned on Foothold's (SAM 30, aircraft 50, building 100, rescue 200), the NASAMS and the Patriot at Foothold's prices, and an evening's balance of earned and spent in the log for both sides. Three tickets; PR into `feature/dynamic-campaign`.
-
-### [FEAT-CAMPAIGN-CONVOYS-FOLLOW-STRIKERS](FEAT-CAMPAIGN-CONVOYS-FOLLOW-STRIKERS/PRD.md) · 🔄
-
-The enemy's assault convoys sized for the players who can stop them (Griffin and David, 2026-11-21): one convoy on the road per 4 strikers, CAS aircraft or attack helicopters, neutral-zone assaults included, fighters and SEAD-only aircraft not counted; a counter-attack prefers a zone no such player is defending. Two tickets; PR into `feature/dynamic-campaign`.
-
 ## 🧑 Waiting for a human
+
+### [FIX-CAMPAIGN-THIRD-SERVER-FLIGHT](FIX-CAMPAIGN-THIRD-SERVER-FLIGHT/PRD.md) · 🧑
+
+What the third evening of "Bouclier de l'Oronte" taught (2026-11-19): a captured airfield offers no slot, since only the airbases owned at build time get Dynamic Slots; the sitac should show what Foothold's does. Scope decided by David: slots on every campaign airfield; players, ranking, ejected pilots, task board and support aircraft in the sitac block. Ten tickets, merged in #1321 (2026-11-20) and #1326 (2026-11-22), shipped in 6.39.0. Waits for ticket 08's redraw of the red garrisons in the Oronte save (live server, server empty, David's go: the same redraw as ticket 12 of FIX-CAMPAIGN-SECOND-SERVER-FLIGHT); the other tickets' in-game checks are flight checks.
 
 ### [FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT](FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT/PRD.md) · 🧑
 
-What the 22/11 evening on the Campagne server showed: the capture shows the time left, no repair with an enemy convoy within `network.threat_radius`, an assault convoy gives up the enemies it pressed on in vain, a respawned aircraft keeps its callsign, a garrison's infantry holds one position near the centre (one PR into `develop`). Waits for ticket 04 (Menagh → Minakh, campaign data, the control session at the next deploy), ticket 05's measure in DCS and the flight checks.
-
-### [FIX-RADIO-NEXT-PAGE-IN-F10](FIX-RADIO-NEXT-PAGE-IN-F10/PRD.md) · 🧑
-
-"Next page" is the last entry of every radio menu page. Done: DCS lists a menu's entries in the order they were created, so a per-group entry rendered when its pilot joins (the shop's escort, My earnings, My spawns, a secured command) or an entry recreated with new parameters landed below the "Next page" rendered before; `veafRadio` now renews the link, with the pages under it, when anything was created on its page. Waiting: the flight check on the Campagne server. PR into `develop`.
+What the 22/11 evening on the Campagne server showed: the capture shows the time left, no repair with an enemy convoy within `network.threat_radius`, an assault convoy gives up the enemies it pressed on in vain, a respawned aircraft keeps its callsign, a garrison's infantry holds one position near the centre, Menagh renamed Minakh in the campaign data (done on the server, 2026-11-23). One PR, merged in #1343 (2026-11-23), shipped in 6.39.1. Waits for ticket 05's measure in DCS (respawn `AWACS Magic` through the bridge and read its callsign before and after, expected `Magic11`; David's DCS was not running on 2026-11-23); the other tickets' flight checks are in their files.
 
 ### [FIX-RECON-OT-FINDINGS](FIX-RECON-OT-FINDINGS/PRD.md) · 🧑
 
 The recon commands taught by the eight Open Training photo shoots (2026-11-17/18): one combat zone active at a time, DCS's own screenshot with the window in the background, terrain warm-up and positions read at the grab, one shot per combat zone from the kneeboard's objectives, one ring per group with plural category labels, names shown last in `veaf-config.lua`, a guard on a copy without its spawn database, and fourteen unit types of the spawn database called by their DCS ids. Five tickets, done in the code; waits for an Open Training shot end to end in David's DCS.
-
-### [FEAT-CAMPAIGN-SKYNET](FEAT-CAMPAIGN-SKYNET/PRD.md) · 🧑
-
-The persistent campaign's SAM sites run under Skynet, both sides. Done: `campaign next` turns the SKYNET module on (`dynamic.skynet.enabled: false` keeps it off); a garrison's multi-piece SAM (the blue level-5 Hawk) moves to a group of its own, `<zone> SAM`, on a fresh draw and on a loaded save; the campaign declares every SAM group it spawns to its side's network, replacing an old site of the same name, one `[CAMPAIGN SKYNET]` line each. Waiting: the in-game checks on the Campagne server after the redeploy. PR into `feature/dynamic-campaign`.
 
 ### [FIX-CAMPAIGN-FIFTH-SERVER-FLIGHT](FIX-CAMPAIGN-FIFTH-SERVER-FLIGHT/PRD.md) · 🧑
 
@@ -58,43 +26,19 @@ What the 22/11 afternoon on the Campagne server showed. Done: red strikes open f
 
 ### [FIX-SPAWN-GROUP-FIRST-ROUTE](FIX-SPAWN-GROUP-FIRST-ROUTE/PRD.md) · 🧑
 
-A ground group spawned with a destination or a route (`veafSpawnCore`) got it in its creation frame, where DCS drops it; it now gets it 5 s later, as FIX-GROUNDAI-CLOSE-IN-REACHABLE did for the convoys. Its route already drove off road to the nearest road first (`generateVehiclesRoute`), now pinned by a test. Merged into `feature/dynamic-campaign`; waiting for the in-game check.
-
-### [FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY](FEAT-CAMPAIGN-AIR-DEFENCE-VARIETY/PRD.md) · 🧑
-
-Every air defence DCS offers in the campaign: the Tor M2 and the Pantsir S1 in red's modern short range, a `medium_range_sam` zone option giving red an SA-11, SA-6 or SA-3 battery, and the IRIS-T SLM and the Rapier for blue, as a VEAF group and shop upgrades. Implemented in one PR into `feature/dynamic-campaign`; waiting for the in-game checks on the Campagne server.
-
-### [FEAT-CAMPAIGN-PILOT-EARNINGS-MENU](FEAT-CAMPAIGN-PILOT-EARNINGS-MENU/PRD.md) · 🧑
-
-A "Mes gains" entry in the persistent campaign's F10 Campaign menu, split per pilot: each pilot reads, to him alone, what he earned this session by reason, what his aircraft holds until landing, his campaign total and rank, his kills and deaths, and the team's gains. "This session" is the period of the `CREDITS SUMMARY`. Waiting for the in-game check on the Campagne server after the next redeploy.
-
-### [FIX-GROUNDAI-CLOSE-IN-REACHABLE](FIX-GROUNDAI-CLOSE-IN-REACHABLE/PRD.md) · 🧑
-
-The cause behind FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT: `closeIn` drove a convoy onto the enemy's exact point in one off-road segment, which DCS may refuse silently. Fixed: the close in aims 300 m short of the enemy along a path checked for water and slope, an order that moved nothing is known 25 s later and the next push takes another aim at once, no route starts `On Road` off the road, and a spawned convoy gets its first route 5 s after its creation. Merged into `feature/dynamic-campaign`; waits for the in-game checks on the Campagne server.
-
-### [FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT](FIX-CAMPAIGN-CONVOY-STUCK-IN-CONTACT/PRD.md) · 🧑
-
-A convoy that cannot drive onto its enemy renewed its own contact at every push, so `convoyMayLeave` kept it "in contact" for ever (Menagh, 2026-11-21). Fixed: only a shot or an enemy newly seen is a contact, and after 3 pushes that move nothing the convoy drives on. Merged into `feature/dynamic-campaign`; waits for the in-game check on the Campagne server.
-
-### [FIX-CAMPAIGN-GROUND-KILLS-UNPAID](FIX-CAMPAIGN-GROUND-KILLS-UNPAID/PRD.md) · 🧑
-
-Since 2026-11-15 a player's kill of a ground unit paid nothing and counted nothing: the kill's target was read by name after the unit was gone, so it looked neutral and `readPlayerKill` dropped it (31, 24, 13, 10 and 8 kills unpaid on 2026-11-21; only air kills paid). Fixed: the raw target is asked, then the campaign's own records; every pilot who took a slot is on the sitac's ranking; the evening's summary is written when the last player leaves his slot. Waiting for the in-game check on the Campagne server after the next redeploy.
+A ground group spawned with a destination or a route (`veafSpawnCore`) got it in its creation frame, where DCS drops it; it now gets it 5 s later, as FIX-GROUNDAI-CLOSE-IN-REACHABLE did for the convoys. Its route already drove off road to the nearest road first (`generateVehiclesRoute`), now pinned by a test. Merged in #1331 (2026-11-22), shipped in 6.39.0. Waits for the local check: in a test mission, spawn a group with a destination by marker, away from any road; it leaves within 10 s and reaches the road (David's DCS, through the bridge).
 
 ### [FIX-CAMPAIGN-SECOND-SERVER-FLIGHT](FIX-CAMPAIGN-SECOND-SERVER-FLIGHT/PRD.md) · 🧑
 
-What the second evening of "Bouclier de l'Oronte" on the Campagne server taught (2026-11-17): red aircraft that never take off at Taftanaz, a depot that repairs itself forever (decided: a depot has buildings to destroy), deliveries that bring a whole group back, helicopters and convoys that never arrive, freezes when a zone wakes, garrisons on roofs, a heavier air defence, per-pilot credits, the Campaign menu's admin commands last. Thirteen tickets, implemented in one PR into `feature/dynamic-campaign`; waits for the PR's review, the in-game checks written in each ticket, and ticket 12's redraw of the red garrisons in the Oronte save (server empty, David's go).
+What the second evening of "Bouclier de l'Oronte" on the Campagne server taught (2026-11-17): red aircraft that never take off at Taftanaz, a depot that repairs itself forever (decided: a depot has buildings to destroy), deliveries that bring a whole group back, helicopters and convoys that never arrive, freezes when a zone wakes, garrisons on roofs, a heavier air defence, per-pilot credits, the Campaign menu's admin commands last. Thirteen tickets, one PR, merged in #1310 (2026-11-18), shipped in 6.39.0. Waits for ticket 12's redraw of the red garrisons in the Oronte save (live server, server empty, David's go) and its in-game check; the other tickets' in-game checks are flight checks.
 
 ### [FEAT-DYNAMIC-CAMPAIGN](FEAT-DYNAMIC-CAMPAIGN/PRD.md) · 🧑
 
-A Foothold-like persistent campaign built on VMCT alone, on the multi-mission campaign's bricks. V1 merged into the integration branch `feature/dynamic-campaign` (#1276): persistent mode, dormancy, a front that moves on its own, AI supply helicopters, enemy air, credits and shop, a task board, intelligence. V1 checked in game by David; the V1.5 merged into it in #1282 and waits for David's in-game check (tickets 11 to 19: zone kinds, resources and production, the supply network, paid spawns, demolition team, warehouse stocks, strategic bombers, territory cells), then the server measurement (ticket 10); the integration branch goes to `develop` on David's call.
+A Foothold-like persistent campaign built on VMCT alone, on the multi-mission campaign's bricks. V1 (#1276, 2026-11-15) and V1.5 (#1282, 2026-11-16) were merged into the integration branch `feature/dynamic-campaign`, with the fixes of each evening flown on the Campagne server since 2026-11-16 (#1293 and the lots after it); the branch went into `develop` on 2026-11-23 (#1336) and shipped in 6.39.0. Tickets 01–09 and 11–20 are done; their in-game checks are flight checks. Waits for ticket 10, the server measurement against Foothold: David's call (the profiler plugin has to be added to `opt_plugins` on the production bot) and the FPS comparison of a Foothold evening and a campaign evening.
 
 ### [FEAT-MISSION-WIND-CHECK](FEAT-MISSION-WIND-CHECK/PRD.md) · 🧑
 
-All of the wind, on DCS's static-weather model decoded from `Weather.dll` and checked in game (whitepaper `dcs-wind-model`): the model as a standard-library `veaf_libs` brick tested on the five measured runs and shared with the DCSServerBot fork; the tools set the wind wanted at a reference airfield and compute `atGround` from it, with `at2000` at 2.2 × the ground veered 20° and the METAR's gust gap into `groundTurbulence`, by the measured gust mapping; the deck, the MCP answers, the guide and the prompts describe the simulated wind, with a helicopter rule on 0-600 m; `mission-check` compares the briefing with the model without DCS; the ATIS rounds its speeds and gains a "max wind 0-2000 ft" line. Seven tickets; from *Marteau du Golan* (2026-10-31), where 17 kt set and announced became 36 kt at 1,000 ft. Merged in #1239; waits for the ATIS max-wind line seen in game, and the demo step (VEAF/VEAF-Demo-Mission-v6#13) built with a release carrying the lot.
-
-### [FEAT-COMBAT-LOG](FEAT-COMBAT-LOG/PRD.md) · 🧑
-
-A combat log for an exact debrief: every shot, hit, kill and gun burst written as JSON lines by the mission, and `veaf-tools mission combat-log` for the recap per pilot. Merged (#1222, #1223); ticket 03 waits for a fight flown in game, to measure what DCS gives for gun shells (R54).
+All of the wind, on DCS's static-weather model decoded from `Weather.dll` and checked in game (whitepaper `dcs-wind-model`): the model as a standard-library `veaf_libs` brick tested on the five measured runs and shared with the DCSServerBot fork; the tools set the wind wanted at a reference airfield and compute `atGround` from it, with `at2000` at 2.2 × the ground veered 20° and the METAR's gust gap into `groundTurbulence`, by the measured gust mapping; the deck, the MCP answers, the guide and the prompts describe the simulated wind, with a helicopter rule on 0-600 m; `mission-check` compares the briefing with the model without DCS; the ATIS rounds its speeds and gains a "max wind 0-2000 ft" line. Seven tickets; from *Marteau du Golan* (2026-10-31), where 17 kt set and announced became 36 kt at 1,000 ft. Merged in #1239 (2026-11-04), with its demo step (VEAF/VEAF-Demo-Mission-v6#13, 2026-11-04). Waits for the ATIS max-wind line seen in game: a local check on David's DCS, through the bridge.
 
 ### [FIX-MARTEAU-PLAY-FINDINGS](FIX-MARTEAU-PLAY-FINDINGS/PRD.md) · 🧑
 
@@ -115,10 +59,6 @@ The mission options a mission maker sets by hand in the editor — labels, F10 v
 ### [FEAT-OPPOSITION-ZERO-AIRCRAFT](FEAT-OPPOSITION-ZERO-AIRCRAFT/PRD.md) · 🧑
 
 An opposition level that sends no aircraft: *Opposition → Niveau → 0 avion* (or `_opposition 0`) keeps the QRA that scale with the opposition on the ground until the level is raised; a level followed down to 0 stays a count. Asked by David after *Kolkhida* mission 2. Done on the mocks; left: seeing Senaki's QRA stay down in game (`DCS-SESSION-TODO.md` R51).
-
-### [FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST](FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST/PRD.md) · 🧑
-
-12 `attempt to call method 'isExist' (a nil value)` in the Privé 1 log of the Sinai Open Training (2026-10-12): `weapon:getTarget()` returned an object with no `isExist`. The sanctuary now ignores such a target and logs its category once per mission. Measured: a Maverick on a unit gets a complete `Unit`. Left: the scenery and static cases, which need a pilot (`DCS-SESSION-TODO.md` R50).
 
 ### [FIX-OPEN-TRAINING-CAUCASUS-FINDINGS](FIX-OPEN-TRAINING-CAUCASUS-FINDINGS/PRD.md) · 🧑
 
@@ -144,29 +84,9 @@ The air opposition sized to the number of players — an `opposition:` level set
 
 What the squadron found flying *Kolkhida* mission 1 on 2026-10-08, with no script error all evening: no radio presets nor right kneeboard on any aircraft, ATC not silenced, garrison units on the runways, CTLD crates and troops unavailable at the blue airfields, objective waypoints in the air, a red convoy smoking itself for blue, and the server's DCSServerBot replacing the campaign's date, time and clear sky with real weather. Decided: a QRA takes off from the ground by default. Ten tickets, one PR: the code is in; left are the CTLD release that takes the unit's country, the server's MizEdit filter, and the in-game checks of R47. Ticket 11, `campaign apply` crashing on a state file already in its mission folder, ships in its own PR.
 
-### [FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS](FEAT-CAMPAIGN-OBJECTIVE-WAYPOINTS/PRD.md) · 🧑
-
-`campaign next` writes the mission's objectives as waypoints for the players' side (planes at 10 000 ft, helicopters at 500 ft above the ground), and the mission briefing gains a navigation page read from the built mission. To be checked on the next campaign mission.
-
 ### [FIX-ASSAULT-CONVOY-FINDINGS](FIX-ASSAULT-CONVOY-FINDINGS/PRD.md) · 🧑
 
 Found on *Kolkhida* mission 1: the red assault convoy fled one infantryman seen just beyond its engagement range, then held forever waiting for an order nobody on red can give; Poti, taken by the blue convoy, drew a 24-unit garrison anyway; and assault convoys carry no armour. Merged on `develop` (#1108); tickets 01, 02 and 04 to be checked in game, ticket 03's measurement to be read at the next capture by a convoy.
-
-### [FEAT-CAMPAIGN-INTEL-DELAY](FEAT-CAMPAIGN-INTEL-DELAY/PRD.md) · 🧑
-
-The other side hears of an assault convoy `rules.intel_seconds` after it left (20 minutes by default), message and map line together; its own side at once. Merged on `develop` (#1106); to be checked in game.
-
-### [FIX-CAMPAIGN-ARROW-ALTITUDE](FIX-CAMPAIGN-ARROW-ALTITUDE/PRD.md) · 🧑
-
-DCS drew each assault-convoy arrow twice on the F10 map, one copy sliding as the map was panned; points on the terrain (#1103) did not change it. The axis becomes a line in the side's colour over the link. Merged on `develop` (#1105); the line to be checked in game.
-
-### [FIX-SPAWN-DATA-LOAD-ORDER](FIX-SPAWN-DATA-LOAD-ORDER/PRD.md) · 🧑
-
-A campaign draws its garrisons while `veaf-config.lua` runs, but the groups database loaded from a last trigger, after it: every garrison came out without its air defence (no SA-10 at Senaki). The spawn data loads with the framework instead, as the last action of its load triggers. Merged on `develop` (#1104); waits for Kolkhida mission 1 tonight: Senaki with its SA-10, no `cannot find group` in `dcs.log`.
-
-### [FIX-BUNDLE-LOCAL-LIMIT](FIX-BUNDLE-LOCAL-LIMIT/PRD.md) · 🧑
-
-The VEAF bundle built from `develop` no longer loads in DCS: concatenated, its modules declare more than the 200 top-level locals a Lua 5.1 chunk accepts. Each module goes into its own `do … end` block, and a test runs the bundle under Lua 5.1. Merged on `develop` (#1102); waits for Kolkhida mission 1 loading in DCS.
 
 ### [CHORE-SMS-QUICK-WINS](CHORE-SMS-QUICK-WINS/PRD.md) · 🧑
 
@@ -220,10 +140,6 @@ A campaign flown mission after mission: each mission writes its state file durin
 
 The generated config called `veafCombatMission.initialize()` before adding the missions, so the MISSIONS radio menu was never built; `initialize()` now comes after them. Done and tested; waits on its in-game check with the v6 demo mission. Ticket 02 fixes the 6.29.0 regression it caused: missions declared in a `mission-script.lua` put their « Activate mission » commands at the VEAF root; they now wait for MISSIONS, rebuilt once after the declarations.
 
-### [FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP](FIX-COMBATZONE-DEAD-UNIT-HAS-NO-GROUP/PRD.md) · 🧑
-
-A combat zone's info panel and its completion disagreed: the panel was blind to static targets (fixed) and spawned vehicles now start warm — the scripts were seen asking for it in game on 2026-10-03. Ticket 02's thermal look is left.
-
 ### [FIX-DEMO-MISSION-FINDINGS](FIX-DEMO-MISSION-FINDINGS/PRD.md) · 🧑
 
 What building and flying the v6 demo mission found: a `lua` user-menu action and an end-of-line comment in `ctld-config.yaml` each stopped the whole VEAF config with nothing in `validate` or the build to say so, and one module's init error takes all the others down; plus a build that exits 1 after succeeding, `-cargoships` spawning nothing, operations that cannot be activated from their menu, MCP authoring gaps and three small truths. Implemented; waits for the DCS check of tickets 01, 02, 03 and 05 and for the demo's workarounds to be removed.
@@ -243,10 +159,6 @@ What building the Syria Open Training v6 through the MCP found: callsigns, loado
 ### [FIX-RELAY-RENDERS-MARKDOWN](FIX-RELAY-RENDERS-MARKDOWN/PRD.md) · 🧑
 
 Comments relayed from GitHub to Discord showed their markup in a code block. Now a block quote with formatting applied, long comments split; one reading left in a real thread.
-
-### [FIX-SECU-VERB-AND-LOG-NOISE](FIX-SECU-VERB-AND-LOG-NOISE/PRD.md) · 🧑
-
-A private1 session where a level-99 pilot could not activate a zone, plus traceback-raising chat commands and log noise. Merged in #1032 and deployed; ticket 01's in-game check is left.
 
 ### [FIX-TRIPACK-FIELD-REPORTS](FIX-TRIPACK-FIELD-REPORTS/PRD.md) · 🧑
 

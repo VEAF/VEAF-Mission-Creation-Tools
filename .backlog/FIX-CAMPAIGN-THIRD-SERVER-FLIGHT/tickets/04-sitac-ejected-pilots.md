@@ -1,6 +1,6 @@
 # 04 — The sitac shows the ejected pilots
 
-Status: 🧑 waiting-human — implemented, waits for the in-game check
+Status: ✅ done
 Type: feature
 
 ## Decided

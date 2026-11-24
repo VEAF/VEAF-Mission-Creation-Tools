@@ -1,6 +1,6 @@
 # 19 — V1.5: documentation, example, test mission, self-check
 
-Status: 🧑 waiting-human — built and tested outside DCS in #1282 (2026-11-16); the in-game check of the test mission is David's
+Status: ✅ done
 
 ## What
 

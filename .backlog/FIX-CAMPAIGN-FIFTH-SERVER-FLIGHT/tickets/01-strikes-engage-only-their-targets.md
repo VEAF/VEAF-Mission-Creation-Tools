@@ -1,6 +1,6 @@
 # 01 — Red strikes engage only their targets
 
-Status: 🧑 waiting-human — the in-game check
+Status: ✅ done
 Type: fix
 
 ## To do

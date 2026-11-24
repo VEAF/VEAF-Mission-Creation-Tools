@@ -1,6 +1,6 @@
 # 06 — A zone's infantry grouped near its centre
 
-Status: 🧑 waiting-human — the flight check
+Status: ✅ done
 Type: feature
 
 ## Read

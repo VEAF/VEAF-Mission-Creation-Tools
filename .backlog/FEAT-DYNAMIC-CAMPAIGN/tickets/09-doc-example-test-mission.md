@@ -1,6 +1,6 @@
 # 09 — Documentation, example campaign, test mission, in-game check
 
-Status: 🧑 waiting-human — code and tests done on `feature/dynamic-campaign-v1` (2026-11-15); the in-game check of the test mission is David's
+Status: ✅ done
 
 - `doc/mission-maker/CAMPAIGN.md` / `.en.md`: a "Persistent mode" part — what a player sees, how to declare it, every `dynamic`, `air`, `economy`, `tasks`, `intel` key with its default, the save file, reset, what is not restored after a restart (aircraft and convoys in flight).
 - `doc/mission-maker/scripts/` page of `veafCampaign` updated; support bot index refreshed if a page is added or retitled.

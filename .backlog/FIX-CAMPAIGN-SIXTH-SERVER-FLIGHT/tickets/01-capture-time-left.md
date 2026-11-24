@@ -1,6 +1,6 @@
 # 01 — The capture shows the time left
 
-Status: 🧑 waiting-human — the flight check
+Status: ✅ done
 Type: fix
 
 ## To do

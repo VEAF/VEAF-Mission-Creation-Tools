@@ -1,6 +1,6 @@
 # 04 — An economy simulator to test the balance
 
-Status: ✅ done (in-game check pending)
+Status: ✅ done
 Type: feature
 
 ## Asked

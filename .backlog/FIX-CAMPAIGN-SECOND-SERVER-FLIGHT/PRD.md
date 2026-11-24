@@ -1,6 +1,8 @@
 # FIX-CAMPAIGN-SECOND-SERVER-FLIGHT — what the second evening on the server taught
 
-Status: 🧑 waiting-human
+Status: 🧑 waiting-human — ticket 12: the redraw of the Oronte red garrisons (live server, server empty, David's go), then its in-game check
+
+Flight check: tickets 01 to 11 and 13 on the Campagne server, each ticket's in-game check.
 
 The persistent campaign "Bouclier de l'Oronte" (Northern Syria) flown on the Campagne server (`foothold2`) on 2026-11-17, 20:06–22:00 UTC, about ten players.
 Everything below was measured in that evening's `dcs.log` (copied whole during the flight) or reported by the players through David; the minute-by-minute notes are kept in the session notes of that evening.

@@ -3,7 +3,7 @@
 Status: ✅ done — shipped 2026-08-20, verified in game 2026-08-28, archived 2026-09-26. All three
 tickets delivered. The check found a defect **in the repair itself** (ticket 03, fixed); the escort
 still goes home, for a cause outside this lot — see
-[`FIX-ESCORT-RESPAWN-DISTANCE`](../FIX-ESCORT-RESPAWN-DISTANCE/PRD.md), which also inherited the
+[`FIX-ESCORT-RESPAWN-DISTANCE`](FIX-ESCORT-RESPAWN-DISTANCE.md), which also inherited the
 closing of [#107](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/107): the issue's
 symptom is that distance, not the task repair this lot shipped.
 
@@ -84,7 +84,7 @@ failure is a delayed RTB and a short look would have called this fixed.
 - [ ] A respawned escort keeps escorting. **It still does not** — but the remaining cause is that
       `mist.respawnGroup` puts the tanker back at its mission start while its escorts fly on, ~80 km
       away and outside the task's own `engagementDistMax` of 60 km. Moved to
-      [`FIX-ESCORT-RESPAWN-DISTANCE`](../FIX-ESCORT-RESPAWN-DISTANCE/PRD.md)
+      [`FIX-ESCORT-RESPAWN-DISTANCE`](FIX-ESCORT-RESPAWN-DISTANCE.md)
 - [x] One shared implementation, used by both the teleport and the respawn path
 - [x] The escort convention documented on the ASSETS page (fr + en), including what `linked` is not
 - [x] #101 closed as not reproducible, saying what was tried (teleport **and** move, escort observed
@@ -266,7 +266,7 @@ The chain runs end to end. Instrumented on the live session, after a respawn of 
 The stale id `1000031` is replaced by the runtime id `18`, which is what ticket 01 set out to do.
 
 **The escort still went home**, for a reason that is not this lot's — see
-[`FIX-ESCORT-RESPAWN-DISTANCE`](../FIX-ESCORT-RESPAWN-DISTANCE/PRD.md).
+[`FIX-ESCORT-RESPAWN-DISTANCE`](FIX-ESCORT-RESPAWN-DISTANCE.md).
 
 ### Definition of done
 

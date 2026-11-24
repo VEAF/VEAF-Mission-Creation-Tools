@@ -1,6 +1,6 @@
 # 01 — The paid assault order open to every player
 
-Status: 🔄 in-progress
+Status: ✅ done
 Type: fix
 
 ## To do

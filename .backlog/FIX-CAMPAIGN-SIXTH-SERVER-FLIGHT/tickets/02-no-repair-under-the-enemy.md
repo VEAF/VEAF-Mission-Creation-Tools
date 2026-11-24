@@ -1,6 +1,6 @@
 # 02 — No repair with the enemy at the gates
 
-Status: 🧑 waiting-human — the flight check
+Status: ✅ done
 Type: fix
 
 ## To do

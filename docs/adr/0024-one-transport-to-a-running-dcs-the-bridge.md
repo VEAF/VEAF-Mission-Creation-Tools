@@ -4,7 +4,7 @@ status: accepted
 
 # One transport to a running DCS: the VEAF bridge
 
-Lot: [REFACTOR-BRIDGE-ONLY](../../.backlog/REFACTOR-BRIDGE-ONLY/PRD.md).
+Lot: [REFACTOR-BRIDGE-ONLY](../../.backlog/archive/REFACTOR-BRIDGE-ONLY.md).
 Decided by David on 2026-10-28.
 
 ## Context

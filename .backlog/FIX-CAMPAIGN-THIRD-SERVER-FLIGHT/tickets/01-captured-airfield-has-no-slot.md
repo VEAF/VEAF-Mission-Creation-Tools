@@ -1,6 +1,6 @@
 # 01 — A captured airfield offers no slot
 
-Status: 🧑 waiting-human — implemented, waits for the in-game check
+Status: ✅ done
 Type: fix
 
 ## Found

@@ -1,6 +1,6 @@
 # 05 — The sitac lists the task board
 
-Status: 🧑 waiting-human — implemented, waits for the in-game check
+Status: ✅ done
 Type: feature
 
 ## Decided

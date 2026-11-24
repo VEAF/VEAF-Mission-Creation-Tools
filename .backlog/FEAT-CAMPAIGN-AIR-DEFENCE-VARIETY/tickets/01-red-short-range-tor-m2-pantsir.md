@@ -1,6 +1,6 @@
 # 01 — Red's short range draws the Tor M2 and the Pantsir
 
-Status: 🧑 waiting-human
+Status: ✅ done
 Type: feature
 
 ## To do

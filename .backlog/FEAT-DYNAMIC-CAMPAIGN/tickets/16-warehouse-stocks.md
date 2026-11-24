@@ -1,6 +1,6 @@
 # 16 — Weapon stocks per warehouse, moved by players
 
-Status: 🧑 waiting-human — built and tested outside DCS in #1282 (2026-11-16); the in-game check of the test mission is David's
+Status: ✅ done
 
 PRD row "Weapon stocks per warehouse, moved by players"; analysis note 07 §9, §17.
 

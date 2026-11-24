@@ -1,6 +1,6 @@
 # veaf-logs (Go)
 
-The DCS journal viewer, rewritten in Go as the same program as the former Python one — tabs, menus, panels, profiles, filters, analysis ([FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](../../../.backlog/FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL/PRD.md); the window: [ADR 0022](../../../docs/adr/0022-ui-toolkit-for-the-go-veaf-logs.md)).
+The DCS journal viewer, rewritten in Go as the same program as the former Python one — tabs, menus, panels, profiles, filters, analysis ([FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](../../../.backlog/archive/FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL.md); the window: [ADR 0022](../../../docs/adr/0022-ui-toolkit-for-the-go-veaf-logs.md)).
 It is the `veaf-logs.exe` every release ships ([ADR 0023](../../../docs/adr/0023-veaf-logs-in-go-the-rest-in-python.md)): the release builds it with `poetry run veaf-build build-logs --version x.y.z`, which runs `go build` with the version stamped in.
 The Python `veaf_logs` package keeps its windowless core, for the support bot and as the reference of the parity tests below.
 

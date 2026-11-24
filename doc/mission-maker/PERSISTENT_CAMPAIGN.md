@@ -27,6 +27,35 @@
 - **La partie se termine** quand un camp ne tient plus aucune zone : victoire si c'est l'ennemi, défaite si c'est nous.
   C'est annoncé à tous, et la campagne repart de zéro au prochain chargement de la mission.
 
+## Avec une IA {#with-an-ai}
+
+L'assistant IA construit une campagne persistante de bout en bout, sans terminal et sans le dépôt des outils : il lui faut les outils VEAF installés et l'assistant branché ([installer l'assistant](AI_ASSISTANT_INSTALL.md#for-an-ai-assistant)).
+Il connaît les règles de cette page et celles apprises sur la première campagne ; vous apportez le théâtre, le front et vos choix.
+
+1. **Demandez la campagne.**
+   > « Crée une campagne persistante sur la Syrie : les bleus tiennent la côte, les rouges l'intérieur. »
+
+   L'assistant charge ses consignes, puis pose ses questions une par une : la carte et l'époque, votre camp, le nom de la campagne et celui du fichier de la mission.
+2. **Validez le front.** Il propose un tableau des zones : les aérodromes de chaque camp, les avant-postes entre eux, les zones neutres, les liaisons.
+   Corrigez-le en langage courant, puis validez-le.
+   > « Ajoute un avant-poste au col de Bab al-Hawa, et rends Hama neutre. »
+3. **Choisissez usines, dépôts et SAM.** Il recommande une usine et un dépôt par camp, et deux SAM longue portée par camp au plus.
+   > « D'accord pour ta reco, mais mets le SAM rouge sur l'usine. »
+4. **Donnez-lui un dossier.** Il y pose l'exemple livré, le réécrit pour votre campagne, prépare la mission modèle (`template\`) avec son AWACS et ses deux ravitailleurs, et vérifie la campagne jusqu'à zéro avertissement.
+   > « Crée-la dans Documents\VEAF\Campagnes\Levant. »
+5. **Relisez les axes d'effort.** Il écrit le briefing des pilotes dans `briefing.yaml` : le nom de l'opération, la situation, les priorités du moment.
+   > « Mets en premier la prise des ponts de l'Oronte. »
+6. **Laissez-le construire.** Il démarre la campagne, prépare la mission, la construit et la contrôle.
+   Il vous rend le `.miz` à mettre sur le serveur, le [dossier de théâtre et la planchette](#theatre-dossier) à donner aux pilotes, et ce que le serveur doit avoir pour la [sauvegarde](#save).
+7. **Plus tard, demandez les changements.** Il modifie la campagne, la vérifie, reconstruit la mission, et vous redéployez le même fichier.
+   > « Ajoute une zone à Idlib et reconstruis la mission. »
+
+   Une campagne déjà en cours garde ce que sa sauvegarde a tiré : l'assistant vous dit ce qui changera tout de suite, et ce qui attend une remise à zéro.
+
+**Une zone ajoutée après le démarrage est refusée** par la vérification, tant que le fichier `campaign-state.yaml` du dossier existe.
+Pour une campagne persistante, ce fichier ne garde rien d'utile : supprimez-le dans l'Explorateur, et l'assistant redémarre la campagne.
+La partie en cours, elle, vit dans la sauvegarde du serveur, et ne change pas.
+
 ## Déclarer une campagne persistante {#declare}
 
 C'est un `campaign.yaml` de [campagne multi-missions](CAMPAIGN.md#declare) avec `mode: persistent`, et, au besoin, un bloc `dynamic:`.

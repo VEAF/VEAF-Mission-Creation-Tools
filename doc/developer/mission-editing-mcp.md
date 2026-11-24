@@ -719,7 +719,10 @@ modules) :
 - `campaign_next(campaign_folder, players?)` — crée (copie de `template/`) ou rafraîchit `missions/mission-NN/mission` : aérodromes à leur propriétaire par `set_airbase_coalition`, `src/campaign-data.yaml`, module `CAMPAIGN` dans `mission.yaml`, et, sur un dossier qu'il crée, la situation stratégique comme briefing et la date, l'heure et la météo fixées dans la mission (une seule mission, sans variante ; date du lendemain de la mission précédente, heure solaire calculée sur le terrain de la campagne, météo tirée sol visible) ; écrit à côté le document de briefing stratégique, et le briefing de mission si la mission est construite ; rend le dossier, `conditions`, les documents et la partie factuelle du briefing stratégique en FR et EN. Sa description demande à Claude de fixer date et heure selon l'avancée de la campagne et de garder le sol visible, et de demander combien de joueurs sont attendus ce soir : `players` (un nombre, ou une fourchette `"5-7"`, qui prime sur le `players` de `campaign.yaml`) écrit le bloc `opposition:` de la mission.
 - `campaign_briefing(campaign_folder)` — écrit `missions/mission-NN/<opération>_mission-NN_briefing-campagne.pptx` et sa carte stratégique à partir de la campagne (les faits) et de `briefing.yaml` (la prose) ; rend les chemins, le nombre de pages, si la prose était là, si la carte a dû se passer de tuiles, les sections que `briefing.yaml` peut contenir, et `mission_deck` : le briefing de mission (`<opération>_mission-NN_briefing-mission.pptx`, cartes tactiques), lu dans la mission construite — `None` et un avertissement qui dit comment construire tant qu'il n'y a pas de `.miz`. Sa description porte les règles d'écriture : un briefing de situation militaire, aucune mécanique de jeu hors de l'annexe, l'ennemi réduit à un renseignement inégal.
 
-Chacune est la commande `veaf-tools campaign` correspondante (`campaign_manager.CampaignWorker`), qui rend des données au lieu de les afficher. Voir [Campagne multi-missions](../mission-maker/CAMPAIGN.md).
+- `campaign_init(campaign_folder, example?)` — avec `example` (`persistent` ou `multi-mission`), sur un dossier sans `campaign.yaml` : copie l'exemple livré (`published/src/defaults/campaign-folder-persistent` ou `campaign-folder`, sinon celui du dépôt) en créant le dossier, sans tirer d'état, et rend `{started: false, copied}`. Sans `example` : `campaign init`, l'état de départ tiré de `campaign.yaml`, et rend `{started: true, state_file, warnings}`. N'écrase jamais un `campaign.yaml` ni un état (lot FEAT-PERSISTENT-CAMPAIGN-AI).
+- `campaign_validate(campaign_folder)` — `campaign validate` : rend `{valid, errors, warnings}`, sans lever d'erreur sur une campagne invalide.
+
+Chacune est la commande `veaf-tools campaign` correspondante (`campaign_manager.CampaignWorker`), qui rend des données au lieu de les afficher ; la copie de l'exemple est `CampaignWorker.scaffold`, que la ligne de commande n'expose pas. Voir [Campagne multi-missions](../mission-maker/CAMPAIGN.md) et [Campagne persistante](../mission-maker/PERSISTENT_CAMPAIGN.md#with-an-ai).
 
 ### FARP
 
@@ -1036,6 +1039,8 @@ En mode chat de Claude Desktop, une IA à qui l'on demandait de renommer une mis
 Ses lignes finissent par `\n`, quel que soit le fichier.
 Sans `mission_path`, elle lit le gabarit livré avec les outils — ce que `scaffold_mission` pose : les templates de slots dynamiques, le plan de presets, `mission.yaml` avec l'exemple commenté de chaque module — et le dit par `shipped: true`, pour vérifier un plan avant qu'un dossier existe.
 `edit_mission_file` remplace un passage exact (`search` / `replace`), refusé s'il apparaît zéro ou plusieurs fois, ou si le résultat ne se relit plus en YAML ; sauvegarde avant écriture.
+Un `search` vide crée un fichier atteignable qui n'existe pas encore (rend `{file, created: true}`), et n'en écrase jamais un.
+Un dossier de campagne — `campaign.yaml` sans `mission.yaml` — donne `campaign.yaml` et `briefing.yaml`, rien d'autre : sans eux, une IA partie de l'exemple de `campaign_init` ne pouvait pas le réécrire (lot FEAT-PERSISTENT-CAMPAIGN-AI).
 Les fins de ligne sont comparées normalisées, et le fichier garde les siennes : un passage recopié avec `\n` depuis un fichier CRLF était « introuvable » (FIX-OPENCODE-TEST-FINDINGS).
 Implémentation : `veaf_mission_mcp/mission_files.py`.
 
@@ -1046,7 +1051,7 @@ Implémentation : `veaf_mission_mcp/mission_files.py`.
 ### `describe_mission_prompt` (lot FEAT-AI-ZERO-SETUP)
 
 Lecture seule. Renvoie `{"kind", "lang", "prompt"}` : les consignes qui construisent une sorte de mission de bout en bout — les questions à poser, les règles de conception, l'ordre de construction.
-`kind` vaut `objective` (une mission jouée une fois, en une séance) ou `open-training` (une mission d'entraînement VEAF sur une carte entière) ; `lang` vaut `en` (par défaut) ou `fr`.
+`kind` vaut `objective` (une mission jouée une fois, en une séance), `open-training` (une mission d'entraînement VEAF sur une carte entière) ou `persistent-campaign` (une campagne persistante, fichier `new-persistent-campaign.<lang>.md`) ; `lang` vaut `en` (par défaut) ou `fr`.
 Les prompts vivent dans `veaf_mission_mcp/data/mission-prompts/`, embarqués avec le guide ; ils étaient dans le `.prompts/` du dépôt, à coller par l'utilisateur.
 Le guide de création envoie ici un utilisateur qui demande une nouvelle mission : « crée une mission » suffit.
 Le prompt objectif vient en deux parties, coupées à une ligne `<!-- part: build -->` : `part: scenario` (par défaut, environ 13 000 caractères, qui finit en disant comment charger la suite) et `part: build`, une fois un scénario approuvé ; `part: all` renvoie les deux.

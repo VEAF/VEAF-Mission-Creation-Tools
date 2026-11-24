@@ -27,6 +27,35 @@
 - **The game ends** when one side holds no zone left: a victory if it is the enemy, a defeat if it is us.
   Everyone is told, and the campaign starts afresh at the next load of the mission.
 
+## With an AI {#with-an-ai}
+
+The AI assistant builds a persistent campaign end to end, with no terminal and no repository of the tools: it needs the VEAF tools installed and the assistant connected ([install the assistant](AI_ASSISTANT_INSTALL.en.md#for-an-ai-assistant)).
+It knows the rules of this page and the ones learnt on the first campaign; you bring the theatre, the front and your choices.
+
+1. **Ask for the campaign.**
+   > "Create a persistent campaign on Syria: blue holds the coast, red the inland."
+
+   The assistant loads its instructions, then asks its questions one at a time: the map and the era, your side, the campaign's name and the mission's file name.
+2. **Approve the front.** It offers a table of the zones: each side's airfields, the outposts between them, the neutral zones, the connections.
+   Correct it in plain words, then approve it.
+   > "Add an outpost at the Bab al-Hawa pass, and make Hama neutral."
+3. **Choose factories, depots and SAMs.** It recommends a factory and a depot per side, and two long-range SAMs a side at most.
+   > "Fine with your recommendation, but put the red SAM on the factory."
+4. **Give it a folder.** It lays the shipped example down there, rewrites it for your campaign, prepares the template mission (`template\`) with its AWACS and its two tankers, and checks the campaign until no warning is left.
+   > "Create it in Documents\VEAF\Campaigns\Levant."
+5. **Read the axes of effort.** It writes the pilots' briefing in `briefing.yaml`: the operation's name, the situation, the priorities of the moment.
+   > "Put the capture of the Orontes bridges first."
+6. **Let it build.** It starts the campaign, prepares the mission, builds it and checks it.
+   It hands you the `.miz` to put on the server, the [theatre dossier and the kneeboard](#theatre-dossier) to give the pilots, and what the server must have for the [save](#save).
+7. **Later, ask for the changes.** It changes the campaign, checks it, rebuilds the mission, and you redeploy the same file.
+   > "Add a zone at Idlib and rebuild the mission."
+
+   A campaign already running keeps what its save drew: the assistant tells you what changes at once, and what waits for a reset.
+
+**A zone added after the start is refused** by the check, as long as the folder's `campaign-state.yaml` file exists.
+For a persistent campaign that file keeps nothing useful: delete it in the File Explorer, and the assistant starts the campaign again.
+The game under way lives in the server's save, and does not change.
+
 ## Declaring a persistent campaign {#declare}
 
 It is a [multi-mission campaign](CAMPAIGN.en.md#declare) `campaign.yaml` with `mode: persistent`, and, when needed, a `dynamic:` block.

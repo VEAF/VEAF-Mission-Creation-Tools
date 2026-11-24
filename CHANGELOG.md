@@ -19,6 +19,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **The JTAC laser code and radio limitation is marked fixed** (`ctld-jtac-imposed-code-and-radio`, FIX-OPEN-TRAINING-SYRIA-FINDINGS 18): checked in the vendored CTLD, an imposed code leaves the automatic pool and a supplied ASSETS radio is kept; it shipped with CTLD `2.0.0-rc13` in 6.29.0, so the known-limitations entry now says `fixed_in: "6.29.0"`.
 
+- **Every zone page of a mission briefing says which waypoint it is** (FIX-BRIEFING-ZONE-WAYPOINT-NUMBER): the "Point" line gives the numbers the overview map prints, planes then helicopters (`Point : W4/H4 — TALBISEH du plan de vol`), where it gave the name alone. A zone with no point of the flight plan has no line.
+
 ## [6.39.1] — 2026-11-24
 
 - **"Next page" is the last entry of every radio menu page** (FIX-RADIO-NEXT-PAGE-IN-F10): on the Campagne server, several menus showed "Page suivante" in F9 and another entry in F10. DCS lists a menu's entries in the order they were created, so an entry for one pilot's group, created when he joined, or an entry recreated with new parameters, landed below a "Next page" created before. The link is now recreated after the page's entries, with the pages under it, when something was added to that page.

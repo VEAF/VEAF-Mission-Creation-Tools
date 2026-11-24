@@ -6,7 +6,7 @@ status: superseded by ADR 0022
 
 > Superseded 2026-10-24 by [ADR 0022](0022-ui-toolkit-for-the-go-veaf-logs.md): this choice rested on scrolling one list, not on what the whole application needs; compared on those needs, walk was chosen.
 
-Lot: [POC-GO-VEAF-LOGS](../../.backlog/POC-GO-VEAF-LOGS/PRD.md).
+Lot: [POC-GO-VEAF-LOGS](../../.backlog/archive/POC-GO-VEAF-LOGS.md).
 Measured on DAVID-BUREAU (Windows 11), 2026-10-23 and 24, Go 1.27.3, gcc (MinGW) 16.2.
 
 ## Context

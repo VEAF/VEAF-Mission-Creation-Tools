@@ -226,14 +226,6 @@ What the retest of #1210 still found in "Marteau du Golan"'s briefing (2026-10-2
 
 What "Marteau du Golan" did by hand, in the tools (2026-10-28): the objective prompt (prose validated first, a Mission Maker sheet, ways out, code words), a combat-area map, kneeboard maps turned attack axis up, recon photos, seven tool fixes, a poster, a calendar banner and a Discord post. Twelve tickets, one PR; the in-game half is another lot. Shipped in #1208.
 
-### [FEAT-DCS-RECON-AND-MISSION-CHECK](FEAT-DCS-RECON-AND-MISSION-CHECK/PRD.md) · ✅
-
-Two commands against a running DCS, through the `dcs-fiddle` hook, from the "Marteau du Golan" session (2026-10-28): `dcs recon-photos` (a shooting copy of the mission, the F11 camera on each objective's engagement axis, reconnaissance-look JPEGs with felt-pen marks) and `dcs mission-check` (F10 labels, every combat zone and mission toggled and counted, every routed group seen moving). One PR. Shipped in #1207.
-
-### [FEAT-OBJECTIVE-BRIEFING-QUALITY](FEAT-OBJECTIVE-BRIEFING-QUALITY/PRD.md) · ✅
-
-David's six points on the briefing `build_mission_briefing` wrote for "Marteau du Golan" (2026-10-28): the ATO of dynamic slots, a readable overview, an inset on the zooms and target sheets, strategic situation and prose, a step-by-step flight plan and a deployment page, kneeboard flight cards without the radio plan. Six tickets, one PR. Shipped in #1206.
-
 ### [FIX-DYNSLOT-RADIO-RANGE](FIX-DYNSLOT-RADIO-RANGE/PRD.md) · ✅
 
 DCS 2.9.31 moved the La-7 to a 3.7–6.06 MHz HF radio, and its two dynamic-slot templates at 121.5 MHz stop the Mission Editor from saving a built mission (2026-10-29). Radio specs bumped to that DCS build, the radio-less La-7 kept in them, the templates retuned, and a catalogue test (#1217).
@@ -245,115 +237,6 @@ One way to talk to a running DCS (David, 2026-10-28): `recon-*`, `mission-check`
 ### [FIX-FATCOW-CTLD-FARPS](FIX-FATCOW-CTLD-FARPS/PRD.md) · ✅
 
 GRASS refilled CTLD's Fat Cow FARPs on every birth, making a cow unlimited, and CSAR gave the CH-47F no menu: GRASS now skips `CTLD_` FARPs and `csar.aircraftType` lists `CH-47Fbl1` (24). From the Fat Cow server run of 2026-10-26 (VEAF/CTLD#273). Demo step in VEAF/VEAF-Demo-Mission-v6#12 (2026-10-29).
-
-### [CHORE-CI-PYTHON-SPEED](CHORE-CI-PYTHON-SPEED/PRD.md) · ✅
-
-The `pytest` step of `python-quality` grew from 5 to 21–25 min in two weeks, for 4 % more tests: the briefing tests built a whole briefing per test. One build per module, and the suite in parallel with `pytest-xdist` (2026-10-28). Shipped in #1213: 20 min 47 s → 7 min 58 s in CI.
-
-### [FIX-DOC-LATEST-LINKS](FIX-DOC-LATEST-LINKS/PRD.md) · ✅
-
-A link copied from the published docs should follow the newest release: the landing page's featured card and the version selector open `/latest/` instead of the release number (2026-10-28). Shipped in #1211.
-
-### [FIX-BRIEFING-PARITY-MARTEAU](FIX-BRIEFING-PARITY-MARTEAU/PRD.md) · ✅
-
-The briefing generator at the level of "Marteau du Golan"'s hand-made deck (2026-10-28): nine defects a regeneration test found — recon zone of a bare spawned group, theatre and combat maps, unit-level targets with readable names, bullseye and flights on every sheet, main and secondary objectives from the operation, frequencies by radio plan for the ATO's flights, a left-aligned PDF with tables, waypoint notes per plan, kneeboard replacement. One PR.
-
-### [CHORE-VENDOR-CTLD-RC15](CHORE-VENDOR-CTLD-RC15/PRD.md) · ✅
-
-CTLD `2.0.0-rc15` vendored: the Fat Cow (VEAF/CTLD#273), catalogue `2.3.0`; a list newer than the mission's configuration takes its default (VEAF/CTLD#275), and `validate` / `ctld-upgrade` treat it as missing, not removed (#1204).
-
-### [FEAT-GO-VEAF-LOGS-TABS](FEAT-GO-VEAF-LOGS-TABS/PRD.md) · ✅
-
-The `veaf-logs` tab strip scrolls past the window's width (wheel, ‹ › arrows), a ≡ button lists the tabs from two on, and a tab can be renamed: its alias lives in `~/veafmct.yaml` (a server's `aliases:`, `log_aliases:` for a local file), written by *Renommer l'onglet…* or by hand; an API's discovered logs lose the prefix all its servers share. Asked by David 2026-10-26 after opening seven API tabs. Checked by hand by David the same day.
-
-### [FEAT-VEAF-LOGS-REST-API](FEAT-VEAF-LOGS-REST-API/PRD.md) · ✅
-
-`veaf-logs` follows a server's `dcs.log` and the bot's log through DCSServerBot's RestAPI, with an API key and no SSH account: `logcore.APISource` mirrors the API's entries written back as lines (identical to the original files, measured on real logs), `api:` servers in `~/veafmct.yaml` with their logs discovered, older files openable, the reason a log cannot be read in the status bar. Checked by David on dcs.veaf.org with the technician key, across a server restart. Merged in #1198 (2026-10-26).
-
-### [FEAT-GO-VEAF-LOGS-SHIP](FEAT-GO-VEAF-LOGS-SHIP/PRD.md) · ✅
-
-The release builds and publishes the Go `veaf-logs.exe` (`veaf-build build-logs` runs `go build`, version stamped), the PySide6 window and the `logs` extra leave, the windowless Python core stays for the support bot and the parity goldens (ADR 0023). Merged in #1190 (2026-10-25).
-
-### [FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL/PRD.md) · ✅
-
-Rewrite `veaf-logs` in Go as the same program — tabs, menus, panels, profiles, filters, remote journals, *Explain* and the `/bug` report — in five milestones (#1176, #1181, #1182, J5), equal to the Python on every reference case. Decided 2026-10-25: the Go viewer replaces the Python one, the rest of the tools stay in Python (ADR 0023); shipping it is FEAT-GO-VEAF-LOGS-SHIP.
-
-### [FIX-LIMITATIONS-SHORT-LISTING](FIX-LIMITATIONS-SHORT-LISTING/PRD.md) · ✅
-
-The short listing of `describe_known_limitations` drops the titles (ids, kinds, areas only): it had 12 characters of room left under the 15 000 a tool result holds, and the next limitation any lot adds would have broken it. Asked by David on 2026-10-20. Merged in #1156 (2026-10-20).
-
-### [CHORE-CI-JOB-TIMEOUTS](CHORE-CI-JOB-TIMEOUTS/PRD.md) · ✅
-
-Every CI job and every apt-get step carries a timeout, after a `python-quality` job hung four hours in `apt-get update`; a test keeps new workflows from coming without one.
-
-### [FIX-GO-VEAF-LOGS-UI](FIX-GO-VEAF-LOGS-UI/PRD.md) · ✅
-
-The Go `veaf-logs` window brought level with the Python one. The filters panel no longer spreads three groups over its whole height on a short journal (a walk custom widget is greedy; each group is now pinned to its content, checked by the smoke test). Then seven of the nine differences found by comparing the two windows side by side: flat buttons and fields, compact number fields, the panel's toggle, the bars' height, the panel's width, the table's empty area, the font dialog. Merged in #1185.
-
-### [FIX-LOGS-SEARCH-REDACTION](FIX-LOGS-SEARCH-REDACTION/PRD.md) · ✅
-
-The search criteria the excerpt's header repeats went to the VEAF Worker as typed, unredacted, when *Analyser en ligne* was pressed: they are now redacted like the records. Found by a security review of the Go port's J5, fixed on both sides.
-
-### [FIX-VEAF-LOGS-VIEWER-DEFECTS](FIX-VEAF-LOGS-VIEWER-DEFECTS/PRD.md) · ✅
-
-Three defects of the Python `veaf-logs` found by the Go port: *Aller à la fin* had no shortcut, `^` and `$` bound to the 8 MB search block instead of the line (Go follows), and a glob starting with `*` froze the window for a minute on a 130 MB journal. Split from FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL; merged in #1177, 2026-10-24.
-
-### [POC-GO-VEAF-LOGS](POC-GO-VEAF-LOGS/PRD.md) · ✅
-
-Proof of concept: veaf-logs rewritten in Go in an isolated module (`src/go/veaf-logs/`). Same classification as the Python viewer on every entry tested, 9.5 MB instead of 47.2 MB, window in 0.3 s instead of 2.1 s, a 130 MB journal indexed in 2.4 s instead of 13.3 s; Gio chosen for the UI (ADR 0021); remote journals over SFTP included. Memory is the one figure where Go loses. The follow-up decision is David's. Done 2026-10-24.
-
-### [FIX-DEMO-VIDEO-FINDINGS](FIX-DEMO-VIDEO-FINDINGS/PRD.md) · ✅
-
-What the AI worked around while building missions with the VEAF tools, from David's demo video and Martinho's session (2026-10-22): Texaco refused for a tanker, 123.5 MHz on the UH-1H, an empty ATO with dynamic slots, the tanker missing from the briefing, accents lost in what the AI writes, waypoint numbers that no longer match the route, a PDF of the briefing from the executable, and six smaller frictions of the actions. Each measured first.
-
-### [DOC-DEMO-VIDEO](DOC-DEMO-VIDEO/PRD.md) · ✅
-
-The demo video (a free AI installs the VEAF tools and builds a mission with its briefing) embedded under the five-step box of "Create with an AI", with subtitles forced in the page's language, and linked from the home page card.
-
-### [DOC-AI-MODEL-CHOICE](DOC-AI-MODEL-CHOICE/PRD.md) · ✅
-
-The install page says how to choose the model in OpenCode, Codex or Antigravity: the install is the test, prefer a model that keeps no data, and the models tested in October 2026 (DeepSeek v4.1 Flash succeeded, Big Pickle did not). From David's demo tests.
-
-### [FIX-MISSION-LANGUAGE-FOLLOWS-USER](FIX-MISSION-LANGUAGE-FOLLOWS-USER/PRD.md) · ✅
-
-The English mission prompts told the AI to write the mission, its briefing and README in French; an English-speaking user now gets `mission.language: en` and English documents. The parking limitation, whose id made an AI deny dynamic slots on GermanyCW, is now `ai-ground-start-needs-a-parking-capture`. Afghanistan, GermanyCW, both Marianas and TheChannel now ship their parking capture. Also Pillow 13 and certifi (15 Dependabot alerts), "0 aircraft" stopping the combat missions' auto scale (#1151) and a checked campaign state write (#1146). From David's OpenCode test on 6.31.2, fixed in 6.31.3.
-
-### [FIX-OPENCODE-TEST-FINDINGS](FIX-OPENCODE-TEST-FINDINGS/PRD.md) · ✅
-
-What David's end-to-end OpenCode test on 6.31.1 met, fixed in 6.31.2 (PR #1162): the self-update stages the new exe and swaps it in only at a lone server start; `edit_mission_file` across CRLF and an LF scaffold; reference data with no mission folder (`theatre`, `list_countries`, the shipped scaffold); a lone FARP's dynamic slots; lighter reads; `inspect_built_mission`, and a guide that never parses a `.miz` in a shell. Ticket 04 (presets) measured as not a defect.
-
-### [FEAT-AI-ZERO-SETUP](FEAT-AI-ZERO-SETUP/PRD.md) · ✅
-
-Installing veaf-tools is all an AI needs: `veaf-tools ai-setup` declares the MCP server in Claude Desktop, Claude Code and Gemini CLI, the server updates itself, the authoring guide and the two mission prompts ship in the executable, and the plugin is removed. Asked by David on 2026-10-20 after a demo in a clean sandbox behaved unlike his PC; found on the way: the plugin's binary had been stuck on 6.22.1 since September. Merged in #1155, released in 6.31.0; David's PC set up on 2026-10-20 with 6.31.1, Claude Desktop from the Store included (#1160).
-### [FIX-AI-SETUP-STORE-DESKTOP](FIX-AI-SETUP-STORE-DESKTOP/PRD.md) · ✅
-
-`veaf-tools ai-setup` finds Claude Desktop when its Store install keeps its data in `%LOCALAPPDATA%\Claude-Data\`, as on David's PC, where it answered `not_found`; and the updater's first-install message stops sending the AI install page's users to run `prepare .` in their tools folder. Merged in #1160. Found by FEAT-AI-ZERO-SETUP ticket 08 on 2026-10-20.
-### [FEAT-MCP-MISSION-BRIEFING](FEAT-MCP-MISSION-BRIEFING/PRD.md) · ✅
-
-An MCP action that builds the VEAF mission briefing — PPTX, maps, DCS briefing pictures — from the built mission and the content the assistant passes, so an assistant with no shell (Claude Desktop in chat mode) produces it too. The builder exists for campaign missions (`campaign_manager/mission_deck.py`). Asked by David on 2026-10-20.
-### [FEAT-TERRAIN-DATA-DOWNLOAD](FEAT-TERRAIN-DATA-DOWNLOAD/PRD.md) · ✅
-
-Terrain data an AI can use without DCS: the elevation grids swept in DCS are published as the `terrain-data` GitHub release, and veaf-tools downloads a missing theatre on first use, checksum verified; a local grid keeps priority, offline the answer stays "sweep it in DCS" (#1154). 11 theatres published on 2026-10-20, TheChannel made sweepable on the way.
-
-### [FEAT-KNEEBOARD-PRESETS-REDESIGN](FEAT-KNEEBOARD-PRESETS-REDESIGN/PRD.md) · ✅
-
-The radio presets kneeboard page redrawn for the 2:3 window DCS stretches every image into: cockpit radio names, no empty rows, two columns, a shared calibration page, header and footer clear of the window's own controls, 256-colour PNGs (#1148, #1149). Seen right in game by David on 2026-10-18; demo step added (VEAF-Demo-Mission-v6 #10); the eight v6 OT and the eight foothold2 Foothold missions rebuilt the same day, and deployed (Foothold Syria by stopping foothold2 while empty).
-
-### [FIX-FOOTHOLD-5-3-0-INTAKE](FIX-FOOTHOLD-5-3-0-INTAKE/PRD.md) · ✅
-
-Refreshing the ten Foothold missions to Lekaa 5.3.0 (2026-10-17) found four defects: the batch matched no folder (theatre read in one key form only, and the Open Training missions on the same maps counted as candidates), `--update` kept `zoneCommander.lua` in `custom_scripts:` when the release renamed it `zoneCommanderv2.lua`, `validate` failed on the `hercules: false` left after #843, and the batch turned an LF `mission.yaml` into CRLF. All fixed (#1147); the ten missions refreshed, built and committed on their `main`.
-
-### [FIX-SOLAR-DEFAULT-POSITION](FIX-SOLAR-DEFAULT-POSITION/PRD.md) · ✅
-
-The shipped `versions.yaml` put every mission's sunrise at Damascus: 24 minutes late on the Caucasus in March, 50 in June. Without `position`, solar times are now computed at the theatre's point; an explicit one still wins, warned when off the map. `campaign next` was not affected.
-
-### [FIX-CONVOY-FROZEN-STANDOFF](FIX-CONVOY-FROZEN-STANDOFF/PRD.md) · ✅
-
-A convoy held at its standoff in front of an enemy DCS does not make it engage stayed frozen for ever (*Kolkhida* test, 2026-10-10). A fighting convoy with an enemy in sight and no shot fired or taken for 2 minutes now drives onto the nearest enemy. R48 in game (2026-10-15): both sides fired at once, no push, the convoy drove on after the fight; the push itself not seen in game.
-
-### [FIX-CAMPAIGN-VISIBILITY-MISMATCH](FIX-CAMPAIGN-VISIBILITY-MISMATCH/PRD.md) · ✅
-
-`campaign next` reported a drawn 10 000 m while the mission carried 80 km: the weather converter writes 9 km or more as DCS's maximum, a METAR's `9999`. The report now gives the value written and the convention is documented; what DCS flies is unchanged (David's option B, 2026-10-15). Kolkhida mission 2 was consistent: only its report was wrong.
 
 ## 🚫 Won't fix
 

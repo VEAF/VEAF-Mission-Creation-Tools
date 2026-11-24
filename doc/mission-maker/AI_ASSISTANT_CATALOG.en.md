@@ -99,6 +99,9 @@ The AI can act in two places, and it changes what "survives":
 | 55 | [Write the players' flight plan](#set-route) | 🕰️ Mission settings | Recipe (folder) | ⭐ |
 | 56 | [Announce the mission (poster, calendar banner, Discord post)](#mission-promotion) | 🕰️ Mission settings | Folder (built) | ⭐ |
 | 57 | [Also build the training versions, one per role](#training-versions) | 🏁 Validate & build | Recipe (folder) | ⭐ |
+| 58 | [Build a persistent campaign end to end](#build-persistent-campaign) | 🎖️ Persistent campaign | Campaign (folder) | ⭐ |
+| 59 | [Start a campaign](#campaign-init) | 🎖️ Campaign | Campaign (folder) | ⭐ |
+| 60 | [Check a campaign](#campaign-validate) | 🎖️ Campaign | Campaign (folder) | ⭐ |
 
 ---
 
@@ -195,11 +198,12 @@ directly, ready for combat zones / QRAs — **with no DCS round-trip**.
 ### Build a whole mission, from the questions to the briefing {#build-whole-mission}
 
 *Folder · ⭐* — Saying "create a mission" is enough.
-The AI asks which of the two kinds you want, then loads the VEAF instructions that describe it end to end: the questions to ask, the design rules, the build order.
+The AI asks which of the three kinds you want, then loads the VEAF instructions that describe it end to end: the questions to ask, the design rules, the build order.
 
 - **Objective mission, played in one session** — a package, objectives, a threat, a way home.
   The AI proposes a scenario, proposes others as long as you want, and writes nothing before you have approved one; then it builds the mission and its briefing.
 - **Open Training** — a VEAF training mission on a whole map: airfields, support, air defence, graded training zones, combat zones, QRA.
+- **Persistent campaign** — one mission that runs for weeks on a server, its front moving on its own ([below](#build-persistent-campaign)).
 
 These instructions ship with the tools: nothing to paste, nothing to fetch.
 
@@ -241,6 +245,35 @@ After each mission, the AI rewrites the coming mission's page from the debriefin
 Once the mission is built, the tools also write its [mission briefing](CAMPAIGN.en.md#mission-briefing) — ATO, tactical map, one zoom per objective, frequencies —, read from the mission itself.
 
 > 💬 *"Write the campaign briefing: red has crossed the Inguri, the coalition has three missions to retake Senaki."*
+
+### Start a campaign {#campaign-init}
+
+*Campaign (folder) · ⭐* — In two steps.
+First the AI lays down, in an empty folder, the example shipped with the tools — persistent (the Georgian front) or multi-mission —, to rewrite it for your campaign.
+Then, once `campaign.yaml` is clean, it starts the campaign: it draws its starting state, which the first mission starts from.
+It never overwrites a `campaign.yaml` nor a campaign already started.
+
+> 💬 *"Start from the persistent campaign example, in Documents\VEAF\Campaigns\Levant."*
+
+### Check a campaign {#campaign-validate}
+
+*Campaign (folder) · ⭐* — What `campaign validate` does: `campaign.yaml`, the state, `briefing.yaml` and the template mission (AWACS and tankers declared, a radio plan of the right theatre, long-range SAMs).
+The AI gets the list of errors and warnings, and fixes until none is left.
+
+> 💬 *"Check the campaign and fix what is wrong."*
+
+## 🎖️ Persistent campaign
+
+*A [persistent campaign](PERSISTENT_CAMPAIGN.en.md): one mission that runs for weeks on a server, zones that change hands, a front that moves on its own, a save.
+The AI builds it end to end with the actions above; the campaign page says [what to tell it, step by step](PERSISTENT_CAMPAIGN.en.md#with-an-ai).*
+
+### Build a persistent campaign end to end {#build-persistent-campaign}
+
+*Campaign (folder) · ⭐* — The AI loads the VEAF instructions for the persistent campaign, shipped with the tools, and asks its questions one at a time: the map and the era, your side, the front and its zones, the factories and depots, the SAMs.
+It starts from the shipped example, writes `campaign.yaml`, prepares the template mission with its AWACS and its two tankers, checks until no warning is left, writes the briefing's axes of effort, then prepares and builds the mission.
+It hands you the `.miz` to put on the server, the theatre dossier and the kneeboard pages for the pilots, and what the server must have.
+
+> 💬 *"Create a persistent campaign on Syria: blue holds the coast, red the inland."* · *"Add a zone at Hama to the campaign, and rebuild the mission."* · *"The pilots find the enemy too passive: what can we tune?"*
 
 ## 🗺️ Map & coordinates
 
@@ -680,7 +713,9 @@ rebuilt from its folder, while one the AI places is part of the recipe.
 ### Read and edit the mission folder's files {#mission-files}
 
 *Recipe · ⭐* — For an AI with no access to your files (Claude Desktop in chat mode): it reads and edits `mission.yaml` and the `src/*.yaml` files (presets, weather and time variants, waypoints, slots…) of the mission folder, and nothing else.
+In a campaign folder, they are `campaign.yaml` and `briefing.yaml`.
 It replaces one exact passage, after a backup; an edit that would leave the file unreadable is refused, and the file stays as it was.
+It can also create one of these files when it does not exist yet, never overwrite one.
 That is how it renames the mission or changes its era.
 
 > 💬 *"Rename the mission helico_convoi_Montagnes."*

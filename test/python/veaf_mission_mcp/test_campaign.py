@@ -159,3 +159,66 @@ def test_the_descriptions_carry_the_sizing_rule() -> None:
     register_default_actions(catalog)
     assert "never a single fixed pair" in catalog.describe_action("create_qra").description
     assert "players" in catalog.describe_action("campaign_next").parameters_schema["properties"]
+
+
+# --- campaign_init / campaign_validate (FEAT-PERSISTENT-CAMPAIGN-AI 01) --------------------------
+
+
+def test_init_with_the_example_lays_it_down_and_starts_nothing(tmp_path: Path) -> None:
+    from veaf_mission_mcp.campaign import campaign_init
+
+    result = campaign_init(tmp_path / "Georgie", example="persistent")
+
+    assert result == {"started": False, "copied": [str(tmp_path / "Georgie" / CAMPAIGN_FILE)]}
+    assert not (tmp_path / "Georgie" / STATE_FILE).exists()
+
+
+def test_init_without_example_starts_the_campaign(tmp_path: Path) -> None:
+    from veaf_mission_mcp.campaign import campaign_init
+
+    (tmp_path / CAMPAIGN_FILE).write_text(yaml.safe_dump(copy.deepcopy(VALID)), encoding="utf-8")
+    result = campaign_init(tmp_path)
+
+    assert result == {"started": True, "state_file": str(tmp_path / STATE_FILE), "warnings": []}
+    assert (tmp_path / STATE_FILE).exists()
+
+
+def test_init_refuses_with_the_tools_message(tmp_path: Path) -> None:
+    from veaf_mission_mcp.campaign import campaign_init
+
+    with pytest.raises(ValueError, match="campaign.yaml"):
+        campaign_init(tmp_path)
+    (tmp_path / CAMPAIGN_FILE).write_text("campaign: {}\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="campaign.yaml"):
+        campaign_init(tmp_path, example="persistent")
+
+
+def test_validate_reports_without_raising(tmp_path: Path) -> None:
+    from veaf_mission_mcp.campaign import campaign_validate
+
+    raw = copy.deepcopy(VALID)
+    raw["campaign"]["era"] = "VIKING"
+    (tmp_path / CAMPAIGN_FILE).write_text(yaml.safe_dump(raw), encoding="utf-8")
+    result = campaign_validate(tmp_path)
+
+    assert result["valid"] is False
+    assert len(result["errors"]) == 1 and "VIKING" in result["errors"][0]
+
+
+def test_validate_a_clean_campaign(tmp_path: Path) -> None:
+    from veaf_mission_mcp.campaign import campaign_validate
+
+    assert campaign_validate(_campaign_folder(tmp_path)) == {"valid": True, "errors": [], "warnings": []}
+
+
+def test_init_and_validate_run_through_the_catalog(tmp_path: Path) -> None:
+    """The wiring: what Claude actually calls, from the example to a started campaign."""
+    catalog = ActionCatalog()
+    register_default_actions(catalog)
+    folder = tmp_path / "Georgie"
+    laid = catalog.run_action("campaign_init", {"campaign_folder": str(folder), "example": "persistent"})
+    assert laid["started"] is False
+    checked = catalog.run_action("campaign_validate", {"campaign_folder": str(folder)})
+    assert checked["errors"] == []
+    started = catalog.run_action("campaign_init", {"campaign_folder": str(folder)})
+    assert started["started"] is True

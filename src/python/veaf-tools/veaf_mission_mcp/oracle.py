@@ -401,7 +401,9 @@ def describe_known_limitations(
 
 
 #: The mission prompts shipped in `data/mission-prompts/`, by the `kind` the action takes.
-MISSION_PROMPT_KINDS: tuple[str, ...] = ("objective", "open-training")
+MISSION_PROMPT_KINDS: tuple[str, ...] = ("objective", "open-training", "persistent-campaign")
+#: A prompt's file stem, by kind: `new-<kind>-mission` but for a campaign, which is no one mission.
+_MISSION_PROMPT_STEMS = {"persistent-campaign": "new-persistent-campaign"}
 MISSION_PROMPT_LANGS: tuple[str, ...] = ("en", "fr")
 
 
@@ -433,8 +435,9 @@ def describe_mission_prompt(kind: str, lang: str = "en", part: str | None = None
     the second.
 
     Args:
-        kind: `objective` (a mission played once, in one session) or `open-training` (a VEAF
-            training mission on a whole map).
+        kind: `objective` (a mission played once, in one session), `open-training` (a VEAF
+            training mission on a whole map) or `persistent-campaign` (one mission that runs on a server
+            for weeks, its front moving on its own).
         lang: `en` or `fr`, the language the prompt is written in.
         part: `scenario` (the default for a prompt in two parts), `build`, or `all`.
 
@@ -451,7 +454,8 @@ def describe_mission_prompt(kind: str, lang: str = "en", part: str | None = None
         raise ValueError(f"Unknown language {lang!r}: expected one of {', '.join(MISSION_PROMPT_LANGS)}.")
     if part is not None and part not in MISSION_PROMPT_PARTS:
         raise ValueError(f"Unknown part {part!r}: expected one of {', '.join(MISSION_PROMPT_PARTS)}.")
-    prompt = read_bundled_text("veaf_mission_mcp", "data", "mission-prompts", f"new-{kind}-mission.{lang}.md")
+    stem = _MISSION_PROMPT_STEMS.get(kind, f"new-{kind}-mission")
+    prompt = read_bundled_text("veaf_mission_mcp", "data", "mission-prompts", f"{stem}.{lang}.md")
     result: dict[str, Any] = {"kind": kind, "lang": lang, "prompt": prompt}
     if part == "all" or _BUILD_PART_MARKER not in prompt:
         return result

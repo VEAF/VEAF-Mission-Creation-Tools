@@ -81,7 +81,7 @@ Il doit répondre avec la version installée, celle qu'affiche `.\veaf-tools.exe
 ## Utiliser l'assistant {#use}
 
 Demandez en langage naturel.
-Pour une nouvelle mission, « crée une mission » suffit : l'assistant vous demande laquelle des deux sortes vous voulez, puis charge les consignes qui vont avec.
+Pour une nouvelle mission, « crée une mission » suffit : l'assistant vous demande laquelle des trois sortes vous voulez, puis charge les consignes qui vont avec.
 
 - **Une mission à objectifs, jouée en une séance** : un package, un ou plusieurs objectifs, une menace, un retour.
   L'assistant demande la carte, les appareils et le nombre de pilotes, la durée de la séance et le genre de mission, puis **propose un scénario**.
@@ -89,6 +89,8 @@ Pour une nouvelle mission, « crée une mission » suffit : l'assistant vous dem
   Ensuite il construit la mission et son briefing.
 - **Une mission Open Training** : une mission d'entraînement VEAF sur une carte entière — bases, soutien, défense aérienne, zones d'entraînement graduées, zones de combat, QRA, CAP, météo.
   L'assistant ne pose que quatre ou cinq questions : la carte, l'époque, le gabarit, une éventuelle mission dont s'inspirer, les escortes.
+- **Une campagne persistante** : une seule mission qui tourne des semaines sur un serveur, des zones qui changent de camp, un front qui bouge tout seul.
+  L'assistant demande la carte, votre camp et le front, puis construit la campagne et sa mission ; la [page de la campagne](PERSISTENT_CAMPAIGN.md#with-an-ai) dit quoi lui dire, étape par étape.
 
 Il vous demande aussi où créer le dossier de la mission, s'il n'en a pas déjà un.
 Le briefing d'une mission à objectifs — document et son PDF, cartes, images du briefing DCS — est produit par les outils eux-mêmes, même avec Claude Desktop en mode chat ; les cartes et le README d'une Open Training demandent encore une IA qui lance des programmes, et une IA qui ne le peut pas vous dit ce qu'elle n'a pas pu produire.

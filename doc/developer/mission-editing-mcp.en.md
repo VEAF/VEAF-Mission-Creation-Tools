@@ -698,7 +698,10 @@ initialise):
 - `campaign_next(campaign_folder, players?)` — creates (a copy of `template/`) or refreshes `missions/mission-NN/mission`: airfields to their owner through `set_airbase_coalition`, `src/campaign-data.yaml`, the `CAMPAIGN` module in `mission.yaml`, and, on a folder it creates, the strategic situation as the briefing and the date, time and weather fixed in the mission (one mission, no variant; the day after the last mission, a solar time computed on the campaign's ground, a weather drawn with the ground visible); writes the strategic briefing deck next to it, and the mission briefing when the mission is built; returns the folder, `conditions`, the decks and the factual part of the strategic briefing in FR and EN. Its description asks Claude to set the date and time from the campaign's progress and to keep the ground visible, and to ask how many players are expected tonight: `players` (a count, or a range `"5-7"`, beating `campaign.yaml`'s `players`) writes the mission's `opposition:` block.
 - `campaign_briefing(campaign_folder)` — writes `missions/mission-NN/<operation>_mission-NN_briefing-campagne.pptx` and its strategic map from the campaign (facts) and `briefing.yaml` (prose); returns the paths, the page count, whether the prose was there, whether the map had to do without tiles, the sections `briefing.yaml` may hold, and `mission_deck`: the mission briefing (`<operation>_mission-NN_briefing-mission.pptx`, tactical maps), read from the built mission — `None` and a warning saying how to build while there is no `.miz`. Its description carries the writing rules: a military situation brief, no game mechanics outside the annex, the enemy kept to uneven intelligence.
 
-Each one is the matching `veaf-tools campaign` command (`campaign_manager.CampaignWorker`), returning data instead of printing it. See [Multi-mission campaign](../mission-maker/CAMPAIGN.en.md).
+- `campaign_init(campaign_folder, example?)` — with `example` (`persistent` or `multi-mission`), on a folder with no `campaign.yaml`: copies the shipped example (`published/src/defaults/campaign-folder-persistent` or `campaign-folder`, else the repository's) and creates the folder, draws no state, and returns `{started: false, copied}`. Without `example`: `campaign init`, the starting state drawn from `campaign.yaml`, returning `{started: true, state_file, warnings}`. Never overwrites a `campaign.yaml` nor a state (lot FEAT-PERSISTENT-CAMPAIGN-AI).
+- `campaign_validate(campaign_folder)` — `campaign validate`: returns `{valid, errors, warnings}`, never raising on an invalid campaign.
+
+Each one is the matching `veaf-tools campaign` command (`campaign_manager.CampaignWorker`), returning data instead of printing it; copying the example is `CampaignWorker.scaffold`, which the command line does not expose. See [Multi-mission campaign](../mission-maker/CAMPAIGN.en.md) and [Persistent campaign](../mission-maker/PERSISTENT_CAMPAIGN.en.md#with-an-ai).
 
 ### FARP
 
@@ -1011,6 +1014,8 @@ In Claude Desktop's chat mode, an assistant asked to rename a mission answered t
 Its lines end in `\n` whatever the file uses.
 Without `mission_path` it reads the scaffold shipped with the tools — what `scaffold_mission` lays down: the dynamic-slot templates, the presets plan, `mission.yaml` with each module's commented example — and says `shipped: true`, so a plan can be checked before any folder exists.
 `edit_mission_file` replaces one exact passage (`search` / `replace`), refused when it occurs zero or several times or when the result no longer reads as YAML; backed up first.
+An empty `search` creates a reachable file that does not exist yet (returning `{file, created: true}`), and never overwrites one.
+A campaign folder — `campaign.yaml` and no `mission.yaml` — gives `campaign.yaml` and `briefing.yaml`, nothing else: without them, an AI started from `campaign_init`'s example could not rewrite it (lot FEAT-PERSISTENT-CAMPAIGN-AI).
 Line ends are compared normalised, and the file keeps its own: a passage copied back with `\n` from a CRLF file was "not found" (FIX-OPENCODE-TEST-FINDINGS).
 Implementation: `veaf_mission_mcp/mission_files.py`.
 
@@ -1021,7 +1026,7 @@ Implementation: `veaf_mission_mcp/mission_files.py`.
 ### `describe_mission_prompt` (FEAT-AI-ZERO-SETUP lot)
 
 Read-only. Returns `{"kind", "lang", "prompt"}`: the instructions that build one kind of mission end to end — the questions to ask, the design rules, the build order.
-`kind` is `objective` (a mission played once, in one session) or `open-training` (a VEAF training mission on a whole map); `lang` is `en` (default) or `fr`.
+`kind` is `objective` (a mission played once, in one session), `open-training` (a VEAF training mission on a whole map) or `persistent-campaign` (a persistent campaign, file `new-persistent-campaign.<lang>.md`); `lang` is `en` (default) or `fr`.
 The prompts live in `veaf_mission_mcp/data/mission-prompts/`, bundled with the guide; they used to sit in the repository's `.prompts/`, for the user to paste.
 The authoring guide sends a user who asks for a new mission here, so "create a mission" is enough.
 The objective prompt comes in two parts, cut at a `<!-- part: build -->` line: `part: scenario` (the default, about 13 000 characters, which ends by saying how to load the rest) and `part: build`, once the user has approved a scenario; `part: all` returns both.

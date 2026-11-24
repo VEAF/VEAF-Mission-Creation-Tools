@@ -608,6 +608,7 @@ limitations:
   kind: tool
   area: runtime
   title: "A JTAC's imposed laser code can be handed to another JTAC, and its ASSETS frequency is not the one CTLD announces"
+  fixed_in: "6.29.0"
   symptom: |
     Measured on the Syria Open Training v6, 2026-10-02: `modules.ASSETS` declares Reaper 1 with
     `jtac: 1688`, `freq: 36.0`, `mod: FM`; CTLD registered **two** JTACs on 1688 — the Reaper and the

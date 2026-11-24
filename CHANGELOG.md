@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.39.1] — 2026-11-24
+
 - **"Next page" is the last entry of every radio menu page** (FIX-RADIO-NEXT-PAGE-IN-F10): on the Campagne server, several menus showed "Page suivante" in F9 and another entry in F10. DCS lists a menu's entries in the order they were created, so an entry for one pilot's group, created when he joined, or an entry recreated with new parameters, landed below a "Next page" created before. The link is now recreated after the page's entries, with the pages under it, when something was added to that page.
 
 - **What the 22/11 evening on the Campagne server showed** (FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT).

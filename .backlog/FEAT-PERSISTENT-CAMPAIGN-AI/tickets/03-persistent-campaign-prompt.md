@@ -1,6 +1,6 @@
 # 03 — The `persistent-campaign` mission prompt
 
-Status: 🔄 in-progress
+Status: ✅ done
 Type: feature
 
 ## What

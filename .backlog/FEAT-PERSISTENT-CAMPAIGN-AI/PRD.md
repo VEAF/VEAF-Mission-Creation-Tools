@@ -1,6 +1,6 @@
 # FEAT-PERSISTENT-CAMPAIGN-AI — build a persistent campaign with the AI assistant alone
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 VMCT 6.39.0 shipped the persistent campaign (`mode: persistent`, page `doc/mission-maker/PERSISTENT_CAMPAIGN.md`).
 The first one, *Bouclier de l'Oronte* (Syria), was built by Claude Code sessions holding the whole repository.

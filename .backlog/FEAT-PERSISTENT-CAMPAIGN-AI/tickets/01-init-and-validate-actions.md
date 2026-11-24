@@ -1,6 +1,6 @@
 # 01 — `campaign_init` and `campaign_validate` MCP actions
 
-Status: 🔄 in-progress
+Status: ✅ done
 Type: feature
 
 ## What

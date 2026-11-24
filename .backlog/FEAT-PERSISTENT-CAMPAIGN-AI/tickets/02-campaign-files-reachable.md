@@ -1,6 +1,6 @@
 # 02 — Campaign files reachable by `read_mission_file` / `edit_mission_file`
 
-Status: 🔄 in-progress
+Status: ✅ done
 Type: feature
 
 ## What

@@ -6,10 +6,6 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [FEAT-PERSISTENT-CAMPAIGN-AI](FEAT-PERSISTENT-CAMPAIGN-AI/PRD.md) · 🔄
-
-Build a persistent campaign with the AI assistant alone, no repository and no terminal (David, 2026-11-24): MCP actions `campaign_init` (with the shipped example) and `campaign_validate`, `campaign.yaml` and `briefing.yaml` reachable by `read_mission_file` / `edit_mission_file`, a `persistent-campaign` mission prompt, and a "With an AI" section in the campaign page and the AI catalogue. Four tickets, one PR.
-
 ### [FIX-CAMPAIGN-ASSAULT-ORDER-OPEN](FIX-CAMPAIGN-ASSAULT-ORDER-OPEN/PRD.md) · 🔄
 
 Every player can order a paid blue assault (Rex and David, 2026-11-21): in a persistent campaign the Campaign → Assaults order is a purchase, so it is no longer secured, and the shop and the player guide say where it is and what it costs. One ticket; PR into `feature/dynamic-campaign`.

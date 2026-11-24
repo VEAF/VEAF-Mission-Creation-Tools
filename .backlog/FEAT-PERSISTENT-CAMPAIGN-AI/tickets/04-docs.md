@@ -1,6 +1,6 @@
 # 04 — Docs: "With an AI" and the catalogue
 
-Status: 🔄 in-progress
+Status: ✅ done
 Type: docs
 
 ## What

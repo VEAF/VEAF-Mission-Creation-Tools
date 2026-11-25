@@ -496,8 +496,12 @@ def describe_authoring_guide(section: str | list[str] | None = None) -> dict[str
                 for entry in sections
                 if entry["id"] not in GUIDE_ESSENTIAL_SECTIONS
             ],
-            "read_more": "Read a section when its 'when' applies: describe_authoring_guide with section=<id> "
-            "(or a list of ids); section='all' for the whole guide.",
+            # The local model of run 5 still read 7 sections and 15 schemas the recipe made useless: 46 000
+            # characters before its first action (MCP-CONTEXT-BUDGET, 2026-11-25).
+            "read_more": "For a simple mission the recipe above is all you need: start with its first call, and "
+            "neither read another section nor call describe_action for the recipe's actions. Read a section "
+            "only for what the recipe does not cover (a QRA, a FARP, support aircraft, a briefing...): "
+            "describe_authoring_guide with section=<id>.",
         }
     wanted = [section] if isinstance(section, str) else list(section)
     known = {entry["id"]: entry for entry in sections}

@@ -325,8 +325,6 @@ def describe_naming_conventions() -> dict[str, Any]:
     return {"conventions": [dict(convention) for convention in _NAMING_CONVENTIONS]}
 
 
-
-
 def describe_known_limitations(
     kind: str | None = None,
     area: str | None = None,
@@ -470,8 +468,7 @@ def describe_authoring_guide(section: str | list[str] | None = None) -> dict[str
         return {"guide": preamble + "".join(entry["text"] for entry in sections)}
     if section is None:
         return {
-            "guide": preamble
-            + "".join(entry["text"] for entry in sections if entry["id"] in GUIDE_ESSENTIAL_SECTIONS),
+            "guide": preamble + "".join(entry["text"] for entry in sections if entry["id"] in GUIDE_ESSENTIAL_SECTIONS),
             "sections": [
                 {key: entry[key] for key in ("id", "title", "when")}
                 for entry in sections

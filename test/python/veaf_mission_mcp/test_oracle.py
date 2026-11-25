@@ -618,9 +618,7 @@ _SETTING_WIND_RULES = ("10 kt or less at the surface", "10 kt au plus au sol")
 @pytest.mark.parametrize(("kind", "lang"), [(k, la) for k in ("objective", "open-training") for la in ("fr", "en")])
 def test_the_helicopter_rule_speaks_of_the_simulated_wind(kind: str, lang: str) -> None:
     prompt = "\n".join(
-        _whole(kind, lang, part)
-        if part
-        else _whole(kind, lang)
+        _whole(kind, lang, part) if part else _whole(kind, lang)
         for part in ((None, "build") if kind == "objective" else (None,))
     )
     assert not [rule for rule in _SETTING_WIND_RULES if rule in prompt]

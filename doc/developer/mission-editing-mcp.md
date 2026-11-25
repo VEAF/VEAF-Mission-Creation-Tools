@@ -78,12 +78,24 @@ fixe, à l'image du serveur MCP `dcs-bridge` (pont vers une mission qui tourne) 
 | Outil MCP | Rôle |
 |-----------|------|
 | `capabilities()` | Identité du serveur (nom, version). |
-| `list_catalog(full=False)` | Liste les actions enregistrées en `{name, summary}` — la première phrase de la description, une dizaine de ko pour toutes ; `full=true` rend chaque `description` et `parameters_schema` (quelque 70 ko, qu'un client range dans un fichier au lieu de les montrer). `describe_action` en donne une en entier. |
+| `list_catalog(full=False, offset=0)` | Liste les actions enregistrées en `{name, summary}` — la première phrase de la description, coupée à 100 caractères, une dizaine de ko pour toutes ; `full=true` rend les `description` et `parameters_schema` par pages, `{actions, total, next_offset}` (elles faisaient 158 000 caractères d'un bloc). `describe_action` en donne une en entier. |
 | `describe_action(name)` | Détaille le schéma JSON des paramètres d'une action. |
 | `run_action(name, params)` | Exécute une action enregistrée. |
 
 Les actions elles-mêmes sont enregistrées par
 `veaf_mission_mcp.actions.register_default_actions` (`src/python/veaf-tools/veaf_mission_mcp/actions.py`).
+
+### Budget de contexte (lot MCP-CONTEXT-BUDGET) {#context-budget}
+
+Une réponse d'outil reste dans le contexte du modèle jusqu'à la fin de la session.
+Le 2026-11-25, la chaîne de référence (guide, limitations, catalogue, scaffold, adaptation du squelette, zone de combat, validation, build, inspection) renvoyait 177 186 caractères : un modèle local à 65 000 tokens de contexte débordait avant le build.
+Elle tient désormais sous 60 000 caractères, schéma des outils compris, et `test_context_budget.py` le vérifie.
+
+- `list_catalog`, `describe_action` et `run_action` répondent un seul bloc texte de JSON compact, sans copie `structuredContent` : `mcp` indentait chaque objet et rendait une liste en un bloc par élément.
+- Une réponse de plus de 16 000 caractères est remplacée par `{truncated, total_chars, shown_chars, how_to_read_the_rest, head}` : son début, et la façon propre à l'action de lire la suite.
+- Une demande explicite de tout n'est pas coupée : `describe_authoring_guide` avec `section: all`, `describe_mission_prompt` avec `part: all`. C'est le choix d'un client à grand contexte.
+- Le guide et les prompts de mission se lisent par sections, la liste des limitations par identifiants, `read_mission_file` par tranches de 8 000 caractères au plus, et `build_mission` rend son journal sans les lignes de progression ni le chemin du dossier.
+- `adapt_scaffold` adapte le squelette en un appel : le modèle ne lit plus `src/presets.yaml` (48 777 octets).
 
 ### `describe_mission`
 
@@ -1008,8 +1020,7 @@ entrée : `id`, `kind`, `area`, `title`, `symptom`, `workaround`, éventuellemen
 fichier est la seule source : `docs/agents/dcs-runtime-traps.md` en est généré.
 
 Le texte entier fait environ 74 000 caractères, plus qu'un résultat d'outil n'en porte. **Sans argument,
-l'action renvoie une liste courte** — `id`, `kind`, `area` et `theatres` s'il y en a, sans titre, environ 7 000 caractères — et le nombre
-d'entrées de chaque `area`. `area` (`spawning`, `air-defence`, `players`, `radio`, `ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`),
+l'action renvoie une liste courte** — les identifiants, groupés par `area` (`by_area`), environ 4 700 caractères ; avec leur `kind` et leurs `theatres`, elle en faisait 13 000 (MCP-CONTEXT-BUDGET). `area` (`spawning`, `air-defence`, `players`, `radio`, `ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`),
 `kind` et `theatre` resserrent cette liste et la gardent courte ; `theatre` écarte les entrées qui ne concernent que d'autres théâtres
 (une entrée sans `theatres` vaut partout). Lisez en entier celles dont vous avez besoin avec `id` ou `ids` (une liste) ; `full: true` renvoie
 tout ce qui est retenu. Une `area` revenait en entier : trois d'entre elles faisaient 46 000 caractères en un appel, portés jusqu'à la fin de la session (FIX-OPENCODE-TEST-FINDINGS).
@@ -1020,7 +1031,10 @@ tout ce qui est retenu. Une `area` revenait en entier : trois d'entre elles fais
 
 ### `describe_authoring_guide` (lot FEAT-AI-ASSISTANT-ANY-CLIENT)
 
-Lecture seule, sans paramètre. Renvoie `{"guide": …}` : le guide de création, `veaf_mission_mcp/data/authoring-guide.md`, tel quel.
+Lecture seule. Le guide de création, `veaf_mission_mcp/data/authoring-guide.md`, par sections : il faisait 41 555 caractères d'un bloc (MCP-CONTEXT-BUDGET).
+Sans paramètre, l'action renvoie `{"guide", "sections", "read_more"}` : les sections dont toute mission a besoin (`new-mission`, `after-scaffold`, `two-worlds`, `report-back`) et l'index des autres, chacune avec son `id`, son titre et quand la lire (`when`).
+`section` lit une section ou une liste de sections ; `section: all` rend le guide entier, sans coupure.
+Chaque titre `##` du fichier porte son identifiant (`{#combat-zone-vs-qra}`) et, juste dessous, une ligne `<!-- when: … -->` ; le serveur retire les deux avant de servir le texte.
 Le build embarque tout le dossier `veaf_mission_mcp/data/` dans l'exe ; en développement l'action lit le fichier du paquet.
 
 Les **consignes du serveur** (`instructions` du protocole MCP, envoyées au client à la connexion) demandent d'appeler cette action en premier, puis `describe_known_limitations`.
@@ -1028,7 +1042,7 @@ Elles tiennent en quelques lignes exprès : un client les met dans le prompt de 
 Tous les clients n'en tiennent pas compte ; [la page d'installation](../mission-maker/AI_ASSISTANT_INSTALL.md#other-mcp-client) fait donc commencer la conversation par la demande explicite.
 
 ```json
-{}
+{"section": "combat-zone-vs-qra"}
 ```
 
 ### `read_mission_file` / `edit_mission_file` (lot FEAT-AI-ZERO-SETUP)
@@ -1036,6 +1050,7 @@ Tous les clients n'en tiennent pas compte ; [la page d'installation](../mission-
 Les sources YAML d'un dossier de mission — `mission.yaml` et `src/*.yaml`, rien d'autre, ni `..` ni chemin absolu — pour une IA sans accès direct aux fichiers.
 En mode chat de Claude Desktop, une IA à qui l'on demandait de renommer une mission a répondu qu'aucune action ne le pouvait ; `mission.name`, `mission.era` et les fichiers `src/*.yaml` que la liste du guide lui demande d'adapter n'avaient aucune action.
 `read_mission_file` renvoie `{file, first_line, last_line, total_lines, content}`, 400 lignes par défaut (`start_line`, `line_count`) : le catalogue de slots en compte 11 000.
+Une tranche s'arrête aussi avant 8 000 caractères, une ligne au moins : 400 lignes de `src/presets.yaml` en faisaient jusqu'à 13 823 (MCP-CONTEXT-BUDGET). On reprend à `last_line + 1`.
 Ses lignes finissent par `\n`, quel que soit le fichier.
 Sans `mission_path`, elle lit le gabarit livré avec les outils — ce que `scaffold_mission` pose : les templates de slots dynamiques, le plan de presets, `mission.yaml` avec l'exemple commenté de chaque module — et le dit par `shipped: true`, pour vérifier un plan avant qu'un dossier existe.
 `edit_mission_file` remplace un passage exact (`search` / `replace`), refusé s'il apparaît zéro ou plusieurs fois, ou si le résultat ne se relit plus en YAML ; sauvegarde avant écriture.
@@ -1054,7 +1069,10 @@ Lecture seule. Renvoie `{"kind", "lang", "prompt"}` : les consignes qui construi
 `kind` vaut `objective` (une mission jouée une fois, en une séance), `open-training` (une mission d'entraînement VEAF sur une carte entière) ou `persistent-campaign` (une campagne persistante, fichier `new-persistent-campaign.<lang>.md`) ; `lang` vaut `en` (par défaut) ou `fr`.
 Les prompts vivent dans `veaf_mission_mcp/data/mission-prompts/`, embarqués avec le guide ; ils étaient dans le `.prompts/` du dépôt, à coller par l'utilisateur.
 Le guide de création envoie ici un utilisateur qui demande une nouvelle mission : « crée une mission » suffit.
-Le prompt objectif vient en deux parties, coupées à une ligne `<!-- part: build -->` : `part: scenario` (par défaut, environ 13 000 caractères, qui finit en disant comment charger la suite) et `part: build`, une fois un scénario approuvé ; `part: all` renvoie les deux.
+Le prompt objectif vient en deux parties, coupées à une ligne `<!-- part: build -->` : `part: scenario` (par défaut, environ 13 000 caractères, qui finit en disant comment charger la suite) et `part: build`, une fois un scénario approuvé ; `part: all` renvoie les deux, d'un bloc et sans coupure.
+Une partie vient par pages de sections numérotées entières, 12 000 caractères au plus mais une section au moins : le prompt Open Training faisait 55 635 caractères d'un bloc (MCP-CONTEXT-BUDGET).
+Chaque page donne `sections` (l'index de sa partie : `id` et titre) et `next_section` tant que la partie continue ; `section` (`0`, `2.1`, `4.6`…, ou `intro`, le même numéro en français et en anglais) fait commencer une page n'importe où, et la page reste dans la partie de cette section.
+`next_part: build` vient sur la dernière page du scénario.
 Les sections 4 à 9, 21 000 de ses 34 000 caractères, ne servent qu'après l'approbation, et étaient portées à chaque tour de la discussion du scénario (FIX-OPENCODE-TEST-FINDINGS).
 
 ```json
@@ -1213,6 +1231,26 @@ ferait un Mission Maker à sa première installation.
 
 C'est l'**étape 0** d'une mission créée de zéro, avant les composites de la vague 8.
 
+### `adapt_scaffold` (lot MCP-CONTEXT-BUDGET)
+
+Écriture. Juste après `scaffold_mission`, adapte le squelette à la mission demandée, en un appel : les étapes 1 à 5 de la section `after-scaffold` du guide.
+Un modèle les faisait en lisant les fichiers : 68 759 caractères, et un modèle local à 49 152 tokens de contexte débordait avant d'avoir rien posé.
+Chaque valeur est contrôlée avant toute écriture ; ce qui n'est pas donné reste tel que le scaffold l'a posé, sauf deux choses toujours fausses pour une vraie mission.
+
+- `src/presets.yaml` : les listes d'aérodromes des autres théâtres partent toujours (48 777 → environ 8 700 octets sur le Caucase) ; `airfields` met les aérodromes donnés sur la deuxième radio (`primary_2`), canal 1 en tête, et un nom inconnu du théâtre est refusé avec la liste des siens. Les canaux de vol, ravitailleurs et AWACS restent.
+- `src/versions.yaml` : `date` devient `base_date`, `start_time` l'heure de la variante, nommée d'après l'heure (`morning`, `noon`…) sauf `variant` ; `position` (`{x, y}` sur la carte ou `{latitude, longitude}`, `timezone` facultatif : la zone nominale de la longitude par défaut) sert au lever et au coucher du soleil.
+- `src/waypoints.yaml` : les points d'exemple partent toujours ; `waypoints` (`[{name, x, y, alt?}]`, altitude en mètres, 6 096 par défaut) donne la route de chaque vol joueur, puis le BULLSEYE. Sans eux, le BULLSEYE seul.
+- `src/dynamic-slot-templates.yaml` : `dynamic_slot_coalitions` copie le catalogue livré pour ces camps seulement ; omis, le fichier reste vide et le build prend tout le catalogue.
+- `mission.yaml` : `mission_name`, `era` (`MODERN`, `COLD_WAR`, `WW2`) et `skynet`.
+- La mission vierge : `date` et `start_time` (`set_mission_date`).
+
+Le résultat rend `{folder, changes}`, une ligne par fichier, à redire à l'utilisateur.
+Implémentation : `veaf_mission_mcp/adapt_scaffold.py`.
+
+```json
+{"folder_path": "chemin/vers/dossier-mission", "mission_name": "Test-Beslan", "era": "MODERN", "date": "2024-06-10", "start_time": "07:30", "position": {"x": -158841, "y": 842000}, "airfields": ["Beslan", "Mozdok"], "dynamic_slot_coalitions": ["blue"], "skynet": true}
+```
+
 ## Carte & coordonnées (vague 10)
 
 Les actions de placement prennent des **coordonnées locales DCS** (`x`/`y`, en mètres dans la
@@ -1347,6 +1385,8 @@ dans la commande CLI, on la réexécute telle quelle. Un échec de build est rem
 ```
 
 Le résultat liste dans `missions` les `.miz` écrits par le build : celui de la soirée, et ses versions d'entraînement quand `mission.yaml` porte un bloc `training:`.
+`log` est la sortie du build, tous ses messages et avertissements, sans les lignes de progression (« ✓ … terminé ! ») ni le chemin du dossier, écrite sans retour à la ligne forcé (`COLUMNS=4000`) ; la sortie brute est dans `build.log` du dossier (`log_file`).
+Elle faisait 14 004 caractères, aux deux tiers le chemin du dossier et la progression (MCP-CONTEXT-BUDGET).
 
 ### `propose_training_plan`
 

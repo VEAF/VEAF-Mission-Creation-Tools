@@ -20,7 +20,9 @@ from veaf_tools.app import app
 @pytest.fixture(scope="module")
 def scaffold(tmp_path_factory: pytest.TempPathFactory) -> Path:
     folder = tmp_path_factory.mktemp("scaffold")
-    result = CliRunner().invoke(app, ["prepare", "--template", "standard", "--theatre", "caucasus", str(folder), "--force"])
+    result = CliRunner().invoke(
+        app, ["prepare", "--template", "standard", "--theatre", "caucasus", str(folder), "--force"]
+    )
     assert result.exit_code == 0, result.output
     return folder
 
@@ -47,7 +49,10 @@ def test_every_file_of_the_guide_is_adapted_in_one_call(folder: Path) -> None:
         start_time="07:30",
         position={"latitude": 43.2, "longitude": 44.6},
         airfields=["Beslan", "mozdok", "Nalchik"],
-        waypoints=[{"name": "Push", "x": -150000, "y": 830000}, {"name": "IP Beslan", "x": -155000, "y": 838000, "alt": 1500}],
+        waypoints=[
+            {"name": "Push", "x": -150000, "y": 830000},
+            {"name": "IP Beslan", "x": -155000, "y": 838000, "alt": 1500},
+        ],
         dynamic_slot_coalitions=["blue"],
         skynet=True,
     )
@@ -75,7 +80,10 @@ def test_every_file_of_the_guide_is_adapted_in_one_call(folder: Path) -> None:
 
 
 def test_with_nothing_given_only_what_is_always_wrong_changes(folder: Path) -> None:
-    before = {name: (folder / "src" / name).read_text(encoding="utf-8") for name in ("versions.yaml", "dynamic-slot-templates.yaml")}
+    before = {
+        name: (folder / "src" / name).read_text(encoding="utf-8")
+        for name in ("versions.yaml", "dynamic-slot-templates.yaml")
+    }
     mission_before = (folder / "mission.yaml").read_text(encoding="utf-8")
 
     result = adapt_scaffold(folder)

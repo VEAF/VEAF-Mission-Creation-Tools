@@ -153,6 +153,15 @@ The server asks the AI to read its authoring guide before any action, but not ev
 
 > "Before anything else, read the VEAF authoring guide with the `describe_authoring_guide` action, then the known limitations with `describe_known_limitations`."
 
+### A local model {#local-model}
+
+A model running on your graphics card (llama.cpp with `llama-server --mcp-servers-config`, for instance) has a much smaller context than an online AI: often 32 000 to 80 000 tokens.
+The VEAF server is made to fit in it, with no setting on your side.
+It serves its guide by section, reads the large files by slices, cuts any answer beyond 16 000 characters and says how to read the rest, and adapts a new mission's skeleton in a single action.
+Measured on 25 November 2026: a simple mission, from the empty folder to the built and checked `.miz` (one combat zone), returns about 57 000 characters to the model, that is 15 000 to 20 000 tokens.
+Add what the model writes and thinks: plan for at least 64 000 tokens of context.
+An objective mission or an Open Training also reads its prompt, page by page: allow more.
+
 ## An AI without MCP {#no-mcp}
 
 A chat AI in the browser cannot run a program on your PC: it does not read your mission, change it or build it.

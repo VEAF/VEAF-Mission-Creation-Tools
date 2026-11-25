@@ -21,6 +21,7 @@ from presets_injector.airfield_channels_manager import (
     theatre_collection,
 )
 from veaf_libs import coordinates
+from veaf_libs.i18n import t
 from veaf_libs.shipped_defaults import shipped_default_file
 
 from veaf_mission_mcp.edit_mission_yaml import set_mission_module
@@ -93,7 +94,8 @@ def _check(
     if start_time is not None and not _TIME.match(start_time):
         problems.append(f"start_time {start_time!r} is not HH:MM")
     if position is not None and not any(
-        all(isinstance(position.get(key), int | float) for key in pair) for pair in (("latitude", "longitude"), ("x", "y"))
+        all(isinstance(position.get(key), int | float) for key in pair)
+        for pair in (("latitude", "longitude"), ("x", "y"))
     ):
         problems.append("position needs a numeric latitude and longitude, or the map's x and y")
     for index, point in enumerate(waypoints or []):
@@ -148,7 +150,9 @@ def _drop_other_theatres(text: str, keep: str | None) -> tuple[str, list[str]]:
         removed.append(match["name"])
         depth = len(match["pad"])
         index += 1
-        while index < len(lines) and (not lines[index].strip() or len(lines[index]) - len(lines[index].lstrip()) > depth):
+        while index < len(lines) and (
+            not lines[index].strip() or len(lines[index]) - len(lines[index].lstrip()) > depth
+        ):
             index += 1
     return newline.join(kept), removed
 
@@ -156,7 +160,7 @@ def _drop_other_theatres(text: str, keep: str | None) -> tuple[str, list[str]]:
 def _adapt_presets(folder: Path, theatre: str, airfields: list[str] | None) -> str:
     """Fit `src/presets.yaml` to the theatre: its airfields on the second radio, no other theatre's list."""
     path = folder / "src" / "presets.yaml"
-    text = path.read_text(encoding="utf-8")
+    text = path.read_bytes().decode("utf-8")  # its own line ends, kept on write
     presets = yaml.safe_load(text) or {}
     keep = theatre_collection(presets, theatre)
     text, removed = _drop_other_theatres(text, keep)
@@ -164,11 +168,11 @@ def _adapt_presets(folder: Path, theatre: str, airfields: list[str] | None) -> s
     if airfields:
         chosen = _resolve_airfields(presets, theatre, airfields)
         text = rewrite_primary_2(text, chosen)
-        parts.append(f"second radio = {', '.join(chosen)}")
+        parts.append(t("mcp.adapt.presets_radio", airfields=", ".join(chosen)))
     if removed:
-        parts.append(f"airfield lists of {len(removed)} other theatres removed")
-    path.write_text(text, encoding="utf-8", newline="")
-    return f"src/presets.yaml: {'; '.join(parts) or 'unchanged'} (flight, tanker and AWACS channels kept)."
+        parts.append(t("mcp.adapt.presets_dropped", count=len(removed)))
+    path.write_bytes(text.encode("utf-8"))
+    return t("mcp.adapt.presets", details="; ".join(parts) or t("mcp.adapt.no_change"))
 
 
 def _solar_position(theatre: str, position: dict[str, Any]) -> dict[str, Any]:
@@ -205,19 +209,19 @@ def _adapt_versions(
             data["position"] = value
         else:
             data.insert(0, "position", value)
-        parts.append(f"position {value['latitude']}, {value['longitude']}")
+        parts.append(t("mcp.adapt.versions_position", latitude=value["latitude"], longitude=value["longitude"]))
     if date is not None:
         data["base_date"] = date
-        parts.append(f"base_date {date}")
+        parts.append(t("mcp.adapt.versions_date", date=date))
     versions = data.get("versions") or []
     if versions and (start_time is not None or variant is not None):
         first = versions[0]
         if start_time is not None:
             first["time"] = start_time
         first["name"] = variant or (_variant_name(start_time) if start_time else first.get("name"))
-        parts.append(f"variant {first['name']!r} at {first.get('time')}")
+        parts.append(t("mcp.adapt.versions_variant", name=first["name"], time=first.get("time")))
     save_yaml(path, data)
-    return f"src/versions.yaml: {', '.join(parts)}."
+    return t("mcp.adapt.versions", details=", ".join(parts))
 
 
 def _adapt_waypoints(folder: Path, waypoints: list[dict[str, Any]] | None) -> str:
@@ -240,8 +244,8 @@ def _adapt_waypoints(folder: Path, waypoints: list[dict[str, Any]] | None) -> st
     text = _WAYPOINTS_HEADER + yaml.safe_dump(content, sort_keys=False, allow_unicode=True)
     (folder / "src" / "waypoints.yaml").write_text(text, encoding="utf-8")
     if not points:
-        return "src/waypoints.yaml: the example points removed; each player flight gets the BULLSEYE only."
-    return f"src/waypoints.yaml: {len(points)} points for every player flight ({', '.join(points)}), then BULLSEYE."
+        return t("mcp.adapt.waypoints_none")
+    return t("mcp.adapt.waypoints", count=len(points), keys=", ".join(points))
 
 
 def _adapt_dynamic_slots(folder: Path, coalitions: list[str] | None) -> str | None:
@@ -253,14 +257,18 @@ def _adapt_dynamic_slots(folder: Path, coalitions: list[str] | None) -> str | No
         raise ValueError("adapt_scaffold: the shipped dynamic-slot catalogue is not in the folder (published/)")
     catalogue = yaml.safe_load(shipped.read_text(encoding="utf-8")) or {}
     kept = {
-        category: {"coalitions": {side: groups for side, groups in (block.get("coalitions") or {}).items() if side in coalitions}}
+        category: {
+            "coalitions": {
+                side: groups for side, groups in (block.get("coalitions") or {}).items() if side in coalitions
+            }
+        }
         for category, block in catalogue.items()
         if isinstance(block, dict)
     }
     header = _SLOTS_HEADER.format(coalitions=", ".join(coalitions) or "no coalition")
     text = header + yaml.safe_dump(kept, sort_keys=False, allow_unicode=True)
     (folder / "src" / "dynamic-slot-templates.yaml").write_text(text, encoding="utf-8")
-    return f"src/dynamic-slot-templates.yaml: dynamic-slot templates for {', '.join(coalitions) or 'no coalition'} only."
+    return t("mcp.adapt.slots", coalitions=", ".join(coalitions) or "-")
 
 
 def _adapt_mission_yaml(folder: Path, mission_name: str | None, era: str | None, skynet: bool | None) -> str | None:
@@ -275,15 +283,15 @@ def _adapt_mission_yaml(folder: Path, mission_name: str | None, era: str | None,
             data["mission"] = mission
         if mission_name is not None:
             mission["name"] = mission_name
-            parts.append(f"name {mission_name}")
+            parts.append(t("mcp.adapt.mission_name", name=mission_name))
         if era is not None:
             mission["era"] = era
-            parts.append(f"era {era}")
+            parts.append(t("mcp.adapt.mission_era", era=era))
         save_yaml(path, data)
     if skynet is not None:
         set_mission_module(path, "SKYNET", skynet)
-        parts.append(f"SKYNET {'on' if skynet else 'off'}")
-    return f"mission.yaml: {', '.join(parts)}." if parts else None
+        parts.append(t("mcp.adapt.skynet_on" if skynet else "mcp.adapt.skynet_off"))
+    return t("mcp.adapt.mission_yaml", details=", ".join(parts)) if parts else None
 
 
 def adapt_scaffold(
@@ -332,11 +340,19 @@ def adapt_scaffold(
     if airfields:
         _resolve_airfields(presets, theatre, airfields)
     changes = [_adapt_presets(folder, theatre, airfields)]
-    changes.append(_adapt_versions(folder, theatre, date, start_time, variant, position) or "src/versions.yaml: unchanged.")
+    changes.append(
+        _adapt_versions(folder, theatre, date, start_time, variant, position)
+        or t("mcp.adapt.unchanged", file="src/versions.yaml")
+    )
     changes.append(_adapt_waypoints(folder, waypoints))
-    changes.append(_adapt_dynamic_slots(folder, dynamic_slot_coalitions) or "src/dynamic-slot-templates.yaml: unchanged.")
-    changes.append(_adapt_mission_yaml(folder, mission_name, era, skynet) or "mission.yaml: unchanged.")
+    changes.append(
+        _adapt_dynamic_slots(folder, dynamic_slot_coalitions)
+        or t("mcp.adapt.unchanged", file="src/dynamic-slot-templates.yaml")
+    )
+    changes.append(
+        _adapt_mission_yaml(folder, mission_name, era, skynet) or t("mcp.adapt.unchanged", file="mission.yaml")
+    )
     if date is not None or start_time is not None:
         written = set_mission_date(folder, date=date, start_time=start_time)
-        changes.append(f"src/mission: date {written['date']}, start {written['start_time']}.")
+        changes.append(t("mcp.adapt.mission_date", date=written["date"], start_time=written["start_time"]))
     return {"folder": str(folder), "changes": changes}

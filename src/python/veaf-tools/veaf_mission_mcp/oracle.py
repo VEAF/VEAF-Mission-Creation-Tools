@@ -467,6 +467,31 @@ def _guide_sections(text: str) -> tuple[str, list[dict[str, str]]]:
     return preamble, sections
 
 
+def _compact_routing() -> str:
+    """Say, first in the compact guide, when a mission prompt is worth its weight and when the recipe is enough.
+
+    A local model asked for "a modern training mission" with a zone, a SAM and a QRA loaded the Open Training
+    prompt: 12 pages, 77 622 of the run's 113 885 characters, and it filled 96 % of a 65 536-token context with
+    a plan and questions, building nothing (MCP-CONTEXT-BUDGET, run 6, 2026-11-25). The sizes are read from the
+    shipped prompts, so they stay true.
+
+    Returns:
+        The routing, one paragraph.
+    """
+    sizes = ", ".join(
+        f"{kind} about {len(describe_mission_prompt(kind, 'en', part='all')['prompt']) // 1000} 000"
+        for kind in MISSION_PROMPT_KINDS
+    )
+    return (
+        "A request that says what the mission holds (a zone, a SAM, a QRA, player slots, a date) is a simple "
+        "mission, whatever word it uses (training, exercise, test): follow the recipe below and load no mission "
+        "prompt. Load one only when the user asks for one of these by name or plainly wants it — an Open "
+        "Training on a whole map, an objective mission with its briefing, a persistent campaign — and know "
+        f"its weight first, in characters: {sizes}. When a detail is missing, choose a sensible value and say "
+        "so rather than ask."
+    )
+
+
 def describe_authoring_guide(section: str | list[str] | None = None) -> dict[str, Any]:
     """Return the VEAF mission authoring guide, the first thing an MCP client reads.
 
@@ -490,6 +515,7 @@ def describe_authoring_guide(section: str | list[str] | None = None) -> dict[str
         return {"guide": preamble + "".join(entry["text"] for entry in sections)}
     if section is None:
         return {
+            "start_here": _compact_routing(),
             "guide": preamble + "".join(entry["text"] for entry in sections if entry["id"] in GUIDE_ESSENTIAL_SECTIONS),
             "sections": [
                 {key: entry[key] for key in ("id", "title", "when")}

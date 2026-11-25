@@ -205,7 +205,7 @@ class TestGuideBySection:
 
     def test_the_default_is_the_essential_sections_and_an_index_of_the_others(self) -> None:
         result = describe_authoring_guide()
-        assert len(json.dumps(result, ensure_ascii=False, separators=(",", ":"))) < 12_000
+        assert len(json.dumps(result, ensure_ascii=False, separators=(",", ":"))) <= 8_000  # the compact ceiling
         assert "## A simple mission, call by call" in result["guide"]
         assert "adapt_scaffold" in result["guide"] and '"command": "-armor"' in result["guide"]
         assert "## Combat zone vs QRA" not in result["guide"]
@@ -213,6 +213,13 @@ class TestGuideBySection:
         assert {"combat-zone-vs-qra", "checklist", "after-scaffold"} <= set(index)
         assert all(entry["when"] and entry["title"] for entry in result["sections"])
         assert "section" in result["read_more"]
+
+    def test_the_default_answer_opens_on_when_a_mission_prompt_is_worth_its_weight(self) -> None:
+        """Run 6: "a modern training mission" loaded the Open Training prompt, 77 622 characters, and built nothing."""
+        routing = next(iter(describe_authoring_guide().items()))
+        assert routing[0] == "start_here"
+        assert "training" in routing[1] and "recipe" in routing[1]
+        assert "open-training about" in routing[1]
 
     def test_the_default_and_the_index_cover_the_whole_guide(self) -> None:
         default = describe_authoring_guide()

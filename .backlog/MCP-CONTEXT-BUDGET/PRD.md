@@ -1,6 +1,6 @@
 # MCP-CONTEXT-BUDGET — a local model at ~65 000 tokens runs a whole mission through the MCP
 
-Status: 🔄 in-progress
+Status: 🧑 waiting-human — done in the code; waits for David's run with the local model (llama-server), then the PR
 
 Origin: David, 2026-11-25. He prepares a tutorial for pilots who are not developers: they generate DCS missions with `veaf_mission_mcp`, driven by a local model (Inkling-2-Mini, Q4, `llama-server`, 24 GB cards).
 No setting, no workaround may be asked of them.
@@ -25,12 +25,12 @@ On David's machine, a context of 49 152 tokens filled while reading the skeleton
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Compact JSON in one block, and a 16 000-character ceiling on every response](tickets/01-compact-and-capped-responses.md) | 🔄 |
-| 02 | [A shorter catalogue, limitations listing, file slice and build log](tickets/02-shorter-listings.md) | 🔄 |
-| 03 | [The guide and the mission prompts read by section](tickets/03-guide-and-prompts-by-section.md) | 🔄 |
-| 04 | [`adapt_scaffold`: steps 1 to 5 of the guide in one action](tickets/04-adapt-scaffold.md) | 🔄 |
-| 05 | [A budget test on the reference chain: 60 000 characters at most](tickets/05-budget-test.md) | 🔄 |
-| 06 | [Documentation, changelog](tickets/06-docs.md) | 🔄 |
+| 01 | [Compact JSON in one block, and a 16 000-character ceiling on every response](tickets/01-compact-and-capped-responses.md) | ✅ |
+| 02 | [A shorter catalogue, limitations listing, file slice and build log](tickets/02-shorter-listings.md) | ✅ |
+| 03 | [The guide and the mission prompts read by section](tickets/03-guide-and-prompts-by-section.md) | ✅ |
+| 04 | [`adapt_scaffold`: steps 1 to 5 of the guide in one action](tickets/04-adapt-scaffold.md) | ✅ |
+| 05 | [A budget test on the reference chain: 60 000 characters at most](tickets/05-budget-test.md) | ✅ |
+| 06 | [Documentation, changelog](tickets/06-docs.md) | ✅ |
 
 ## Constraints
 
@@ -42,3 +42,10 @@ On David's machine, a context of 49 152 tokens filled while reading the skeleton
 - The reference chain stays under 60 000 characters of tool output, schema of the tools included, pinned by a test.
 - The guide's post-scaffold section and the mission prompts send the model to `adapt_scaffold` instead of asking it to rewrite the files.
 - Docs in both languages, CHANGELOG under `[Unreleased]`.
+
+## Outcome — 2026-11-25
+
+The same chain replayed over stdio after the lot (scaffold copied, build and inspection real): **56 329 characters**, tool schemas included (14 000 to 19 000 tokens), against 177 186.
+The largest answers left: `list_catalog` 10 202, the guide's `combat-zone-vs-qra` section 7 549, the guide's default answer 7 515, `build_mission` 5 826.
+In process, `test_context_budget.py` counts 56 721 and fails at a budget of 50 000.
+Not verified here: the run with the local model itself, which is David's.

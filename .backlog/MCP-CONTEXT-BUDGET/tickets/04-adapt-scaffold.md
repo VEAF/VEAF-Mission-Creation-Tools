@@ -1,6 +1,6 @@
 # 04 — `adapt_scaffold`: steps 1 to 5 of the guide in one action
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 After `scaffold_mission` the guide asks the model to rewrite `src/presets.yaml` (48 777 bytes), `src/versions.yaml`, `src/waypoints.yaml`, `src/dynamic-slot-templates.yaml` and `mission.yaml`; reading them was 68 759 characters.
 

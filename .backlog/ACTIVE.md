@@ -8,6 +8,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🧑 Waiting for a human
 
+### [MCP-CONTEXT-BUDGET](MCP-CONTEXT-BUDGET/PRD.md) · 🧑
+
+A local model at 65 000 tokens of context runs a whole mission through the MCP: the reference chain's tool answers fell from 177 186 to about 56 000 characters (new action `adapt_scaffold`, guide and prompts by section, compact answers cut at 16 000 characters, a budget test at 60 000). Done in the code on branch `feature/MCP-CONTEXT-BUDGET`; waits for David's run with the local model, then the PR.
+
 ### [FIX-CAMPAIGN-THIRD-SERVER-FLIGHT](FIX-CAMPAIGN-THIRD-SERVER-FLIGHT/PRD.md) · 🧑
 
 What the third evening of "Bouclier de l'Oronte" taught (2026-11-19): a captured airfield offers no slot, since only the airbases owned at build time get Dynamic Slots; the sitac should show what Foothold's does. Scope decided by David: slots on every campaign airfield; players, ranking, ejected pilots, task board and support aircraft in the sitac block. Ten tickets, merged in #1321 (2026-11-20) and #1326 (2026-11-22), shipped in 6.39.0. Waits for ticket 08's redraw of the red garrisons in the Oronte save (live server, server empty, David's go: the same redraw as ticket 12 of FIX-CAMPAIGN-SECOND-SERVER-FLIGHT); the other tickets' in-game checks are flight checks.

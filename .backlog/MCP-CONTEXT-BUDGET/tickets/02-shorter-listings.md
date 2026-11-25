@@ -1,6 +1,6 @@
 # 02 — A shorter catalogue, limitations listing, file slice and build log
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 - `list_catalog` summaries cut at 100 characters (14 102 → about 10 000); `full=true` pages by `offset` under the ceiling.
 - `describe_known_limitations` without `id`: the ids grouped by area (13 008 → about 4 700); `id`/`ids` unchanged.

@@ -1,6 +1,6 @@
 # 01 — Compact JSON in one block, and a 16 000-character ceiling on every response
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 `mcp` serialises a returned object with `indent=2` and a returned list as one content block per item, plus a `structuredContent` copy: the limitations listing lost 30 % to indentation, and `list_catalog` came as 75 blocks and a second copy.
 

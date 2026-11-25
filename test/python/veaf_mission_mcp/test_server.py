@@ -1,10 +1,13 @@
 import asyncio
+import json
 from pathlib import Path
 
 import pytest
 from mcp.server.mcpserver.exceptions import ToolError
 from veaf_mission_mcp import server
-from veaf_mission_mcp.catalog import ActionNotFoundError
+from veaf_mission_mcp.catalog import ActionCatalog, ActionNotFoundError
+from veaf_mission_mcp.models import ActionSpec
+from veaf_mission_mcp.response_budget import MAX_RESPONSE_CHARS, to_text
 
 # The tests below call the module functions directly, which proves the *catalog* works but says
 # nothing about the server: every one of them would still pass while the MCP client connected and
@@ -32,12 +35,83 @@ def test_list_catalog_is_compact_by_default() -> None:
     import json
 
     compact = server.list_catalog()
+    assert isinstance(compact, list)
     assert set(compact[0]) == {"name", "summary"}
-    assert all(len(entry["summary"]) <= 200 for entry in compact)
-    assert len(json.dumps(compact)) < 20000
-    full = server.list_catalog(full=True)
-    assert "parameters_schema" in full[0]
-    assert [entry["name"] for entry in compact] == [entry["name"] for entry in full]
+    assert all(len(entry["summary"]) <= 100 for entry in compact)
+    assert len(json.dumps(compact)) < 12000
+
+
+def test_list_catalog_full_pages_every_spec_under_the_ceiling() -> None:
+    """MCP-CONTEXT-BUDGET: every full spec at once was 158 037 characters; one page fits a response."""
+    compact = server.list_catalog()
+    assert isinstance(compact, list)
+    names: list[str] = []
+    offset: int | None = 0
+    while offset is not None:
+        page = server.list_catalog(full=True, offset=offset)
+        assert isinstance(page, dict)
+        assert len(to_text(page)) <= MAX_RESPONSE_CHARS
+        assert page["total"] == len(compact)
+        assert "parameters_schema" in page["actions"][0]
+        names += [entry["name"] for entry in page["actions"]]
+        offset = page["next_offset"]
+    assert names == [entry["name"] for entry in compact]
+
+
+def _tool_blocks(tool: str, arguments: dict[str, object]) -> tuple[list[str], object]:
+    """Call a tool through the MCP server; return its text blocks and its structured copy."""
+    result = asyncio.run(server.mcp.call_tool(tool, arguments))
+    assert not result.is_error
+    return [block.text for block in result.content], result.structured_content
+
+
+def test_every_discovery_tool_answers_one_compact_block_without_a_structured_copy() -> None:
+    """MCP-CONTEXT-BUDGET: `list_catalog` came as 75 blocks plus a copy, objects indented by two."""
+    for tool, arguments in (
+        ("list_catalog", {}),
+        ("describe_action", {"name": "describe_map"}),
+        ("run_action", {"name": "describe_known_limitations", "params": {}}),
+    ):
+        blocks, structured = _tool_blocks(tool, arguments)
+        assert len(blocks) == 1, tool
+        assert structured is None, tool
+        assert "\n" not in blocks[0], tool
+        json.loads(blocks[0])
+
+
+def test_a_response_over_the_ceiling_is_cut_with_the_action_s_own_way_to_read_on(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(server, "CATALOG", ActionCatalog())
+    server.CATALOG.register(
+        ActionSpec(name="_test_big", description="Big.", parameters_schema={"type": "object", "properties": {}}),
+        lambda _p: {"text": "é" * 40_000},
+        oversize_hint="Read it by slices.",
+    )
+    blocks, _ = _tool_blocks("run_action", {"name": "_test_big", "params": {}})
+    assert len(blocks[0]) <= MAX_RESPONSE_CHARS
+    cut = json.loads(blocks[0])
+    assert cut["truncated"] is True
+    assert cut["total_chars"] > MAX_RESPONSE_CHARS
+    assert cut["how_to_read_the_rest"] == "Read it by slices."
+    assert cut["head"].startswith('{"text":"éé')
+
+
+def test_a_call_asking_for_everything_is_not_cut(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(server, "CATALOG", ActionCatalog())
+    server.CATALOG.register(
+        ActionSpec(
+            name="_test_all",
+            description="All.",
+            parameters_schema={"type": "object", "properties": {"all": {"type": "boolean"}}},
+        ),
+        lambda _p: "x" * 40_000,
+        uncapped_when=lambda p: bool(p.get("all")),
+    )
+    blocks, _ = _tool_blocks("run_action", {"name": "_test_all", "params": {"all": True}})
+    assert blocks[0] == "x" * 40_000
+    blocks, _ = _tool_blocks("run_action", {"name": "_test_all", "params": {}})
+    assert json.loads(blocks[0])["truncated"] is True
 
 
 def test_describe_action_returns_the_describe_mission_spec() -> None:

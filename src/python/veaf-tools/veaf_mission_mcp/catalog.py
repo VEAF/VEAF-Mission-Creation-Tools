@@ -8,6 +8,8 @@ from typing import Any
 from veaf_mission_mcp.models import ActionSpec
 
 ActionHandler = Callable[[dict[str, Any]], Any]
+#: Whether a call asked explicitly for everything, so its response is not cut (MCP-CONTEXT-BUDGET).
+UncappedWhen = Callable[[dict[str, Any]], bool]
 
 #: The one name under which every action takes "the mission folder or `.miz`".
 #:
@@ -26,8 +28,9 @@ MISSION_PARAMETER_ALIASES: tuple[str, ...] = ("miz_path", "target", "folder_path
 MISSION_YAML_PARAMETER = "mission_yaml_path"
 
 
-#: The longest summary ``list_catalog`` gives an action, in characters.
-_SUMMARY_MAX = 200
+#: The longest summary ``list_catalog`` gives an action, in characters: 200 made the listing 14 102
+#: characters, a fifth of a local model's whole context with the guide (MCP-CONTEXT-BUDGET).
+_SUMMARY_MAX = 100
 
 
 def summary(description: str) -> str:
@@ -60,14 +63,30 @@ class ActionCatalog:
         self._specs: dict[str, ActionSpec] = {}
         self._handlers: dict[str, ActionHandler] = {}
         self._mission_keys: dict[str, str] = {}
+        self._oversize_hints: dict[str, str] = {}
+        self._uncapped_when: dict[str, UncappedWhen] = {}
 
-    def register(self, spec: ActionSpec, handler: ActionHandler) -> None:
+    def register(
+        self,
+        spec: ActionSpec,
+        handler: ActionHandler,
+        *,
+        oversize_hint: str | None = None,
+        uncapped_when: UncappedWhen | None = None,
+    ) -> None:
         """Register an action under its spec's name.
 
         Args:
             spec: The action's name, description and parameter JSON Schema.
             handler: Callable invoked by ``run_action`` with the ``params`` dict.
+            oversize_hint: How to read the rest of a response cut at the ceiling, for the model.
+            uncapped_when: Tells, from the call's parameters, that the caller asked for everything
+                (``section: all``): that response is not cut.
         """
+        if oversize_hint is not None:
+            self._oversize_hints[spec.name] = oversize_hint
+        if uncapped_when is not None:
+            self._uncapped_when[spec.name] = uncapped_when
         properties = (spec.parameters_schema or {}).get("properties") or {}
         native = next((key for key in (MISSION_PARAMETER, *MISSION_PARAMETER_ALIASES) if key in properties), None)
         if native is not None:
@@ -84,6 +103,30 @@ class ActionCatalog:
             The list of registered action specs.
         """
         return list(self._specs.values())
+
+    def oversize_hint(self, name: str) -> str | None:
+        """Return how to read the rest of a cut response of action `name`, if it says.
+
+        Args:
+            name: The action's registered name.
+
+        Returns:
+            The hint given at registration, or None.
+        """
+        return self._oversize_hints.get(name)
+
+    def is_uncapped(self, name: str, params: dict[str, Any]) -> bool:
+        """Return whether this call asked for everything, so its response is not cut.
+
+        Args:
+            name: The action's registered name.
+            params: The call's parameters.
+
+        Returns:
+            True when the action's predicate says so; False for an action without one.
+        """
+        predicate = self._uncapped_when.get(name)
+        return bool(predicate and predicate(params))
 
     def describe_action(self, name: str) -> ActionSpec:
         """Return one action's spec.

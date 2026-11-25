@@ -95,29 +95,31 @@ def test_describe_known_limitations_returns_both_kinds_for_the_running_version()
     assert {"id", "kind", "area", "title", "symptom", "workaround"} <= set(entry)
 
 
+def _short_ids(**filters: str) -> set[str]:
+    """Return every id of a short listing of the known limitations."""
+    return {entry for ids in describe_known_limitations(**filters)["by_area"].values() for entry in ids}
+
+
 class TestKnownLimitationsByArea:
     """FIX-OPEN-TRAINING-NORMANDY-FINDINGS 10: the whole text, 74 000 characters, overflowed a tool result."""
 
     def test_the_default_is_a_short_listing_that_fits_a_tool_result(self) -> None:
         result = describe_known_limitations()
         assert result["detail"] == "short"
-        assert {"id", "kind", "area"} <= set(result["limitations"][0])
-        # No title since FIX-LIMITATIONS-SHORT-LISTING: with them the listing reached 14 988 of its 15 000
-        # characters; the ids already say what an entry is about.
-        assert all(set(entry) <= {"id", "kind", "area", "theatres"} for entry in result["limitations"])
-        assert len(json.dumps(result, ensure_ascii=False)) < 15_000
-        assert sum(result["areas"].values()) == len(result["limitations"])
+        assert "limitations" not in result
+        # The ids alone since MCP-CONTEXT-BUDGET: with their kind, area and theatres the listing was
+        # 13 008 characters, a tenth of a local model's context.
+        assert all(isinstance(entry, str) for ids in result["by_area"].values() for entry in ids)
+        assert len(json.dumps(result, ensure_ascii=False, separators=(",", ":"))) < 6_000
 
     def test_the_short_listing_names_every_entry_of_the_full_text(self) -> None:
-        short = {entry["id"] for entry in describe_known_limitations()["limitations"]}
-        assert short == {entry["id"] for entry in describe_known_limitations(full=True)["limitations"]}
+        assert _short_ids() == {entry["id"] for entry in describe_known_limitations(full=True)["limitations"]}
 
     def test_an_area_returns_its_entries_short(self) -> None:
         """Three areas in full were 46k characters in one call (FIX-OPENCODE-TEST-FINDINGS 06)."""
         result = describe_known_limitations(area="radio")
         assert result["detail"] == "short"
-        assert result["limitations"] and {e["area"] for e in result["limitations"]} == {"radio"}
-        assert all("symptom" not in entry for entry in result["limitations"])
+        assert list(result["by_area"]) == ["radio"] and result["by_area"]["radio"]
 
     def test_an_area_in_full_on_request(self) -> None:
         result = describe_known_limitations(area="radio", full=True)
@@ -125,13 +127,13 @@ class TestKnownLimitationsByArea:
         assert all("symptom" in entry and "workaround" in entry for entry in result["limitations"])
 
     def test_the_three_largest_areas_read_short_stay_small(self) -> None:
-        areas = describe_known_limitations()["areas"]
-        largest = sorted(areas, key=areas.get, reverse=True)[:3]
+        by_area = describe_known_limitations()["by_area"]
+        largest = sorted(by_area, key=lambda area: len(by_area[area]), reverse=True)[:3]
         size = sum(len(json.dumps(describe_known_limitations(area=a), indent=2)) for a in largest)
         assert size < 8_000
 
     def test_one_or_several_ids_return_those_entries_in_full(self) -> None:
-        first, second = (e["id"] for e in describe_known_limitations()["limitations"][:2])
+        first, second = sorted(_short_ids())[:2]
         assert [e["id"] for e in describe_known_limitations(id=first)["limitations"]] == [first]
         assert {e["id"] for e in describe_known_limitations(id=[first, second])["limitations"]} == {first, second}
 
@@ -140,18 +142,17 @@ class TestKnownLimitationsByArea:
             describe_known_limitations(id="no-such-limitation")
 
     def test_a_theatre_drops_the_entries_that_concern_other_theatres_only(self) -> None:
-        ids = {e["id"] for e in describe_known_limitations(theatre="Normandy")["limitations"]}
+        ids = _short_ids(theatre="Normandy")
         assert "ai-ground-start-needs-a-parking-capture" not in ids  # Normandy ships its parking
         assert "marianas-placement-checks-nothing" not in ids
-        everywhere = {e["id"] for e in describe_known_limitations()["limitations"]}
-        assert "ai-ground-start-needs-a-parking-capture" in {
-            e["id"] for e in describe_known_limitations(theatre="Nevada")["limitations"]
-        }
+        everywhere = _short_ids()
+        assert "ai-ground-start-needs-a-parking-capture" in _short_ids(theatre="Nevada")
         assert ids < everywhere  # an entry with no `theatres` is kept
 
 
 def test_describe_known_limitations_filters_by_kind() -> None:
-    assert {e["kind"] for e in describe_known_limitations(kind="dcs")["limitations"]} == {"dcs"}
+    assert {e["kind"] for e in describe_known_limitations(kind="dcs", full=True)["limitations"]} == {"dcs"}
+    assert _short_ids(kind="dcs") < _short_ids()
 
 
 def test_describe_known_limitations_is_in_the_catalogue() -> None:
@@ -161,7 +162,7 @@ def test_describe_known_limitations_is_in_the_catalogue() -> None:
     catalog = ActionCatalog()
     register_default_actions(catalog)
     assert "describe_known_limitations" in {spec.name for spec in catalog.list_catalog()}
-    assert catalog.run_action("describe_known_limitations", {"kind": "tool"})["limitations"]
+    assert catalog.run_action("describe_known_limitations", {"kind": "tool"})["by_area"]
 
 
 _MCP_DATA = Path(__file__).parents[3] / "src" / "python" / "veaf-tools" / "veaf_mission_mcp" / "data"
@@ -354,7 +355,7 @@ def test_the_action_takes_one_id_or_a_list_of_ids_without_a_oneof_schema() -> No
 
     catalog = ActionCatalog()
     register_default_actions(catalog)
-    first, second = (e["id"] for e in describe_known_limitations()["limitations"][:2])
+    first, second = sorted(_short_ids())[:2]
     assert [e["id"] for e in catalog.run_action("describe_known_limitations", {"id": first})["limitations"]] == [first]
     both = catalog.run_action("describe_known_limitations", {"ids": [first, second]})["limitations"]
     assert {e["id"] for e in both} == {first, second}

@@ -324,10 +324,6 @@ def describe_naming_conventions() -> dict[str, Any]:
     return {"conventions": [dict(convention) for convention in _NAMING_CONVENTIONS]}
 
 
-#: What a short listing of the known limitations keeps of an entry: enough to decide which to read.
-#: What the short listing keeps of an entry. No title (FIX-LIMITATIONS-SHORT-LISTING): with titles the listing
-#: reached 14 988 of the 15 000 characters a tool result holds; the kebab-case ids say what an entry is about.
-_LIMITATION_SUMMARY_FIELDS = ("id", "kind", "area", "theatres")
 
 
 def describe_known_limitations(
@@ -343,9 +339,11 @@ def describe_known_limitations(
     veaf-tools not yet fixed in this version, and the DCS behaviours that raise no error and are
     wrong anyway (always returned — DCS is not ours to fix).
 
-    Without ``id`` or ``full``, only a short listing comes back — ``id``, ``kind``, ``area`` of each
-    entry: the whole text is about 74 000 characters, more than a tool result can carry, and an author
-    needs a tenth of it (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 10). ``kind``, ``area`` and
+    Without ``id`` or ``full``, only a short listing comes back — the ids, grouped by area: the whole
+    text is about 74 000 characters, more than a tool result can carry, and an author needs a tenth of
+    it (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 10). The ids alone, since MCP-CONTEXT-BUDGET: one
+    entry per object with its kind, area and theatres was 13 008 characters, a local model's tenth of
+    its context before its first action; the kebab-case ids read as phrases. ``kind``, ``area`` and
     ``theatre`` narrow the listing and keep it short: three areas in full were 46 000 characters in
     one call, sent back with every later turn of the session (FIX-OPENCODE-TEST-FINDINGS 06). One or
     more ``id`` return those entries in full.
@@ -360,10 +358,10 @@ def describe_known_limitations(
         full: Return every selected entry in full, whatever the filters.
 
     Returns:
-        `{"veaf_tools_version", "limitations": [...], "detail": "short"|"full", "areas"?}`. A short
-        entry is `{"id", "kind", "area", "title", "theatres"?}`; a full one adds `"symptom"`,
-        `"workaround"`, `"cost"?`, `"measured"?`, `"fixed_in"?`. A short listing also carries `"areas"`,
-        the entry count of each area.
+        `{"veaf_tools_version", "detail": "short", "by_area": {area: [id, ...]}}` for a short listing;
+        `{"veaf_tools_version", "detail": "full", "limitations": [...]}` otherwise, an entry being
+        `{"id", "kind", "area", "title", "symptom", "workaround", "theatres"?, "cost"?, "measured"?,
+        "fixed_in"?}`.
 
     Raises:
         ValueError: An ``id`` names no entry.
@@ -388,13 +386,10 @@ def describe_known_limitations(
     short = not (full or ids)
     result: dict[str, Any] = {"veaf_tools_version": version, "detail": "short" if short else "full"}
     if short:
-        result["limitations"] = [
-            {key: entry[key] for key in _LIMITATION_SUMMARY_FIELDS if key in entry} for entry in entries
-        ]
-        areas: dict[str, int] = {}
+        by_area: dict[str, list[str]] = {}
         for entry in entries:
-            areas[entry["area"]] = areas.get(entry["area"], 0) + 1
-        result["areas"] = areas
+            by_area.setdefault(entry["area"], []).append(entry["id"])
+        result["by_area"] = by_area
     else:
         result["limitations"] = [dict(entry) for entry in entries]
     return result

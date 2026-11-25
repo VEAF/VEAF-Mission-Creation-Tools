@@ -8,6 +8,7 @@ go from an empty folder to a playable mission without leaving the assistant. See
 """
 
 import os
+import re
 import subprocess
 import time
 from pathlib import Path
@@ -19,6 +20,33 @@ from veaf_tools.helpers import NO_PAUSE_ENV_VAR
 #: Upper bound on a single ``veaf-tools build`` — generous (a full build with many presets is slow
 #: on a fresh VM), but bounded so a stalled build surfaces as an error instead of a hung MCP call.
 _BUILD_TIMEOUT = 900
+
+#: Where the build's raw output is kept, in the mission folder.
+BUILD_LOG_NAME = "build.log"
+
+#: A progress line, `✓ <step> terminé !` / `✓ Done <step>!`: twenty of them, with no line end, glued to
+#: the message that follows them.
+_PROGRESS_DONE = re.compile(r"✓ [^!\n]*!")
+
+
+def compact_build_log(log: str, folder: Path) -> str:
+    """Return a build's output without what tells nothing: progress lines and the folder's own path.
+
+    A build's output was 14 004 characters returned whole, a fifth of a local model's context; two thirds
+    of it were the folder's absolute path, written at every step, and the progress lines
+    (MCP-CONTEXT-BUDGET). Every message is kept, its warnings included.
+
+    Args:
+        log: The build's output, written unwrapped (``COLUMNS`` wide).
+        folder: The mission folder the build ran in.
+
+    Returns:
+        The output with paths relative to the folder, no progress line and no blank line.
+    """
+    text = _PROGRESS_DONE.sub("\n", log)
+    for root in dict.fromkeys((str(folder.resolve()), str(folder))):
+        text = text.replace(root + os.sep, "").replace(root, ".")
+    return "\n".join(line.rstrip() for line in text.splitlines() if line.strip())
 
 
 def validate_mission(folder_path: Path) -> dict[str, Any]:
@@ -57,12 +85,12 @@ def build_mission(folder_path: Path, profile: str | None = None) -> dict[str, An
             mission's own profiles when omitted.
 
     Returns:
-        ``{folder, ok, message, log, missions}`` on success — ``log`` is the build's whole output, where
-        its warnings are; ``message`` keeps the last 1000 characters for older callers. The output used
-        to be cut to those and decoded as cp1252 (« CrÃ©Ã© »), so the warnings the maker needed
-        were gone (FIX-SCRATCH-MISSION-FINDINGS ticket 08). ``missions`` lists the ``.miz`` the build
-        wrote in the folder: the night's, and its training versions when ``mission.yaml`` has a
-        ``training:`` block.
+        ``{folder, ok, log, log_file, missions}`` on success — ``log`` is the build's output, every
+        message and warning, through :func:`compact_build_log`; ``log_file`` the raw output, written in
+        the folder. The output used to be cut to its last 1000 characters and decoded as cp1252
+        (« CrÃ©Ã© »), so the warnings the maker needed were gone (FIX-SCRATCH-MISSION-FINDINGS ticket
+        08). ``missions`` lists the ``.miz`` the build wrote in the folder: the night's, and its
+        training versions when ``mission.yaml`` has a ``training:`` block.
 
     Raises:
         RuntimeError: when the build exits non-zero (message carries the build's stderr/stdout).
@@ -88,13 +116,23 @@ def build_mission(folder_path: Path, profile: str | None = None) -> dict[str, An
             errors="replace",
             stdin=subprocess.DEVNULL,
             timeout=_BUILD_TIMEOUT,
-            env={**os.environ, NO_PAUSE_ENV_VAR: "1"},
+            # COLUMNS: Rich wraps at 80 columns, cutting the folder's path in two where it cannot be
+            # recognised and removed (MCP-CONTEXT-BUDGET).
+            env={**os.environ, NO_PAUSE_ENV_VAR: "1", "COLUMNS": "4000"},
         )
     except subprocess.TimeoutExpired as exc:
         raise RuntimeError(f"build timed out after {_BUILD_TIMEOUT:.0f}s with no progress.") from exc
     if result.returncode != 0:
         raise RuntimeError(f"build failed (exit {result.returncode}): {(result.stderr or result.stdout).strip()}")
     log = (result.stdout or "").strip()
+    log_file = folder / BUILD_LOG_NAME
+    log_file.write_text(log + "\n", encoding="utf-8")
     # Which .miz this build wrote: a training: block makes it five (FEAT-ROLE-TRAINING-VARIANTS).
     missions = sorted(str(p) for p in folder.glob("*.miz") if p.stat().st_mtime >= started)
-    return {"folder": str(folder), "ok": True, "message": log[-1000:], "log": log, "missions": missions}
+    return {
+        "folder": str(folder),
+        "ok": True,
+        "log": compact_build_log(log, folder),
+        "log_file": str(log_file),
+        "missions": missions,
+    }

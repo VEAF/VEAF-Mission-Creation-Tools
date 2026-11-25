@@ -3420,8 +3420,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "the known limitations of the tools (not yet fixed) and the DCS behaviours that raise "
                 "no error and are wrong anyway (late-activated groups visible to scripts, start_time "
                 "not delaying an air spawn, a SAM without EWR permanently lit…): symptom, what to do, "
-                "and what it cost. With no argument it returns a SHORT listing (id, kind, area -- each id reads as a phrase: "
-                "the whole text is too long for one result); 'area', 'kind' and 'theatre' narrow that "
+                "and what it cost. With no argument it returns a SHORT listing: the ids, grouped by area (each id reads "
+                "as a phrase: the whole text is too long for one result); 'area', 'kind' and 'theatre' narrow that "
                 "listing. Then read in full only the entries your mission meets, with 'id' or 'ids' -- "
                 "what you read stays in your context to the end. Read-only."
             ),
@@ -3474,6 +3474,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             id=[*([p["id"]] if p.get("id") else []), *(p.get("ids") or [])] or None,
             full=bool(p.get("full", False)),
         ),
+        oversize_hint="Read fewer entries at once: one 'area', or a few 'ids' from the short listing.",
     )
     catalog.register(
         ActionSpec(

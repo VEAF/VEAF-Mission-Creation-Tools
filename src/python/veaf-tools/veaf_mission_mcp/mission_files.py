@@ -28,6 +28,9 @@ from veaf_mission_mcp.mission_folder import mission_yaml_path
 
 #: Lines a read returns by default: a whole `mission.yaml`, a slice of the 11 000-line slot catalogue.
 DEFAULT_LINE_COUNT = 400
+#: The most characters a read returns, whatever its line count: 400 lines of `src/presets.yaml` were up
+#: to 13 823 characters, and its four slices 50 782 — most of a local model's context (MCP-CONTEXT-BUDGET).
+MAX_SLICE_CHARS = 8_000
 
 _REACHABLE = "only mission.yaml and the src/*.yaml files of the mission folder are reachable"
 _CAMPAIGN_REACHABLE = "only campaign.yaml and briefing.yaml of the campaign folder are reachable"
@@ -131,7 +134,13 @@ def read_mission_file(
     with path.open(encoding="utf-8", newline="") as handle:
         lines = handle.read().replace("\r\n", "\n").split("\n")
     lines = [line + "\n" for line in lines[:-1]] + ([lines[-1]] if lines[-1] else [])
-    chunk = lines[start_line - 1 : start_line - 1 + line_count]
+    chunk: list[str] = []
+    size = 0
+    for line in lines[start_line - 1 : start_line - 1 + line_count]:
+        if chunk and size + len(line) > MAX_SLICE_CHARS:
+            break
+        chunk.append(line)
+        size += len(line)
     result: dict[str, Any] = {
         "file": file,
         "first_line": start_line,

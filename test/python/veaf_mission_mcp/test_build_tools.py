@@ -1,5 +1,6 @@
 """Tests for validate_mission + build_mission (FEAT-MCP-MISSION-EDITOR-035)."""
 
+import os
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -34,7 +35,39 @@ class TestBuildMission:
         assert calls["cmd"][1] == "build"
         assert Path(calls["cwd"]) == tmp_path
         assert result["ok"] is True
-        assert "built ok" in result["message"]
+        assert result["log"] == "built ok"
+        assert Path(result["log_file"]).read_text(encoding="utf-8") == "built ok\n"
+
+    def test_returns_the_log_without_progress_lines_or_the_folder_path(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """MCP-CONTEXT-BUDGET: 14 004 characters, two thirds of them the folder's path and progress lines."""
+        folder = str(tmp_path)
+        raw = (
+            "Pipeline : construction\n"
+            f"✓ lecture de la mission {folder}{os.sep}Night.miz terminé !La coalition 'blue' n'avait aucune unité\n"
+            f"✓ Done reading {folder}{os.sep}src{os.sep}versions.yaml!\n"
+            f"Créé : {folder}{os.sep}missions{os.sep}Night_noon.miz\n"
+            "\n"
+            f"Dossier {folder}\n"
+        )
+        seen: dict[str, Any] = {}
+
+        def fake_run(cmd: list[str], **kwargs: Any) -> SimpleNamespace:
+            seen["env"] = kwargs["env"]
+            return SimpleNamespace(returncode=0, stdout=raw, stderr="")
+
+        monkeypatch.setattr(build_tools.subprocess, "run", fake_run)
+        result = build_tools.build_mission(tmp_path)
+
+        assert seen["env"]["COLUMNS"] == "4000"  # unwrapped, so the path is whole and found
+        assert result["log"] == (
+            "Pipeline : construction\n"
+            "La coalition 'blue' n'avait aucune unité\n"
+            f"Créé : missions{os.sep}Night_noon.miz\n"
+            "Dossier ."
+        )
+        assert Path(result["log_file"]).read_text(encoding="utf-8") == raw.strip() + "\n"
 
     def test_lists_the_miz_the_build_wrote(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """FEAT-ROLE-TRAINING-VARIANTS: a training: block makes one build write five .miz."""

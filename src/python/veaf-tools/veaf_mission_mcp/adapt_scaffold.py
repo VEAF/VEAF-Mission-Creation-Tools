@@ -31,6 +31,8 @@ from veaf_mission_mcp.mission_settings import set_mission_date
 
 #: The eras `mission.era` takes.
 ERAS: tuple[str, ...] = ("MODERN", "COLD_WAR", "WW2")
+#: The languages `mission.language` takes: the in-game VEAF messages and the briefing.
+LANGUAGES: tuple[str, ...] = ("fr", "en")
 #: The coalitions that can get dynamic slots.
 COALITIONS: tuple[str, ...] = ("blue", "red")
 #: Default altitude of a route point, in metres (20 000 ft, the scaffold's example).
@@ -284,11 +286,13 @@ def _adapt_dynamic_slots(folder: Path, coalitions: list[str] | None) -> str | No
     return t("mcp.adapt.slots", coalitions=", ".join(coalitions) or "-")
 
 
-def _adapt_mission_yaml(folder: Path, mission_name: str | None, era: str | None, skynet: bool | None) -> str | None:
-    """Set `mission.name`, `mission.era` and the SKYNET module in `mission.yaml`."""
+def _adapt_mission_yaml(
+    folder: Path, mission_name: str | None, era: str | None, language: str | None, skynet: bool | None
+) -> str | None:
+    """Set `mission.name`, `mission.era`, `mission.language` and the SKYNET module in `mission.yaml`."""
     path = mission_yaml_path(folder)
     parts = []
-    if mission_name is not None or era is not None:
+    if mission_name is not None or era is not None or language is not None:
         data = load_yaml(path)
         mission = data.get("mission")
         if mission is None:
@@ -300,6 +304,9 @@ def _adapt_mission_yaml(folder: Path, mission_name: str | None, era: str | None,
         if era is not None:
             mission["era"] = era
             parts.append(t("mcp.adapt.mission_era", era=era))
+        if language is not None:
+            mission["language"] = language
+            parts.append(t("mcp.adapt.mission_language", language=language))
         save_yaml(path, data)
     if skynet is not None:
         set_mission_module(path, "SKYNET", skynet)
@@ -312,6 +319,7 @@ def adapt_scaffold(
     *,
     mission_name: str | None = None,
     era: str | None = None,
+    language: str | None = None,
     date: str | None = None,
     start_time: str | None = None,
     variant: str | None = None,
@@ -331,6 +339,7 @@ def adapt_scaffold(
         folder: The mission folder `scaffold_mission` laid down.
         mission_name: `mission.name`, ASCII.
         era: `mission.era`: MODERN, COLD_WAR or WW2.
+        language: `mission.language`, `fr` or `en`: the user's, for the in-game messages and the briefing.
         date: The mission's date, YYYY-MM-DD: the blank mission's and `versions.yaml` `base_date`.
         start_time: HH:MM on the theatre's clock: the blank mission's and the weather variant's.
         variant: The weather variant's name; by default named after `start_time` (`morning`, `noon`…).
@@ -348,6 +357,8 @@ def adapt_scaffold(
         ValueError: A bad value, an airfield the theatre does not have, or a folder that is not a mission.
     """
     _check(mission_name, era, date, start_time, position, waypoints, dynamic_slot_coalitions)
+    if language is not None and language not in LANGUAGES:
+        raise ValueError(f"adapt_scaffold: language must be one of {', '.join(LANGUAGES)}")
     theatre = mission_theatre(folder)
     presets = yaml.safe_load((folder / "src" / "presets.yaml").read_text(encoding="utf-8")) or {}
     if airfields:
@@ -366,7 +377,8 @@ def adapt_scaffold(
         or t("mcp.adapt.unchanged", file="src/dynamic-slot-templates.yaml")
     )
     changes.append(
-        _adapt_mission_yaml(folder, mission_name, era, skynet) or t("mcp.adapt.unchanged", file="mission.yaml")
+        _adapt_mission_yaml(folder, mission_name, era, language, skynet)
+        or t("mcp.adapt.unchanged", file="mission.yaml")
     )
     if date is not None or start_time is not None:
         written = set_mission_date(folder, date=date, start_time=start_time)

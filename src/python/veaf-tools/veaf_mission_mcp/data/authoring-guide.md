@@ -47,6 +47,22 @@ For a change `adapt_scaffold` does not cover, `read_mission_file` and `edit_miss
 
 Tell the user the lines `adapt_scaffold` returned.
 
+## A simple mission, call by call {#recipe}
+<!-- when: always: the calls that take an empty folder to a built mission, each with its parameters, so you need no describe_action for them. -->
+
+These calls build a simple mission; their parameters are here, so call them directly, without `describe_action`.
+Replace the example values with the user's; read a section of the index only when the request needs more than this (a QRA, a FARP, support aircraft, a briefing).
+
+1. `scaffold_mission` `{"target_folder": "<empty folder>", "template": "standard", "theatre": "Caucasus"}`.
+2. A place by its name: `geocode` `{"theatre": "Caucasus", "query": "Beslan"}` gives its `x` and `y`.
+3. `adapt_scaffold` `{"mission_path": "<folder>", "mission_name": "Beslan-Strike", "era": "MODERN", "language": "fr", "date": "2024-06-10", "start_time": "08:00", "position": {"x": -158841, "y": 842000}, "airfields": ["Beslan", "Mozdok"], "dynamic_slot_coalitions": ["blue"], "skynet": false}` — `skynet: true` when the mission has a SAM or an EWR zone; `language` is the user's.
+4. Player slots: `set_airbase_coalition` `{"mission_path": "<folder>", "name": "Mozdok", "coalition": "blue"}` for each airfield the players take off from — an airfield of no side offers no dynamic slot.
+5. `create_combat_zone` `{"mission_path": "<folder>", "zone_name": "CZ-Beslan", "position": {"x": -158841, "y": 842000}, "radius": 6000, "coalition": "red", "country_id": 0, "country_name": "Russia", "groups": [{"name": "armor-1", "command": "-armor", "units": [{"type": "T-72B"}]}, {"name": "sam-1", "command": "-sa8", "units": [{"type": "T-72B"}]}]}` — each group is a VEAF alias (`command`) with one carrier unit; `list_shortcuts` `{"name_contains": "sa"}` lists the aliases.
+6. `validate_mission` `{"mission_path": "<folder>"}`: fix every error it reports.
+7. `build_mission` `{"mission_path": "<folder>"}`, then `inspect_built_mission` `{"mission_path": "<folder>"}`: read the counters and question any zero.
+
+Then tell the user in a few lines what you built: the `.miz`, the zone and its groups, and what you could not check.
+
 ## Always ground yourself in the oracle — never from memory {#oracle}
 <!-- when: before your first placement: which read-only actions give the VEAF and DCS facts (units, aliases, modules, limitations). -->
 
@@ -149,6 +165,7 @@ units, use a fake unit carrying `#command="-<alias> ..."` (an alias from `list_s
 as that unit's **`name`** (the `units` entry takes an optional `name`; the runtime reads
 `#command`/`#spawn*` off the unit name). **Prefer this `#command` fake-unit** for combat-zone
 content over hand-placing literal units.
+With `create_combat_zone`, give the group `"command": "-armor"` and one unit: the tool names that unit `#command="-armor" <group name>` itself, so you never type the marker's quotes.
 
 **A group belongs to one zone only, in practice.** At start a zone **destroys** the groups it
 captured, and zones look at live units — so a second zone whose name is also a prefix of that group

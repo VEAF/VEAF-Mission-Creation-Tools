@@ -29,7 +29,7 @@ On David's machine, a context of 49 152 tokens filled while reading the skeleton
 | 02 | [A shorter catalogue, limitations listing, file slice and build log](tickets/02-shorter-listings.md) | ✅ |
 | 03 | [The guide and the mission prompts read by section](tickets/03-guide-and-prompts-by-section.md) | ✅ |
 | 04 | [`adapt_scaffold`: steps 1 to 5 of the guide in one action](tickets/04-adapt-scaffold.md) | ✅ |
-| 05 | [A budget test on the reference chain: 60 000 characters at most](tickets/05-budget-test.md) | ✅ |
+| 05 | [A budget test on the reference chain: 50 000 characters at most](tickets/05-budget-test.md) | ✅ |
 | 06 | [Documentation, changelog](tickets/06-docs.md) | ✅ |
 
 ## Constraints
@@ -39,7 +39,7 @@ On David's machine, a context of 49 152 tokens filled while reading the skeleton
 
 ## Definition of Done
 
-- The reference chain stays under 60 000 characters of tool output, schema of the tools included, pinned by a test.
+- The reference chain stays under 50 000 characters of tool output, schema of the tools included, pinned by a test.
 - The guide's post-scaffold section and the mission prompts send the model to `adapt_scaffold` instead of asking it to rewrite the files.
 - Docs in both languages, CHANGELOG under `[Unreleased]`.
 
@@ -55,3 +55,7 @@ Not verified here: the run with the local model itself, which is David's.
 David's run (Inkling-2-Mini UD-IQ4_XS, `llama-server` b12728, 65 536 tokens) reached the build, then overflowed: one unfiltered `describe_units` on the built `.miz` was 74 417 characters, cut to 16 000, about 9 500 tokens at the 2 characters a token measured on JSON; the model itself generated 20 147 tokens.
 Decided with David (relayed by the local-model session): two profiles, `standard` the default and unchanged for large-context clients, `compact` chosen by `VEAF_MCP_PROFILE` in the MCP configuration; in compact, an 8 000-character ceiling (16 000 for a schema), 60-character catalogue summaries, 7 000-character prompt pages, 6 000-character file slices; `describe_units` tells how to filter; `create_combat_zone` tells to use alias carriers (the run placed literal T-72B3).
 Compact chain, in process: 54 634 characters.
+
+## Third round — 2026-11-25, after the fourth local run
+
+Run 4 (compact profile, 7cdcda37) went through the whole chain and overflowed during the final answer (63 954 + 1 582 = 65 536). The call log (`E:\AI\mcp-calls.log`, the local-model session's proxy): 62 calls, 106 857 characters; 19 `describe_action` were 30 555 of them. Done: a `recipe` section of the guide, the calls of a simple mission each with its JSON, in the compact default answer; `create_combat_zone` takes `command` and names the carrier unit, moves a marker written in the group's name, and restores quotes escaped twice (the run wrote real backslashes before the marker's quotes); `adapt_scaffold` takes `language`. The empty `list_shortcuts` of the run came from the test copy, which held `src/python` only: without `src/scripts/veaf/veafShortcuts.lua` there is no `#command` alias. Compact chain, in process: 41 602 characters; the budget test now stops at 50 000.

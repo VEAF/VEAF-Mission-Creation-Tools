@@ -23,7 +23,7 @@ from veaf_mission_mcp.response_budget import MAX_SCHEMA_CHARS
 from veaf_tools.app import app
 
 #: The most characters the chain's answers may put in the model's context, tool schemas included.
-BUDGET_CHARS = 60_000
+BUDGET_CHARS = 50_000
 
 #: Answers measured over stdio on 2026-11-25 (`scaffold_mission` copied: 252 characters, before the lot).
 MEASURED_CHARS = {"scaffold_mission": 252, "build_mission": 5_826, "inspect_built_mission": 2_869}
@@ -65,15 +65,15 @@ def test_the_reference_chain_fits_the_budget(mission: Path) -> None:
         "limitations": _run("describe_known_limitations", {}),
         "catalogue": _answer("list_catalog", {}),
     }
-    for name in ("scaffold_mission", "adapt_scaffold", "create_combat_zone", "validate_mission", "build_mission"):
-        sizes[f"describe {name}"] = _answer("describe_action", {"name": name})
-    sizes["describe inspect_built_mission"] = _answer("describe_action", {"name": "inspect_built_mission"})
+    # The guide's recipe gives the chain's calls with their parameters: no describe_action for them.
+    sizes["geocode"] = _run("geocode", {"theatre": "Caucasus", "query": "Beslan"})
     sizes["adapt_scaffold"] = _run(
         "adapt_scaffold",
         {
             "folder_path": folder,
             "mission_name": "Test-Beslan",
             "era": "MODERN",
+            "language": "fr",
             "date": "2024-06-10",
             "start_time": "07:30",
             "position": {"x": -158841, "y": 842000},
@@ -81,6 +81,10 @@ def test_the_reference_chain_fits_the_budget(mission: Path) -> None:
             "dynamic_slot_coalitions": ["blue"],
         },
     )
+    sizes["set_airbase_coalition"] = _run(
+        "set_airbase_coalition", {"mission_path": folder, "name": "Mozdok", "coalition": "blue"}
+    )
+    # One section of the index, for margin: the recipe should make it unneeded.
     sizes["guide combat-zone-vs-qra"] = _run("describe_authoring_guide", {"section": "combat-zone-vs-qra"})
     sizes["create_combat_zone"] = _run(
         "create_combat_zone",
@@ -93,20 +97,11 @@ def test_the_reference_chain_fits_the_budget(mission: Path) -> None:
             "country_id": 0,
             "country_name": "Russia",
             "groups": [
-                {
-                    "name": '#command="-armor" armor-1',
-                    "units": [{"type": "T-72B"}],
-                    "position": {"x": -156841, "y": 842000},
-                },
-                {
-                    "name": '#command="-armor" armor-2',
-                    "units": [{"type": "T-72B"}],
-                    "position": {"x": -159841, "y": 843500},
-                },
+                {"name": "armor-1", "command": "-armor", "units": [{"type": "T-72B"}]},
+                {"name": "sam-1", "command": "-sa8", "units": [{"type": "T-72B"}]},
             ],
         },
     )
-    sizes["guide finish"] = _run("describe_authoring_guide", {"section": "finish"})
     sizes["validate_mission"] = _run("validate_mission", {"folder_path": folder})
     sizes.update(MEASURED_CHARS)
 

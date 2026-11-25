@@ -96,7 +96,8 @@ Le serveur a deux **profils de réponse**, choisis par la variable d'environneme
 
 Une économie coûte des allers-retours à un client qui a la place : elle est donc choisie, jamais imposée.
 La configuration `llama-server` du tutoriel porte `"env": {"VEAF_MCP_PROFILE": "compact"}`, et le pilote n'a rien à régler.
-En profil compact, la chaîne tient en 54 634 caractères, schéma des outils compris ; `test_context_budget.py` vérifie qu'elle reste sous 60 000.
+En profil compact, la chaîne tient en 41 602 caractères, schéma des outils compris ; `test_context_budget.py` vérifie qu'elle reste sous 50 000.
+Le gros du gain vient de la section `recipe` du guide : les appels d'une mission simple, chacun avec son JSON exact. Sans elle, un modèle local lisait le schéma de chaque action qu'il envisageait : 19 `describe_action`, 30 555 des 106 857 caractères d'un essai.
 
 Dans les deux profils :
 
@@ -1046,7 +1047,7 @@ tout ce qui est retenu. Une `area` revenait en entier : trois d'entre elles fais
 
 Lecture seule. Le guide de création, `veaf_mission_mcp/data/authoring-guide.md`.
 Sans paramètre, l'action le renvoie entier, `{"guide": …}`.
-En profil compact, il fait 41 555 caractères d'un bloc ; sans paramètre, l'action renvoie alors `{"guide", "sections", "read_more"}` (MCP-CONTEXT-BUDGET) : les sections dont toute mission a besoin (`new-mission`, `after-scaffold`, `two-worlds`, `report-back`) et l'index des autres, chacune avec son `id`, son titre et quand la lire (`when`).
+En profil compact, il fait 41 555 caractères d'un bloc ; sans paramètre, l'action renvoie alors `{"guide", "sections", "read_more"}` (MCP-CONTEXT-BUDGET) : les sections dont toute mission a besoin (`new-mission`, `recipe` — les appels d'une mission simple avec leurs paramètres —, `report-back`) et l'index des autres, chacune avec son `id`, son titre et quand la lire (`when`).
 `section` lit une section ou une liste de sections ; `section: all` rend le guide entier, sans coupure.
 Chaque titre `##` du fichier porte son identifiant (`{#combat-zone-vs-qra}`) et, juste dessous, une ligne `<!-- when: … -->` ; le serveur retire les deux avant de servir le texte.
 Le build embarque tout le dossier `veaf_mission_mcp/data/` dans l'exe ; en développement l'action lit le fichier du paquet.
@@ -1179,6 +1180,8 @@ Chaque groupe accepte `route` et `patrol`, de la même forme qu'`add_group` : un
 zone est un groupe de la zone, pas un appel séparé. En catégorie `ship`, les navires sont espacés de
 600 m (ceux d'un véhicule, 20 m, les faisaient se percuter à l'apparition).
 
+Un groupe peut porter `command` (un alias de `list_shortcuts`, `-armor`) : l'outil nomme sa première unité `#command="-armor" <nom du groupe>`, le porteur de l'alias VEAF. Un marqueur écrit dans le nom du groupe y est déplacé, et des guillemets échappés deux fois (`\"`) sont rétablis : un petit modèle faisait les deux (MCP-CONTEXT-BUDGET).
+
 ### `add_combat_operation`
 
 Écrit dans `mission.yaml` seulement une entrée `combat_zones[]` de type `operation` : `tasking_orders` (chaque tâche, ses `dependencies`), `friendly_name`, `briefing`, `active_at_start`.
@@ -1255,7 +1258,7 @@ Chaque valeur est contrôlée avant toute écriture ; ce qui n'est pas donné re
 - `src/versions.yaml` : `date` devient `base_date`, `start_time` l'heure de la variante, nommée d'après l'heure (`morning`, `noon`…) sauf `variant` ; `position` (`{x, y}` sur la carte ou `{latitude, longitude}`, `timezone` facultatif : la zone nominale de la longitude par défaut) sert au lever et au coucher du soleil.
 - `src/waypoints.yaml` : les points d'exemple partent toujours ; `waypoints` (`[{name, x, y, alt?}]`, altitude en mètres, 6 096 par défaut) donne la route de chaque vol joueur, puis le BULLSEYE. Sans eux, le BULLSEYE seul.
 - `src/dynamic-slot-templates.yaml` : `dynamic_slot_coalitions` copie le catalogue livré pour ces camps seulement ; omis, le fichier reste vide et le build prend tout le catalogue.
-- `mission.yaml` : `mission_name`, `era` (`MODERN`, `COLD_WAR`, `WW2`) et `skynet`.
+- `mission.yaml` : `mission_name`, `era` (`MODERN`, `COLD_WAR`, `WW2`), `language` (`fr`, `en`) et `skynet`.
 - La mission vierge : `date` et `start_time` (`set_mission_date`).
 
 Le résultat rend `{folder, changes}`, une ligne par fichier, à redire à l'utilisateur.

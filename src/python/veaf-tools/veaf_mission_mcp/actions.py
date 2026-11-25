@@ -8,7 +8,7 @@ from veaf_libs.blank_mission import supported_theatres
 from veaf_libs.clear_ground_check import offer_check
 from veaf_libs.scenery_lookup import DEFAULT_RADIUS_METERS, offer_lookup
 
-from veaf_mission_mcp.adapt_scaffold import COALITIONS, ERAS, adapt_scaffold
+from veaf_mission_mcp.adapt_scaffold import COALITIONS, ERAS, LANGUAGES, adapt_scaffold
 from veaf_mission_mcp.add_air_group import add_air_group
 from veaf_mission_mcp.add_farp import add_farp
 from veaf_mission_mcp.add_group import add_group
@@ -1960,7 +1960,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "theatre's airfield list (src/presets.yaml), the weather variant's name and time, base_date and "
                 "position (src/versions.yaml), the route every player flight gets in place of the example points "
                 "(src/waypoints.yaml), the coalitions whose dynamic-slot templates stay "
-                "(src/dynamic-slot-templates.yaml), mission.name, mission.era and SKYNET (mission.yaml), and the "
+                "(src/dynamic-slot-templates.yaml), mission.name, mission.era, mission.language and SKYNET (mission.yaml), and the "
                 "blank mission's date and start time. Do not read or rewrite those files yourself. What is not "
                 "given stays as scaffolded, but the example waypoints are always removed. Every value is checked "
                 "before anything is written. Returns one line per file: tell them to the user."
@@ -1971,6 +1971,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "folder_path": {"type": "string", "description": "The mission folder scaffold_mission laid down."},
                     "mission_name": {"type": "string", "description": "mission.name, ASCII (it names the .miz)."},
                     "era": {"type": "string", "enum": list(ERAS), "description": "mission.era."},
+                    "language": {
+                        "type": "string",
+                        "enum": list(LANGUAGES),
+                        "description": "mission.language: the user's language, for the in-game messages and the briefing.",
+                    },
                     "date": {"type": "string", "description": "The mission's date, YYYY-MM-DD, consistent with era."},
                     "start_time": {"type": "string", "description": "HH:MM on the theatre's clock."},
                     "variant": {
@@ -2026,6 +2031,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             Path(p["folder_path"]),
             mission_name=p.get("mission_name"),
             era=p.get("era"),
+            language=p.get("language"),
             date=p.get("date"),
             start_time=p.get("start_time"),
             variant=p.get("variant"),
@@ -2739,9 +2745,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "both worlds durably (no build): a circular trigger zone + groups placed inside it "
                 "(names auto-prefixed with the zone so it captures them) in src/mission, and a "
                 "modules.COMBATZONE.combat_zones[] entry appended in mission.yaml. Make each group a "
-                "VEAF alias carrier, not literal units: name it '#command=\"-armor\" armor-1' (an alias "
-                "from list_shortcuts: -armor, -sa8, -aaa, -infantry...) with one unit as carrier; literal "
-                "DCS types only when no alias fits."
+                "VEAF alias carrier, not literal units: give it 'command': '-armor' (an alias from "
+                "list_shortcuts: -armor, -sa8, -aaa, -infantry...) and one unit as carrier; the tool writes "
+                "the #command marker on the unit's name. Literal DCS types only when no alias fits."
             ),
             parameters_schema={
                 "type": "object",
@@ -2765,6 +2771,11 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                             "properties": {
                                 "name": {"type": "string"},
                                 "units": {"type": "array", "items": {"type": "object"}},
+                                "command": {
+                                    "type": "string",
+                                    "description": "A list_shortcuts alias (-armor, -sa8...): the first unit becomes "
+                                    'its carrier, named #command="-armor" <group name> by the tool.',
+                                },
                                 "category": {
                                     "type": "string",
                                     "description": "This group's category (vehicle, static, ship...), over the call's: one call makes a zone of vehicles and statics.",

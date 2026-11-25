@@ -1288,6 +1288,7 @@
   "mcp.adapt.mission_yaml": "mission.yaml: {details}.",
   "mcp.adapt.mission_name": "name {name}",
   "mcp.adapt.mission_era": "era {era}",
+  "mcp.adapt.mission_language": "language {language}",
   "mcp.adapt.skynet_on": "SKYNET on",
   "mcp.adapt.skynet_off": "SKYNET off",
   "mcp.adapt.unchanged": "{file}: unchanged.",

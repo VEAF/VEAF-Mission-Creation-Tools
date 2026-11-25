@@ -424,9 +424,11 @@ MISSION_PROMPT_LANGS: tuple[str, ...] = ("en", "fr")
 _GUIDE_HEADING = re.compile(r"^## (?P<title>.+?) \{#(?P<id>[a-z0-9-]+)\}[ \t]*$", re.MULTILINE)
 #: The line under a guide section's heading saying when to read it: `<!-- when: ... -->`.
 _GUIDE_WHEN = re.compile(r"^<!-- when: (?P<when>.+?) -->[ \t]*\n", re.MULTILINE)
-#: The guide sections the default answer carries whole: what every mission needs, from the first message
-#: to the report. The others come by `section`, from the index (MCP-CONTEXT-BUDGET).
-GUIDE_ESSENTIAL_SECTIONS: tuple[str, ...] = ("new-mission", "after-scaffold", "two-worlds", "report-back")
+#: The guide sections the compact profile's default answer carries whole: the first message, the calls of a
+#: simple mission with their parameters, the report. The others come by `section`, from the index. With the
+#: recipe, a local model no longer described every action it might use: 19 describe_action were 30 555 of
+#: the 106 857 characters of its run (MCP-CONTEXT-BUDGET, 2026-11-25).
+GUIDE_ESSENTIAL_SECTIONS: tuple[str, ...] = ("new-mission", "recipe", "report-back")
 
 
 def _guide_sections(text: str) -> tuple[str, list[dict[str, str]]]:

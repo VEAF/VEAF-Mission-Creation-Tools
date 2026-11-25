@@ -164,7 +164,7 @@ Add the `VEAF_MCP_PROFILE` variable to the server's declaration, next to `comman
 ```
 
 Without it, the server answers as it answers Claude: whole, which suits an online AI and overflows a small context.
-Measured on 25 November 2026 in the compact profile: a simple mission, from the empty folder to the built and checked `.miz` (one combat zone), returns about 55 000 characters to the model, that is about 27 000 tokens (JSON counts about 2 characters a token).
+Measured on 25 November 2026 in the compact profile: a simple mission, from the empty folder to the built and checked `.miz` (one combat zone), returns about 42 000 characters to the model, that is about 21 000 tokens (JSON counts about 2 characters a token).
 Add what the model writes and thinks: plan for at least 64 000 tokens of context.
 An objective mission or an Open Training also reads its prompt, page by page: allow more.
 

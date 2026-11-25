@@ -164,7 +164,7 @@ Ajoutez la variable `VEAF_MCP_PROFILE` à la déclaration du serveur, à côté 
 ```
 
 Sans elle, le serveur répond comme à Claude : entier, ce qui convient à une IA en ligne et déborde d'un petit contexte.
-Mesuré le 25 novembre 2026 en profil compact : une mission simple, du dossier vide au `.miz` construit et vérifié (une zone de combat), renvoie environ 55 000 caractères au modèle, soit environ 27 000 tokens (le JSON compte environ 2 caractères par token).
+Mesuré le 25 novembre 2026 en profil compact : une mission simple, du dossier vide au `.miz` construit et vérifié (une zone de combat), renvoie environ 42 000 caractères au modèle, soit environ 21 000 tokens (le JSON compte environ 2 caractères par token).
 Il faut y ajouter ce que le modèle écrit et réfléchit : prévoyez au moins 64 000 tokens de contexte.
 Une mission à objectifs ou un Open Training lisent en plus leur prompt, page par page : comptez plus large.
 

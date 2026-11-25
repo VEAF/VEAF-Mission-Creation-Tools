@@ -206,11 +206,11 @@ class TestGuideBySection:
     def test_the_default_is_the_essential_sections_and_an_index_of_the_others(self) -> None:
         result = describe_authoring_guide()
         assert len(json.dumps(result, ensure_ascii=False, separators=(",", ":"))) < 12_000
-        assert "## Right after `scaffold_mission`" in result["guide"]
-        assert "adapt_scaffold" in result["guide"]
+        assert "## A simple mission, call by call" in result["guide"]
+        assert "adapt_scaffold" in result["guide"] and '"command": "-armor"' in result["guide"]
         assert "## Combat zone vs QRA" not in result["guide"]
         index = {entry["id"]: entry for entry in result["sections"]}
-        assert "combat-zone-vs-qra" in index and "checklist" in index
+        assert {"combat-zone-vs-qra", "checklist", "after-scaffold"} <= set(index)
         assert all(entry["when"] and entry["title"] for entry in result["sections"])
         assert "section" in result["read_more"]
 

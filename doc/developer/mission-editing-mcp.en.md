@@ -94,7 +94,8 @@ The server has two **response profiles**, chosen by the `VEAF_MCP_PROFILE` envir
 
 An economy costs round trips to a client that has room: so it is chosen, never imposed.
 The tutorial's `llama-server` configuration carries `"env": {"VEAF_MCP_PROFILE": "compact"}`, and the pilot sets nothing.
-In the compact profile, the chain is 54 634 characters, tool schemas included; `test_context_budget.py` checks that it stays under 60 000.
+In the compact profile, the chain is 41 602 characters, tool schemas included; `test_context_budget.py` checks that it stays under 50 000.
+Most of the gain comes from the guide's `recipe` section: the calls of a simple mission, each with its exact JSON. Without it, a local model read the schema of every action it considered: 19 `describe_action`, 30 555 of the 106 857 characters of one run.
 
 In both profiles:
 
@@ -1021,7 +1022,7 @@ An area used to come back in full: three of them were 46 000 characters in one c
 
 Read-only. The authoring guide, `veaf_mission_mcp/data/authoring-guide.md`.
 With no parameter the action returns it whole, `{"guide": …}`.
-In the compact profile it is 41 555 characters in one block; with no parameter the action then returns `{"guide", "sections", "read_more"}` (MCP-CONTEXT-BUDGET): the sections every mission needs (`new-mission`, `after-scaffold`, `two-worlds`, `report-back`) and the index of the others, each with its `id`, its title and when to read it (`when`).
+In the compact profile it is 41 555 characters in one block; with no parameter the action then returns `{"guide", "sections", "read_more"}` (MCP-CONTEXT-BUDGET): the sections every mission needs (`new-mission`, `recipe` — the calls of a simple mission with their parameters —, `report-back`) and the index of the others, each with its `id`, its title and when to read it (`when`).
 `section` reads one section or a list of them; `section: all` returns the whole guide, uncut.
 Every `##` heading of the file carries its id (`{#combat-zone-vs-qra}`) and, right under it, a `<!-- when: … -->` line; the server removes both before serving the text.
 The build bundles the whole `veaf_mission_mcp/data/` folder into the exe; in development the action reads the package's file.
@@ -1150,6 +1151,8 @@ coalition-agnostic) + an appended `modules.COMBATZONE.combat_zones[]` yaml block
 not a separate call. In category `ship`, ships are placed 600 m apart (a vehicle's 20 m made them
 collide as they spawned).
 
+A group may carry `command` (a `list_shortcuts` alias, `-armor`): the tool names its first unit `#command="-armor" <group name>`, the VEAF alias carrier. A marker written in the group's name is moved there, and quotes escaped twice (`\"`) are restored: a small model did both (MCP-CONTEXT-BUDGET).
+
 ### `add_combat_operation`
 
 Writes `mission.yaml` only: a `combat_zones[]` entry of type `operation` — `tasking_orders` (each task, its `dependencies`), `friendly_name`, `briefing`, `active_at_start`.
@@ -1226,7 +1229,7 @@ Every value is checked before anything is written; what is not given stays as th
 - `src/versions.yaml`: `date` becomes `base_date`, `start_time` the variant's time, named after the time (`morning`, `noon`…) unless `variant` is given; `position` (`{x, y}` on the map or `{latitude, longitude}`, `timezone` optional: the longitude's nominal zone by default) serves sunrise and sunset.
 - `src/waypoints.yaml`: the example points always go; `waypoints` (`[{name, x, y, alt?}]`, altitude in metres, 6 096 by default) gives every player flight's route, then the BULLSEYE. Without them, the BULLSEYE alone.
 - `src/dynamic-slot-templates.yaml`: `dynamic_slot_coalitions` copies the shipped catalogue for those coalitions only; omitted, the file stays empty and the build takes the whole catalogue.
-- `mission.yaml`: `mission_name`, `era` (`MODERN`, `COLD_WAR`, `WW2`) and `skynet`.
+- `mission.yaml`: `mission_name`, `era` (`MODERN`, `COLD_WAR`, `WW2`), `language` (`fr`, `en`) and `skynet`.
 - The blank mission: `date` and `start_time` (`set_mission_date`).
 
 The result is `{folder, changes}`, one line per file, to tell the user.

@@ -282,3 +282,42 @@ def test_an_operation_text_without_its_accents_is_warned(tmp_path: Path) -> None
         briefing="Detruire le noeud logistique, puis la colonne blindee immobilisee faute de carburant.",
     )
     assert any("operation OperationA" in w for w in result["warnings"])
+
+
+def _unit_names(group: dict[str, Any]) -> list[str]:
+    units = group["units"]
+    return [unit["name"] for unit in (units.values() if isinstance(units, dict) else units)]
+
+
+class TestAliasCarrier:
+    """MCP-CONTEXT-BUDGET: a local model escaped the marker's quotes twice, or placed literal units."""
+
+    def _zone(self, tmp_path: Path, group: dict[str, Any]) -> dict[str, Any]:
+        folder = _folder(tmp_path)
+        result = create_combat_zone(
+            folder,
+            zone_name="CZ-North",
+            position={"x": 1000.0, "y": 2000.0},
+            radius=3000,
+            groups=[group],
+            coalition="red",
+            country_id=0,
+            country_name="Russia",
+        )
+        content = read_mission_folder(folder).mission_content or {}
+        return _group(content, result["groups"][0])
+
+    def test_command_names_the_carrier_unit(self, tmp_path: Path) -> None:
+        group = self._zone(tmp_path, {"name": "armor-1", "command": "armor", "units": [{"type": "T-72B"}]})
+        assert group["name"] == "CZ-North-armor-1"
+        assert _unit_names(group) == ['#command="-armor" CZ-North-armor-1']
+
+    def test_a_marker_in_the_group_name_moves_to_the_unit(self, tmp_path: Path) -> None:
+        group = self._zone(tmp_path, {"name": '#command="-sa8" sam-1', "units": [{"type": "T-72B"}]})
+        assert group["name"] == "CZ-North-sam-1"
+        assert _unit_names(group) == ['#command="-sa8" CZ-North-sam-1']
+
+    def test_quotes_escaped_twice_are_unescaped(self, tmp_path: Path) -> None:
+        name = '#command=\\"-armor\\" CZ-North-armor-1'
+        group = self._zone(tmp_path, {"name": "armor-1", "units": [{"type": "T-72B", "name": name}]})
+        assert _unit_names(group) == ['#command="-armor" CZ-North-armor-1']

@@ -160,3 +160,10 @@ def test_the_action_is_in_the_catalogue(folder: Path) -> None:
     register_default_actions(catalog)
     result = catalog.run_action("adapt_scaffold", {"mission_path": str(folder), "skynet": True})
     assert result["changes"][-1] == "mission.yaml: SKYNET on."
+
+
+def test_the_language_is_written_and_checked(folder: Path) -> None:
+    adapt_scaffold(folder, language="fr")
+    assert _yaml(folder / "mission.yaml")["mission"]["language"] == "fr"
+    with pytest.raises(ValueError, match="language must be one of"):
+        adapt_scaffold(folder, language="de")

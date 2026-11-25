@@ -156,9 +156,15 @@ Le serveur demande à l'IA de lire son guide de création avant toute action, ma
 ### Un modèle local {#local-model}
 
 Un modèle qui tourne sur votre carte graphique (llama.cpp avec `llama-server --mcp-servers-config`, par exemple) a un contexte bien plus petit qu'une IA en ligne : souvent 32 000 à 80 000 tokens.
-Le serveur VEAF est fait pour tenir dedans, sans réglage de votre part.
-Il sert son guide par sections, lit les gros fichiers par tranches, coupe toute réponse au-delà de 16 000 caractères en disant comment lire la suite, et adapte le squelette d'une nouvelle mission en une seule action.
-Mesuré le 25 novembre 2026 : une mission simple, du dossier vide au `.miz` construit et vérifié (une zone de combat), renvoie environ 57 000 caractères au modèle, soit 15 000 à 20 000 tokens.
+Le serveur VEAF a pour lui un **profil compact** : il sert son guide par sections, lit les gros fichiers par tranches, coupe toute réponse au-delà de 8 000 caractères en disant comment lire la suite.
+Ajoutez la variable `VEAF_MCP_PROFILE` à la déclaration du serveur, à côté de `command` et `args` :
+
+```json
+"env": {"VEAF_MCP_PROFILE": "compact"}
+```
+
+Sans elle, le serveur répond comme à Claude : entier, ce qui convient à une IA en ligne et déborde d'un petit contexte.
+Mesuré le 25 novembre 2026 en profil compact : une mission simple, du dossier vide au `.miz` construit et vérifié (une zone de combat), renvoie environ 55 000 caractères au modèle, soit environ 27 000 tokens (le JSON compte environ 2 caractères par token).
 Il faut y ajouter ce que le modèle écrit et réfléchit : prévoyez au moins 64 000 tokens de contexte.
 Une mission à objectifs ou un Open Training lisent en plus leur prompt, page par page : comptez plus large.
 

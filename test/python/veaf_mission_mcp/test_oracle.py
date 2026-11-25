@@ -97,8 +97,11 @@ def test_describe_known_limitations_returns_both_kinds_for_the_running_version()
 
 
 def _short_ids(**filters: str) -> set[str]:
-    """Return every id of a short listing of the known limitations."""
-    return {entry for ids in describe_known_limitations(**filters)["by_area"].values() for entry in ids}
+    """Return every id of a short listing of the known limitations, in either profile."""
+    result = describe_known_limitations(**filters)
+    if "by_area" in result:
+        return {entry for ids in result["by_area"].values() for entry in ids}
+    return {entry["id"] for entry in result["limitations"]}
 
 
 class TestKnownLimitationsByArea:
@@ -107,11 +110,24 @@ class TestKnownLimitationsByArea:
     def test_the_default_is_a_short_listing_that_fits_a_tool_result(self) -> None:
         result = describe_known_limitations()
         assert result["detail"] == "short"
+        assert {"id", "kind", "area"} <= set(result["limitations"][0])
+        # No title since FIX-LIMITATIONS-SHORT-LISTING: with them the listing reached 14 988 of its 15 000
+        # characters; the ids already say what an entry is about.
+        assert all(set(entry) <= {"id", "kind", "area", "theatres"} for entry in result["limitations"])
+        assert len(json.dumps(result, ensure_ascii=False)) < 15_000
+        assert sum(result["areas"].values()) == len(result["limitations"])
+
+    @pytest.mark.usefixtures("compact")
+    def test_the_compact_listing_is_the_ids_by_area(self) -> None:
+        """MCP-CONTEXT-BUDGET: with their kind, area and theatres the listing was 13 008 characters."""
+        result = describe_known_limitations()
+        assert result["detail"] == "short"
         assert "limitations" not in result
-        # The ids alone since MCP-CONTEXT-BUDGET: with their kind, area and theatres the listing was
-        # 13 008 characters, a tenth of a local model's context.
         assert all(isinstance(entry, str) for ids in result["by_area"].values() for entry in ids)
         assert len(json.dumps(result, ensure_ascii=False, separators=(",", ":"))) < 6_000
+        assert set(result["by_area"]["radio"]) == {
+            e["id"] for e in describe_known_limitations(area="radio", full=True)["limitations"]
+        }
 
     def test_the_short_listing_names_every_entry_of_the_full_text(self) -> None:
         assert _short_ids() == {entry["id"] for entry in describe_known_limitations(full=True)["limitations"]}
@@ -120,7 +136,8 @@ class TestKnownLimitationsByArea:
         """Three areas in full were 46k characters in one call (FIX-OPENCODE-TEST-FINDINGS 06)."""
         result = describe_known_limitations(area="radio")
         assert result["detail"] == "short"
-        assert list(result["by_area"]) == ["radio"] and result["by_area"]["radio"]
+        assert result["limitations"] and {e["area"] for e in result["limitations"]} == {"radio"}
+        assert all("symptom" not in entry for entry in result["limitations"])
 
     def test_an_area_in_full_on_request(self) -> None:
         result = describe_known_limitations(area="radio", full=True)
@@ -128,8 +145,8 @@ class TestKnownLimitationsByArea:
         assert all("symptom" in entry and "workaround" in entry for entry in result["limitations"])
 
     def test_the_three_largest_areas_read_short_stay_small(self) -> None:
-        by_area = describe_known_limitations()["by_area"]
-        largest = sorted(by_area, key=lambda area: len(by_area[area]), reverse=True)[:3]
+        areas = describe_known_limitations()["areas"]
+        largest = sorted(areas, key=areas.get, reverse=True)[:3]
         size = sum(len(json.dumps(describe_known_limitations(area=a), indent=2)) for a in largest)
         assert size < 8_000
 
@@ -163,7 +180,7 @@ def test_describe_known_limitations_is_in_the_catalogue() -> None:
     catalog = ActionCatalog()
     register_default_actions(catalog)
     assert "describe_known_limitations" in {spec.name for spec in catalog.list_catalog()}
-    assert catalog.run_action("describe_known_limitations", {"kind": "tool"})["by_area"]
+    assert catalog.run_action("describe_known_limitations", {"kind": "tool"})["limitations"]
 
 
 _MCP_DATA = Path(__file__).parents[3] / "src" / "python" / "veaf-tools" / "veaf_mission_mcp" / "data"
@@ -177,6 +194,12 @@ def test_describe_authoring_guide_returns_the_package_guide_whole_on_request() -
     assert describe_authoring_guide("all") == {"guide": rendered}
 
 
+def test_the_standard_profile_returns_the_whole_guide_by_default() -> None:
+    """MCP-CONTEXT-BUDGET: Claude and the large-context clients read it whole, as before the lot."""
+    assert describe_authoring_guide() == describe_authoring_guide("all")
+
+
+@pytest.mark.usefixtures("compact")
 class TestGuideBySection:
     """MCP-CONTEXT-BUDGET: the whole guide was 41 555 characters, a sixth of a local model's context."""
 
@@ -281,6 +304,21 @@ class TestMissionPromptParts:
         assert len(scenario) < 16_000
 
     @pytest.mark.parametrize("lang", ["fr", "en"])
+    def test_the_standard_profile_returns_a_part_whole(self, lang: str) -> None:
+        result = describe_mission_prompt("objective", lang)
+        assert "next_section" not in result and "sections" not in result
+        assert result["next_part"] == "build"
+
+    @pytest.mark.usefixtures("compact")
+    @pytest.mark.parametrize("lang", ["fr", "en"])
+    def test_the_compact_profile_pages_a_part_by_section(self, lang: str) -> None:
+        """MCP-CONTEXT-BUDGET: the Open Training prompt was one 55 635-character answer."""
+        result = describe_mission_prompt("open-training", lang)
+        assert len(result["prompt"]) <= 7_000 and result["next_section"]
+        assert _whole("open-training", lang) == describe_mission_prompt("open-training", lang, part="all")["prompt"]
+
+    @pytest.mark.usefixtures("compact")
+    @pytest.mark.parametrize("lang", ["fr", "en"])
     def test_the_scenario_s_last_page_points_at_the_build_part(self, lang: str) -> None:
         result = describe_mission_prompt("objective", lang)
         while "next_section" in result:
@@ -288,8 +326,10 @@ class TestMissionPromptParts:
             result = describe_mission_prompt("objective", lang, section=result["next_section"])
         assert result["next_part"] == "build"
 
+    @pytest.mark.parametrize("profile", ["standard", "compact"])
     @pytest.mark.parametrize("lang", ["fr", "en"])
-    def test_the_build_part_is_the_rest(self, lang: str) -> None:
+    def test_the_build_part_is_the_rest(self, lang: str, profile: str, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("VEAF_MCP_PROFILE", profile)
         whole = describe_mission_prompt("objective", lang, part="all")["prompt"]
         build = _whole("objective", lang, "build")
         assert build.startswith("## 4.")

@@ -76,7 +76,7 @@ surface, mirroring the `dcs-bridge` MCP tool (a bridge to a running mission):
 | MCP tool | Role |
 |----------|------|
 | `capabilities()` | Server identity (name, version). |
-| `list_catalog(full=False, offset=0)` | List registered actions as `{name, summary}` — the description's first sentence, cut at 100 characters, about 10 kB for all of them; `full=true` gives the `description` and `parameters_schema` by pages, `{actions, total, next_offset}` (they were 158 000 characters in one block). `describe_action` gives one in full. |
+| `list_catalog(full=False, offset=0)` | List registered actions as `{name, summary}` — the description's first sentence, about 15 kB for all of them; `full=true` gives every `description` and `parameters_schema`. In the compact profile: summaries cut at 60 characters (7 652 characters in all), and `full=true` by pages, `{actions, total, next_offset}`. `describe_action` gives one in full. |
 | `describe_action(name)` | Detail one action's parameter JSON Schema. |
 | `run_action(name, params)` | Run a registered action. |
 
@@ -87,13 +87,26 @@ Concrete actions are registered by `veaf_mission_mcp.actions.register_default_ac
 
 A tool's answer stays in the model's context to the end of the session.
 On 2026-11-25, the reference chain (guide, limitations, catalogue, scaffold, adapting the skeleton, combat zone, validation, build, inspection) returned 177 186 characters: a local model with a 65 000-token context overflowed before the build.
-It now stays under 60 000 characters, tool schemas included, and `test_context_budget.py` checks it.
+The server has two **response profiles**, chosen by the `VEAF_MCP_PROFILE` environment variable of its MCP configuration:
 
-- `list_catalog`, `describe_action` and `run_action` answer one text block of compact JSON, with no `structuredContent` copy: `mcp` indented every object and sent a list as one block per item.
-- An answer over 16 000 characters is replaced by `{truncated, total_chars, shown_chars, how_to_read_the_rest, head}`: its start, and the action's own way of reading the rest.
-- An explicit request for everything is not cut: `describe_authoring_guide` with `section: all`, `describe_mission_prompt` with `part: all`. That is a large-context client's choice.
-- The guide and the mission prompts are read by section, the limitations listing by id, `read_mission_file` by slices of 8 000 characters at most, and `build_mission` returns its log without the progress lines or the folder's path.
+- `standard`, the default: the server answers as it always has, for Claude and every large-context client. The guide and a prompt come whole, an answer is never cut.
+- `compact`, for a local model: the guide and the prompts are read by section, any answer is cut beyond 8 000 characters, the listings are shorter.
+
+An economy costs round trips to a client that has room: so it is chosen, never imposed.
+The tutorial's `llama-server` configuration carries `"env": {"VEAF_MCP_PROFILE": "compact"}`, and the pilot sets nothing.
+In the compact profile, the chain is 54 634 characters, tool schemas included; `test_context_budget.py` checks that it stays under 60 000.
+
+In both profiles:
+
+- `list_catalog`, `describe_action` and `run_action` answer one text block of compact JSON, with no `structuredContent` copy: `mcp` indented every object and sent a list as one block per item. The content is the same.
 - `adapt_scaffold` adapts the skeleton in one call: the model no longer reads `src/presets.yaml` (48 777 bytes).
+- `build_mission` returns its log without the progress lines or the folder's path; the raw output is in `build.log`.
+
+In the compact profile only:
+
+- An answer over 8 000 characters (a schema: 16 000) is replaced by `{truncated, total_chars, shown_chars, how_to_read_the_rest, head}`: its start, and the action's own way of reading the rest. At 16 000, one unfiltered `describe_units` added 9 500 tokens and overflowed a 65 536-token context right after the build. Below 8 000, the guide's default answer (7 515) and its `combat-zone-vs-qra` section (7 549) would be cut themselves.
+- An explicit request for everything is not cut: `describe_authoring_guide` with `section: all`, `describe_mission_prompt` with `part: all`.
+- The guide and the mission prompts are read by section, the limitations listing by id, and `read_mission_file` by slices of 6 000 characters at most.
 
 ### `describe_mission`
 
@@ -995,7 +1008,7 @@ always returned, with the date they were measured). Each entry: `id`, `kind`, `a
 `docs/agents/dcs-runtime-traps.md` is generated from it.
 
 The whole text is about 74 000 characters, more than a tool result carries. **With no argument the action
-returns a short listing** — the ids, grouped by `area` (`by_area`), about 4 700 characters; with their `kind` and `theatres` it was 13 000 (MCP-CONTEXT-BUDGET). `area` (`spawning`, `air-defence`, `players`, `radio`, `ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`), `kind` and
+returns a short listing** — `id`, `kind`, `area` and `theatres` when set, no title, about 13 000 characters — and the count of each `area`. In the compact profile, the ids alone, grouped by `area` (`by_area`), about 4 700 characters (MCP-CONTEXT-BUDGET). `area` (`spawning`, `air-defence`, `players`, `radio`, `ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`), `kind` and
 `theatre` narrow that listing and keep it short; `theatre` drops the entries that concern other theatres only (an entry with no
 `theatres` applies everywhere). Read the entries you need in full with `id` or `ids` (a list); `full: true` returns everything selected.
 An area used to come back in full: three of them were 46 000 characters in one call, carried to the end of the session (FIX-OPENCODE-TEST-FINDINGS).
@@ -1006,8 +1019,9 @@ An area used to come back in full: three of them were 46 000 characters in one c
 
 ### `describe_authoring_guide` (FEAT-AI-ASSISTANT-ANY-CLIENT lot)
 
-Read-only. The authoring guide, `veaf_mission_mcp/data/authoring-guide.md`, by section: it was 41 555 characters in one block (MCP-CONTEXT-BUDGET).
-With no parameter the action returns `{"guide", "sections", "read_more"}`: the sections every mission needs (`new-mission`, `after-scaffold`, `two-worlds`, `report-back`) and the index of the others, each with its `id`, its title and when to read it (`when`).
+Read-only. The authoring guide, `veaf_mission_mcp/data/authoring-guide.md`.
+With no parameter the action returns it whole, `{"guide": …}`.
+In the compact profile it is 41 555 characters in one block; with no parameter the action then returns `{"guide", "sections", "read_more"}` (MCP-CONTEXT-BUDGET): the sections every mission needs (`new-mission`, `after-scaffold`, `two-worlds`, `report-back`) and the index of the others, each with its `id`, its title and when to read it (`when`).
 `section` reads one section or a list of them; `section: all` returns the whole guide, uncut.
 Every `##` heading of the file carries its id (`{#combat-zone-vs-qra}`) and, right under it, a `<!-- when: … -->` line; the server removes both before serving the text.
 The build bundles the whole `veaf_mission_mcp/data/` folder into the exe; in development the action reads the package's file.
@@ -1025,7 +1039,7 @@ Not every client honours them; [the install page](../mission-maker/AI_ASSISTANT_
 A mission folder's YAML sources — `mission.yaml` and `src/*.yaml`, nothing else, no `..`, no absolute path — for an assistant with no direct file access.
 In Claude Desktop's chat mode, an assistant asked to rename a mission answered that no action could; `mission.name`, `mission.era` and the `src/*.yaml` files the guide's checklist asks it to adapt had no action at all.
 `read_mission_file` returns `{file, first_line, last_line, total_lines, content}`, 400 lines by default (`start_line`, `line_count`): the slot catalogue runs to 11 000.
-A slice also stops before 8 000 characters, one line at least: 400 lines of `src/presets.yaml` were up to 13 823 (MCP-CONTEXT-BUDGET). Read on from `last_line + 1`.
+In the compact profile, a slice also stops before 6 000 characters, one line at least: 400 lines of `src/presets.yaml` were up to 13 823 (MCP-CONTEXT-BUDGET). Read on from `last_line + 1`.
 Its lines end in `\n` whatever the file uses.
 Without `mission_path` it reads the scaffold shipped with the tools — what `scaffold_mission` lays down: the dynamic-slot templates, the presets plan, `mission.yaml` with each module's commented example — and says `shipped: true`, so a plan can be checked before any folder exists.
 `edit_mission_file` replaces one exact passage (`search` / `replace`), refused when it occurs zero or several times or when the result no longer reads as YAML; backed up first.
@@ -1045,7 +1059,7 @@ Read-only. Returns `{"kind", "lang", "prompt"}`: the instructions that build one
 The prompts live in `veaf_mission_mcp/data/mission-prompts/`, bundled with the guide; they used to sit in the repository's `.prompts/`, for the user to paste.
 The authoring guide sends a user who asks for a new mission here, so "create a mission" is enough.
 The objective prompt comes in two parts, cut at a `<!-- part: build -->` line: `part: scenario` (the default, about 13 000 characters, which ends by saying how to load the rest) and `part: build`, once the user has approved a scenario; `part: all` returns both, in one block and uncut.
-A part comes by pages of whole numbered sections, 12 000 characters at most but one section at least: the Open Training prompt was one 55 635-character block (MCP-CONTEXT-BUDGET).
+A part comes whole. In the compact profile, or when `section` is given, it comes by pages of whole numbered sections, 7 000 characters at most but one section at least: the Open Training prompt was one 55 635-character block (MCP-CONTEXT-BUDGET).
 Each page gives `sections` (its part's index: `id` and title) and `next_section` while the part goes on; `section` (`0`, `2.1`, `4.6`…, or `intro`, the same number in French and English) starts a page anywhere, and the page stays in that section's part.
 `next_part: build` comes on the scenario's last page.
 Sections 4 to 9, 21 000 of its 34 000 characters, serve only after approval, and were carried through every turn of the scenario discussion (FIX-OPENCODE-TEST-FINDINGS).

@@ -9,8 +9,15 @@ as 75 blocks. A local model at 65 000 tokens filled its context reading the skel
 import json
 from typing import Any
 
-#: The longest response a tool sends, in characters (about 4 000 to 5 000 tokens).
-MAX_RESPONSE_CHARS = 16_000
+#: The longest response a tool sends, in characters: about 4 000 tokens of JSON at the 2 characters a token
+#: measured on a local model. 16 000 let one cut answer (an unfiltered describe_units) add 9 500 tokens and
+#: overflow a 65 536-token context right after the build (2026-11-25). Below 8 000 the guide's default
+#: answer (7 515) and its combat-zone section (7 549) would be cut themselves.
+MAX_RESPONSE_CHARS = 8_000
+
+#: The longest action schema a tool sends: a schema is read whole or not at all, and the largest
+#: (`build_mission_briefing`) is 11 029 characters.
+MAX_SCHEMA_CHARS = 16_000
 
 #: What a cut response says when its action gives no way of its own to read the rest.
 _GENERIC_HINT = "Narrow the request (a filter, a section, an id, a slice) to read the rest."

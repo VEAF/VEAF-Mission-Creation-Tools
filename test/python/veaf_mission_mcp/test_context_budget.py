@@ -1,4 +1,4 @@
-"""The reference chain stays inside a local model's context (MCP-CONTEXT-BUDGET).
+"""In the compact profile, the reference chain stays inside a local model's context (MCP-CONTEXT-BUDGET).
 
 On 2026-11-25 a local model at 65 000 tokens of context, driving the MCP through `llama-server`, could not
 go from an empty folder to a built mission: the tool answers of the chain were 177 186 characters. This
@@ -19,6 +19,7 @@ import pytest
 import veaf_tools.commands  # noqa: F401  — side effect: registers all commands on `app`
 from typer.testing import CliRunner
 from veaf_mission_mcp import server
+from veaf_mission_mcp.response_budget import MAX_SCHEMA_CHARS
 from veaf_tools.app import app
 
 #: The most characters the chain's answers may put in the model's context, tool schemas included.
@@ -53,6 +54,7 @@ def _run(name: str, params: dict) -> int:
     return _answer("run_action", {"name": name, "params": params})
 
 
+@pytest.mark.usefixtures("compact")
 def test_the_reference_chain_fits_the_budget(mission: Path) -> None:
     folder = str(mission)
     tools = asyncio.run(server.mcp.list_tools())
@@ -113,7 +115,8 @@ def test_the_reference_chain_fits_the_budget(mission: Path) -> None:
     assert total <= BUDGET_CHARS, f"the reference chain is {total} characters, over {BUDGET_CHARS}: {detail}"
 
 
-def test_no_answer_of_the_chain_needs_a_second_read() -> None:
-    """Every answer the chain reads fits under the response ceiling, so none comes back cut."""
+@pytest.mark.usefixtures("compact")
+def test_no_schema_comes_back_cut() -> None:
+    """A schema is read whole or not at all: the largest one fits the schema ceiling."""
     for name in ("adapt_scaffold", "create_combat_zone", "scaffold_mission", "build_mission_briefing"):
-        assert _answer("describe_action", {"name": name}) <= server.MAX_RESPONSE_CHARS
+        assert _answer("describe_action", {"name": name}) <= MAX_SCHEMA_CHARS

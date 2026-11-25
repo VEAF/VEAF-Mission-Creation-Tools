@@ -165,6 +165,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             limit=params.get("limit"),
             include_route=params.get("include_route", True),
         ),
+        oversize_hint="Filter: group_name (a fragment), coalition or category, and include_route=false "
+        "unless the question is about routes.",
     )
     catalog.register(
         ActionSpec(
@@ -2736,7 +2738,10 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "Lay down a complete VEAF combat zone in a mission FOLDER, in one pass, editing "
                 "both worlds durably (no build): a circular trigger zone + groups placed inside it "
                 "(names auto-prefixed with the zone so it captures them) in src/mission, and a "
-                "modules.COMBATZONE.combat_zones[] entry appended in mission.yaml."
+                "modules.COMBATZONE.combat_zones[] entry appended in mission.yaml. Make each group a "
+                "VEAF alias carrier, not literal units: name it '#command=\"-armor\" armor-1' (an alias "
+                "from list_shortcuts: -armor, -sa8, -aaa, -infantry...) with one unit as carrier; literal "
+                "DCS types only when no alias fits."
             ),
             parameters_schema={
                 "type": "object",
@@ -3458,8 +3463,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             description=(
                 "Read this first, before any other action. Returns the VEAF mission authoring guide: the "
                 "order of work, the reserved naming conventions, combat zone vs QRA groups, and which "
-                "actions to consult instead of guessing. With no argument: the sections every mission needs, "
-                "and an index of the others saying when to read each; read those with 'section'. Read-only."
+                "actions to consult instead of guessing. When it answers with a 'sections' index, read each "
+                "section its 'when' calls for with 'section'. Read-only."
             ),
             parameters_schema={
                 "type": "object",
@@ -3488,8 +3493,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "hands and a front moving on its own (campaign.yaml, mode: persistent). Load ONE prompt, the "
                 "kind the user chose -- never two. The objective prompt comes "
                 "in two parts: the scenario first; its build part ('part': 'build') once the user has "
-                "approved a scenario. A part comes by pages of numbered sections: read on with 'section' set "
-                "to the answer's next_section until there is none. Read-only."
+                "approved a scenario. When the answer carries next_section, the part goes on: read it with "
+                "'section' set to next_section until there is none. Read-only."
             ),
             parameters_schema={
                 "type": "object",
@@ -3527,8 +3532,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "the known limitations of the tools (not yet fixed) and the DCS behaviours that raise "
                 "no error and are wrong anyway (late-activated groups visible to scripts, start_time "
                 "not delaying an air spawn, a SAM without EWR permanently lit…): symptom, what to do, "
-                "and what it cost. With no argument it returns a SHORT listing: the ids, grouped by area (each id reads "
-                "as a phrase: the whole text is too long for one result); 'area', 'kind' and 'theatre' narrow that "
+                "and what it cost. With no argument it returns a SHORT listing (the ids; each reads as a phrase: "
+                "the whole text is too long for one result); 'area', 'kind' and 'theatre' narrow that "
                 "listing. Then read in full only the entries your mission meets, with 'id' or 'ids' -- "
                 "what you read stays in your context to the end. Read-only."
             ),

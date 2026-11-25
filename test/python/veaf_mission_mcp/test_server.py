@@ -7,7 +7,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from veaf_mission_mcp import server
 from veaf_mission_mcp.catalog import ActionCatalog, ActionNotFoundError
 from veaf_mission_mcp.models import ActionSpec
-from veaf_mission_mcp.response_budget import MAX_RESPONSE_CHARS, to_text
+from veaf_mission_mcp.response_budget import MAX_RESPONSE_CHARS, MAX_SCHEMA_CHARS, to_text
 
 # The tests below call the module functions directly, which proves the *catalog* works but says
 # nothing about the server: every one of them would still pass while the MCP client connected and
@@ -37,10 +37,24 @@ def test_list_catalog_is_compact_by_default() -> None:
     compact = server.list_catalog()
     assert isinstance(compact, list)
     assert set(compact[0]) == {"name", "summary"}
-    assert all(len(entry["summary"]) <= 100 for entry in compact)
-    assert len(json.dumps(compact)) < 12000
+    assert all(len(entry["summary"]) <= 200 for entry in compact)
+    assert len(json.dumps(compact)) < 20000
+    full = server.list_catalog(full=True)
+    assert isinstance(full, list), "the standard profile gives every spec at once, as before"
+    assert [entry["name"] for entry in compact] == [entry["name"] for entry in full]
 
 
+@pytest.mark.usefixtures("compact")
+def test_the_compact_catalogue_fits_the_ceiling() -> None:
+    import json
+
+    compact = server.list_catalog()
+    assert isinstance(compact, list)
+    assert all(len(entry["summary"]) <= 60 for entry in compact)
+    assert len(json.dumps(compact, ensure_ascii=False, separators=(",", ":"))) <= MAX_RESPONSE_CHARS
+
+
+@pytest.mark.usefixtures("compact")
 def test_list_catalog_full_pages_every_spec_under_the_ceiling() -> None:
     """MCP-CONTEXT-BUDGET: every full spec at once was 158 037 characters; one page fits a response."""
     compact = server.list_catalog()
@@ -50,7 +64,7 @@ def test_list_catalog_full_pages_every_spec_under_the_ceiling() -> None:
     while offset is not None:
         page = server.list_catalog(full=True, offset=offset)
         assert isinstance(page, dict)
-        assert len(to_text(page)) <= MAX_RESPONSE_CHARS
+        assert len(to_text(page)) <= MAX_SCHEMA_CHARS
         assert page["total"] == len(compact)
         assert "parameters_schema" in page["actions"][0]
         names += [entry["name"] for entry in page["actions"]]
@@ -79,6 +93,7 @@ def test_every_discovery_tool_answers_one_compact_block_without_a_structured_cop
         json.loads(blocks[0])
 
 
+@pytest.mark.usefixtures("compact")
 def test_a_response_over_the_ceiling_is_cut_with_the_action_s_own_way_to_read_on(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -97,6 +112,7 @@ def test_a_response_over_the_ceiling_is_cut_with_the_action_s_own_way_to_read_on
     assert cut["head"].startswith('{"text":"éé')
 
 
+@pytest.mark.usefixtures("compact")
 def test_a_call_asking_for_everything_is_not_cut(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(server, "CATALOG", ActionCatalog())
     server.CATALOG.register(
@@ -246,3 +262,19 @@ def test_self_update_leaves_a_pinned_pre_release_alone(monkeypatch: pytest.Monke
     monkeypatch.setattr(server, "start_update_if_due", lambda *_a, **_k: pytest.fail("must not check"))
 
     assert server.self_update() == "pinned"
+
+
+def test_the_standard_profile_cuts_nothing(monkeypatch: pytest.MonkeyPatch) -> None:
+    """MCP-CONTEXT-BUDGET: Claude and the large-context clients get every answer whole, as before the lot."""
+    monkeypatch.setattr(server, "CATALOG", ActionCatalog())
+    server.CATALOG.register(
+        ActionSpec(name="_test_big", description="Big.", parameters_schema={"type": "object", "properties": {}}),
+        lambda _p: "x" * 40_000,
+    )
+    blocks, _ = _tool_blocks("run_action", {"name": "_test_big", "params": {}})
+    assert blocks[0] == "x" * 40_000
+
+
+def test_describe_units_says_how_to_filter_a_cut_answer() -> None:
+    hint = server.CATALOG.oversize_hint("describe_units") or ""
+    assert "group_name" in hint and "include_route" in hint

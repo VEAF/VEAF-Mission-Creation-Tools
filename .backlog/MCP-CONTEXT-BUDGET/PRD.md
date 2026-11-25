@@ -25,7 +25,7 @@ On David's machine, a context of 49 152 tokens filled while reading the skeleton
 
 | # | Ticket | Status |
 |---|--------|--------|
-| 01 | [Compact JSON in one block, and a 16 000-character ceiling on every response](tickets/01-compact-and-capped-responses.md) | ✅ |
+| 01 | [Compact JSON in one block, and a ceiling on every response in the compact profile](tickets/01-compact-and-capped-responses.md) | ✅ |
 | 02 | [A shorter catalogue, limitations listing, file slice and build log](tickets/02-shorter-listings.md) | ✅ |
 | 03 | [The guide and the mission prompts read by section](tickets/03-guide-and-prompts-by-section.md) | ✅ |
 | 04 | [`adapt_scaffold`: steps 1 to 5 of the guide in one action](tickets/04-adapt-scaffold.md) | ✅ |
@@ -49,3 +49,9 @@ The same chain replayed over stdio after the lot (scaffold copied, build and ins
 The largest answers left: `list_catalog` 10 202, the guide's `combat-zone-vs-qra` section 7 549, the guide's default answer 7 515, `build_mission` 5 826.
 In process, `test_context_budget.py` counts 56 721 and fails at a budget of 50 000.
 Not verified here: the run with the local model itself, which is David's.
+
+## Second round — 2026-11-25, after the first local run
+
+David's run (Inkling-2-Mini UD-IQ4_XS, `llama-server` b12728, 65 536 tokens) reached the build, then overflowed: one unfiltered `describe_units` on the built `.miz` was 74 417 characters, cut to 16 000, about 9 500 tokens at the 2 characters a token measured on JSON; the model itself generated 20 147 tokens.
+Decided with David (relayed by the local-model session): two profiles, `standard` the default and unchanged for large-context clients, `compact` chosen by `VEAF_MCP_PROFILE` in the MCP configuration; in compact, an 8 000-character ceiling (16 000 for a schema), 60-character catalogue summaries, 7 000-character prompt pages, 6 000-character file slices; `describe_units` tells how to filter; `create_combat_zone` tells to use alias carriers (the run placed literal T-72B3).
+Compact chain, in process: 54 634 characters.

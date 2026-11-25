@@ -451,7 +451,7 @@ scaffold → edit → validate → build → play flow.
 
 **A build that exits 0 is not a mission that works.** Read the build's counters — presets injected
 into how many aircraft, waypoints into how many groups, warehouse template links, weather variants —
-and question any zero. Then call `inspect_built_mission` on the folder and check what the mission is about: the weather of two variants differs, the dynamic slots carry presets and a BULLSEYE, the tanker has its tasks and frequency; `describe_units` on the built `.miz` shows the routes and the combat-zone carriers and statics.
+and question any zero. Then call `inspect_built_mission` on the folder and check what the mission is about: the weather of two variants differs, the dynamic slots carry presets and a BULLSEYE, the tanker has its tasks and frequency; `describe_units` on the built `.miz`, filtered (`group_name`, `coalition` or `category`, `include_route: false` unless you check a route), shows the combat-zone carriers and statics: unfiltered, it lists every slot template the build injects.
 Then run `veaf-tools dcs mission-check` on the built `.miz`: its wind check needs no DCS and fails when the briefing's wind contradicts the simulated one.
 Say what you checked, and what you could not (anything that needs DCS running, anything no action reads).
 

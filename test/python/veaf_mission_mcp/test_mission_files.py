@@ -37,6 +37,12 @@ def test_read_returns_a_slice_of_a_long_file(folder: Path) -> None:
     assert (result["first_line"], result["last_line"], result["total_lines"]) == (4, 6, 10)
 
 
+def test_the_standard_profile_reads_by_lines_only(folder: Path) -> None:
+    (folder / "src" / "long.yaml").write_text("".join(f"k{i}: {'x' * 70}\n" for i in range(300)), encoding="utf-8")
+    assert read_mission_file(folder, "src/long.yaml")["last_line"] == 300
+
+
+@pytest.mark.usefixtures("compact")
 def test_read_stops_before_its_character_ceiling_and_says_where_to_go_on(folder: Path) -> None:
     """MCP-CONTEXT-BUDGET: 400 lines of src/presets.yaml were up to 13 823 characters."""
     (folder / "src" / "long.yaml").write_text("".join(f"k{i}: {'x' * 70}\n" for i in range(300)), encoding="utf-8")
@@ -49,6 +55,7 @@ def test_read_stops_before_its_character_ceiling_and_says_where_to_go_on(folder:
     assert rest["first_line"] == first["last_line"] + 1
 
 
+@pytest.mark.usefixtures("compact")
 def test_read_returns_one_line_longer_than_the_ceiling_whole(folder: Path) -> None:
     (folder / "src" / "wide.yaml").write_text(f"k: {'x' * (MAX_SLICE_CHARS + 10)}\nj: 1\n", encoding="utf-8")
 

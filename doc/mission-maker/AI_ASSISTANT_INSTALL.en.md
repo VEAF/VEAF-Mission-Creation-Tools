@@ -156,9 +156,15 @@ The server asks the AI to read its authoring guide before any action, but not ev
 ### A local model {#local-model}
 
 A model running on your graphics card (llama.cpp with `llama-server --mcp-servers-config`, for instance) has a much smaller context than an online AI: often 32 000 to 80 000 tokens.
-The VEAF server is made to fit in it, with no setting on your side.
-It serves its guide by section, reads the large files by slices, cuts any answer beyond 16 000 characters and says how to read the rest, and adapts a new mission's skeleton in a single action.
-Measured on 25 November 2026: a simple mission, from the empty folder to the built and checked `.miz` (one combat zone), returns about 57 000 characters to the model, that is 15 000 to 20 000 tokens.
+The VEAF server has a **compact profile** for it: it serves its guide by section, reads the large files by slices, cuts any answer beyond 8 000 characters and says how to read the rest.
+Add the `VEAF_MCP_PROFILE` variable to the server's declaration, next to `command` and `args`:
+
+```json
+"env": {"VEAF_MCP_PROFILE": "compact"}
+```
+
+Without it, the server answers as it answers Claude: whole, which suits an online AI and overflows a small context.
+Measured on 25 November 2026 in the compact profile: a simple mission, from the empty folder to the built and checked `.miz` (one combat zone), returns about 55 000 characters to the model, that is about 27 000 tokens (JSON counts about 2 characters a token).
 Add what the model writes and thinks: plan for at least 64 000 tokens of context.
 An objective mission or an Open Training also reads its prompt, page by page: allow more.
 

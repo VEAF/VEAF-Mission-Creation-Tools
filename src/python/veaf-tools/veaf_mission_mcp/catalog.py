@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from veaf_mission_mcp.models import ActionSpec
+from veaf_mission_mcp.profile import is_compact
 
 ActionHandler = Callable[[dict[str, Any]], Any]
 #: Whether a call asked explicitly for everything, so its response is not cut (MCP-CONTEXT-BUDGET).
@@ -28,9 +29,11 @@ MISSION_PARAMETER_ALIASES: tuple[str, ...] = ("miz_path", "target", "folder_path
 MISSION_YAML_PARAMETER = "mission_yaml_path"
 
 
-#: The longest summary ``list_catalog`` gives an action, in characters: 200 made the listing 14 102
-#: characters, a fifth of a local model's whole context with the guide (MCP-CONTEXT-BUDGET).
-_SUMMARY_MAX = 100
+#: The longest summary ``list_catalog`` gives an action, in characters.
+_SUMMARY_MAX = 200
+#: The same in the compact profile: at 200 the listing was 14 102 characters, a fifth of a local model's
+#: context with the guide; at 60 it is 7 658, under the compact response ceiling (MCP-CONTEXT-BUDGET).
+_COMPACT_SUMMARY_MAX = 60
 
 
 def summary(description: str) -> str:
@@ -40,12 +43,14 @@ def summary(description: str) -> str:
         description: The action's full description.
 
     Returns:
-        Its first sentence; the start of it, ended by an ellipsis, when the sentence is longer.
+        Its first sentence; the start of it, ended by an ellipsis, when the sentence is longer (than
+        :data:`_COMPACT_SUMMARY_MAX` in the compact profile).
     """
     text = " ".join(description.split())
     end = text.find(". ")
     first = text if end < 0 else text[: end + 1]
-    return first if len(first) <= _SUMMARY_MAX else first[: _SUMMARY_MAX - 1].rstrip() + "…"
+    limit = _COMPACT_SUMMARY_MAX if is_compact() else _SUMMARY_MAX
+    return first if len(first) <= limit else first[: limit - 1].rstrip() + "…"
 
 
 class ActionNotFoundError(Exception):

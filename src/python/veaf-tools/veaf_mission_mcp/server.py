@@ -22,7 +22,8 @@ from veaf_tools.app import VERSION
 
 from veaf_mission_mcp.actions import register_default_actions
 from veaf_mission_mcp.catalog import ActionCatalog, summary
-from veaf_mission_mcp.response_budget import MAX_RESPONSE_CHARS, capped, to_text
+from veaf_mission_mcp.profile import is_compact
+from veaf_mission_mcp.response_budget import MAX_RESPONSE_CHARS, MAX_SCHEMA_CHARS, capped, to_text
 from veaf_mission_mcp.self_update import PINNED_TAG_ENV_VAR, start_update_if_due
 
 SERVER_NAME = "veaf-mission-mcp"
@@ -52,8 +53,8 @@ def capabilities() -> dict[str, str]:
     return {"name": SERVER_NAME, "version": VERSION}
 
 
-#: The most `list_catalog(full=True)` puts in one page, in characters, under the response ceiling.
-_FULL_CATALOG_PAGE_CHARS = MAX_RESPONSE_CHARS - 1_000
+#: The most `list_catalog(full=True)` puts in one page of the compact profile, in characters.
+_FULL_CATALOG_PAGE_CHARS = MAX_SCHEMA_CHARS - 1_000
 
 
 def list_catalog(full: bool = False, offset: int = 0) -> list[dict[str, Any]] | dict[str, Any]:
@@ -63,17 +64,20 @@ def list_catalog(full: bool = False, offset: int = 0) -> list[dict[str, Any]] | 
     it back in pieces (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 14). ``describe_action`` gives one.
 
     Args:
-        full: Return the actions' full specs, one page at a time (``offset``, then ``next_offset``).
-        offset: With ``full``, the first action of the page.
+        full: Return the actions' full specs; in the compact profile, one page at a time (``offset``,
+            then ``next_offset``).
+        offset: With ``full`` in the compact profile, the first action of the page.
 
     Returns:
         One dict per registered action: ``{name, summary}`` — the description's first sentence — or,
-        with ``full``, ``{actions: [{name, description, parameters_schema}], total, next_offset}``,
-        ``next_offset`` null on the last page.
+        with ``full``, ``{name, description, parameters_schema}`` each; in the compact profile, ``{actions,
+        total, next_offset}``, ``next_offset`` null on the last page.
     """
     specs = CATALOG.list_catalog()
     if not full:
         return [{"name": spec.name, "summary": summary(spec.description)} for spec in specs]
+    if not is_compact():
+        return [spec.model_dump() for spec in specs]
     page: list[dict[str, Any]] = []
     size = 0
     index = max(offset, 0)
@@ -125,22 +129,28 @@ def run_action(name: str, params: dict[str, Any] | None = None) -> Any:
         raise ToolError(f"{type(exc).__name__}: {exc}") from exc
 
 
-# The tools the client sees answer one text block of compact JSON, cut at the response ceiling, with no
-# structured copy: `mcp` sent a list as one block per item plus a `structuredContent` copy, and every
-# object indented (MCP-CONTEXT-BUDGET). The functions above stay the Python API.
+# The tools the client sees answer one text block of compact JSON with no structured copy: `mcp` sent a
+# list as one block per item plus a `structuredContent` copy, and every object indented. In the compact
+# profile an answer is also cut at the response ceiling (MCP-CONTEXT-BUDGET). The functions above stay
+# the Python API.
 
 
 def _list_catalog_tool(full: bool = False, offset: int = 0) -> str:
-    return capped(to_text(list_catalog(full, offset)), "Read the next page with offset=next_offset.")
+    text = to_text(list_catalog(full, offset))
+    if not is_compact():
+        return text
+    limit = MAX_SCHEMA_CHARS if full else MAX_RESPONSE_CHARS
+    return capped(text, "Read the next page with offset=next_offset.", limit)
 
 
 def _describe_action_tool(name: str) -> str:
-    return capped(to_text(describe_action(name)))
+    text = to_text(describe_action(name))
+    return capped(text, limit=MAX_SCHEMA_CHARS) if is_compact() else text
 
 
 def _run_action_tool(name: str, params: dict[str, Any] | None = None) -> str:
     text = to_text(run_action(name, params))
-    if CATALOG.is_uncapped(name, params or {}):
+    if not is_compact() or CATALOG.is_uncapped(name, params or {}):
         return text
     return capped(text, CATALOG.oversize_hint(name))
 

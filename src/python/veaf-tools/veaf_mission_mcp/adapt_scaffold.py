@@ -101,7 +101,13 @@ def _check(
     for index, point in enumerate(waypoints or []):
         if not point.get("name") or not all(isinstance(point.get(key), int | float) for key in ("x", "y")):
             problems.append(f"waypoints[{index}] needs a name, x and y")
+        elif "alt" in point and not isinstance(point["alt"], int | float):
+            problems.append(f"waypoints[{index}] alt must be a number of metres")
     unknown = sorted(set(dynamic_slot_coalitions or []) - set(COALITIONS))
+    if dynamic_slot_coalitions is not None and not dynamic_slot_coalitions:
+        # A slot file with no group falls back to the whole shipped catalogue: an empty list would give
+        # both coalitions, the opposite of what it says.
+        problems.append("dynamic_slot_coalitions needs at least one coalition (omit it to keep both)")
     if unknown:
         problems.append(f"dynamic_slot_coalitions takes {', '.join(COALITIONS)}, not {', '.join(unknown)}")
     if problems:
@@ -119,6 +125,11 @@ def _resolve_airfields(presets: dict[str, Any], theatre: str, airfields: list[st
             unknown.append(name)
         else:
             resolved.append(alias)
+    if unknown and not aliases:
+        raise ValueError(
+            f"adapt_scaffold: src/presets.yaml has no airfield channel list for {theatre}: leave 'airfields' out, "
+            "and write the second radio with edit_mission_file"
+        )
     if unknown:
         raise ValueError(
             f"adapt_scaffold: no airfield {unknown} on {theatre}; its airfields: {', '.join(sorted(aliases.values()))}"
@@ -163,7 +174,9 @@ def _adapt_presets(folder: Path, theatre: str, airfields: list[str] | None) -> s
     text = path.read_bytes().decode("utf-8")  # its own line ends, kept on write
     presets = yaml.safe_load(text) or {}
     keep = theatre_collection(presets, theatre)
-    text, removed = _drop_other_theatres(text, keep)
+    # A theatre with no list of its own (Afghanistan, TheChannel, MarianaIslandsWWII) keeps them all: its
+    # second radio still names the Caucasus airfields, and the build stops on an alias no list defines.
+    text, removed = _drop_other_theatres(text, keep) if keep else (text, [])
     parts = []
     if airfields:
         chosen = _resolve_airfields(presets, theatre, airfields)
@@ -339,6 +352,9 @@ def adapt_scaffold(
     presets = yaml.safe_load((folder / "src" / "presets.yaml").read_text(encoding="utf-8")) or {}
     if airfields:
         _resolve_airfields(presets, theatre, airfields)
+    needs_catalogue = dynamic_slot_coalitions is not None and set(dynamic_slot_coalitions) != set(COALITIONS)
+    if needs_catalogue and shipped_default_file(folder, "src/dynamic-slot-templates.yaml") is None:
+        raise ValueError("adapt_scaffold: the shipped dynamic-slot catalogue is not in the folder (published/)")
     changes = [_adapt_presets(folder, theatre, airfields)]
     changes.append(
         _adapt_versions(folder, theatre, date, start_time, variant, position)

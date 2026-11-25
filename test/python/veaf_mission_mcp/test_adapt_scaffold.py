@@ -122,6 +122,8 @@ def test_a_position_on_the_map_is_converted(folder: Path) -> None:
         ({"waypoints": [{"x": 1, "y": 2}]}, "waypoints[0] needs a name"),
         ({"dynamic_slot_coalitions": ["green"]}, "not green"),
         ({"airfields": ["Batumi", "Nevatim"]}, "no airfield ['Nevatim'] on Caucasus"),
+        ({"waypoints": [{"name": "A", "x": 1, "y": 2, "alt": "high"}]}, "alt must be a number"),
+        ({"dynamic_slot_coalitions": []}, "needs at least one coalition"),
     ],
 )
 def test_a_bad_value_is_refused_before_anything_is_written(folder: Path, kwargs: dict, message: str) -> None:
@@ -129,6 +131,28 @@ def test_a_bad_value_is_refused_before_anything_is_written(folder: Path, kwargs:
     with pytest.raises(ValueError, match=message.replace("[", r"\[").replace("]", r"\]")):
         adapt_scaffold(folder, **kwargs)
     assert {path: path.read_bytes() for path in (folder / "src").glob("*.yaml")} == before
+
+
+def test_a_theatre_with_no_airfield_list_keeps_every_list(tmp_path: Path) -> None:
+    """pr-code-review of #1349: on Afghanistan the second radio still names Caucasus airfields; dropping every
+    `airports-*` list left those aliases defined nowhere, and the build stops on an undefined alias."""
+    folder = tmp_path / "afghanistan"
+    result = CliRunner().invoke(
+        app, ["prepare", "--template", "standard", "--theatre", "afghanistan", str(folder), "--force"]
+    )
+    assert result.exit_code == 0, result.output
+    collections = [
+        n for n in _yaml(folder / "src" / "presets.yaml")["channels_collection"] if n.startswith("airports-")
+    ]
+
+    adapt_scaffold(folder)
+
+    presets = _yaml(folder / "src" / "presets.yaml")
+    assert [n for n in presets["channels_collection"] if n.startswith("airports-")] == collections
+    defined = {alias for collection in presets["channels_collection"].values() for alias in (collection or {})}
+    assert set(presets["channel_lists"]["blue"]["primary_2"].values()) <= defined
+    with pytest.raises(ValueError, match="no airfield channel list for Afghanistan"):
+        adapt_scaffold(folder, airfields=["Bagram"])
 
 
 def test_the_action_is_in_the_catalogue(folder: Path) -> None:

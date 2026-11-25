@@ -414,14 +414,13 @@ validé un scénario, pas un à-peu-près.
 - **`src/presets.yaml` = le plan de fréquences du briefing**, canal pour canal, sans Garde (le canal 1 est la fréquence de départ du vol) : bases, porte-
   avions, AWACS, ravitailleurs, fréquence de package — les aérodromes sur la radio VHF (`primary_2`), tout le reste sur la radio UHF (`primary_1`), AWACS et ravitailleurs en tête, jamais une même catégorie répartie sur les deux. Les **canaux de base portent les fréquences que
   DCS donne à l'aérodrome** : `describe_airfield_channels` puis `set_airfield_channels`, jamais une
-  fréquence d'aérodrome tapée à la main. Réécris **toutes** les listes `channel_lists` du gabarit :
-  sur une autre carte, il garde des aérodromes du Caucase (Batumi, Beslan…). Relis les préréglages
+  fréquence d'aérodrome tapée à la main. `adapt_scaffold` met les aérodromes de la mission sur la radio VHF et retire les listes des autres cartes ; réécris le reste des `channel_lists` (`edit_mission_file`). Relis les préréglages
   réellement injectés, appareil par appareil (`inspect_built_mission`). Le SA342 Gazelle n'en reçoit aucun
   (seule sa radio FM se règle par préréglage) : dis au briefing que ses radios se règlent à la main.
   Le build liste chaque AWACS, ravitailleur ou porte-avions qu'aucun préréglage ne porte (journal et
   `presets-validation-report.md`) : la mission n'est pas prête tant que cette liste n'est pas vide.
   *Kolkhida* a volé deux missions sur le plan d'Open Training du gabarit, l'avertissement affiché.
-- **`src/waypoints.yaml`** : retire les exemples du gabarit ; `set_route` nomme tout plan d'exemple qui l'emporterait encore sur le tien.
+- **`src/waypoints.yaml`** : `adapt_scaffold` retire les exemples du gabarit ; `set_route` nomme tout plan d'exemple qui l'emporterait encore sur le tien.
 - **Cartes et images de briefing DCS** : `build_mission_briefing` (section 6) les fait depuis la
   mission construite, jamais à la main : une carte générale (départ, itinéraire et waypoints numérotés,
   objectifs, menaces connues avec leur cercle d'engagement plein et de détection en pointillés, soutien,
@@ -442,7 +441,7 @@ validé un scénario, pas un à-peu-près.
 
 ## 5. Ordre de construction
 
-1. `scaffold_mission` dans le dossier vide.
+1. `scaffold_mission` dans le dossier vide, puis `adapt_scaffold` (guide, section `after-scaffold`) : nom, époque, date et heure, position, les aérodromes, les camps aux slots dynamiques, SKYNET.
 2. `mission.yaml` : identité, sécurité et profil `LOCAL_TEST`, modules.
 3. Aérodromes (`set_airbase_coalition`), porte-avions, vols joueurs (4.3).
 4. Objectifs (4.4), menace (4.5), et la zone à défendre s'il y en a une (2.1).

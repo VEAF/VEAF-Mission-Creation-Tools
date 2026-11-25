@@ -8,6 +8,7 @@ from veaf_libs.blank_mission import supported_theatres
 from veaf_libs.clear_ground_check import offer_check
 from veaf_libs.scenery_lookup import DEFAULT_RADIUS_METERS, offer_lookup
 
+from veaf_mission_mcp.adapt_scaffold import COALITIONS, ERAS, adapt_scaffold
 from veaf_mission_mcp.add_air_group import add_air_group
 from veaf_mission_mcp.add_farp import add_farp
 from veaf_mission_mcp.add_group import add_group
@@ -1950,6 +1951,91 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     )
     catalog.register(
         ActionSpec(
+            name="adapt_scaffold",
+            description=(
+                "ADAPT a freshly scaffolded mission FOLDER to the mission asked for, in one call, right after "
+                "scaffold_mission and before placing anything: the airfields on the second radio and no other "
+                "theatre's airfield list (src/presets.yaml), the weather variant's name and time, base_date and "
+                "position (src/versions.yaml), the route every player flight gets in place of the example points "
+                "(src/waypoints.yaml), the coalitions whose dynamic-slot templates stay "
+                "(src/dynamic-slot-templates.yaml), mission.name, mission.era and SKYNET (mission.yaml), and the "
+                "blank mission's date and start time. Do not read or rewrite those files yourself. What is not "
+                "given stays as scaffolded, but the example waypoints are always removed. Every value is checked "
+                "before anything is written. Returns one line per file: tell them to the user."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "folder_path": {"type": "string", "description": "The mission folder scaffold_mission laid down."},
+                    "mission_name": {"type": "string", "description": "mission.name, ASCII (it names the .miz)."},
+                    "era": {"type": "string", "enum": list(ERAS), "description": "mission.era."},
+                    "date": {"type": "string", "description": "The mission's date, YYYY-MM-DD, consistent with era."},
+                    "start_time": {"type": "string", "description": "HH:MM on the theatre's clock."},
+                    "variant": {
+                        "type": "string",
+                        "description": "The weather variant's name; by default named after start_time (morning, noon...).",
+                    },
+                    "position": {
+                        "type": "object",
+                        "description": "Where the mission flies, for sunrise and sunset: {x, y} on the map, or "
+                        "{latitude, longitude}; timezone optional.",
+                        "properties": {
+                            "x": {"type": "number"},
+                            "y": {"type": "number"},
+                            "latitude": {"type": "number"},
+                            "longitude": {"type": "number"},
+                            "timezone": {"type": "string"},
+                        },
+                    },
+                    "airfields": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "The airfields the mission uses, channel 1 first, on the second radio "
+                        "(names of the theatre; a wrong one is refused with the theatre's list).",
+                    },
+                    "waypoints": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "x": {"type": "number"},
+                                "y": {"type": "number"},
+                                "alt": {"type": "number", "description": "Metres, 6096 (20 000 ft) by default."},
+                            },
+                            "required": ["name", "x", "y"],
+                        },
+                        "description": "The route every player flight gets, in order; none: the BULLSEYE only.",
+                    },
+                    "dynamic_slot_coalitions": {
+                        "type": "array",
+                        "items": {"type": "string", "enum": list(COALITIONS)},
+                        "description": "The coalitions that fly dynamic slots; omitted: both.",
+                    },
+                    "skynet": {
+                        "type": "boolean",
+                        "description": "true when the mission has a SAM or an EWR zone (integrated air defence).",
+                    },
+                },
+                "required": ["folder_path"],
+            },
+        ),
+        handler=lambda p: adapt_scaffold(
+            Path(p["folder_path"]),
+            mission_name=p.get("mission_name"),
+            era=p.get("era"),
+            date=p.get("date"),
+            start_time=p.get("start_time"),
+            variant=p.get("variant"),
+            position=p.get("position"),
+            airfields=p.get("airfields"),
+            waypoints=p.get("waypoints"),
+            dynamic_slot_coalitions=p.get("dynamic_slot_coalitions"),
+            skynet=p.get("skynet"),
+        ),
+    )
+    catalog.register(
+        ActionSpec(
             name="inspect_built_mission",
             description=(
                 "CHECK a BUILT mission: what the .miz holds after the build, compactly -- each airbase, "
@@ -3372,11 +3458,23 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             description=(
                 "Read this first, before any other action. Returns the VEAF mission authoring guide: the "
                 "order of work, the reserved naming conventions, combat zone vs QRA groups, and which "
-                "actions to consult instead of guessing. Read-only."
+                "actions to consult instead of guessing. With no argument: the sections every mission needs, "
+                "and an index of the others saying when to read each; read those with 'section'. Read-only."
             ),
-            parameters_schema={"type": "object", "properties": {}},
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "section": {
+                        "type": ["string", "array"],
+                        "items": {"type": "string"},
+                        "description": "A section id from the index, a list of them, or 'all' for the whole guide.",
+                    },
+                },
+            },
         ),
-        handler=lambda _p: describe_authoring_guide(),
+        handler=lambda p: describe_authoring_guide(p.get("section")),
+        oversize_hint="Read fewer sections at once.",
+        uncapped_when=lambda p: p.get("section") == "all",
     )
     catalog.register(
         ActionSpec(
@@ -3390,7 +3488,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "hands and a front moving on its own (campaign.yaml, mode: persistent). Load ONE prompt, the "
                 "kind the user chose -- never two. The objective prompt comes "
                 "in two parts: the scenario first; its build part ('part': 'build') once the user has "
-                "approved a scenario. Read-only."
+                "approved a scenario. A part comes by pages of numbered sections: read on with 'section' set "
+                "to the answer's next_section until there is none. Read-only."
             ),
             parameters_schema={
                 "type": "object",
@@ -3404,13 +3503,21 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "part": {
                         "type": "string",
                         "enum": list(MISSION_PROMPT_PARTS),
-                        "description": "'scenario' by default; 'build' after approval; 'all' for both.",
+                        "description": "'scenario' by default; 'build' after approval; 'all' for the whole "
+                        "prompt in one answer.",
+                    },
+                    "section": {
+                        "type": "string",
+                        "description": "The numbered section a page starts at ('2.1', '4.6'...): the "
+                        "answer's next_section, or one from its sections.",
                     },
                 },
                 "required": ["kind"],
             },
         ),
-        handler=lambda p: describe_mission_prompt(p["kind"], p.get("lang", "en"), p.get("part")),
+        handler=lambda p: describe_mission_prompt(p["kind"], p.get("lang", "en"), p.get("part"), p.get("section")),
+        oversize_hint="Read the prompt by pages: 'section' set to next_section.",
+        uncapped_when=lambda p: p.get("part") == "all" and not p.get("section"),
     )
     catalog.register(
         ActionSpec(

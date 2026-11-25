@@ -412,14 +412,13 @@ approximation of it.
 - **`src/presets.yaml` = the briefing's frequency plan**, channel by channel, no Guard (channel 1 is the flight's starting frequency): bases, carrier,
   AWACS, tankers, package frequency — the airfields on the VHF radio (`primary_2`), everything else on the UHF radio (`primary_1`), AWACS and tankers first, never one kind spread over both. **Base channels carry the frequencies DCS gives the airfield**:
   `describe_airfield_channels` then `set_airfield_channels`, never a hand-typed airfield frequency.
-  Rewrite **all** the template's `channel_lists`: on another map, it keeps Caucasus airfields
-  (Batumi, Beslan…). Re-read the presets actually injected, aircraft by aircraft (`inspect_built_mission`). The
+  `adapt_scaffold` puts the mission's airfields on the VHF radio and drops the other maps' lists; rewrite the rest of the `channel_lists` (`edit_mission_file`). Re-read the presets actually injected, aircraft by aircraft (`inspect_built_mission`). The
   SA342 Gazelle gets none (only its FM radio takes presets): say in the briefing that its radios are
   set by hand.
   The build lists every AWACS, tanker or carrier no preset carries (its log and
   `presets-validation-report.md`): the mission is not ready until that list is empty. *Kolkhida*
   flew two missions on the template's Open Training plan, the warning on screen.
-- **`src/waypoints.yaml`**: remove the template's examples; `set_route` names any example plan that would still win over yours.
+- **`src/waypoints.yaml`**: `adapt_scaffold` removes the template's examples; `set_route` names any example plan that would still win over yours.
 - **Briefing maps and DCS briefing pictures**: `build_mission_briefing` (section 6) makes them from
   the built mission, never by hand: an overview map (departure, route and numbered waypoints,
   objectives, known threats with their engagement circle plain and their detection circle dashed,
@@ -440,7 +439,7 @@ approximation of it.
 
 ## 5. Build order
 
-1. `scaffold_mission` in the empty folder.
+1. `scaffold_mission` in the empty folder, then `adapt_scaffold` (guide section `after-scaffold`): name, era, date and time, position, the airfields, the dynamic-slot coalitions, SKYNET.
 2. `mission.yaml`: identity, security and `LOCAL_TEST` profile, modules.
 3. Airfields (`set_airbase_coalition`), carrier, player flights (4.3).
 4. Objectives (4.4), threat (4.5), and the site to defend if there is one (2.1).

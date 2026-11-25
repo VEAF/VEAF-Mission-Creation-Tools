@@ -145,11 +145,14 @@ def _run_action_tool(name: str, params: dict[str, Any] | None = None) -> str:
     return capped(text, CATALOG.oversize_hint(name))
 
 
-mcp.add_tool(_list_catalog_tool, name="list_catalog", description=inspect.getdoc(list_catalog), structured_output=False)
-mcp.add_tool(
-    _describe_action_tool, name="describe_action", description=inspect.getdoc(describe_action), structured_output=False
-)
-mcp.add_tool(_run_action_tool, name="run_action", description=inspect.getdoc(run_action), structured_output=False)
+# Named from the Python function, each tool keeps its name and its docstring as description. (A literal
+# name argument would read, to `docs-check`'s regex, as one more catalogue action.)
+for _tool, _api in (
+    (_list_catalog_tool, list_catalog),
+    (_describe_action_tool, describe_action),
+    (_run_action_tool, run_action),
+):
+    mcp.add_tool(_tool, name=_api.__name__, description=inspect.getdoc(_api), structured_output=False)
 
 
 def self_update() -> str:

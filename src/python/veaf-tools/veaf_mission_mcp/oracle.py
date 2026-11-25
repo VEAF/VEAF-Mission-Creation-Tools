@@ -7,6 +7,7 @@ module scanner — so the oracle cannot drift from what the tooling actually shi
 `.backlog/archive/FEAT-MCP-MISSION-EDITOR.md`, wave 5).
 """
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -402,23 +403,130 @@ _MISSION_PROMPT_STEMS = {"persistent-campaign": "new-persistent-campaign"}
 MISSION_PROMPT_LANGS: tuple[str, ...] = ("en", "fr")
 
 
-def describe_authoring_guide() -> dict[str, Any]:
-    """Return the VEAF mission authoring guide, the first thing an MCP client reads.
+#: A guide section's heading: `## Title {#id}`, the id stable whatever the title says.
+_GUIDE_HEADING = re.compile(r"^## (?P<title>.+?) \{#(?P<id>[a-z0-9-]+)\}[ \t]*$", re.MULTILINE)
+#: The line under a guide section's heading saying when to read it: `<!-- when: ... -->`.
+_GUIDE_WHEN = re.compile(r"^<!-- when: (?P<when>.+?) -->[ \t]*\n", re.MULTILINE)
+#: The guide sections the default answer carries whole: what every mission needs, from the first message
+#: to the report. The others come by `section`, from the index (MCP-CONTEXT-BUDGET).
+GUIDE_ESSENTIAL_SECTIONS: tuple[str, ...] = ("new-mission", "after-scaffold", "two-worlds", "report-back")
+
+
+def _guide_sections(text: str) -> tuple[str, list[dict[str, str]]]:
+    """Split the authoring guide into its preamble and its `## ... {#id}` sections.
+
+    Args:
+        text: The guide's markdown.
 
     Returns:
-        `{"guide": <markdown text>}`.
+        The text before the first section, then one `{"id", "title", "when", "text"}` per section, its
+        text rendered as the model reads it: the heading without its id, no `when` line.
+
+    Raises:
+        ValueError: A `## ` heading without an id, or a section without its `when` line.
     """
-    return {"guide": read_bundled_text("veaf_mission_mcp", "data", "authoring-guide.md")}
+    bare = [line for line in text.splitlines() if line.startswith("## ") and not _GUIDE_HEADING.match(line)]
+    if bare:
+        raise ValueError(f"guide headings without an id: {bare}")
+    matches = list(_GUIDE_HEADING.finditer(text))
+    preamble = text[: matches[0].start()] if matches else text
+    sections: list[dict[str, str]] = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        body = text[match.end() + 1 : end]
+        when = _GUIDE_WHEN.match(body)
+        if when is None:
+            raise ValueError(f"guide section {match['id']!r} has no '<!-- when: ... -->' line")
+        sections.append(
+            {
+                "id": match["id"],
+                "title": match["title"],
+                "when": when["when"],
+                "text": f"## {match['title']}\n{body[when.end() :]}",
+            }
+        )
+    return preamble, sections
+
+
+def describe_authoring_guide(section: str | list[str] | None = None) -> dict[str, Any]:
+    """Return the VEAF mission authoring guide, the first thing an MCP client reads.
+
+    Whole, it was 41 555 characters, a sixth of a local model's context before its first action
+    (MCP-CONTEXT-BUDGET). With no argument it returns the sections every mission needs and an index of
+    the others with when to read each; `section` reads one or more; `section="all"` the whole guide.
+
+    Args:
+        section: A section id, a list of them, or `"all"`.
+
+    Returns:
+        `{"guide": <markdown>}`; with no `section`, also `"sections"` — `{"id", "title", "when"}` of each
+        section left out — and `"read_more"`, how to read one.
+
+    Raises:
+        ValueError: An unknown section id, named with the known ones.
+    """
+    preamble, sections = _guide_sections(read_bundled_text("veaf_mission_mcp", "data", "authoring-guide.md"))
+    if section == "all":
+        return {"guide": preamble + "".join(entry["text"] for entry in sections)}
+    if section is None:
+        return {
+            "guide": preamble
+            + "".join(entry["text"] for entry in sections if entry["id"] in GUIDE_ESSENTIAL_SECTIONS),
+            "sections": [
+                {key: entry[key] for key in ("id", "title", "when")}
+                for entry in sections
+                if entry["id"] not in GUIDE_ESSENTIAL_SECTIONS
+            ],
+            "read_more": "Read a section when its 'when' applies: describe_authoring_guide with section=<id> "
+            "(or a list of ids); section='all' for the whole guide.",
+        }
+    wanted = [section] if isinstance(section, str) else list(section)
+    known = {entry["id"]: entry for entry in sections}
+    unknown = [name for name in wanted if name not in known]
+    if unknown:
+        raise ValueError(f"Unknown guide section(s) {unknown}: expected 'all' or one of {', '.join(known)}.")
+    return {"guide": "".join(known[name]["text"] for name in wanted)}
 
 
 #: Where a mission prompt's part read after the user's approval starts (FIX-OPENCODE-TEST-FINDINGS 06).
 _BUILD_PART_MARKER = "<!-- part: build -->\n"
 #: The parts `describe_mission_prompt` takes; `all` is the whole text.
 MISSION_PROMPT_PARTS: tuple[str, ...] = ("scenario", "build", "all")
+#: A mission prompt's numbered heading, `## 4. Phase 2` or `### 4.6 Support`: the number is the section's
+#: id, the same in French and English.
+_PROMPT_HEADING = re.compile(r"^#{2,3} (?P<id>\d+(?:\.\d+)*)\.? (?P<title>.+)$", re.MULTILINE)
+#: The text before a prompt's first numbered section.
+PROMPT_INTRO_SECTION = "intro"
+#: The most prompt text one page carries, in characters, under the response ceiling.
+PROMPT_PAGE_CHARS = 12_000
 
 
-def describe_mission_prompt(kind: str, lang: str = "en", part: str | None = None) -> dict[str, Any]:
-    """Return the prompt that builds one kind of VEAF mission, end to end.
+def _prompt_sections(text: str, part: str | None) -> list[dict[str, str | None]]:
+    """Split one part of a mission prompt into its numbered sections.
+
+    Args:
+        text: The part's markdown.
+        part: The part's name, `None` for a prompt in one piece.
+
+    Returns:
+        One `{"id", "title", "text", "part"}` per section, in order; the text before the first numbered
+        heading is the section `intro` when there is any.
+    """
+    matches = list(_PROMPT_HEADING.finditer(text))
+    sections: list[dict[str, str | None]] = []
+    head = text[: matches[0].start()] if matches else text
+    if head.strip():
+        sections.append({"id": PROMPT_INTRO_SECTION, "title": "", "text": head, "part": part})
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        sections.append({"id": match["id"], "title": match["title"], "text": text[match.start() : end], "part": part})
+    return sections
+
+
+def describe_mission_prompt(
+    kind: str, lang: str = "en", part: str | None = None, section: str | None = None
+) -> dict[str, Any]:
+    """Return the prompt that builds one kind of VEAF mission, one page at a time.
 
     They used to live in the repository's `.prompts/`, for the user to paste; shipped in the
     executable, a user only has to ask for a mission (FEAT-AI-ZERO-SETUP).
@@ -429,19 +537,27 @@ def describe_mission_prompt(kind: str, lang: str = "en", part: str | None = None
     scenario discussion (FIX-OPENCODE-TEST-FINDINGS 06). The first part ends by saying how to load
     the second.
 
+    A part comes by pages of whole numbered sections, :data:`PROMPT_PAGE_CHARS` at most but one section
+    at least: the Open Training prompt was one 55 635-character answer (MCP-CONTEXT-BUDGET). Each page
+    gives the part's index and the next section to read; `section` starts a page anywhere.
+
     Args:
         kind: `objective` (a mission played once, in one session), `open-training` (a VEAF
             training mission on a whole map) or `persistent-campaign` (one mission that runs on a server
             for weeks, its front moving on its own).
         lang: `en` or `fr`, the language the prompt is written in.
-        part: `scenario` (the default for a prompt in two parts), `build`, or `all`.
+        part: `scenario` (the default for a prompt in two parts), `build`, or `all` — the whole text
+            in one answer, when no `section` is given.
+        section: The numbered section a page starts at (`0`, `2.1`, `4.6`…, or `intro`); the page stays
+            in that section's part.
 
     Returns:
-        `{"kind", "lang", "prompt": <markdown text>}`; for one part of a prompt in two, `"part"` too,
-        and `"next_part"` after the first.
+        `{"kind", "lang", "prompt": <markdown text>}`; a page also carries `"sections"` — `{"id", "title"}`
+        of its part's sections — and `"next_section"` while the part goes on; for one part of a prompt
+        in two, `"part"` too, and `"next_part"` on the scenario's last page.
 
     Raises:
-        ValueError: An unknown kind, language or part.
+        ValueError: An unknown kind, language, part or section.
     """
     if kind not in MISSION_PROMPT_KINDS:
         raise ValueError(f"Unknown mission kind {kind!r}: expected one of {', '.join(MISSION_PROMPT_KINDS)}.")
@@ -451,13 +567,43 @@ def describe_mission_prompt(kind: str, lang: str = "en", part: str | None = None
         raise ValueError(f"Unknown part {part!r}: expected one of {', '.join(MISSION_PROMPT_PARTS)}.")
     stem = _MISSION_PROMPT_STEMS.get(kind, f"new-{kind}-mission")
     prompt = read_bundled_text("veaf_mission_mcp", "data", "mission-prompts", f"{stem}.{lang}.md")
-    result: dict[str, Any] = {"kind": kind, "lang": lang, "prompt": prompt}
-    if part == "all" or _BUILD_PART_MARKER not in prompt:
-        return result
-    scenario, build = prompt.split(_BUILD_PART_MARKER, 1)
-    if part == "build":
-        return {**result, "prompt": build, "part": "build"}
-    return {**result, "prompt": scenario, "part": "scenario", "next_part": "build"}
+    result: dict[str, Any] = {"kind": kind, "lang": lang}
+    if part == "all" and section is None:
+        return {**result, "prompt": prompt}
+    if _BUILD_PART_MARKER in prompt:
+        scenario, build = prompt.split(_BUILD_PART_MARKER, 1)
+        sections = _prompt_sections(scenario, "scenario") + _prompt_sections(build, "build")
+    else:
+        sections = _prompt_sections(prompt, None)
+    if section is not None:
+        start = next((index for index, entry in enumerate(sections) if entry["id"] == section), None)
+        if start is None:
+            known = ", ".join(str(entry["id"]) for entry in sections)
+            raise ValueError(f"Unknown section {section!r} in the {kind} prompt: expected one of {known}.")
+        current = sections[start]["part"]
+    else:
+        current = None if part == "all" else ("build" if part == "build" else sections[0]["part"])
+        start = next(index for index, entry in enumerate(sections) if part == "all" or entry["part"] == current)
+    in_part = [entry for entry in sections if part == "all" or entry["part"] == current]
+    page: list[str] = []
+    size = 0
+    index = start
+    while index < len(sections) and (part == "all" or sections[index]["part"] == current):
+        text = str(sections[index]["text"])
+        if page and size + len(text) > PROMPT_PAGE_CHARS:
+            break
+        page.append(text)
+        size += len(text)
+        index += 1
+    result["prompt"] = "".join(page)
+    result["sections"] = [{"id": entry["id"], "title": entry["title"]} for entry in in_part]
+    if index < len(sections) and (part == "all" or sections[index]["part"] == current):
+        result["next_section"] = sections[index]["id"]
+    if current is not None and part != "all":
+        result["part"] = current
+        if current == "scenario" and "next_section" not in result:
+            result["next_part"] = "build"
+    return result
 
 
 def _module_enabled(mission_yaml_path: Path, module_id: str) -> bool | None:

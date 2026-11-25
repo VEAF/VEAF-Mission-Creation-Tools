@@ -1,6 +1,7 @@
 """Tests for the wave-5 domain-knowledge oracle (introspection actions)."""
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -168,10 +169,59 @@ def test_describe_known_limitations_is_in_the_catalogue() -> None:
 _MCP_DATA = Path(__file__).parents[3] / "src" / "python" / "veaf-tools" / "veaf_mission_mcp" / "data"
 
 
-def test_describe_authoring_guide_returns_the_package_guide_verbatim() -> None:
+def test_describe_authoring_guide_returns_the_package_guide_whole_on_request() -> None:
     """FEAT-AI-ZERO-SETUP: the guide lives in the package it is served from, one copy."""
-    guide = _MCP_DATA / "authoring-guide.md"
-    assert describe_authoring_guide() == {"guide": guide.read_text(encoding="utf-8")}
+    raw = (_MCP_DATA / "authoring-guide.md").read_text(encoding="utf-8")
+    rendered = re.sub(r" \{#[a-z0-9-]+\}$", "", raw, flags=re.MULTILINE)
+    rendered = re.sub(r"^<!-- when: .+ -->\n", "", rendered, flags=re.MULTILINE)
+    assert describe_authoring_guide("all") == {"guide": rendered}
+
+
+class TestGuideBySection:
+    """MCP-CONTEXT-BUDGET: the whole guide was 41 555 characters, a sixth of a local model's context."""
+
+    def test_the_default_is_the_essential_sections_and_an_index_of_the_others(self) -> None:
+        result = describe_authoring_guide()
+        assert len(json.dumps(result, ensure_ascii=False, separators=(",", ":"))) < 12_000
+        assert "## Right after `scaffold_mission`" in result["guide"]
+        assert "adapt_scaffold" in result["guide"]
+        assert "## Combat zone vs QRA" not in result["guide"]
+        index = {entry["id"]: entry for entry in result["sections"]}
+        assert "combat-zone-vs-qra" in index and "checklist" in index
+        assert all(entry["when"] and entry["title"] for entry in result["sections"])
+        assert "section" in result["read_more"]
+
+    def test_the_default_and_the_index_cover_the_whole_guide(self) -> None:
+        default = describe_authoring_guide()
+        rest = describe_authoring_guide([entry["id"] for entry in default["sections"]])["guide"]
+        whole = describe_authoring_guide("all")["guide"]
+        assert len(default["guide"]) + len(rest) == len(whole)
+
+    def test_one_section_comes_alone(self) -> None:
+        guide = describe_authoring_guide("finish")["guide"]
+        assert guide.startswith("## Finish: validate, then build\n")
+        assert "## Report back" not in guide
+
+    def test_an_unknown_section_is_refused_with_the_known_ones(self) -> None:
+        with pytest.raises(ValueError, match="combat-zone-vs-qra"):
+            describe_authoring_guide("nowhere")
+
+    def test_every_guide_heading_carries_an_id_and_a_when_line(self) -> None:
+        raw = (_MCP_DATA / "authoring-guide.md").read_text(encoding="utf-8")
+        headings = re.findall(r"^## .*$", raw, flags=re.MULTILINE)
+        ids = re.findall(r"^## .+ \{#([a-z0-9-]+)\}$", raw, flags=re.MULTILINE)
+        assert len(ids) == len(headings) == len(set(ids))
+        assert len(re.findall(r"^<!-- when: .+ -->$", raw, flags=re.MULTILINE)) == len(ids)
+
+
+def _whole(kind: str, lang: str = "en", part: str | None = None) -> str:
+    """Read a mission prompt's part page after page, as a client does."""
+    result = describe_mission_prompt(kind, lang, part)
+    text = result["prompt"]
+    while "next_section" in result:
+        result = describe_mission_prompt(kind, lang, part, result["next_section"])
+        text += result["prompt"]
+    return text
 
 
 def test_describe_authoring_guide_reads_the_bundled_copy_in_the_executable(
@@ -182,7 +232,7 @@ def test_describe_authoring_guide_reads_the_bundled_copy_in_the_executable(
     bundled.parent.mkdir(parents=True)
     bundled.write_text("bundled guide", encoding="utf-8")
     monkeypatch.setattr("sys._MEIPASS", str(tmp_path), raising=False)
-    assert describe_authoring_guide() == {"guide": "bundled guide"}
+    assert describe_authoring_guide()["guide"] == "bundled guide"
 
 
 def test_describe_authoring_guide_is_in_the_catalogue() -> None:
@@ -196,7 +246,7 @@ def test_describe_authoring_guide_is_in_the_catalogue() -> None:
 
 def test_the_authoring_guide_sends_a_mission_request_to_the_mission_prompts() -> None:
     """A user who only says "create a mission" must reach the prompts without naming them."""
-    guide = describe_authoring_guide()["guide"]
+    guide = describe_authoring_guide("all")["guide"]
     assert "describe_mission_prompt" in guide
     assert "objective" in guide and "open-training" in guide and "persistent-campaign" in guide
 
@@ -224,22 +274,30 @@ class TestMissionPromptParts:
     @pytest.mark.parametrize("lang", ["fr", "en"])
     def test_the_objective_prompt_starts_with_the_scenario_part(self, lang: str) -> None:
         result = describe_mission_prompt("objective", lang)
-        assert result["part"] == "scenario" and result["next_part"] == "build"
-        assert "## 2." in result["prompt"] and "## 4." not in result["prompt"]
-        assert "part: build" in result["prompt"], "the scenario part says how to load the rest"
-        assert len(result["prompt"]) < 15_000
+        assert result["part"] == "scenario"
+        scenario = _whole("objective", lang)
+        assert "## 2." in scenario and "## 4." not in scenario
+        assert "part: build" in scenario, "the scenario part says how to load the rest"
+        assert len(scenario) < 16_000
+
+    @pytest.mark.parametrize("lang", ["fr", "en"])
+    def test_the_scenario_s_last_page_points_at_the_build_part(self, lang: str) -> None:
+        result = describe_mission_prompt("objective", lang)
+        while "next_section" in result:
+            assert "next_part" not in result
+            result = describe_mission_prompt("objective", lang, section=result["next_section"])
+        assert result["next_part"] == "build"
 
     @pytest.mark.parametrize("lang", ["fr", "en"])
     def test_the_build_part_is_the_rest(self, lang: str) -> None:
         whole = describe_mission_prompt("objective", lang, part="all")["prompt"]
-        scenario = describe_mission_prompt("objective", lang)["prompt"]
-        build = describe_mission_prompt("objective", lang, part="build")
-        assert build["prompt"].startswith("## 4.")
-        assert scenario + "<!-- part: build -->\n" + build["prompt"] == whole
+        build = _whole("objective", lang, "build")
+        assert build.startswith("## 4.")
+        assert _whole("objective", lang) + "<!-- part: build -->\n" + build == whole
 
     def test_a_prompt_with_no_parts_comes_whole(self) -> None:
         result = describe_mission_prompt("open-training", "en")
-        assert "part" not in result and "## 8." in result["prompt"]
+        assert "part" not in result and "## 8." in _whole("open-training", "en")
 
     def test_an_unknown_part_is_refused(self) -> None:
         with pytest.raises(ValueError, match="part"):
@@ -369,7 +427,7 @@ def test_the_guide_has_every_new_mission_adapt_the_scaffold_first() -> None:
     The checklist was in the guide, deep under a section written for an Open Training; it now comes
     right after the routing and names each file, Skynet included (FEAT-AI-ZERO-SETUP).
     """
-    guide = describe_authoring_guide()["guide"]
+    guide = describe_authoring_guide("all")["guide"]
     section = guide.index("## Right after `scaffold_mission` — every new mission")
     assert section < guide.index("## Always ground yourself in the oracle")
     checklist = guide[section : guide.index("## Always ground yourself in the oracle")]
@@ -381,7 +439,7 @@ def test_the_guide_has_every_new_mission_adapt_the_scaffold_first() -> None:
 @pytest.mark.parametrize("lang", ["fr", "en"])
 def test_a_mission_prompt_names_no_skill_that_does_not_ship(kind: str, lang: str) -> None:
     """The plugin and its skill are gone: a prompt asking to load it sends the assistant nowhere."""
-    prompt = describe_mission_prompt(kind, lang)["prompt"]
+    prompt = _whole(kind, lang)
     assert "veaf-mission-editor:" not in prompt
     assert "describe_authoring_guide" in prompt
 
@@ -432,7 +490,7 @@ class TestNoShellParsing:
     """FIX-OPENCODE-TEST-FINDINGS 08: "open the built .miz and check" sent the AI to unzip it in PowerShell."""
 
     def test_the_guide_forbids_reading_a_mission_through_a_shell(self) -> None:
-        guide = describe_authoring_guide()["guide"]
+        guide = describe_authoring_guide("all")["guide"]
         assert "never through a shell" in guide
         assert "inspect_built_mission" in guide
 
@@ -462,10 +520,10 @@ class TestNoShellParsing:
 )
 def test_the_objective_prompt_plans_the_route_and_asks_the_level(lang: str, doctrine: str, level: str) -> None:
     """FIX-COWORK-SESSION-FINDINGS 09 and 10: the route designed after the aircraft, two candidates measured."""
-    scenario = describe_mission_prompt("objective", lang)["prompt"]
+    scenario = _whole("objective", lang)
     assert doctrine in scenario and level in scenario
     assert "**two**" in scenario or "**deux**" in scenario
-    build = describe_mission_prompt("objective", lang, part="build")["prompt"]
+    build = _whole("objective", lang, "build")
     assert "set_route" in build and "`basemap: topo`" in build and "password-hash" in build
 
 
@@ -538,8 +596,8 @@ _MARTEAU_RULES = {
 @pytest.mark.parametrize("lang", ["fr", "en"])
 def test_the_objective_prompt_carries_what_marteau_du_golan_did_by_hand(lang: str) -> None:
     parts = {
-        "scenario": describe_mission_prompt("objective", lang)["prompt"],
-        "build": describe_mission_prompt("objective", lang, part="build")["prompt"],
+        "scenario": _whole("objective", lang),
+        "build": _whole("objective", lang, "build"),
     }
     missing = [words for part, words in _MARTEAU_RULES[lang] if words not in parts[part]]
     assert missing == []
@@ -547,7 +605,7 @@ def test_the_objective_prompt_carries_what_marteau_du_golan_did_by_hand(lang: st
 
 def test_the_guide_says_an_operation_zone_has_no_deactivate_of_its_own() -> None:
     """FEAT-OBJECTIVE-MISSION-V2 07: what the Mission Maker may switch off alone stays outside the operation."""
-    guide = describe_authoring_guide()["guide"]
+    guide = describe_authoring_guide("all")["guide"]
     assert 'has no "Deactivate" command of its own' in guide
     assert "outside the operation" in guide
 
@@ -560,9 +618,9 @@ _SETTING_WIND_RULES = ("10 kt or less at the surface", "10 kt au plus au sol")
 @pytest.mark.parametrize(("kind", "lang"), [(k, la) for k in ("objective", "open-training") for la in ("fr", "en")])
 def test_the_helicopter_rule_speaks_of_the_simulated_wind(kind: str, lang: str) -> None:
     prompt = "\n".join(
-        describe_mission_prompt(kind, lang, part=part)["prompt"]
+        _whole(kind, lang, part)
         if part
-        else describe_mission_prompt(kind, lang)["prompt"]
+        else _whole(kind, lang)
         for part in ((None, "build") if kind == "objective" else (None,))
     )
     assert not [rule for rule in _SETTING_WIND_RULES if rule in prompt]
@@ -571,7 +629,7 @@ def test_the_helicopter_rule_speaks_of_the_simulated_wind(kind: str, lang: str) 
 
 
 def test_the_guide_s_helicopter_rule_speaks_of_the_simulated_wind() -> None:
-    guide = describe_authoring_guide()["guide"]
+    guide = describe_authoring_guide("all")["guide"]
     assert not [rule for rule in _SETTING_WIND_RULES if rule in guide]
     assert "simulated_wind" in guide and "20 kt" in guide and "mission-check" in guide
 
@@ -587,7 +645,7 @@ def test_the_persistent_campaign_prompt_names_only_actions_that_exist(lang: str)
     catalog = ActionCatalog()
     register_default_actions(catalog)
     known = {spec.name for spec in catalog.list_catalog()} | {"capabilities"}
-    prompt = describe_mission_prompt("persistent-campaign", lang)["prompt"]
+    prompt = _whole("persistent-campaign", lang)
     named = set(re.findall(r"`([a-z]+(?:_[a-z]+)+)`", prompt))
     actions = {
         name

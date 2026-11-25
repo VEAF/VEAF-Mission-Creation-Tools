@@ -13,7 +13,7 @@ L'utilisateur n'a peut-être ni terminal ni dépôt : tout se fait par les actio
 
 ## 0. Avant tout
 
-1. **Lis le guide de création VEAF** (`describe_authoring_guide`) et suis-le, en particulier ses paragraphes **« A campaign mission »** et **« A persistent campaign »** : ce sont les règles apprises sur la première campagne persistante (*Bouclier de l'Oronte*, Syrie). Ce prompt ne les recopie pas : il dit **quand** les appliquer.
+1. **Lis le guide de création VEAF** (`describe_authoring_guide`) et suis-le, en particulier ses paragraphes **« A campaign mission »** et **« A persistent campaign »** (section `checklist`) : ce sont les règles apprises sur la première campagne persistante (*Bouclier de l'Oronte*, Syrie). Ce prompt ne les recopie pas : il dit **quand** les appliquer.
 2. Appelle `capabilities` et lis les **limitations connues** (`describe_known_limitations`, liste courte, puis en entier les seules entrées que la campagne rencontre).
 3. **Ce qui manque ou ne marche pas dans les outils, tu le signales** dans un bloc **« Retours pour VMCT »** de ton rapport final (quoi, où, comment tu l'as vu, ce que tu as fait à la place).
 4. Réponds en français, concis. Pose tes questions **une par une**, avec des choix et ta reco.
@@ -51,15 +51,15 @@ Tout le reste, tu le décides avec le guide et l'exemple livré, et tu l'annonce
    - `zones:` et `connections:` ;
    - dans `dynamic:`, garde les valeurs livrées ; adapte `support.assets` et `economy.tanker` aux noms des groupes que tu poseras dans le template (étape 3).
    Puis `campaign_validate`, jusqu'à ce qu'il soit propre. Il ne contrôle le template (AWACS, ravitailleurs, plan radio) qu'une fois celui-ci posé : son silence à ce stade ne dit rien du template.
-3. **Le template** : `scaffold_mission` dans `<dossier de campagne>\template`, avec le `theatre` de la campagne (gabarit `standard`).
-   Applique ensuite le guide, paragraphes « A campaign mission » et « A persistent campaign » : un AWACS et deux ravitailleurs (une perche, un panier) en orbite au-dessus de vos arrières, leurs canaux dans `src/presets.yaml`, `modules.ASSETS`, les noms exacts repris dans `dynamic.support.assets` et `dynamic.economy.tanker`.
+3. **Le template** : `scaffold_mission` dans `<dossier de campagne>\template`, avec le `theatre` de la campagne (gabarit `standard`), puis `adapt_scaffold` dessus (guide, section `after-scaffold`).
+   Applique ensuite le guide, paragraphes « A campaign mission » et « A persistent campaign » (section `checklist`) : un AWACS et deux ravitailleurs (une perche, un panier) en orbite au-dessus de vos arrières, leurs canaux dans `src/presets.yaml`, `modules.ASSETS`, les noms exacts repris dans `dynamic.support.assets` et `dynamic.economy.tanker`.
    **Aucune unité `#veafInterpreter`** dans le template : ce que la campagne doit tenir se déclare en zone.
 4. **`campaign_validate` jusqu'à zéro erreur et zéro avertissement.**
 5. **`briefing.yaml`** : crée-le (`edit_mission_file`, `search` vide) avec `operation`, `subtitle`, `situation` et les **axes d'effort** sous `axes:` (un `title` et un `text` chacun), dans la langue des pilotes. Un texte qui contient « : » se met entre guillemets. Puis `campaign_validate`.
 6. **Démarrer** : `campaign_init` **sans** `example`. Il écrit `campaign-state.yaml`.
    Change les zones **avant** cette étape : après, une zone ajoutée ou renommée est une erreur de `campaign_validate`. Pour une campagne persistante, la sortie est sans perte : l'utilisateur supprime `campaign-state.yaml` dans l'Explorateur, et tu relances `campaign_init`.
 7. **La mission** : `campaign_next`. Il pose `missions\mission-01\mission`, les waypoints des joueurs, le plan radio, le briefing DCS, le dossier de théâtre et les pages de planchette. Lis chaque avertissement qu'il rend et corrige-le dans le template ou `campaign.yaml`, puis relance `campaign_next` : il met à jour sans écraser le travail fait.
-8. **Construire** : `validate_mission` puis `build_mission` sur `missions\mission-01\mission`, puis `inspect_built_mission`. Le guide, section « Finish », dit quoi lire dans le résultat.
+8. **Construire** : `validate_mission` puis `build_mission` sur `missions\mission-01\mission`, puis `inspect_built_mission`. Le guide, section `finish`, dit quoi lire dans le résultat.
 
 ## 4. Ce que tu rends à l'utilisateur
 

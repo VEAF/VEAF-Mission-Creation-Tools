@@ -383,7 +383,7 @@ Règles :
   préréglage ne porte (journal et `presets-validation-report.md`) ; la mission n'est pas prête tant que
   cette liste n'est pas vide.
   Seuls peuvent y rester les moyens écartés exprès de la radio UHF (AWACS de l'arène comme Darkstar, drones) : dis-le à l'utilisateur.
-- **`src/presets.yaml` à réécrire pour la carte** (le gabarit n'est pas fait pour elle), avec la convention du gabarit :
+- **`src/presets.yaml` à finir pour la carte** (`adapt_scaffold` met ses aérodromes sur la radio VHF et retire les listes des autres cartes), avec la convention du gabarit :
   **la radio VHF (`primary_2`) porte les aérodromes** (leur fréquence de tour, collection `bases`) et les FARP ;
   **la radio UHF (`primary_1`) porte les moyens, puis les patrouilles** : AWACS et ravitailleurs d'abord (S-3B des porte-avions compris), puis les porte-avions, puis les patrouilles (Archer, Bengal…) dans les canaux qui restent.
   Ne mélange jamais les deux : avec 20 canaux par radio, un aérodrome ou une patrouille posé sur l'une ou l'autre au hasard n'est que sur une des deux, et le pilote le cherche sur la mauvaise (OT Syria, 11/11/2026 : Ramat David absent de la VHF, Archer absent de l'UHF).
@@ -409,7 +409,7 @@ Règles :
   qu'aucun canal non-aérodrome ne tombe sur une tour du théâtre. C'est ce contrôle qui manquait.
 - **Pas de variantes météo** : supprime `src/versions.yaml` et mets `pipeline.weather: false` (4.2).
   Mesuré sur l'OT Golfe Persique le 12/10/2026 : un METAR sans nuage rend chaque variante « dégagée » identique à sa jumelle réelle, et le serveur remplace de toute façon la météo.
-- **`src/waypoints.yaml`** : retire les exemples du gabarit ; un plan par catégorie et par camp jouable,
+- **`src/waypoints.yaml`** : `adapt_scaffold` retire les exemples du gabarit ; un plan par catégorie et par camp jouable,
   avec le bullseye.
 
 ### 4.11 Modules
@@ -578,7 +578,7 @@ Une mission en anglais prend les fiches du prompt anglais.
 
 ## 5. Ordre de construction
 
-1. `scaffold_mission` dans le dossier vide.
+1. `scaffold_mission` dans le dossier vide, puis `adapt_scaffold` (guide, section `after-scaffold`) : nom, époque, date et heure, position, les aérodromes, les camps aux slots dynamiques, SKYNET.
 2. Mesure du front et plan chiffré (bases, soutien, zones, QRA, CAP), **présenté à l'utilisateur**
    avant de construire.
 3. `mission.yaml` : identité, sécurité et profils, modules.

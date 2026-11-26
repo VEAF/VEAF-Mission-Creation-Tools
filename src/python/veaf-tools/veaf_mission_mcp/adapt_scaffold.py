@@ -13,8 +13,8 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from mission_tools.miz_backup import backup_before_write
 from mission_tools.mission_yaml_editor import load_yaml, save_yaml
+from mission_tools.miz_backup import backup_before_write
 from presets_injector.airfield_channels_manager import (
     _normalise,
     rewrite_primary_2,

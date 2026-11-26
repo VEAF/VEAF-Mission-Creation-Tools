@@ -73,7 +73,7 @@ modules:
         delay_before_rearming: 30        # secondes avant réinitialisation après départ des intrus
         rearm_while_occupied: true       # réarmer sans attendre que la zone se vide
         scale_with_opposition: true      # palier choisi aussi d'après le niveau d'opposition
-        delay_before_activating: 30      # secondes qu'un intrus reste dans la zone avant le décollage
+        delay_before_activating: 30      # secondes entre la première intrusion et le décollage
         react_on_helicopters: false      # true = déclencher aussi sur les hélicoptères ennemis
         airport_link: "Batumi"           # en pause tant que cette base est perdue (raccourci de links)
         # links: ["Batumi", "SA-10 Nord"]   # bases, FARP, navires, groupes ou statics dont dépend la QRA
@@ -105,7 +105,7 @@ modules:
 | `groups_by_enemy_count[].groups` | string[] | — | Oui | Pool de noms de groupes ou de commandes VEAF, comme `simple_groups` |
 | `groups_by_enemy_count[].random_pick` | entier | — | Non | Combien de groupes **tirer** dans le pool, sans remise : jamais deux fois le même groupe tant que la liste n'est pas épuisée. Un nombre plus grand que la liste repart pour un tour : « 4 parmi [A, B] » fait décoller A et B deux fois chacun, comme en v5. **Absent : tous les groupes du palier décollent.** Le palier retenu est le plus grand dont `enemy_count` ne dépasse pas le nombre d'intrus, dans quelque ordre que les paliers soient écrits |
 | `delay_before_rearming` | entier | `0` | Non | Secondes avant réinitialisation après départ des intrus |
-| `delay_before_activating` | entier | `0` | Non | Secondes qu'un intrus reste dans la zone avant le décollage de la QRA, recomptées à chaque entrée une fois la QRA prête — **pas** depuis le début de la mission. Aucun réglage ne met une QRA en ligne à une heure donnée de la mission |
+| `delay_before_activating` | entier | `0` | Non | Secondes entre la première intrusion, une fois la QRA prête, et son décollage — **pas** depuis le début de la mission. Un intrus qui sort de la zone n'arrête pas le compte : la QRA décolle au premier contrôle après le délai qui trouve un intrus dans la zone, et le compte ne repart qu'une fois la QRA réarmée. Aucun réglage ne met une QRA en ligne à une heure donnée de la mission |
 | `rearm_while_occupied` | booléen | `false` | Non | Une QRA détruite se réarme **même si des intrus sont encore dans sa zone**. Sans cette clé, elle attend que la zone soit vide — avec plusieurs joueurs sur l'objectif, presque jamais |
 | `scale_with_opposition` | booléen | `false` | Non | Choisir le palier d'après le [niveau d'opposition](#opposition-level) quand il dépasse le nombre d'intrus dans la zone — le seuil du plus petit palier aussi : une paire déclenche une QRA dont le premier palier est 3 si la mission est dimensionnée pour six. Le déclenchement reste sur la zone : personne dedans, pas de scramble |
 | `react_on_helicopters` | booléen | `false` | Non | Déclencher aussi sur les hélicoptères ennemis |
@@ -259,7 +259,7 @@ Utiliser l'une des options suivantes :
 | `:setNoNeedToLeaveZoneBeforeRearming()` | Autoriser le réarmement même si des ennemis sont encore dans la zone (`rearm_while_occupied`) |
 | `:setScaleWithOpposition()` | Choisir le palier d'après le niveau d'opposition quand il dépasse le nombre d'intrus (`scale_with_opposition`) |
 | `:setResetWhenLeavingZone()` | Réinitialiser immédiatement quand tous les ennemis quittent la zone |
-| `:setDelayBeforeActivating(seconds)` | Secondes qu'un intrus reste dans la zone avant le décollage |
+| `:setDelayBeforeActivating(seconds)` | Secondes entre la première intrusion et le décollage |
 | `:setMinimumAltitudeInFeet(feet)` | Altitude minimale de l'ennemi pour déclencher un scramble |
 | `:setMaximumAltitudeInFeet(feet)` | Altitude maximale de l'ennemi pour déclencher un scramble |
 | `:setRespawnDefaultOffset(latDelta, lonDelta)` | Décalage de spawn depuis le centre de la zone (mètres, lat/lon) — premier nombre vers le nord, second vers l'est ; voir [veafAirWaves](veafAirWaves.md#spawn-offset) |

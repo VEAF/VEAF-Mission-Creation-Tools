@@ -2314,10 +2314,11 @@ limitations:
   area: runtime
   title: "No setting brings a QRA online at a given time of the mission: `delay_before_activating` counts from the intrusion"
   symptom: |
-    `delay_before_activating` is the seconds an intruder stays in the QRA's zone before the take-off, counted
-    again at each entry once the QRA is ready (`veafQraCore.lua`, `STATUS_READY_WAITINGFORMORE`). A QRA asked
-    "online at H+15 min" with `delay_before_activating: 900` scrambles 15 minutes after each intrusion, from the
-    first minute of the mission. `active_at_start` is a yes or no. Until 2026-11-26 the module's documentation and
+    `delay_before_activating` is the seconds from the first intrusion, once the QRA is ready, to its take-off
+    (`veafQraCore.lua`, `STATUS_READY_WAITINGFORMORE`). An intruder leaving the zone does not stop the count: the
+    QRA takes off at the first check after the delay that finds an intruder in the zone, and the count starts
+    again only once the QRA has rearmed. A QRA asked "online at H+15 min" with `delay_before_activating: 900`
+    scrambles 15 minutes after the first intrusion, which can come in the first minute of the mission. `active_at_start` is a yes or no. Until 2026-11-26 the module's documentation and
     the objective-mission prompt said "seconds after the start", and *Marteau du Golan*'s README promised a QRA
     "en alerte à H+15 min".
   workaround: |

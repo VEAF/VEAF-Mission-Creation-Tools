@@ -388,9 +388,9 @@ approximation of it.
   (`create_qra`) on the enemy base, circle in red territory, with `delay_before_activating` and
   `react_on_helicopters` decided and written in the briefing; period interceptors with a **loadout**
   (`pylons`, `payload` by name from `list_payloads`, or `loadout_from`), `airport_link` on the base. A patrol already airborne = a native group
-  in orbit, not an on-demand CAP. `delay_before_activating` is the seconds an intruder
-  stays in the zone before the take-off, counted again at each entry: **not** from the start of the
-  mission, and no setting brings a QRA online at a mission time. Write it that way in the briefing
+  in orbit, not an on-demand CAP. `delay_before_activating` is the seconds from
+  the first intrusion to the take-off: **not** from the start of the mission, an intruder leaving does not stop
+  the count, and no setting brings a QRA online at a mission time. Write it that way in the briefing
   ("they take off 2 min after you enter their circle").
   **`react_on_helicopters: false` is about take-off, not engagement**: the QRA does not scramble for helicopters, but once airborne for a jet it attacks them too — two AH-64s were shot down with R-73s over the Beit Jinn pass on 2026-10-29. Never write "they do not react to helicopters" without that nuance, and give the helicopters cover (a CAP, or a route out of the QRA's circle).
 - **The Mission Maker switches the big threats off** when the players present are no match for them. `create_qra` writes `scale_with_opposition: true` and the `opposition: {level: 0}` block (the mission starts unchanged): the **Opposition** menu's "0 aircraft" keeps the QRA on the ground; `radio_menu: true` adds its own stop command. A long-range SAM is a zone **outside the operation**, `active_at_start: true`, with its own deactivate command. Say both in the Mission Maker's notes.

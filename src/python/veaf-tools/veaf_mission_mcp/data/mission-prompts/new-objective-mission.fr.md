@@ -389,8 +389,8 @@ validé un scénario, pas un à-peu-près.
   d'époque avec **emport** (`pylons`, `payload` par son nom via `list_payloads`, ou `loadout_from`),
   `airport_link` sur la base. Une patrouille
   déjà en vol = un groupe natif en orbite, pas une CAP à la demande. `delay_before_activating` est le
-  nombre de secondes qu'un intrus reste dans la zone avant le décollage, recompté à chaque entrée :
-  **pas** depuis le début de la mission, et aucun réglage ne met une QRA en ligne à une heure donnée.
+  nombre de secondes entre la première intrusion et le décollage : **pas** depuis le début de la mission,
+  un intrus qui ressort n'arrête pas le compte, et aucun réglage ne met une QRA en ligne à une heure donnée.
   Écris-le ainsi au briefing (« elles décollent 2 min après votre entrée dans leur cercle »).
   **`react_on_helicopters: false` porte sur le décollage, pas sur l'engagement** : la QRA ne décolle pas pour des hélicoptères, mais une fois en l'air pour un avion elle les attaque aussi — deux AH-64 abattus au R-73 au col de Beit Jinn le 29/10/2026. N'écris jamais « elles ne réagissent pas aux hélicoptères » sans cette nuance, et donne une couverture aux hélicoptères (une CAP, ou une route hors du cercle de la QRA).
 - **Le Mission Maker coupe les grosses menaces** quand les joueurs présents ne sont pas de taille. `create_qra` écrit `scale_with_opposition: true` et le bloc `opposition: {level: 0}` (la mission démarre sans changement) : « 0 avion » du menu **Opposition** garde la QRA au sol ; `radio_menu: true` lui ajoute sa propre commande d'arrêt. Un SAM longue portée est une zone **hors de l'opération**, `active_at_start: true`, avec sa commande de désactivation. Dis les deux dans les notes du Mission Maker.

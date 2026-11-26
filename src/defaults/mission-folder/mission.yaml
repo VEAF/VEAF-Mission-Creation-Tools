@@ -222,7 +222,7 @@ modules:
   #               - Group2
   #             random_pick: 1
   #         delay_before_rearming: 30
-  #         delay_before_activating: 30  # seconds an intruder stays in the zone before the scramble
+  #         delay_before_activating: 30  # seconds from the first intrusion to the scramble
   #         active_at_start: true   # false = declared but not armed; wait for a qra.start radio command
   #   AIRWAVES:
   #     enabled: true

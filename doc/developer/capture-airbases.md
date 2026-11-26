@@ -104,14 +104,19 @@ et refais les étapes **2 → 4**. (Inutile de relancer la fenêtre noire, laiss
 
 Coche au fur et à mesure. **Inutile de refaire une carte déjà cochée.**
 
-### ✅ Toutes les cartes DCS actuelles sont couvertes 🎉
+### Une carte à refaire : Kola
 
-- [x] **Syria** · **Caucasus** · **Cold War Germany** · **Marianas** · **Normandy**
+- [ ] **Kola** — DCS 2.9.32 lui a ajouté trois aérodromes (Honningsvåg, Hasvik, Vardø) : un nouveau relevé, **avec `--parking`**, les fait entrer dans les outils.
+
+### Les cartes déjà relevées
+
+- [x] **Syria** · **Caucasus** · **Marianas** · **Normandy**
+- [x] **Cold War Germany** — *relevée à nouveau par David sur DCS 2.9.32, qui lui a ajouté 20 aérodromes*
 - [x] **Persian Gulf** · **Sinai** — *relevées par David*
-- [x] **Nevada** · **The Channel** (la Manche) · **South Atlantic** (Malouines) · **Kola**
+- [x] **Nevada** · **The Channel** (la Manche) · **South Atlantic** (Malouines)
 - [x] **Afghanistan** · **Iraq** · **Marianas WWII** (Mariannes 1944) — *relevées par Reaper, merci !*
 
-**Il n'y a donc plus rien à relever pour l'instant.** Ce dont on aura encore besoin :
+Ce dont on aura encore besoin ensuite :
 
 - **une nouvelle carte DCS sort** → relève-la (la mission se fabrique en deux minutes dans
   l'éditeur, voir juste en dessous) ;

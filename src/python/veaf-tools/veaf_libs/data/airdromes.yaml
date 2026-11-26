@@ -1,6 +1,6 @@
 # DCS airdrome name -> id table, per theatre.
 # Generated from the dcs-world-schema reference data, and from the runtime airbase dumps
-# (veaf_build/dcs_data/airbase_dumps/<Theatre>.json) for a theatre it lacks.
+# (veaf_build/dcs_data/airbase_dumps/<Theatre>.json) for the airbases it lacks.
 # Names are exact Airbase:getName() values (what airport_link / Airbase.getByName expects).
 # DO NOT EDIT BY HAND — CI fails if it drifts. Re-run `veaf-build update-dcs-data --airdromes`.
 # Used at build time to resolve airdrome names in warehouses.yaml and to validate QRA airport_link.
@@ -88,12 +88,16 @@ theatres:
     Ushuaia Helo Port: 8
   GermanyCW:
     Adelsheim: 52
+    Ahlhorn: 172
+    Ahlhorn Highway Strip: 167
     Airracing Frankfurt: 204
     Airracing Koblenz: 123
     Airracing Lubeck: 201
     Allstedt: 157
     Altes Lager: 2
+    Avno: 206
     Bad Durkheim: 242
+    Baden-Soellingen: 192
     Barth: 3
     Bienenfarm: 110
     Bindersleben: 164
@@ -103,7 +107,9 @@ theatres:
     Brandis: 35
     Braunschweig: 107
     Bremen: 5
+    Bremerhaven: 178
     Briest: 6
+    Bruchsal: 214
     Buchel: 235
     Buckeburg: 7
     Celle: 8
@@ -117,6 +123,7 @@ theatres:
     Falkenberg: 39
     Fassberg: 11
     Finow: 12
+    Finsterwalde: 173
     Frankfurt: 163
     Fritzlar: 154
     Fulda: 166
@@ -251,16 +258,21 @@ theatres:
     Kammermark: 104
     Kastrup: 41
     Kiel: 42
+    Kluczewo: 183
+    Kolobrzeg-Bagicz: 203
     Kothen: 82
     Laage: 20
+    Lahr: 209
     Landstuhl: 43
     Langenselbold: 246
     Larz: 21
     Leipzig Mockau: 236
+    Lolland-Falster: 207
     Lubeck: 81
     Luneburg: 89
     Mahlwinkel: 22
     Mainz Finthen: 44
+    Makowice: 205
     Marxwalde: 46
     Mendig: 168
     Merseburg: 169
@@ -271,11 +283,14 @@ theatres:
     Norvenich: 48
     Ober-Morlen: 248
     Obermehler Schlotheim: 51
+    Oldenburg: 174
     Oranienburg: 49
     Parchim: 84
+    Pattonville: 216
     Peenemunde: 25
     Perwenitz: 125
     Pferdsfeld: 232
+    Phalsbourg: 177
     Pinnow: 111
     Pottschutthohe: 249
     Ramstein: 165
@@ -286,11 +301,15 @@ theatres:
     Schweinfurt: 160
     Sembach: 156
     Sittensen: 131
+    Sjobo: 175
+    Sniatowo: 179
     Spangdahlem: 162
     Sperenberg: 101
     Sprendlingen: 135
     Stendal: 27
+    Strasbourg Entzeim: 176
     Sturup: 45
+    Stuttgart: 138
     Szczecin-Goleniow: 50
     Tagra: 87
     Tegel: 28
@@ -301,6 +320,7 @@ theatres:
     Uelzen: 102
     Uetersen: 86
     Ummern: 114
+    Vaerlose: 210
     Verden-Scharnhorst: 116
     Walldorf: 247
     Waren Vielist: 109

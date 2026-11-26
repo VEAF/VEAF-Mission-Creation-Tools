@@ -21,6 +21,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **Every zone page of a mission briefing says which waypoint it is** (FIX-BRIEFING-ZONE-WAYPOINT-NUMBER): the "Point" line gives the numbers the overview map prints, planes then helicopters (`Point : W4/H4 — TALBISEH du plan de vol`), where it gave the name alone. A zone with no point of the flight plan has no line.
 
+- **Cold War Germany's 20 airfields added by DCS 2.9.32 resolve by name** (FEAT-AIRDROMES-DUMP-UNION): Ahlhorn, Stuttgart, Lahr, Strasbourg Entzeim and sixteen more were missing from the airdrome table, built from a reference database read on DCS 2.9.30, so a dynamic-slot warehouse or a QRA `airport_link` naming one was not wired, with no error.
+  The generator now joins the reference database and the runtime dumps on the airdrome id: the database wins on every id it has, and a dump adds the ids it lacks.
+  GermanyCW was captured again on DCS 2.9.32.30490 (247 airfields, 8 028 parking stands); no id changed.
+  Kola's three new airfields (Honningsvåg, Hasvik, Vardø) wait for a capture on a PC where the map is installed (`kola-airfields-added-by-dcs-2-9-32-unknown`).
+
 ## [6.39.1] — 2026-11-24
 
 - **"Next page" is the last entry of every radio menu page** (FIX-RADIO-NEXT-PAGE-IN-F10): on the Campagne server, several menus showed "Page suivante" in F9 and another entry in F10. DCS lists a menu's entries in the order they were created, so an entry for one pilot's group, created when he joined, or an entry recreated with new parameters, landed below a "Next page" created before. The link is now recreated after the page's entries, with the pages under it, when something was added to that page.

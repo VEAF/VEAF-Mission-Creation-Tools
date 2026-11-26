@@ -1231,12 +1231,13 @@ Every value is checked before anything is written; what is not given stays as th
 
 - `src/presets.yaml`: the other theatres' airfield lists always go (48 777 → about 8 700 bytes on the Caucasus), except on a theatre that has none of its own (Afghanistan, TheChannel, MarianaIslandsWWII), where they all stay; `airfields` puts the given airfields on the second radio (`primary_2`), channel 1 first, and a name the theatre does not have is refused with its list. Flight, tanker and AWACS channels stay.
 - `src/versions.yaml`: `date` becomes `base_date`, `start_time` the variant's time, named after the time (`morning`, `noon`…) unless `variant` is given; `position` (`{x, y}` on the map or `{latitude, longitude}`, `timezone` optional: the longitude's nominal zone by default) serves sunrise and sunset.
-- `src/waypoints.yaml`: the example points always go; `waypoints` (`[{name, x, y, alt?}]`, altitude in metres, 6 096 by default) gives every player flight's route, then the BULLSEYE. Without them, the BULLSEYE alone.
+- `src/waypoints.yaml`: the scaffold's example points go; a route already written stays when `waypoints` is not given; `waypoints` (`[{name, x, y, alt?}]`, altitude in metres, 6 096 by default) gives every player flight's route, then the BULLSEYE. Without them, the BULLSEYE alone.
 - `src/dynamic-slot-templates.yaml`: `dynamic_slot_coalitions` copies the shipped catalogue for those coalitions only, and `dynamic_slot_aircraft` (`F/A-18C`) for those aircraft only (a name the catalogue lacks is refused with its types); both omitted, the file stays empty and the build takes the whole catalogue. A model asked for players "in F/A-18C" read 31 384 characters of the catalogue to find that type.
 - `mission.yaml`: `mission_name`, `era` (`MODERN`, `COLD_WAR`, `WW2`), `language` (`fr`, `en`) and `skynet`.
 - The blank mission: `date` and `start_time` (`set_mission_date`).
 
 The result is `{folder, changes}`, one line per file, to tell the user.
+Each file it rewrites is backed up first in the folder's `.veaf-backups/`, as every MCP write is.
 Implementation: `veaf_mission_mcp/adapt_scaffold.py`.
 
 ```json

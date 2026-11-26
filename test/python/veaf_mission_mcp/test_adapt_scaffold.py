@@ -190,3 +190,31 @@ def test_an_aircraft_the_catalogue_lacks_is_refused_before_writing(folder: Path)
     with pytest.raises(ValueError, match="no dynamic-slot template for"):
         adapt_scaffold(folder, dynamic_slot_aircraft=["Concorde"])
     assert (folder / "src" / "presets.yaml").read_bytes() == before
+
+
+def test_a_second_call_without_waypoints_keeps_the_route_of_the_first(folder: Path) -> None:
+    """PR #1349 review: a second call, to turn Skynet on, wrote an empty route over the first call's."""
+    adapt_scaffold(folder, waypoints=[{"name": "Push", "x": -150000, "y": 830000}])
+
+    result = adapt_scaffold(folder, skynet=True)
+
+    assert list(_yaml(folder / "src" / "waypoints.yaml")["waypoints"]) == ["PUSH"]
+    assert "waypoints.yaml" in result["changes"][2]
+
+
+def test_every_file_it_rewrites_is_backed_up_first(folder: Path) -> None:
+    """PR #1349 review: the three files it rewrites whole had no backup, unlike every other MCP write."""
+    before = {name: (folder / "src" / name).read_bytes() for name in _REWRITTEN}
+
+    adapt_scaffold(folder, airfields=["Beslan"], waypoints=[], dynamic_slot_coalitions=["blue"])
+
+    backups = folder / ".veaf-backups"
+    for name, content in before.items():
+        stem, suffix = name.rsplit(".", 1)
+        copies = sorted(backups.glob(f"{stem}.*.{suffix}"))
+        assert copies, f"no backup of src/{name}"
+        assert copies[-1].read_bytes() == content
+
+
+#: The files `adapt_scaffold` writes whole, rather than through `save_yaml`, which backs up by itself.
+_REWRITTEN = ("presets.yaml", "waypoints.yaml", "dynamic-slot-templates.yaml")

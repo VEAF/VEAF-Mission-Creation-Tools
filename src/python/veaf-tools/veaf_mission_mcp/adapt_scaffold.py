@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from mission_tools.miz_backup import backup_before_write
 from mission_tools.mission_yaml_editor import load_yaml, save_yaml
 from presets_injector.airfield_channels_manager import (
     _normalise,
@@ -37,6 +38,8 @@ LANGUAGES: tuple[str, ...] = ("fr", "en")
 COALITIONS: tuple[str, ...] = ("blue", "red")
 #: Default altitude of a route point, in metres (20 000 ft, the scaffold's example).
 DEFAULT_WAYPOINT_ALT = 6096.0
+#: The route points of the scaffold's `src/waypoints.yaml`: examples, never a real mission's route.
+EXAMPLE_WAYPOINTS = frozenset({"HOLDING_POINT", "INITIAL_POINT", "TARGET"})
 
 _TIME = re.compile(r"^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$")
 #: A generated `airports-*` collection's heading under `channels_collection`.
@@ -170,6 +173,13 @@ def _drop_other_theatres(text: str, keep: str | None) -> tuple[str, list[str]]:
     return newline.join(kept), removed
 
 
+def _write_backed_up(path: Path, content: bytes) -> None:
+    """Write `content` over `path`, a backup of it taken first, as every other MCP write does."""
+    if path.exists() and path.read_bytes() != content:
+        backup_before_write(path)
+    path.write_bytes(content)
+
+
 def _adapt_presets(folder: Path, theatre: str, airfields: list[str] | None) -> str:
     """Fit `src/presets.yaml` to the theatre: its airfields on the second radio, no other theatre's list."""
     path = folder / "src" / "presets.yaml"
@@ -186,7 +196,7 @@ def _adapt_presets(folder: Path, theatre: str, airfields: list[str] | None) -> s
         parts.append(t("mcp.adapt.presets_radio", airfields=", ".join(chosen)))
     if removed:
         parts.append(t("mcp.adapt.presets_dropped", count=len(removed)))
-    path.write_bytes(text.encode("utf-8"))
+    _write_backed_up(path, text.encode("utf-8"))
     return t("mcp.adapt.presets", details="; ".join(parts) or t("mcp.adapt.no_change"))
 
 
@@ -239,8 +249,17 @@ def _adapt_versions(
     return t("mcp.adapt.versions", details=", ".join(parts))
 
 
-def _adapt_waypoints(folder: Path, waypoints: list[dict[str, Any]] | None) -> str:
-    """Write the mission's route in `src/waypoints.yaml`, or no point at all, in place of the examples."""
+def _adapt_waypoints(folder: Path, waypoints: list[dict[str, Any]] | None) -> str | None:
+    """Write the mission's route in `src/waypoints.yaml`, or no point at all, in place of the examples.
+
+    Without `waypoints`, a route that is no longer the scaffold's examples is left alone: a second call, to
+    change something else, must not erase the first call's route.
+    """
+    path = folder / "src" / "waypoints.yaml"
+    if waypoints is None and path.exists():
+        current = (yaml.safe_load(path.read_text(encoding="utf-8")) or {}).get("waypoints") or {}
+        if not set(current) & EXAMPLE_WAYPOINTS:
+            return None
     points: dict[str, Any] = {}
     for point in waypoints or []:
         key = re.sub(r"[^A-Za-z0-9_]+", "_", str(point["name"])).strip("_").upper() or "WP"
@@ -257,7 +276,7 @@ def _adapt_waypoints(folder: Path, waypoints: list[dict[str, Any]] | None) -> st
         }
     content = {"waypoints": points, "settings": {"every_player_flight": {"waypoints": list(points)}}}
     text = _WAYPOINTS_HEADER + yaml.safe_dump(content, sort_keys=False, allow_unicode=True)
-    (folder / "src" / "waypoints.yaml").write_text(text, encoding="utf-8")
+    _write_backed_up(path, text.encode("utf-8"))
     if not points:
         return t("mcp.adapt.waypoints_none")
     return t("mcp.adapt.waypoints", count=len(points), keys=", ".join(points))
@@ -347,7 +366,7 @@ def _adapt_dynamic_slots(folder: Path, coalitions: list[str] | None, aircraft: l
         kept[category] = {"coalitions": sides_kept}
     header = _SLOTS_HEADER.format(coalitions=", ".join(sides))
     text = header + yaml.safe_dump(kept, sort_keys=False, allow_unicode=True)
-    (folder / "src" / "dynamic-slot-templates.yaml").write_text(text, encoding="utf-8")
+    _write_backed_up(folder / "src" / "dynamic-slot-templates.yaml", text.encode("utf-8"))
     if wanted is not None:
         return t("mcp.adapt.slots_aircraft", coalitions=", ".join(sides), aircraft=", ".join(sorted(wanted)))
     return t("mcp.adapt.slots", coalitions=", ".join(sides))
@@ -400,8 +419,9 @@ def adapt_scaffold(
     """Fit a scaffolded mission folder to the mission asked for: steps 1 to 5 of the authoring guide.
 
     Every value is checked before anything is written. What is not given is left as the scaffold has
-    it, except two things that are always wrong for a real mission: the example waypoints, removed, and
-    the airfield lists of the other theatres in `src/presets.yaml`.
+    it, except two things that are always wrong for a real mission: the example waypoints, removed while
+    they are there, and the airfield lists of the other theatres in `src/presets.yaml`. Each file rewritten
+    whole is backed up first, in the folder's `.veaf-backups/`.
 
     Args:
         folder: The mission folder `scaffold_mission` laid down.
@@ -447,7 +467,7 @@ def adapt_scaffold(
         _adapt_versions(folder, theatre, date, start_time, variant, position)
         or t("mcp.adapt.unchanged", file="src/versions.yaml")
     )
-    changes.append(_adapt_waypoints(folder, waypoints))
+    changes.append(_adapt_waypoints(folder, waypoints) or t("mcp.adapt.unchanged", file="src/waypoints.yaml"))
     changes.append(
         _adapt_dynamic_slots(folder, dynamic_slot_coalitions, dynamic_slot_aircraft)
         or t("mcp.adapt.unchanged", file="src/dynamic-slot-templates.yaml")

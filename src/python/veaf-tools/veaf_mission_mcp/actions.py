@@ -1962,7 +1962,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "(src/waypoints.yaml), the coalitions whose dynamic-slot templates stay "
                 "(src/dynamic-slot-templates.yaml), mission.name, mission.era, mission.language and SKYNET (mission.yaml), and the "
                 "blank mission's date and start time. Do not read or rewrite those files yourself. What is not "
-                "given stays as scaffolded, but the example waypoints are always removed. Every value is checked "
+                "given stays as scaffolded, but the scaffold's example waypoints are removed. Every value is checked "
                 "before anything is written. Returns one line per file: tell them to the user."
             ),
             parameters_schema={

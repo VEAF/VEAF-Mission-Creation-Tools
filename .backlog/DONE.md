@@ -6,6 +6,10 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-AIRDROMES-DUMP-UNION](FEAT-AIRDROMES-DUMP-UNION/PRD.md) · ✅
+
+The airfields DCS adds after the reference database resolve by name: the generator joins the database and the runtime dumps on the airdrome id, and GermanyCW was captured again on DCS 2.9.32 (+20 airfields). Kola's three new airfields wait for a capture. Closed 2026-11-26.
+
 ### [FIX-BRIEFING-ZONE-WAYPOINT-NUMBER](FIX-BRIEFING-ZONE-WAYPOINT-NUMBER/PRD.md) · ✅
 
 Every zone page of a mission briefing gives its waypoint as the maps label it (`Point : W4/H4 — TALBISEH du plan de vol`). Closed 2026-11-24.

@@ -167,3 +167,26 @@ def test_the_language_is_written_and_checked(folder: Path) -> None:
     assert _yaml(folder / "mission.yaml")["mission"]["language"] == "fr"
     with pytest.raises(ValueError, match="language must be one of"):
         adapt_scaffold(folder, language="de")
+
+
+def test_the_aircraft_the_players_fly_keep_only_their_templates(folder: Path) -> None:
+    """Run 9: players "in F/A-18C" made a local model read 31 384 characters of the slot catalogue."""
+    result = adapt_scaffold(folder, dynamic_slot_coalitions=["blue"], dynamic_slot_aircraft=["F/A-18C"])
+    slots = _yaml(folder / "src" / "dynamic-slot-templates.yaml")
+    types = {
+        unit["type"]
+        for countries in slots["airplanes"]["coalitions"].values()
+        for groups in countries.values()
+        for group in groups.values()
+        for unit in group["units"].values()
+    }
+    assert types == {"FA-18C_hornet"}
+    assert slots["helicopters"]["coalitions"] == {}
+    assert "FA-18C_hornet" in result["changes"][3]
+
+
+def test_an_aircraft_the_catalogue_lacks_is_refused_before_writing(folder: Path) -> None:
+    before = (folder / "src" / "presets.yaml").read_bytes()
+    with pytest.raises(ValueError, match="no dynamic-slot template for"):
+        adapt_scaffold(folder, dynamic_slot_aircraft=["Concorde"])
+    assert (folder / "src" / "presets.yaml").read_bytes() == before

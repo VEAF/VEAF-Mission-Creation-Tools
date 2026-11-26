@@ -2019,6 +2019,12 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "items": {"type": "string", "enum": list(COALITIONS)},
                         "description": "The coalitions that fly dynamic slots; omitted: both.",
                     },
+                    "dynamic_slot_aircraft": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "The aircraft the players fly ('F/A-18C'): only their dynamic-slot templates "
+                        "stay. Omitted: every type of the catalogue.",
+                    },
                     "skynet": {
                         "type": "boolean",
                         "description": "true when the mission has a SAM or an EWR zone (integrated air defence).",
@@ -2039,6 +2045,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             airfields=p.get("airfields"),
             waypoints=p.get("waypoints"),
             dynamic_slot_coalitions=p.get("dynamic_slot_coalitions"),
+            dynamic_slot_aircraft=p.get("dynamic_slot_aircraft"),
             skynet=p.get("skynet"),
         ),
     )

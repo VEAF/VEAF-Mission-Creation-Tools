@@ -263,27 +263,94 @@ def _adapt_waypoints(folder: Path, waypoints: list[dict[str, Any]] | None) -> st
     return t("mcp.adapt.waypoints", count=len(points), keys=", ".join(points))
 
 
-def _adapt_dynamic_slots(folder: Path, coalitions: list[str] | None) -> str | None:
-    """Keep the shipped dynamic-slot catalogue's templates of the coalitions named only."""
-    if coalitions is None or set(coalitions) == set(COALITIONS):
+def _template_types(group: dict[str, Any]) -> set[str]:
+    """Return the aircraft types of one dynamic-slot template group."""
+    units = group.get("units") or {}
+    values = units.values() if isinstance(units, dict) else units
+    return {str(unit.get("type")) for unit in values if isinstance(unit, dict) and unit.get("type")}
+
+
+def _aircraft_key(name: str) -> str:
+    """Reduce an aircraft name to letters and digits, upper case: `F/A-18C` and `FA-18C_hornet` meet."""
+    return re.sub(r"[^A-Z0-9]", "", name.upper())
+
+
+def _catalogue_types(catalogue: dict[str, Any]) -> set[str]:
+    """Return every aircraft type of a dynamic-slot catalogue."""
+    return {
+        kind
+        for block in catalogue.values()
+        if isinstance(block, dict)
+        for countries in (block.get("coalitions") or {}).values()
+        for groups in (countries or {}).values()
+        for group in (groups or {}).values()
+        if isinstance(group, dict)
+        for kind in _template_types(group)
+    }
+
+
+def _resolve_aircraft(catalogue: dict[str, Any], aircraft: list[str]) -> set[str]:
+    """Return the catalogue's types each named aircraft stands for, or refuse with the types it has.
+
+    A name matches the types whose letters and digits start with its own: `F/A-18C` gives `FA-18C_hornet`.
+    """
+    types = _catalogue_types(catalogue)
+    chosen: set[str] = set()
+    unknown: list[str] = []
+    for name in aircraft:
+        key = _aircraft_key(name)
+        found = {kind for kind in types if key and _aircraft_key(kind).startswith(key)}
+        if found:
+            chosen |= found
+        else:
+            unknown.append(name)
+    if unknown:
+        raise ValueError(
+            f"adapt_scaffold: no dynamic-slot template for {unknown}; the types: {', '.join(sorted(types))}"
+        )
+    return chosen
+
+
+def _adapt_dynamic_slots(folder: Path, coalitions: list[str] | None, aircraft: list[str] | None) -> str | None:
+    """Keep the shipped dynamic-slot catalogue's templates of the coalitions and aircraft named only.
+
+    A local model asked for players "in F/A-18C" read five slices of the 181 000-character catalogue, 31 384
+    characters, to find that type (MCP-CONTEXT-BUDGET, run 9): naming it here keeps only its templates.
+    """
+    sides = coalitions if coalitions is not None else list(COALITIONS)
+    if set(sides) == set(COALITIONS) and not aircraft:
         return None
     shipped = shipped_default_file(folder, "src/dynamic-slot-templates.yaml")
     if shipped is None:
         raise ValueError("adapt_scaffold: the shipped dynamic-slot catalogue is not in the folder (published/)")
     catalogue = yaml.safe_load(shipped.read_text(encoding="utf-8")) or {}
-    kept = {
-        category: {
-            "coalitions": {
-                side: groups for side, groups in (block.get("coalitions") or {}).items() if side in coalitions
+    wanted = _resolve_aircraft(catalogue, aircraft) if aircraft else None
+    kept: dict[str, Any] = {}
+    for category, block in catalogue.items():
+        if not isinstance(block, dict):
+            continue
+        sides_kept: dict[str, Any] = {}
+        for side, countries in (block.get("coalitions") or {}).items():
+            if side not in sides:
+                continue
+            countries_kept = {
+                country: {
+                    name: group
+                    for name, group in (groups or {}).items()
+                    if wanted is None or (isinstance(group, dict) and _template_types(group) & wanted)
+                }
+                for country, groups in (countries or {}).items()
             }
-        }
-        for category, block in catalogue.items()
-        if isinstance(block, dict)
-    }
-    header = _SLOTS_HEADER.format(coalitions=", ".join(coalitions) or "no coalition")
+            countries_kept = {country: groups for country, groups in countries_kept.items() if groups}
+            if countries_kept:
+                sides_kept[side] = countries_kept
+        kept[category] = {"coalitions": sides_kept}
+    header = _SLOTS_HEADER.format(coalitions=", ".join(sides))
     text = header + yaml.safe_dump(kept, sort_keys=False, allow_unicode=True)
     (folder / "src" / "dynamic-slot-templates.yaml").write_text(text, encoding="utf-8")
-    return t("mcp.adapt.slots", coalitions=", ".join(coalitions) or "-")
+    if wanted is not None:
+        return t("mcp.adapt.slots_aircraft", coalitions=", ".join(sides), aircraft=", ".join(sorted(wanted)))
+    return t("mcp.adapt.slots", coalitions=", ".join(sides))
 
 
 def _adapt_mission_yaml(
@@ -327,6 +394,7 @@ def adapt_scaffold(
     airfields: list[str] | None = None,
     waypoints: list[dict[str, Any]] | None = None,
     dynamic_slot_coalitions: list[str] | None = None,
+    dynamic_slot_aircraft: list[str] | None = None,
     skynet: bool | None = None,
 ) -> dict[str, Any]:
     """Fit a scaffolded mission folder to the mission asked for: steps 1 to 5 of the authoring guide.
@@ -348,6 +416,8 @@ def adapt_scaffold(
         airfields: The airfields on the second radio, channel 1 first (names of the theatre).
         waypoints: The route every player flight gets, `[{name, x, y, alt?}]` (alt in metres).
         dynamic_slot_coalitions: The coalitions whose dynamic-slot templates stay (`blue`, `red`).
+        dynamic_slot_aircraft: The aircraft the players fly (`F/A-18C`, `FA-18C_hornet`): only their templates
+            stay; a name the catalogue does not have is refused with its types.
         skynet: Turn the SKYNET module on (a SAM or an EWR zone) or off.
 
     Returns:
@@ -363,9 +433,15 @@ def adapt_scaffold(
     presets = yaml.safe_load((folder / "src" / "presets.yaml").read_text(encoding="utf-8")) or {}
     if airfields:
         _resolve_airfields(presets, theatre, airfields)
-    needs_catalogue = dynamic_slot_coalitions is not None and set(dynamic_slot_coalitions) != set(COALITIONS)
-    if needs_catalogue and shipped_default_file(folder, "src/dynamic-slot-templates.yaml") is None:
-        raise ValueError("adapt_scaffold: the shipped dynamic-slot catalogue is not in the folder (published/)")
+    needs_catalogue = bool(dynamic_slot_aircraft) or (
+        dynamic_slot_coalitions is not None and set(dynamic_slot_coalitions) != set(COALITIONS)
+    )
+    if needs_catalogue:
+        shipped = shipped_default_file(folder, "src/dynamic-slot-templates.yaml")
+        if shipped is None:
+            raise ValueError("adapt_scaffold: the shipped dynamic-slot catalogue is not in the folder (published/)")
+        if dynamic_slot_aircraft:
+            _resolve_aircraft(yaml.safe_load(shipped.read_text(encoding="utf-8")) or {}, dynamic_slot_aircraft)
     changes = [_adapt_presets(folder, theatre, airfields)]
     changes.append(
         _adapt_versions(folder, theatre, date, start_time, variant, position)
@@ -373,7 +449,7 @@ def adapt_scaffold(
     )
     changes.append(_adapt_waypoints(folder, waypoints))
     changes.append(
-        _adapt_dynamic_slots(folder, dynamic_slot_coalitions)
+        _adapt_dynamic_slots(folder, dynamic_slot_coalitions, dynamic_slot_aircraft)
         or t("mcp.adapt.unchanged", file="src/dynamic-slot-templates.yaml")
     )
     changes.append(

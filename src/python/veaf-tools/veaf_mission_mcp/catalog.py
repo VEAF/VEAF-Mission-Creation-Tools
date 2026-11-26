@@ -282,7 +282,11 @@ def _expand_user_paths(params: dict[str, Any]) -> dict[str, Any]:
 #: Parameter names a model reaches for, by the one an action publishes: a local model lost five calls of
 #: one run to `type_contains` (list_unit_types, list_payloads) and `which` (read_mission_file)
 #: (MCP-CONTEXT-BUDGET, run 7).
-_PARAMETER_ALIASES: dict[str, tuple[str, ...]] = {"name_contains": ("type_contains",), "file": ("which",)}
+_PARAMETER_ALIASES: dict[str, tuple[str, ...]] = {
+    "name_contains": ("type_contains",),
+    "file": ("which",),
+    "module_id": ("module",),
+}
 
 
 def _published_alias_keys(params: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:

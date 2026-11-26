@@ -1285,6 +1285,7 @@
   "mcp.adapt.waypoints_none": "src/waypoints.yaml : points d'exemple retirés ; chaque vol joueur reçoit le BULLSEYE seul.",
   "mcp.adapt.waypoints": "src/waypoints.yaml : {count} points pour chaque vol joueur ({keys}), puis BULLSEYE.",
   "mcp.adapt.slots": "src/dynamic-slot-templates.yaml : templates de slots dynamiques pour {coalitions} seulement.",
+  "mcp.adapt.slots_aircraft": "src/dynamic-slot-templates.yaml : templates de {aircraft} seulement, pour {coalitions}.",
   "mcp.adapt.mission_yaml": "mission.yaml : {details}.",
   "mcp.adapt.mission_name": "nom {name}",
   "mcp.adapt.mission_era": "époque {era}",

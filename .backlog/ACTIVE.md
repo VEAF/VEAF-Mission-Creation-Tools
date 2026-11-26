@@ -8,6 +8,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🧑 Waiting for a human
 
+### [CHORE-DCS-2932-DATA-REGEN](CHORE-DCS-2932-DATA-REGEN/PRD.md) · 🧑
+
+Regenerate the GermanyCW data that predates DCS 2.9.32 (cities, airfield frequencies and the clear-ground sweep, done 2026-11-26). Waits for the two in-game checks of R55 (static-kill coalition, Prepare Mission presets). The landmarks of `towns.lua` stay among the cities (David, 2026-11-26).
+
 ### [MCP-CONTEXT-BUDGET](MCP-CONTEXT-BUDGET/PRD.md) · 🧑
 
 A local model at 65 000 tokens of context runs a whole mission through the MCP: the reference chain's tool answers fell from 177 186 to about 56 000 characters (new action `adapt_scaffold`, guide and prompts by section, compact answers cut at 16 000 characters, a budget test at 60 000). Done in the code on branch `feature/MCP-CONTEXT-BUDGET`; waits for David's run with the local model, then the PR.

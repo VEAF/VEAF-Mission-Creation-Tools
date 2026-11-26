@@ -535,7 +535,7 @@
         365.0,
         5.0
       ],
-      "tacan": "77X"
+      "tacan": "109X"
     },
     {
       "id": 49,
@@ -822,7 +822,7 @@
         42.0,
         118.0,
         255.9,
-        5.0
+        4.6
       ]
     },
     {
@@ -1233,6 +1233,17 @@
       ]
     },
     {
+      "id": 138,
+      "name": "Stuttgart",
+      "source": "radio",
+      "freqs": [
+        39.8,
+        118.8,
+        360.8,
+        3.75
+      ]
+    },
+    {
       "id": 139,
       "name": "H Med FRG 11",
       "source": "none",
@@ -1483,6 +1494,17 @@
       ]
     },
     {
+      "id": 167,
+      "name": "Ahlhorn Highway Strip",
+      "source": "radio",
+      "freqs": [
+        39.25,
+        127.7,
+        256.05,
+        4.175
+      ]
+    },
+    {
       "id": 168,
       "name": "Mendig",
       "source": "radio",
@@ -1528,6 +1550,97 @@
       ]
     },
     {
+      "id": 172,
+      "name": "Ahlhorn",
+      "source": "radio",
+      "freqs": [
+        41.2,
+        125.5,
+        255.0,
+        4.275
+      ],
+      "tacan": "17X"
+    },
+    {
+      "id": 173,
+      "name": "Finsterwalde",
+      "source": "radio",
+      "freqs": [
+        39.55,
+        124.05,
+        254.2,
+        4.9
+      ]
+    },
+    {
+      "id": 174,
+      "name": "Oldenburg",
+      "source": "radio",
+      "freqs": [
+        41.2,
+        125.5,
+        255.0,
+        4.275
+      ],
+      "tacan": "0X"
+    },
+    {
+      "id": 175,
+      "name": "Sjobo",
+      "source": "radio",
+      "freqs": [
+        40.25,
+        142.9,
+        315.7,
+        4.775
+      ]
+    },
+    {
+      "id": 176,
+      "name": "Strasbourg Entzeim",
+      "source": "radio",
+      "freqs": [
+        41.95,
+        119.25,
+        253.55,
+        4.675
+      ]
+    },
+    {
+      "id": 177,
+      "name": "Phalsbourg",
+      "source": "radio",
+      "freqs": [
+        42.0,
+        129.8,
+        256.1,
+        4.7
+      ],
+      "tacan": "23X"
+    },
+    {
+      "id": 178,
+      "name": "Bremerhaven",
+      "source": "radio",
+      "freqs": [
+        38.4,
+        125.1,
+        225.0,
+        3.75
+      ]
+    },
+    {
+      "id": 179,
+      "name": "Sniatowo",
+      "source": "radio",
+      "freqs": [
+        39.05,
+        121.2,
+        256.5,
+        4.15
+      ]
+    },
+    {
       "id": 180,
       "name": "H Med GDR 12",
       "source": "none",
@@ -1544,6 +1657,17 @@
       "name": "H Med GDR 14",
       "source": "none",
       "freqs": []
+    },
+    {
+      "id": 183,
+      "name": "Kluczewo",
+      "source": "radio",
+      "freqs": [
+        39.3,
+        121.7,
+        257.0,
+        4.5
+      ]
     },
     {
       "id": 184,
@@ -1592,6 +1716,17 @@
       "name": "H FRG 25",
       "source": "none",
       "freqs": []
+    },
+    {
+      "id": 192,
+      "name": "Baden-Soellingen",
+      "source": "radio",
+      "freqs": [
+        38.4,
+        134.1,
+        243.0,
+        3.8
+      ]
     },
     {
       "id": 193,
@@ -1665,6 +1800,17 @@
       "freqs": []
     },
     {
+      "id": 203,
+      "name": "Kolobrzeg-Bagicz",
+      "source": "radio",
+      "freqs": [
+        38.55,
+        118.5,
+        225.15,
+        4.0
+      ]
+    },
+    {
       "id": 204,
       "name": "Airracing Frankfurt",
       "source": "radio",
@@ -1676,10 +1822,66 @@
       ]
     },
     {
+      "id": 205,
+      "name": "Makowice",
+      "source": "radio",
+      "freqs": [
+        38.4,
+        118.05,
+        225.0,
+        3.75
+      ]
+    },
+    {
+      "id": 206,
+      "name": "Avno",
+      "source": "radio",
+      "freqs": [
+        38.4,
+        142.05,
+        225.0,
+        3.75
+      ]
+    },
+    {
+      "id": 207,
+      "name": "Lolland-Falster",
+      "source": "radio",
+      "freqs": [
+        38.4,
+        118.9,
+        225.0,
+        3.75
+      ]
+    },
+    {
       "id": 208,
       "name": "H Med FRG 21",
       "source": "none",
       "freqs": []
+    },
+    {
+      "id": 209,
+      "name": "Lahr",
+      "source": "radio",
+      "freqs": [
+        38.4,
+        119.8,
+        225.0,
+        4.5
+      ],
+      "tacan": "39X"
+    },
+    {
+      "id": 210,
+      "name": "Vaerlose",
+      "source": "radio",
+      "freqs": [
+        38.5,
+        122.1,
+        344.0,
+        3.85
+      ]
     },
     {
       "id": 211,
@@ -1700,10 +1902,32 @@
       "freqs": []
     },
     {
+      "id": 214,
+      "name": "Bruchsal",
+      "source": "radio",
+      "freqs": [
+        41.95,
+        124.0,
+        253.55,
+        4.675
+      ]
+    },
+    {
       "id": 215,
       "name": "H FRG 34",
       "source": "none",
       "freqs": []
+    },
+    {
+      "id": 216,
+      "name": "Pattonville",
+      "source": "radio",
+      "freqs": [
+        41.15,
+        129.9,
+        252.75,
+        4.45
+      ]
     },
     {
       "id": 218,

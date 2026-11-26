@@ -108,7 +108,7 @@ veafAirfieldFrequencies["GermanyCW"] = {
   [45] = { uhf = 255.6, vhf = 118.8, fm = 39.9 }, -- Sturup
   [46] = { uhf = 255.65, vhf = 120.5, fm = 41.85 }, -- Marxwalde
   [47] = { uhf = 315.7, vhf = 142.9, fm = 40.85 }, -- Nordholz
-  [48] = { uhf = 365.0, vhf = 123.0, fm = 41.2, tacan = "77X" }, -- Norvenich
+  [48] = { uhf = 365.0, vhf = 123.0, fm = 41.2, tacan = "109X" }, -- Norvenich
   [49] = { uhf = 365.5, vhf = 124.0, fm = 41.2 }, -- Oranienburg
   [50] = { uhf = 256.1, vhf = 121.25, fm = 42.0 }, -- Szczecin-Goleniow
   [51] = { uhf = 252.05, vhf = 122.9, fm = 40.45 }, -- Obermehler Schlotheim
@@ -146,6 +146,7 @@ veafAirfieldFrequencies["GermanyCW"] = {
   [135] = { uhf = 255.95, vhf = 118.0, fm = 42.0 }, -- Sprendlingen
   [136] = { uhf = 256.0, vhf = 118.0, fm = 42.0 }, -- Thurland
   [137] = { uhf = 256.05, vhf = 118.0, fm = 42.0 }, -- Zollschen
+  [138] = { uhf = 360.8, vhf = 118.8, fm = 39.8 }, -- Stuttgart
   [140] = { uhf = 251.2, vhf = 119.0, fm = 39.6 }, -- Hasselfelde
   [141] = { uhf = 251.25, vhf = 134.6, fm = 39.65 }, -- Grosse Wiese
   [154] = { uhf = 251.35, vhf = 126.5, fm = 39.75 }, -- Fritzlar
@@ -161,13 +162,32 @@ veafAirfieldFrequencies["GermanyCW"] = {
   [164] = { uhf = 251.9, vhf = 122.1, fm = 40.3 }, -- Bindersleben
   [165] = { uhf = 251.95, vhf = 133.2, fm = 40.35, tacan = "81X" }, -- Ramstein
   [166] = { uhf = 252.0, vhf = 126.0, fm = 40.4 }, -- Fulda
+  [167] = { uhf = 256.05, vhf = 127.7, fm = 39.25 }, -- Ahlhorn Highway Strip
   [168] = { uhf = 252.1, vhf = 122.1, fm = 40.5 }, -- Mendig
   [169] = { uhf = 252.15, vhf = 127.2, fm = 40.55 }, -- Merseburg
   [170] = { uhf = 252.25, vhf = 118.1, fm = 40.65, tacan = "88X" }, -- Wiesbaden
   [171] = { uhf = 252.3, vhf = 129.0, fm = 40.7 }, -- Schkeuditz
+  [172] = { uhf = 255.0, vhf = 125.5, fm = 41.2, tacan = "17X" }, -- Ahlhorn
+  [173] = { uhf = 254.2, vhf = 124.05, fm = 39.55 }, -- Finsterwalde
+  [174] = { uhf = 255.0, vhf = 125.5, fm = 41.2, tacan = "0X" }, -- Oldenburg
+  [175] = { uhf = 315.7, vhf = 142.9, fm = 40.25 }, -- Sjobo
+  [176] = { uhf = 253.55, vhf = 119.25, fm = 41.95 }, -- Strasbourg Entzeim
+  [177] = { uhf = 256.1, vhf = 129.8, fm = 42.0, tacan = "23X" }, -- Phalsbourg
+  [178] = { uhf = 225.0, vhf = 125.1, fm = 38.4 }, -- Bremerhaven
+  [179] = { uhf = 256.5, vhf = 121.2, fm = 39.05 }, -- Sniatowo
+  [183] = { uhf = 257.0, vhf = 121.7, fm = 39.3 }, -- Kluczewo
+  [192] = { uhf = 243.0, vhf = 134.1, fm = 38.4 }, -- Baden-Soellingen
   [200] = { uhf = 252.55, vhf = 118.7, fm = 40.95, tacan = "56X" }, -- Bitburg
   [201] = { uhf = 252.6, vhf = 118.35, fm = 41.0 }, -- Airracing Lubeck
+  [203] = { uhf = 225.15, vhf = 118.5, fm = 38.55 }, -- Kolobrzeg-Bagicz
   [204] = { uhf = 252.65, vhf = 118.4, fm = 41.05 }, -- Airracing Frankfurt
+  [205] = { uhf = 225.0, vhf = 118.05, fm = 38.4 }, -- Makowice
+  [206] = { uhf = 225.0, vhf = 142.05, fm = 38.4 }, -- Avno
+  [207] = { uhf = 225.0, vhf = 118.9, fm = 38.4 }, -- Lolland-Falster
+  [209] = { uhf = 225.0, vhf = 119.8, fm = 38.4, tacan = "39X" }, -- Lahr
+  [210] = { uhf = 344.0, vhf = 122.1, fm = 38.5 }, -- Vaerlose
+  [214] = { uhf = 253.55, vhf = 124.0, fm = 41.95 }, -- Bruchsal
+  [216] = { uhf = 252.75, vhf = 129.9, fm = 41.15 }, -- Pattonville
   [232] = { uhf = 252.85, vhf = 132.65, fm = 41.25, tacan = "77X" }, -- Pferdsfeld
   [235] = { uhf = 252.9, vhf = 122.1, fm = 41.3, tacan = "118X" }, -- Buchel
   [236] = { uhf = 252.95, vhf = 119.75, fm = 41.35 }, -- Leipzig Mockau

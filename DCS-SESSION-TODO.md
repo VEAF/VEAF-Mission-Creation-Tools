@@ -59,6 +59,28 @@ R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
 
+### R55. Two DCS 2.9.31 fixes, still unmeasured on 2.9.32 — **a pilot for (a), none for (b)**
+
+[`CHORE-DCS-2932-DATA-REGEN`](.backlog/CHORE-DCS-2932-DATA-REGEN/PRD.md) 04. DCS 2.9.31 (build 29434) lists two fixes that touch what VMCT reads or writes; David runs DCS 2.9.32.30490 since 2026-11-26. Nothing is known yet: a measurement goes to `known-limitations.yaml` (`kind: dcs`, with its date and the value), no measurement, nothing is written.
+
+**(a) The coalition of a killed static — « Wrong attribution of coalition on kills of statics and S_EVENT_KILL missing in some cases ».**
+Handlers that read the kill: `veafEventHandler` (what it hands over as `target`), `veafCampaign.readPlayerKill`, `veafCampaignOps.onKill`, `veafCampaignEconomy.onKill`.
+Already measured on 2.9.31 (vehicles only): the fix does **not** resolve « kill target gone by name ».
+
+1. On a mission with the bridge, spawn a blue and a red static (a hangar, a barrel) and a blue A-10C II slot with guns armed.
+2. Through the bridge, log the events: register an event handler that writes `id`, `initiator`, `target`, `target:getCoalition()`, `target:getName()` for `S_EVENT_KILL` and `S_EVENT_DEAD`.
+3. Destroy the red static, then the blue static, with the guns.
+   - **S_EVENT_KILL arrives with the right coalition for both statics**: the DCS fix holds on statics. The fallback in `readPlayerKill` (ask the raw `dcsTarget`) stays as it is, harmless; write the measurement.
+   - **S_EVENT_KILL arrives with coalition 0 or the wrong one**: the fix is not complete; the campaign pays or misses the kill on statics. Write the symptom in `known-limitations.yaml`.
+   - **No S_EVENT_KILL at all, only `S_EVENT_DEAD`**: the kill reaches the campaign through the DEAD path only; note which handlers see it.
+
+**(b) « Prepare Mission » and the radio presets — « Prepare Mission stores unchangeable radio presets ».** No pilot needed.
+
+1. Build any mission with a preset radio plan (the Open Training Caucasus does), open it in the Mission Editor.
+2. Run « Prepare Mission » (find its menu entry in the editor and say which one it was), save, open a client slot's radio page.
+   - **Presets are editable in the cockpit and in the Mission Editor**: fixed in 2.9.31; write the measurement with the date.
+   - **They are locked**: the injector's presets cannot be changed after Prepare Mission; write it as a limitation with the exact button.
+
 ### R54. What the combat log records of a real fight — **two pilots, one of them in a helicopter with a gun**
 
 [`FEAT-COMBAT-LOG`](.backlog/FEAT-COMBAT-LOG/PRD.md), ticket 03.

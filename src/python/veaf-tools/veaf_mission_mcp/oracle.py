@@ -718,7 +718,9 @@ def describe_mission_prompt(
             raise ValueError(f"Unknown section {section!r} in the {kind} prompt: expected one of {known}.")
         current = sections[start]["part"]
     else:
-        current = None if part == "all" else ("build" if part == "build" else sections[0]["part"])
+        # `build` of a prompt in one part is that prompt, as the standard profile answers it.
+        has_build = any(entry["part"] == "build" for entry in sections)
+        current = None if part == "all" else ("build" if part == "build" and has_build else sections[0]["part"])
         start = next(index for index, entry in enumerate(sections) if part == "all" or entry["part"] == current)
     in_part = [entry for entry in sections if part == "all" or entry["part"] == current]
     page: list[str] = []

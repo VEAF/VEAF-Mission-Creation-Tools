@@ -345,6 +345,15 @@ class TestMissionPromptParts:
         assert _whole("open-training", lang) == describe_mission_prompt("open-training", lang, part="all")["prompt"]
 
     @pytest.mark.usefixtures("compact")
+    @pytest.mark.parametrize("kind", ["open-training", "persistent-campaign"])
+    def test_part_build_of_a_prompt_in_one_part_starts_it(self, kind: str) -> None:
+        """PR #1349 review: `part: build` on a prompt in one part raised a bare StopIteration in compact.
+
+        The standard profile answers it with the whole prompt; compact answers with that prompt's first page.
+        """
+        assert describe_mission_prompt(kind, "en", part="build") == describe_mission_prompt(kind, "en")
+
+    @pytest.mark.usefixtures("compact")
     @pytest.mark.parametrize("lang", ["fr", "en"])
     def test_the_scenario_s_last_page_points_at_the_build_part(self, lang: str) -> None:
         result = describe_mission_prompt("objective", lang)

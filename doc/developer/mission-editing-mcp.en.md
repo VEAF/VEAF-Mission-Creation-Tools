@@ -1026,7 +1026,7 @@ An area used to come back in full: three of them were 46 000 characters in one c
 
 Read-only. The authoring guide, `veaf_mission_mcp/data/authoring-guide.md`.
 With no parameter the action returns it whole, `{"guide": …}`.
-In the compact profile it is 41 555 characters in one block; with no parameter the action then returns `{"start_here", "guide", "sections", "read_more"}` (MCP-CONTEXT-BUDGET): when to load a mission prompt, the sections every mission needs (`recipe` — the calls of a simple mission with their parameters, AWACS and tankers included —, `report-back`) and the index of the others, `{id: when}`: each `id` with when to read its section.
+In the compact profile it is 41 555 characters in one block; with no parameter the action then returns `{"start_here", "guide", "sections", "read_more"}` (MCP-CONTEXT-BUDGET): when to load a mission prompt, the sections every mission needs (`recipe` — the calls of a simple mission with their parameters, AWACS and tankers included —, `report-back`) and the index of the others, `{id: when}`: each `id` with when to read its section. Section `more` gives, with their parameters, the calls of a QRA's tiers and delay, ground groups at given positions, a static, a JTAC and the briefing.
 `section` reads one section or a list of them; `section: all` returns the whole guide, uncut.
 Every `##` heading of the file carries its id (`{#combat-zone-vs-qra}`) and, right under it, a `<!-- when: … -->` line; the server removes both before serving the text.
 The build bundles the whole `veaf_mission_mcp/data/` folder into the exe; in development the action reads the package's file.
@@ -1275,6 +1275,7 @@ theatre's projection is known (`lat`/`lon` otherwise), plus each base's `coaliti
 mission, `theatre`.
 `name_contains` keeps the bases whose name holds a text; `details: true` adds `lat`/`lon`, `parking` (the stands usable by `planes` and by `helicopters`) and `atc` (`uhf`, `vhf`, `fm` MHz and `tacan`, as DCS gives them).
 Short by default: every field for Syria was 37 000 characters, 21 000 now (FIX-OPENCODE-TEST-FINDINGS).
+In the compact profile, with a mission and no `name_contains`, only the bases with a side come back, with `neutral_left_out`, the count of the others: a local model called it nine times in one run for Syria's 223 bases, two of them red (MCP-CONTEXT-BUDGET).
 
 ```json
 {"theatre": "Syria", "name_contains": "incirlik", "details": true}

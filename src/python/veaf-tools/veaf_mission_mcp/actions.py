@@ -3207,7 +3207,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "instead of guessing names or reading data files. Pass the mission, or a theatre name "
                 "before there is one. details: true adds lat/lon, the parking stands (planes, "
                 "helicopters) and the ATC frequencies and TACAN DCS gives each base -- narrow it with "
-                "name_contains."
+                "name_contains. In the compact profile, a mission without name_contains lists only its "
+                "airfields with a side."
             ),
             parameters_schema={
                 "type": "object",

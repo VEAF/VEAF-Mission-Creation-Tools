@@ -216,6 +216,23 @@ class TestGuideBySection:
         assert all(result["sections"].values())
         assert "support aircraft" in result["sections"]["checklist"]
         assert "section" in result["read_more"]
+        # Run 15 relearnt the mission from mission.yaml after each compaction: 13 reads of 6 000 characters.
+        assert "`describe_mission`" in result["guide"] and "section `more`" in result["guide"]
+        assert "JTAC" in result["sections"]["more"]
+        # "always" in the index sent a model back to sections the recipe already covers.
+        assert not any(when.startswith("always") for when in result["sections"].values())
+
+    def test_the_more_section_gives_run_15_s_calls_whole(self) -> None:
+        """Two QRAs with tiers, ground groups, a static, a JTAC, the briefing: nothing left to look up."""
+        guide = describe_authoring_guide("more")["guide"]
+        for call in ('"groups_by_enemy_count"', '"react_on_helicopters"', '"delay_before_activating"'):
+            assert call in guide
+        assert "`add_group`" in guide and '"keep_position": true' in guide and '"roe": "weapons_hold"' in guide
+        assert '"category": "static"' in guide
+        assert '"module_id": "ASSETS"' in guide and '"jtac": 1511' in guide and "replaces the whole" in guide
+        assert "`set_briefing`" in guide
+        # The delay counts from the intrusion (veafQraCore.lua, STATUS_READY_WAITINGFORMORE), not from the start.
+        assert "not from the mission's start" in guide
 
     def test_the_default_answer_opens_on_when_a_mission_prompt_is_worth_its_weight(self) -> None:
         """Run 6: "a modern training mission" loaded the Open Training prompt, 77 622 characters, and built nothing."""

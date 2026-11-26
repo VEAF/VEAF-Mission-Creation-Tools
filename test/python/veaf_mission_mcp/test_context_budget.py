@@ -164,6 +164,84 @@ def test_the_reference_chain_fits_the_budget(mission: Path) -> None:
     assert total <= BUDGET_CHARS, f"the reference chain is {total} characters, over {BUDGET_CHARS}: {detail}"
 
 
+#: The most characters the `more` section's chain may put in context, the guide read again included.
+MORE_BUDGET_CHARS = 25_000
+
+
+@pytest.mark.usefixtures("compact")
+def test_the_more_section_s_chain_fits_its_budget(mission: Path) -> None:
+    """Two QRAs with tiers, ground groups, a static, a JTAC and the briefing, with the `more` section's calls.
+
+    Run 15 (2026-11-26, Cherry Studio and a local model at 65 536 tokens) asked for these on a built mission and
+    wrote nothing in 93 calls: the guide covered none of them, and six compactions threw away each schema it read.
+    """
+    folder = str(mission)
+    blue = {"mission_path": folder, "coalition": "blue", "country_id": 2, "country_name": "USA", "keep_position": True}
+    sizes = {
+        "guide": _run("describe_authoring_guide", {}),
+        "guide more": _run("describe_authoring_guide", {"section": "more"}),
+        "describe_mission": _run("describe_mission", {"mission_path": folder}),
+        "list_payloads": _run("list_payloads", {"unit_type": "MiG-29S"}),
+    }
+    pair = [{"type": "MiG-29S"}, {"type": "MiG-29S"}]
+    sizes["create_qra"] = _run(
+        "create_qra",
+        {
+            "mission_path": folder,
+            "name": "QRA-Beslan",
+            "coalition": "red",
+            "country_id": 0,
+            "country_name": "Russia",
+            "trigger_zone": "QRA-Beslan-Zone",
+            "position": {"x": -158841, "y": 842000},
+            "radius": 30000,
+            "groups": [
+                {"name": f"QRA-Beslan-{i}", "units": pair, "airfield": "Beslan", "payload": "R-73*2,R-60M*2,R-27R*2"}
+                for i in (1, 2)
+            ],
+            "qra": {
+                "groups_by_enemy_count": [
+                    {"enemy_count": 1, "groups": ["QRA-Beslan-1"]},
+                    {"enemy_count": 4, "groups": ["QRA-Beslan-1", "QRA-Beslan-2"]},
+                ],
+                "react_on_helicopters": False,
+                "delay_before_activating": 900,
+            },
+        },
+    )
+    ground = (
+        ("Abrams-1", "vehicle", [{"type": "M-1 Abrams", "count": 4}], {}),
+        ("M109-1", "vehicle", [{"type": "M-109", "count": 4}], {"roe": "weapons_hold"}),
+        ("PC-Brigade", "static", [{"type": ".Command Center"}], {}),
+        ("JTAC-1", "vehicle", [{"type": "Hummer"}], {}),
+    )
+    for index, (name, category, units, extra) in enumerate(ground):
+        position = {"x": -160000 + 300 * index, "y": 840000}
+        sizes[f"add_group {name}"] = _run(
+            "add_group", {**blue, "category": category, "name": name, "position": position, "units": units, **extra}
+        )
+    jtac = {"sort": 1, "name": "JTAC-1", "description": "JTAC", "jtac": 1511, "freq": 35.55, "mod": "FM"}
+    sizes["set_mission_module"] = _run(
+        "set_mission_module",
+        {
+            "mission_yaml_path": str(mission / "mission.yaml"),
+            "module_id": "ASSETS",
+            "value": {"enabled": True, "assets": [jtac]},
+        },
+    )
+    sizes["set_briefing"] = _run(
+        "set_briefing",
+        {"mission_path": folder, "sortie": "Marteau du Golan", "situation": "Situation.", "blue_task": "Tâche."},
+    )
+    sizes["validate_mission"] = _run("validate_mission", {"folder_path": folder})
+    sizes.update({key: MEASURED_CHARS[key] for key in ("build_mission", "inspect_built_mission")})
+
+    total = sum(sizes.values())
+    detail = ", ".join(f"{name} {size}" for name, size in sorted(sizes.items(), key=lambda item: -item[1]))
+    assert total <= MORE_BUDGET_CHARS, f"the more chain is {total} characters, over {MORE_BUDGET_CHARS}: {detail}"
+    assert "jtac: 1511" in (mission / "mission.yaml").read_text(encoding="utf-8")
+
+
 @pytest.mark.usefixtures("compact")
 def test_no_schema_comes_back_cut() -> None:
     """A schema is read whole or not at all: the largest one fits the schema ceiling."""

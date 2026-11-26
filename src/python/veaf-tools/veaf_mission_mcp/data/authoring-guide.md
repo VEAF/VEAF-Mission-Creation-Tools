@@ -6,7 +6,7 @@ with two armor groups"); **you** derive the concrete unit types, group names and
 ask the user for mechanical details you can decide correctly yourself.
 
 ## A user who asks for a new mission {#new-mission}
-<!-- when: always: the user asks for a new mission, whatever its size. -->
+<!-- when: the kinds of mission and their prompts, summed up in start_here. -->
 
 "Create a mission" is enough: the user does not have to name a prompt. Every new mission, however small, starts
 with this question — which kind do they want? — then load its prompt with `describe_mission_prompt` and follow it
@@ -30,7 +30,7 @@ entry `mission-prompt-scripts-need-a-shell` and say what you could not produce. 
 the section `after-scaffold`. Only a change to an existing mission skips both.
 
 ## Right after `scaffold_mission` — every new mission {#after-scaffold}
-<!-- when: always, right after scaffold_mission, before placing anything. -->
+<!-- when: what the scaffold ships that a mission replaces (adapt_scaffold does it). -->
 
 The scaffold is a generic skeleton, not a mission for this request. Left as it is, it ships a channel plan, a
 date, example waypoints and aircraft that have nothing to do with what the user asked: a test mission built on
@@ -51,7 +51,7 @@ Tell the user the lines `adapt_scaffold` returned.
 <!-- when: always: the calls that take an empty folder to a built mission, with their parameters. -->
 
 These calls build a simple mission; their parameters are here, so call them directly, without `describe_action`.
-Replace the example values with the user's; read a section of the index only when the request needs more than this (a FARP, a convoy, a briefing). Build once, at the end, when everything is placed.
+Replace the example values with the user's; read a section of the index only when the request needs more (a FARP, a convoy). Build once, at the end. After a context reset, `describe_mission` lists what is placed: never re-read `mission.yaml` for it.
 
 1. `scaffold_mission` `{"target_folder": "<empty folder>", "template": "minimal", "theatre": "Caucasus"}` — the `template` the user asked for (`minimal`, `standard` or `full`), `standard` when they named none.
 2. A place by its name: `geocode` `{"theatre": "Caucasus", "query": "Beslan"}` gives its `x` and `y`.
@@ -59,14 +59,27 @@ Replace the example values with the user's; read a section of the index only whe
 4. Airfields: `set_airbase_coalition` `{"mission_path": "<folder>", "name": "Mozdok", "coalition": "blue"}` for each airfield the players take off from — an airfield of no side offers no dynamic slot — and `{"mission_path": "<folder>", "name": "Nalchik", "coalition": "red", "dynamic_spawn": false}` for each airfield an enemy flight (a QRA) takes off from.
 5. An AWACS or a tanker the user asks for: `add_air_group` `{"target": "<folder>", "coalition": "blue", "country_id": 2, "country_name": "USA", "name": "Texaco-1", "unit_type": "KC135MPRS", "start": "air", "position": {"x": -120000, "y": 700000}, "altitude_ft": 18000, "speed_kt": 300, "task": "Refueling", "frequency_mhz": 290.1}`; the track's end, `edit_route` `{"miz_path": "<folder>", "group_name": "Texaco-1", "operation": "add", "position": {"x": -120000, "y": 740000}, "altitude_ft": 18000}`; then four `edit_route` `{..., "operation": "add_task", "index": 1, "task": ...}`, in this order: `tanker`; `activate_beacon` with `"task_params": {"channel": 60, "mode": "Y", "callsign": "TX1", "aa": true}`; `set_unlimited_fuel`; `orbit` with `"task_params": {"pattern": "Race-Track", "altitude_ft": 18000, "speed_kt": 300}` — a task after the orbit never runs. A boom tanker is a `KC-135`; an AWACS an `E-3A` named `Magic`, task `AWACS`, with `awacs`, `eplrs`, `set_unlimited_fuel` and the orbit. Channels in the plan: Magic 282.2, Texaco-1 290.1 (basket, 60Y), Shell-1 290.3, Shell-2 290.4, Arco-1 290.5 (boom, 64Y): name the asset after one; another frequency goes into `src/presets.yaml` with `edit_mission_file`.
 6. `create_combat_zone` `{"mission_path": "<folder>", "zone_name": "CZ-Beslan", "position": {"x": -158841, "y": 842000}, "radius": 6000, "coalition": "red", "country_id": 0, "country_name": "Russia", "groups": [{"name": "armor-1", "command": "-armor"}, {"name": "sam-1", "command": "-sa8"}]}` — each group is a VEAF alias (`command`); give no `units`: the tool places a carrier of the alias's class; `list_shortcuts` `{"name_contains": "sa8"}` checks an alias (search the alias itself: `armor`, `sa8`, `aaa`).
-7. Enemy interceptors that take off when players enter an area: `create_qra` `{"mission_path": "<folder>", "name": "QRA-Nalchik", "coalition": "red", "country_id": 0, "country_name": "Russia", "trigger_zone": "QRA-Nalchik-Zone", "position": {"x": -158841, "y": 842000}, "radius": 40000, "groups": [{"name": "QRA-Nalchik-1", "units": [{"type": "MiG-29A"}, {"type": "MiG-29A"}], "airfield": "Nalchik", "payload": "R-73*2,R-60M*2,R-27R*2"}]}` — `position` and `radius` are the protected area; `list_payloads` `{"unit_type": "MiG-29A"}` names another type's loadouts.
-8. `validate_mission` `{"mission_path": "<folder>"}`: fix every error it reports.
-9. `build_mission` `{"mission_path": "<folder>"}`, then `inspect_built_mission` `{"mission_path": "<folder>"}`: read the counters and question any zero.
+7. Enemy interceptors that take off when players enter an area: `create_qra` `{"mission_path": "<folder>", "name": "QRA-Nalchik", "coalition": "red", "country_id": 0, "country_name": "Russia", "trigger_zone": "QRA-Nalchik-Zone", "position": {"x": -158841, "y": 842000}, "radius": 40000, "groups": [{"name": "QRA-Nalchik-1", "units": [{"type": "MiG-29A"}, {"type": "MiG-29A"}], "airfield": "Nalchik", "payload": "R-73*2,R-60M*2,R-27R*2"}]}` — `position` and `radius` are the protected area; `list_payloads` `{"unit_type": "MiG-29A"}` names another type's loadouts; more aircraft against more intruders, helicopters, a delay: section `more`.
+8. Ground groups at given positions, a static, a JTAC, the briefing: section `more` gives their calls.
+9. `validate_mission` `{"mission_path": "<folder>"}`: fix every error it reports.
+10. `build_mission` `{"mission_path": "<folder>"}`, then `inspect_built_mission` `{"mission_path": "<folder>"}`: read the counters and question any zero.
 
 Then tell the user in a few lines what you built: the `.miz`, the zone and its groups, and what you could not check.
 
+## Beyond the simple mission: QRA tiers, ground groups, a JTAC, the briefing {#more}
+<!-- when: a QRA's tiers or delay, ground units at given positions, a static, a JTAC, the briefing: their calls. -->
+
+Call these directly too, without `describe_action`. A position the user gave stays where it is with `"keep_position": true`; without it, a vehicle group is moved up to 1 km to clear ground.
+
+- A QRA sized to the intruders: in `create_qra`, one entry of `groups` per pair, and `"qra": {"groups_by_enemy_count": [{"enemy_count": 1, "groups": ["QRA-Nalchik-1"]}, {"enemy_count": 4, "groups": ["QRA-Nalchik-1", "QRA-Nalchik-2"]}], "react_on_helicopters": false, "delay_before_activating": 900}` — 2 aircraft, 4 from 4 intruders. `react_on_helicopters: false`: no scramble for helicopters, but once airborne it shoots them too. `delay_before_activating`: the seconds an intruder spends in the zone before the scramble, not from the mission's start.
+- Vehicles: `add_group` `{"mission_path": "<folder>", "coalition": "blue", "country_id": 15, "country_name": "Israel", "category": "vehicle", "name": "Merkava-1", "position": {"x": -207500, "y": -17500}, "units": [{"type": "Merkava_Mk4", "count": 4}], "keep_position": true}`. Infantry is a `vehicle` group too (`Soldier M4`); an air defence `M1097 Avenger`, a self-propelled gun `M-109`. A group that must not fire: `"roe": "weapons_hold"`. `list_unit_types` `{"name_contains": "merkava"}` gives another type's exact name.
+- A static (a command post, a depot): the same call with `"category": "static"` and one unit, `[{"type": ".Command Center"}]`.
+- A JTAC: a `Hummer` placed as above, named `JTAC-1`, then `set_mission_module` `{"mission_yaml_path": "<folder>/mission.yaml", "module_id": "ASSETS", "value": {"enabled": true, "assets": [{"sort": 1, "name": "JTAC-1", "description": "JTAC Tel Abu Nada", "information": "Laser 1511, FM 35.55", "jtac": 1511, "freq": 35.55, "mod": "FM"}]}}`. That value replaces the whole `ASSETS` block: keep the assets it already lists. CTLD does the lasing, so `CTLD` stays on; it designates vehicles, not statics.
+- The briefing: `set_briefing` `{"mission_path": "<folder>", "sortie": "Marteau du Golan", "situation": "...", "blue_task": "...", "red_task": "..."}`, in the user's language, accents kept; only the fields given change.
+- Names: never a combat zone's name, nor a `veafSpawn-` prefix (section `naming`).
+
 ## Always ground yourself in the oracle — never from memory {#oracle}
-<!-- when: before your first placement: the read-only actions that give VEAF and DCS facts. -->
+<!-- when: the read-only actions that give VEAF and DCS facts. -->
 
 **Before anything else, call `describe_known_limitations`.** It returns, for the installed
 veaf-tools version, what the tools cannot do yet (with how to do without) and the DCS behaviours
@@ -115,7 +128,7 @@ Never unzip, grep or parse a `.miz`, a mission file or the tools' own data files
 When no action answers a question, tell the user what you could not check instead of improvising a parser: a guess built from raw tables reads as a fact and is often wrong.
 
 ## The two editing worlds {#two-worlds}
-<!-- when: always: the recipe (mission.yaml, src/) and the built .miz. -->
+<!-- when: which of mission.yaml, src/ or the built .miz an edit goes to. -->
 
 - **Recipe** — the source `mission.yaml`. Durable: survives a rebuild. Prefer it for configuration.
 - **Built mission** — the `.miz`. Direct, no rebuild, but overwritten on the next build from the recipe.
@@ -326,7 +339,7 @@ Kobuleti") resolve through the geocoder (`geocode` action) when available — al
 resolved point so the user can sanity-check it (DCS terrain approximates the real world).
 
 ## Building a complete mission — the checklist {#checklist}
-<!-- when: a complete mission (Open Training, objective, campaign): airbases, support aircraft, every rule learnt the hard way. -->
+<!-- when: an Open Training, objective or campaign: support aircraft, every rule learnt the hard way. -->
 
 Learned rebuilding the Open Training Germany Cold War from an empty folder. Each item is a thing
 that was wrong at least once.

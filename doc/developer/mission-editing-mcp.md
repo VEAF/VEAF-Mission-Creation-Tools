@@ -1051,7 +1051,7 @@ tout ce qui est retenu. Une `area` revenait en entier : trois d'entre elles fais
 
 Lecture seule. Le guide de création, `veaf_mission_mcp/data/authoring-guide.md`.
 Sans paramètre, l'action le renvoie entier, `{"guide": …}`.
-En profil compact, il fait 41 555 caractères d'un bloc ; sans paramètre, l'action renvoie alors `{"start_here", "guide", "sections", "read_more"}` (MCP-CONTEXT-BUDGET) : quand charger un prompt de mission, les sections dont toute mission a besoin (`recipe` — les appels d'une mission simple avec leurs paramètres, AWACS et ravitailleurs compris —, `report-back`) et l'index des autres, `{id: when}` : chaque `id` avec quand lire sa section.
+En profil compact, il fait 41 555 caractères d'un bloc ; sans paramètre, l'action renvoie alors `{"start_here", "guide", "sections", "read_more"}` (MCP-CONTEXT-BUDGET) : quand charger un prompt de mission, les sections dont toute mission a besoin (`recipe` — les appels d'une mission simple avec leurs paramètres, AWACS et ravitailleurs compris —, `report-back`) et l'index des autres, `{id: when}` : chaque `id` avec quand lire sa section. La section `more` donne, avec leurs paramètres, les appels des paliers et du délai d'une QRA, des groupes au sol à des positions données, d'un statique, d'un JTAC et du briefing.
 `section` lit une section ou une liste de sections ; `section: all` rend le guide entier, sans coupure.
 Chaque titre `##` du fichier porte son identifiant (`{#combat-zone-vs-qra}`) et, juste dessous, une ligne `<!-- when: … -->` ; le serveur retire les deux avant de servir le texte.
 Le build embarque tout le dossier `veaf_mission_mcp/data/` dans l'exe ; en développement l'action lit le fichier du paquet.
@@ -1305,6 +1305,7 @@ la projection du théâtre est connue (`lat`/`lon` sinon), plus la `coalition` d
 mission, `theatre`.
 `name_contains` garde les bases dont le nom contient un texte ; `details: true` ajoute `lat`/`lon`, `parking` (les places utilisables par des `planes` et par des `helicopters`) et `atc` (`uhf`, `vhf`, `fm` en MHz et `tacan`, tels que DCS les donne).
 Court par défaut : tous les champs pour Syria faisaient 37 000 caractères, 21 000 maintenant (FIX-OPENCODE-TEST-FINDINGS).
+En profil compact, avec une mission et sans `name_contains`, seules les bases qui ont un camp reviennent, avec `neutral_left_out`, le nombre des autres : un modèle local l'a appelée neuf fois dans un essai pour les 223 bases de Syria, dont deux rouges (MCP-CONTEXT-BUDGET).
 
 ```json
 {"theatre": "Syria", "name_contains": "incirlik", "details": true}

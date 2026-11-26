@@ -537,8 +537,8 @@ _COMPACT_ROUTING = (
     "prompt. Load one only when the user asks for one of these by name or plainly wants it — an Open "
     "Training on a whole map, an objective mission with its briefing, a persistent campaign — and know "
     "its weight first, in characters: {sizes}. When a detail is missing, choose a sensible value and say "
-    "so rather than ask. Pass the user's language as adapt_scaffold's 'language'; what a human reads keeps "
-    "its accents, identifiers (mission, zone and group names) are ASCII."
+    "so rather than ask. What a human reads is in the user's language and keeps "
+    "its accents; identifiers (mission, zone and group names) are ASCII."
 )
 
 
@@ -591,9 +591,8 @@ def describe_authoring_guide(section: str | list[str] | None = None) -> dict[str
             },
             # The local model of run 5 still read 7 sections and 15 schemas the recipe made useless: 46 000
             # characters before its first action (MCP-CONTEXT-BUDGET, 2026-11-25).
-            "read_more": "The recipe above is all a simple mission needs: neither read another section nor call "
-            "describe_action for its actions. Read a section only for what it does not cover (a FARP, a convoy, "
-            "a briefing...): describe_authoring_guide with section=<id>.",
+            "read_more": "Call the recipe's actions without describe_action. Read a section only for what the "
+            "recipe does not cover: describe_authoring_guide with section=<id>.",
         }
     wanted = [section] if isinstance(section, str) else list(section)
     known = {entry["id"]: entry for entry in sections}

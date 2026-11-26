@@ -8,7 +8,7 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ### [CHORE-DCS-2932-DATA-REGEN](CHORE-DCS-2932-DATA-REGEN/PRD.md) · 🔄
 
-Regenerate the GermanyCW data that predates DCS 2.9.32 (cities done; airfield frequencies and clear-ground sweep wait for David's DCS) and write the two in-game checks of the 2.9.31 fixes (static-kill coalition, Prepare Mission presets). One lot, one PR, decided 2026-11-26.
+Regenerate the GermanyCW data that predates DCS 2.9.32 (cities, airfield frequencies and the clear-ground sweep all done on 2026-11-26) and write the two in-game checks of the 2.9.31 fixes (static-kill coalition, Prepare Mission presets). One lot, one PR, decided 2026-11-26.
 
 ## 🧑 Waiting for a human
 

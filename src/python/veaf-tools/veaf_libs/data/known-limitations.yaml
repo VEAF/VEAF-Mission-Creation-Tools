@@ -299,7 +299,7 @@ limitations:
   symptom: |
     `add_group` puts a stationary vehicle group on ground measured clear only where a clear-ground
     catalogue covers the place: shipped are Caucasus (6 km around each of its 21 airfields) and
-    GermanyCW (6 km around the 25 combat zones of GermanyCW-v6). Elsewhere the group stays where it
+    GermanyCW (6 km around the 26 combat zones of GermanyCW-v6, swept again on DCS 2.9.32 on 2026-11-26). Elsewhere the group stays where it
     was asked to go, with a warning that names the places the theatre's catalogue holds and gives the sweep
     command for the spot ("no catalogue covers this place" is not "no catalogue": two AI runs read it so).
     A combat-zone marker whose group is assembled from dice rolls

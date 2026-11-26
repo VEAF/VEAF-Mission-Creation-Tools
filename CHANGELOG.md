@@ -36,6 +36,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **Cold War Germany's airfield frequencies come from DCS 2.9.32** (CHORE-DCS-2932-DATA-REGEN): the 20 airfields DCS 2.9.32 added get their tower frequencies in the frequency table and in the `airports-germanycw` collections of the default presets (247 airfields captured, 139 with radio frequencies, 23 TACAN); Tagra's HF moves from 5.0 to 4.6 MHz and Norvenich's TACAN from 77X to 109X.
 
+- **Cold War Germany's clear-ground catalogue is swept on DCS 2.9.32** (CHORE-DCS-2932-DATA-REGEN): the 6 km round each combat zone of the GermanyCW Open Training is measured again on the 2.9.32 terrain, and the zone `combatZone_Hunsrueck_SAR`, added to that mission since the first sweep, is covered too (26 zones, 331 770 bytes against 316 758).
+
 ## [6.39.1] — 2026-11-24
 
 - **"Next page" is the last entry of every radio menu page** (FIX-RADIO-NEXT-PAGE-IN-F10): on the Campagne server, several menus showed "Page suivante" in F9 and another entry in F10. DCS lists a menu's entries in the order they were created, so an entry for one pilot's group, created when he joined, or an entry recreated with new parameters, landed below a "Next page" created before. The link is now recreated after the page's entries, with the pages under it, when something was added to that page.

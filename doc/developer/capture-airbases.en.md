@@ -102,14 +102,19 @@ Send that `<Map>.json` file to **David**. Done for this map!
 
 Tick as you go. **No need to redo a map already ticked.**
 
-### ✅ Every current DCS map is covered 🎉
+### One map to redo: Kola
 
-- [x] **Syria** · **Caucasus** · **Cold War Germany** · **Marianas** · **Normandy**
+- [ ] **Kola** — DCS 2.9.32 added three airfields to it (Honningsvåg, Hasvik, Vardø): a fresh capture, **with `--parking`**, brings them into the tools.
+
+### The maps already collected
+
+- [x] **Syria** · **Caucasus** · **Marianas** · **Normandy**
+- [x] **Cold War Germany** — *collected again by David on DCS 2.9.32, which added 20 airfields to it*
 - [x] **Persian Gulf** · **Sinai** — *collected by David*
-- [x] **Nevada** · **The Channel** · **South Atlantic** (Falklands) · **Kola**
+- [x] **Nevada** · **The Channel** · **South Atlantic** (Falklands)
 - [x] **Afghanistan** · **Iraq** · **Marianas WWII** — *collected by Reaper, thanks!*
 
-**So there is nothing left to collect right now.** What we will still need:
+What we will still need afterwards:
 
 - **a brand-new DCS map ships** → collect it (the mission takes two minutes to build in the
   editor, see just below);

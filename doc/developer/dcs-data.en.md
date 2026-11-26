@@ -14,7 +14,7 @@ interchangeable:
 |--------|-----|-----------|----------|
 | **Community datamine** | clone `Quaggles/dcs-lua-datamine` at a pinned ref | no | country table, **units database**, radio specs |
 | **`dcs-world-schema` reference database** | SQLite asset of a pinned release (version and SHA-256) | no | airdrome name→id table and positions |
-| **In-DCS export** | capture a dump in-game (dcs-bridge `world.getAirbases()`, or `dcsDataExport.lua`), commit the dump | yes (DCS running) | airbases of a theatre the reference database lacks, weapons |
+| **In-DCS export** | capture a dump in-game (dcs-bridge `world.getAirbases()`, or `dcsDataExport.lua`), commit the dump | yes (DCS running) | airbases the reference database lacks (a missing theatre, or airfields DCS added since), weapons |
 | **DCS install files** | read files from a local DCS install (`--dcs-path`) | install only (not running) | airfield ATC frequencies, cockpit controls |
 
 The datamine path is reproducible and CI-checkable; it is the default for all the
@@ -182,7 +182,10 @@ Measured on 2026-10-08 against `v0.5.0`: its 798 airbases of 13 theatres carry t
 Its position is the terrain's **reference point**, which sits on the runways' centre (median gap 0 m); `Airbase:getPoint()`, what the dumps hold, lands about 1 km away.
 `airdrome-positions.yaml` has therefore carried the reference point since FEAT-DCS-REFERENCE-DATA.
 
-**Runtime dumps now only serve the theatres the database lacks** (TheChannel at `v0.5.0`): for a theatre the database knows, the database wins.
+**Runtime dumps now only serve what the database lacks.** They cover a theatre the database does not have (TheChannel at `v0.5.0`).
+For a theatre the database knows, the database wins on every id it has, and the dump only adds the ids it lacks: the airfields a DCS update added after it was read (20 on Cold War Germany in DCS 2.9.32).
+The join is on the id: an airbase DCS renamed keeps its id, so an older dump never brings the old name back.
+For those added airfields the position is the dump's, `Airbase:getPoint()`, not the reference point.
 Each dump is captured once in-game with the **VEAF dcs-bridge** (`world.getAirbases()`, category `AIRDROME` — everything, airfields **and** terrain helipads, all valid `Airbase` objects with a warehouse).
 Both sources being pinned or committed, both files are **CI-guarded** (`dcs-data-consistency.yml`):
 
@@ -204,11 +207,11 @@ veaf-tools dcs capture-map --api-key <dcs-serve superuser token> --out-dir <fold
 ```
 
 On the dev side, `veaf-build update-dcs-data --airdromes` then merges the committed
-`.json` under `veaf_build/dcs_data/airbase_dumps/` into the YAML, for the theatres the reference database does not know.
+`.json` under `veaf_build/dcs_data/airbase_dumps/` into the YAML, for the theatres and the airbases the reference database does not know.
 Full procedure for helpers: [capture-airbases](capture-airbases.en.md). See the
 [VEAF-dcs-bridge repo](https://github.com/VEAF/VEAF-dcs-bridge) for `dcs-serve`.
 
-`veaf_libs.dcs_airdromes.airdrome_id_for_name(theatre, name)` reads it. Coverage: **all 14 DCS theatres** (810 airbases: 798 from the reference database, 12 from the TheChannel dump). Residual caveat:
+`veaf_libs.dcs_airdromes.airdrome_id_for_name(theatre, name)` reads it. Coverage: **all 14 DCS theatres** (830 airbases: 798 from the reference database, 12 from the TheChannel dump, 20 from the Cold War Germany dump captured on DCS 2.9.32). Residual caveat:
 the table only covers theatres the database knows or **already dumped**; any other theatre yields no
 entries — callers fall back to ids. Resolution is case-insensitive.
 

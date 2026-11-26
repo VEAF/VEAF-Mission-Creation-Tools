@@ -1,7 +1,7 @@
 # DCS airbase positions (lat/lon of the reference point, the runways' centre, and its
 # elevation in m where the source has one), per theatre.
 # Generated with airdromes.yaml from the dcs-world-schema reference data, and from
-# veaf_build/dcs_data/airbase_dumps/<Theatre>.json for a theatre it lacks.
+# veaf_build/dcs_data/airbase_dumps/<Theatre>.json for the airbases it lacks.
 # DO NOT EDIT BY HAND — CI fails if it drifts. Re-run `veaf-build update-dcs-data --airdromes`.
 # Read by the MCP list_airfields action.
 
@@ -400,6 +400,14 @@ theatres:
     lat: 49.36917
     lon: 9.440137
     elevation: 365.6
+  - name: Ahlhorn
+    id: 172
+    lat: 52.889012
+    lon: 8.220354
+  - name: Ahlhorn Highway Strip
+    id: 167
+    lat: 52.911648
+    lon: 8.165062
   - name: Airracing Frankfurt
     id: 204
     lat: 50.008207
@@ -425,11 +433,19 @@ theatres:
     lat: 51.995486
     lon: 12.983764
     elevation: 95.0
+  - name: Avno
+    id: 206
+    lat: 55.08583
+    lon: 11.752192
   - name: Bad Durkheim
     id: 242
     lat: 49.472683
     lon: 8.194936
     elevation: 106.0
+  - name: Baden-Soellingen
+    id: 192
+    lat: 48.788411
+    lon: 8.089441
   - name: Barth
     id: 3
     lat: 54.338192
@@ -475,11 +491,19 @@ theatres:
     lat: 53.046942
     lon: 8.788272
     elevation: 12.4
+  - name: Bremerhaven
+    id: 178
+    lat: 53.511894
+    lon: 8.571111
   - name: Briest
     id: 6
     lat: 52.437638
     lon: 12.453931
     elevation: 35.1
+  - name: Bruchsal
+    id: 214
+    lat: 49.133373
+    lon: 8.567751
   - name: Buchel
     id: 235
     lat: 50.174095
@@ -545,6 +569,10 @@ theatres:
     lat: 52.82714
     lon: 13.694045
     elevation: 34.0
+  - name: Finsterwalde
+    id: 173
+    lat: 51.607469
+    lon: 13.724379
   - name: Frankfurt
     id: 163
     lat: 50.040431
@@ -1215,6 +1243,14 @@ theatres:
     lat: 54.3795
     lon: 10.144681
     elevation: 11.0
+  - name: Kluczewo
+    id: 183
+    lat: 53.273666
+    lon: 14.97402
+  - name: Kolobrzeg-Bagicz
+    id: 203
+    lat: 54.203083
+    lon: 15.704724
   - name: Kothen
     id: 82
     lat: 51.721377
@@ -1225,6 +1261,10 @@ theatres:
     lat: 53.918052
     lon: 12.2794
     elevation: 35.0
+  - name: Lahr
+    id: 209
+    lat: 48.358032
+    lon: 7.818387
   - name: Landstuhl
     id: 43
     lat: 49.403076
@@ -1245,6 +1285,10 @@ theatres:
     lat: 51.393782
     lon: 12.408046
     elevation: 126.6
+  - name: Lolland-Falster
+    id: 207
+    lat: 54.698649
+    lon: 11.446665
   - name: Lubeck
     id: 81
     lat: 53.804876
@@ -1265,6 +1309,10 @@ theatres:
     lat: 49.969133
     lon: 8.147878
     elevation: 220.0
+  - name: Makowice
+    id: 205
+    lat: 53.757376
+    lon: 15.306349
   - name: Marxwalde
     id: 46
     lat: 52.612976
@@ -1315,6 +1363,10 @@ theatres:
     lat: 51.267735
     lon: 10.634806
     elevation: 271.0
+  - name: Oldenburg
+    id: 174
+    lat: 53.178688
+    lon: 8.17534
   - name: Oranienburg
     id: 49
     lat: 52.724895
@@ -1325,6 +1377,10 @@ theatres:
     lat: 53.427856
     lon: 11.786589
     elevation: 52.0
+  - name: Pattonville
+    id: 216
+    lat: 48.865092
+    lon: 9.220946
   - name: Peenemunde
     id: 25
     lat: 54.1587
@@ -1340,6 +1396,10 @@ theatres:
     lat: 49.855128
     lon: 7.604706
     elevation: 400.1
+  - name: Phalsbourg
+    id: 177
+    lat: 48.771607
+    lon: 7.214168
   - name: Pinnow
     id: 111
     lat: 53.616543
@@ -1390,6 +1450,14 @@ theatres:
     lat: 53.320957
     lon: 9.582918
     elevation: 38.2
+  - name: Sjobo
+    id: 175
+    lat: 55.653352
+    lon: 13.615759
+  - name: Sniatowo
+    id: 179
+    lat: 53.875702
+    lon: 14.881136
   - name: Spangdahlem
     id: 162
     lat: 49.976572
@@ -1410,11 +1478,19 @@ theatres:
     lat: 52.629081
     lon: 11.819859
     elevation: 37.2
+  - name: Strasbourg Entzeim
+    id: 176
+    lat: 48.531743
+    lon: 7.616521
   - name: Sturup
     id: 45
     lat: 55.535659
     lon: 13.376404
     elevation: 66.2
+  - name: Stuttgart
+    id: 138
+    lat: 48.690295
+    lon: 9.225751
   - name: Szczecin-Goleniow
     id: 50
     lat: 53.584757
@@ -1465,6 +1541,10 @@ theatres:
     lat: 52.620466
     lon: 10.411016
     elevation: 66.6
+  - name: Vaerlose
+    id: 210
+    lat: 55.767137
+    lon: 12.342916
   - name: Verden-Scharnhorst
     id: 116
     lat: 52.965761

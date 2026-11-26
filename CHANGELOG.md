@@ -26,6 +26,11 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **Two MCP actions sent at once no longer erase each other** (MCP-CONTEXT-BUDGET): a client may send several tool calls together, and the server ran them in parallel threads; two `set_airbase_coalition` on one folder both loaded the mission, and the second save erased the first one's airfield while each answered success (measured on a local model's run, 2026-11-26). `run_action` now runs one action at a time.
 - **The QRA's `delay_before_activating` is documented as what it does** (MCP-CONTEXT-BUDGET): the seconds an intruder stays in the zone before the take-off, counted again at each entry. The module's page (FR/EN), the default `mission.yaml` comment, the objective-mission prompt and the guide said "seconds after the start"; no setting brings a QRA online at a mission time, now a known limitation. Nothing changes in game.
 
+- **Cold War Germany's 20 airfields added by DCS 2.9.32 resolve by name** (FEAT-AIRDROMES-DUMP-UNION): Ahlhorn, Stuttgart, Lahr, Strasbourg Entzeim and sixteen more were missing from the airdrome table, built from a reference database read on DCS 2.9.30, so a dynamic-slot warehouse or a QRA `airport_link` naming one was not wired, with no error.
+  The generator now joins the reference database and the runtime dumps on the airdrome id: the database wins on every id it has, and a dump adds the ids it lacks.
+  GermanyCW was captured again on DCS 2.9.32.30490 (247 airfields, 8 028 parking stands); no id changed.
+  Kola's three new airfields (Honningsvåg, Hasvik, Vardø) wait for a capture on a PC where the map is installed (`kola-airfields-added-by-dcs-2-9-32-unknown`).
+
 ## [6.39.1] — 2026-11-24
 
 - **"Next page" is the last entry of every radio menu page** (FIX-RADIO-NEXT-PAGE-IN-F10): on the Campagne server, several menus showed "Page suivante" in F9 and another entry in F10. DCS lists a menu's entries in the order they were created, so an entry for one pilot's group, created when he joined, or an entry recreated with new parameters, landed below a "Next page" created before. The link is now recreated after the page's entries, with the pages under it, when something was added to that page.

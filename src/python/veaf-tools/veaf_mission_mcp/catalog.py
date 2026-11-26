@@ -70,6 +70,7 @@ class ActionCatalog:
         self._mission_keys: dict[str, str] = {}
         self._oversize_hints: dict[str, str] = {}
         self._uncapped_when: dict[str, UncappedWhen] = {}
+        self._compact_summaries: dict[str, str] = {}
 
     def register(
         self,
@@ -78,6 +79,7 @@ class ActionCatalog:
         *,
         oversize_hint: str | None = None,
         uncapped_when: UncappedWhen | None = None,
+        compact_summary: str | None = None,
     ) -> None:
         """Register an action under its spec's name.
 
@@ -87,7 +89,11 @@ class ActionCatalog:
             oversize_hint: How to read the rest of a response cut at the ceiling, for the model.
             uncapped_when: Tells, from the call's parameters, that the caller asked for everything
                 (``section: all``): that response is not cut.
+            compact_summary: What ``list_catalog`` says of the action in the compact profile, in place of
+                its description's first sentence.
         """
+        if compact_summary is not None:
+            self._compact_summaries[spec.name] = compact_summary
         if oversize_hint is not None:
             self._oversize_hints[spec.name] = oversize_hint
         if uncapped_when is not None:
@@ -119,6 +125,17 @@ class ActionCatalog:
             The hint given at registration, or None.
         """
         return self._oversize_hints.get(name)
+
+    def compact_summary(self, name: str) -> str | None:
+        """Return what ``list_catalog`` says of action `name` in the compact profile, if it says it apart.
+
+        Args:
+            name: The action's registered name.
+
+        Returns:
+            The summary given at registration, or None.
+        """
+        return self._compact_summaries.get(name)
 
     def is_uncapped(self, name: str, params: dict[str, Any]) -> bool:
         """Return whether this call asked for everything, so its response is not cut.
@@ -174,6 +191,7 @@ class ActionCatalog:
         params = _expand_user_paths(params)
         params = _published_mission_key(name, params, schema)
         params = _published_file_key(name, params, schema)
+        params = _published_alias_keys(params, schema)
         _check_parameters(name, schema, params)
         native = self._mission_keys.get(name)
         if native is not None and native != MISSION_PARAMETER and MISSION_PARAMETER in params:
@@ -259,6 +277,34 @@ def _expand_user_paths(params: dict[str, Any]) -> dict[str, Any]:
         else value
         for key, value in params.items()
     }
+
+
+#: Parameter names a model reaches for, by the one an action publishes: a local model lost five calls of
+#: one run to `type_contains` (list_unit_types, list_payloads) and `which` (read_mission_file)
+#: (MCP-CONTEXT-BUDGET, run 7).
+_PARAMETER_ALIASES: dict[str, tuple[str, ...]] = {"name_contains": ("type_contains",), "file": ("which",)}
+
+
+def _published_alias_keys(params: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
+    """Read a known alias as the parameter the action publishes, when the action does not take the alias.
+
+    Args:
+        params: The parameters received.
+        schema: The action's published parameter JSON Schema.
+
+    Returns:
+        ``params`` with each alias renamed; unchanged when the published name is given too.
+    """
+    properties = schema.get("properties") or {}
+    result = dict(params)
+    for published, aliases in _PARAMETER_ALIASES.items():
+        if published not in properties or published in result:
+            continue
+        for alias in aliases:
+            if alias in result and alias not in properties:
+                result[published] = result.pop(alias)
+                break
+    return result
 
 
 def _published_file_key(name: str, params: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:

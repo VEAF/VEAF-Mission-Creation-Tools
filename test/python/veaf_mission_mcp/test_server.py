@@ -50,7 +50,8 @@ def test_the_compact_catalogue_fits_the_ceiling() -> None:
 
     compact = server.list_catalog()
     assert isinstance(compact, list)
-    assert all(len(entry["summary"]) <= 60 for entry in compact)
+    # 60 characters, but the few actions whose compact summary steers a small model (describe_mission_prompt).
+    assert all(len(entry["summary"]) <= 60 or server.CATALOG.compact_summary(entry["name"]) for entry in compact)
     assert len(json.dumps(compact, ensure_ascii=False, separators=(",", ":"))) <= MAX_RESPONSE_CHARS
 
 
@@ -278,3 +279,22 @@ def test_the_standard_profile_cuts_nothing(monkeypatch: pytest.MonkeyPatch) -> N
 def test_describe_units_says_how_to_filter_a_cut_answer() -> None:
     hint = server.CATALOG.oversize_hint("describe_units") or ""
     assert "group_name" in hint and "include_route" in hint
+
+
+@pytest.mark.usefixtures("compact")
+def test_the_compact_catalogue_steers_a_simple_mission_away_from_the_mission_prompts() -> None:
+    """Run 7: the catalogue's summary of describe_mission_prompt sent a local model to a 50 000-character prompt."""
+    summaries = {entry["name"]: entry["summary"] for entry in server.list_catalog()}
+    assert "recipe" in summaries["describe_mission_prompt"]
+    assert "FIRST" in summaries["describe_authoring_guide"]
+
+
+def test_the_standard_catalogue_keeps_the_descriptions_first_sentence() -> None:
+    summaries = {entry["name"]: entry["summary"] for entry in server.list_catalog()}
+    assert summaries["describe_mission_prompt"].startswith("When a user asks for a new mission")
+
+
+def test_the_parameter_names_a_model_invents_are_read_as_the_published_ones() -> None:
+    """Run 7 lost five calls to `type_contains` and `which`."""
+    by_alias = server.run_action("list_unit_types", {"type_contains": "MiG-29"})
+    assert by_alias == server.run_action("list_unit_types", {"name_contains": "MiG-29"})

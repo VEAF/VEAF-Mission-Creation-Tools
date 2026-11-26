@@ -94,7 +94,7 @@ The server has two **response profiles**, chosen by the `VEAF_MCP_PROFILE` envir
 
 An economy costs round trips to a client that has room: so it is chosen, never imposed.
 The tutorial's `llama-server` configuration carries `"env": {"VEAF_MCP_PROFILE": "compact"}`, and the pilot sets nothing.
-In the compact profile, the chain is 41 602 characters, tool schemas included; `test_context_budget.py` checks that it stays under 50 000.
+In the compact profile, the chain is 42 159 characters, a QRA included, tool schemas included; `test_context_budget.py` checks that it stays under 50 000.
 Most of the gain comes from the guide's `recipe` section: the calls of a simple mission, each with its exact JSON. Without it, a local model read the schema of every action it considered: 19 `describe_action`, 30 555 of the 106 857 characters of one run.
 
 In both profiles:
@@ -108,6 +108,9 @@ In the compact profile only:
 - An answer over 8 000 characters (a schema: 16 000) is replaced by `{truncated, total_chars, shown_chars, how_to_read_the_rest, head}`: its start, and the action's own way of reading the rest. At 16 000, one unfiltered `describe_units` added 9 500 tokens and overflowed a 65 536-token context right after the build. Below 8 000, the guide's default answer (7 515) and its `combat-zone-vs-qra` section (7 549) would be cut themselves.
 - An explicit request for everything is not cut: `describe_authoring_guide` with `section: all`, `describe_mission_prompt` with `part: all`.
 - The guide and the mission prompts are read by section, the limitations listing by id, and `read_mission_file` by slices of 6 000 characters at most.
+- The guide's default answer opens on `start_here`: a request that says what the mission holds is a simple mission, whatever word it uses ("training"…), and follows the recipe; a mission prompt is loaded only when the user wants one, with its weight. The word "training" had loaded the Open Training prompt (77 622 characters) and built nothing.
+- `list_catalog` summarises `describe_mission_prompt` and `describe_authoring_guide` so as to send the model to the recipe, and `list_payloads` gives the loadout names without their CLSIDs (464 characters instead of 6 424 for the MiG-29A).
+- In both profiles, a common invented parameter is read as the one the action publishes: `type_contains` for `name_contains`, `which` for `file`.
 
 ### `describe_mission`
 

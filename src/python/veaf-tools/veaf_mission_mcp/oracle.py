@@ -107,8 +107,9 @@ def list_payloads(unit_type: str | None = None) -> dict[str, Any]:
         unit_type: The exact DCS type; ``None`` lists the types that have loadouts.
 
     Returns:
-        ``{"unit_type", "payloads": [{"name", "pylons": {station: CLSID}}, ...]}`` for a type, or
-        ``{"types": [...]}`` without one (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 09).
+        ``{"unit_type", "payloads": [{"name", "pylons": {station: CLSID}}, ...]}`` for a type — in the
+        compact profile ``{"unit_type", "payloads": [name, ...]}`` — or ``{"types": [...]}`` without one
+        (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 09).
 
     Raises:
         ValueError: For a type with no DCS loadout, naming the types that have some.
@@ -118,6 +119,10 @@ def list_payloads(unit_type: str | None = None) -> dict[str, Any]:
     names = payload_names(unit_type)
     if not names:
         raise ValueError(f"DCS has no named loadout for {unit_type!r}; types that have some: {payload_types()}")
+    if is_compact():
+        # The names alone: the actions take a loadout by its name, and the MiG-29A's pylons were 6 424
+        # characters of CLSIDs in a local model's run (MCP-CONTEXT-BUDGET, run 7).
+        return {"unit_type": unit_type, "payloads": list(names)}
     return {
         "unit_type": unit_type,
         "payloads": [
@@ -424,11 +429,13 @@ MISSION_PROMPT_LANGS: tuple[str, ...] = ("en", "fr")
 _GUIDE_HEADING = re.compile(r"^## (?P<title>.+?) \{#(?P<id>[a-z0-9-]+)\}[ \t]*$", re.MULTILINE)
 #: The line under a guide section's heading saying when to read it: `<!-- when: ... -->`.
 _GUIDE_WHEN = re.compile(r"^<!-- when: (?P<when>.+?) -->[ \t]*\n", re.MULTILINE)
-#: The guide sections the compact profile's default answer carries whole: the first message, the calls of a
-#: simple mission with their parameters, the report. The others come by `section`, from the index. With the
+#: The guide sections the compact profile's default answer carries whole: the calls of a simple mission with
+#: their parameters, and the report; `start_here` stands for the first-message section, whose "every new
+#: mission starts by choosing its kind, then loads its prompt" sent a local model to a 50 000-character
+#: prompt (run 7). The others come by `section`, from the index. With the
 #: recipe, a local model no longer described every action it might use: 19 describe_action were 30 555 of
 #: the 106 857 characters of its run (MCP-CONTEXT-BUDGET, 2026-11-25).
-GUIDE_ESSENTIAL_SECTIONS: tuple[str, ...] = ("new-mission", "recipe", "report-back")
+GUIDE_ESSENTIAL_SECTIONS: tuple[str, ...] = ("recipe", "report-back")
 
 
 def _guide_sections(text: str) -> tuple[str, list[dict[str, str]]]:
@@ -467,6 +474,18 @@ def _guide_sections(text: str) -> tuple[str, list[dict[str, str]]]:
     return preamble, sections
 
 
+#: Guidance to the model, in English as the whole guide: not a message to the user.
+_COMPACT_ROUTING = (
+    "A request that says what the mission holds (a zone, a SAM, a QRA, player slots, a date) is a simple "
+    "mission, whatever word it uses (training, exercise, test): follow the recipe below and load no mission "
+    "prompt. Load one only when the user asks for one of these by name or plainly wants it — an Open "
+    "Training on a whole map, an objective mission with its briefing, a persistent campaign — and know "
+    "its weight first, in characters: {sizes}. When a detail is missing, choose a sensible value and say "
+    "so rather than ask. Pass the user's language as adapt_scaffold's 'language'; what a human reads keeps "
+    "its accents, identifiers (mission, zone and group names) are ASCII."
+)
+
+
 def _compact_routing() -> str:
     """Say, first in the compact guide, when a mission prompt is worth its weight and when the recipe is enough.
 
@@ -482,14 +501,7 @@ def _compact_routing() -> str:
         f"{kind} about {len(describe_mission_prompt(kind, 'en', part='all')['prompt']) // 1000} 000"
         for kind in MISSION_PROMPT_KINDS
     )
-    return (
-        "A request that says what the mission holds (a zone, a SAM, a QRA, player slots, a date) is a simple "
-        "mission, whatever word it uses (training, exercise, test): follow the recipe below and load no mission "
-        "prompt. Load one only when the user asks for one of these by name or plainly wants it — an Open "
-        "Training on a whole map, an objective mission with its briefing, a persistent campaign — and know "
-        f"its weight first, in characters: {sizes}. When a detail is missing, choose a sensible value and say "
-        "so rather than ask."
-    )
+    return _COMPACT_ROUTING.format(sizes=sizes)
 
 
 def describe_authoring_guide(section: str | list[str] | None = None) -> dict[str, Any]:

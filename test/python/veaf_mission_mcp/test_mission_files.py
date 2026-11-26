@@ -288,3 +288,14 @@ def test_a_mission_folder_can_create_a_src_yaml(folder: Path) -> None:
     edit_mission_file(folder, "src/waypoints.yaml", search="", replace="waypoints: []\n")
 
     assert (folder / "src" / "waypoints.yaml").read_text(encoding="utf-8") == "waypoints: []\n"
+
+
+def test_which_is_read_as_file(folder: Path) -> None:
+    """Run 7: a local model asked read_mission_file for `which` instead of `file`."""
+    from veaf_mission_mcp.actions import register_default_actions
+    from veaf_mission_mcp.catalog import ActionCatalog
+
+    catalog = ActionCatalog()
+    register_default_actions(catalog)
+    result = catalog.run_action("read_mission_file", {"mission_path": str(folder), "which": "src/versions.yaml"})
+    assert result["file"] == "src/versions.yaml"

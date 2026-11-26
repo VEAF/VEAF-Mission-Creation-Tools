@@ -102,6 +102,28 @@ def test_the_reference_chain_fits_the_budget(mission: Path) -> None:
             ],
         },
     )
+    sizes["list_payloads"] = _run("list_payloads", {"unit_type": "MiG-29A"})
+    sizes["create_qra"] = _run(
+        "create_qra",
+        {
+            "mission_path": folder,
+            "name": "QRA-Nalchik",
+            "coalition": "red",
+            "country_id": 0,
+            "country_name": "Russia",
+            "trigger_zone": "QRA-Nalchik-Zone",
+            "position": {"x": -158841, "y": 842000},
+            "radius": 40000,
+            "groups": [
+                {
+                    "name": "QRA-Nalchik-1",
+                    "units": [{"type": "MiG-29A"}, {"type": "MiG-29A"}],
+                    "airfield": "Nalchik",
+                    "payload": "R-73*2,R-60M*2,R-27R*2",
+                }
+            ],
+        },
+    )
     sizes["validate_mission"] = _run("validate_mission", {"folder_path": folder})
     sizes.update(MEASURED_CHARS)
 

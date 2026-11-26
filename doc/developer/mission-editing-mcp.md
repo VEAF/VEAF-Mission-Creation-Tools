@@ -96,7 +96,7 @@ Le serveur a deux **profils de réponse**, choisis par la variable d'environneme
 
 Une économie coûte des allers-retours à un client qui a la place : elle est donc choisie, jamais imposée.
 La configuration `llama-server` du tutoriel porte `"env": {"VEAF_MCP_PROFILE": "compact"}`, et le pilote n'a rien à régler.
-En profil compact, la chaîne tient en 41 602 caractères, schéma des outils compris ; `test_context_budget.py` vérifie qu'elle reste sous 50 000.
+En profil compact, la chaîne tient en 42 159 caractères, une QRA comprise, schéma des outils compris ; `test_context_budget.py` vérifie qu'elle reste sous 50 000.
 Le gros du gain vient de la section `recipe` du guide : les appels d'une mission simple, chacun avec son JSON exact. Sans elle, un modèle local lisait le schéma de chaque action qu'il envisageait : 19 `describe_action`, 30 555 des 106 857 caractères d'un essai.
 
 Dans les deux profils :
@@ -110,6 +110,9 @@ En profil compact seulement :
 - Une réponse de plus de 8 000 caractères (un schéma : 16 000) est remplacée par `{truncated, total_chars, shown_chars, how_to_read_the_rest, head}` : son début, et la façon propre à l'action de lire la suite. À 16 000, un seul `describe_units` sans filtre ajoutait 9 500 tokens et faisait déborder 65 536 tokens de contexte juste après le build. Sous 8 000, la réponse par défaut du guide (7 515) et sa section `combat-zone-vs-qra` (7 549) seraient coupées elles-mêmes.
 - Une demande explicite de tout n'est pas coupée : `describe_authoring_guide` avec `section: all`, `describe_mission_prompt` avec `part: all`.
 - Le guide et les prompts de mission se lisent par sections, la liste des limitations par identifiants, et `read_mission_file` par tranches de 6 000 caractères au plus.
+- La réponse par défaut du guide s'ouvre sur `start_here` : une demande qui dit ce que la mission contient est une mission simple, quel que soit le mot employé (« entraînement »…), et suit la recette ; un prompt de mission ne se charge que si l'utilisateur le veut, avec son poids. Le mot « entraînement » avait fait charger le prompt Open Training (77 622 caractères) et rien construire.
+- `list_catalog` résume `describe_mission_prompt` et `describe_authoring_guide` pour orienter le modèle vers la recette, et `list_payloads` donne les noms d'armement sans les CLSID (464 caractères au lieu de 6 424 pour le MiG-29A).
+- Dans les deux profils, un paramètre inventé courant est lu comme celui que l'action publie : `type_contains` pour `name_contains`, `which` pour `file`.
 
 ### `describe_mission`
 

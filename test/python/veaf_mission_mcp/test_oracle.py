@@ -700,3 +700,15 @@ def test_the_persistent_campaign_prompt_names_only_actions_that_exist(lang: str)
     }
     assert {"campaign_init", "campaign_validate", "campaign_next", "edit_mission_file"} <= actions
     assert actions <= known
+
+
+@pytest.mark.usefixtures("compact")
+def test_the_compact_profile_lists_loadouts_by_name() -> None:
+    """Run 7: the MiG-29A's loadouts were 6 424 characters of CLSIDs; create_qra takes a loadout by its name."""
+    payloads = list_payloads("MiG-29A")["payloads"]
+    assert all(isinstance(name, str) for name in payloads)
+    assert "R-73*2,R-60M*2,R-27R*2" in payloads
+
+
+def test_the_standard_profile_lists_loadouts_with_their_pylons() -> None:
+    assert "pylons" in list_payloads("MiG-29A")["payloads"][0]

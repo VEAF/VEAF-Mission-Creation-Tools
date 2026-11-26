@@ -3490,6 +3490,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ),
         handler=lambda p: describe_authoring_guide(p.get("section")),
         oversize_hint="Read fewer sections at once.",
+        compact_summary="Read this FIRST: when to load a mission prompt, and the recipe of a simple mission.",
         uncapped_when=lambda p: p.get("section") == "all",
     )
     catalog.register(
@@ -3533,6 +3534,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
         ),
         handler=lambda p: describe_mission_prompt(p["kind"], p.get("lang", "en"), p.get("part"), p.get("section")),
         oversize_hint="Read the prompt by pages: 'section' set to next_section.",
+        compact_summary="Only for a whole-map Open Training, an objective mission with briefing or a campaign "
+        "(~50 000 characters); a simple mission follows the guide's recipe.",
         uncapped_when=lambda p: p.get("part") == "all" and not p.get("section"),
     )
     catalog.register(

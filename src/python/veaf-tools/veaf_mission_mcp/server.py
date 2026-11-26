@@ -75,7 +75,14 @@ def list_catalog(full: bool = False, offset: int = 0) -> list[dict[str, Any]] | 
     """
     specs = CATALOG.list_catalog()
     if not full:
-        return [{"name": spec.name, "summary": summary(spec.description)} for spec in specs]
+        compact = is_compact()
+        return [
+            {
+                "name": spec.name,
+                "summary": (compact and CATALOG.compact_summary(spec.name)) or summary(spec.description),
+            }
+            for spec in specs
+        ]
     if not is_compact():
         return [spec.model_dump() for spec in specs]
     page: list[dict[str, Any]] = []

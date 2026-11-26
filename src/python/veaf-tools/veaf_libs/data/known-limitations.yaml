@@ -2308,3 +2308,19 @@ limitations:
     since FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT, so a respawn or a teleport of a Mission Editor group keeps it.
   cost: |
     The campaign's AWACS answered no picture, bogey dope or "clean" for two evenings.
+
+- id: qra-has-no-start-time
+  kind: tool
+  area: runtime
+  title: "No setting brings a QRA online at a given time of the mission: `delay_before_activating` counts from the intrusion"
+  symptom: |
+    `delay_before_activating` is the seconds an intruder stays in the QRA's zone before the take-off, counted
+    again at each entry once the QRA is ready (`veafQraCore.lua`, `STATUS_READY_WAITINGFORMORE`). A QRA asked
+    "online at H+15 min" with `delay_before_activating: 900` scrambles 15 minutes after each intrusion, from the
+    first minute of the mission. `active_at_start` is a yes or no. Until 2026-11-26 the module's documentation and
+    the objective-mission prompt said "seconds after the start", and *Marteau du Golan*'s README promised a QRA
+    "en alerte à H+15 min".
+  workaround: |
+    Write in the briefing what the QRA does: "they take off N minutes after you enter their circle". For a QRA
+    that must stay on the ground for the first minutes, declare it `active_at_start: false` and arm it with the
+    `qra.start` radio command.

@@ -232,7 +232,7 @@ class TestGuideBySection:
         assert '"module_id": "ASSETS"' in guide and '"jtac": 1511' in guide and "replaces the whole" in guide
         assert "`set_briefing`" in guide
         # The delay counts from the intrusion (veafQraCore.lua, STATUS_READY_WAITINGFORMORE), not from the start.
-        assert "not from the mission's start" in guide
+        assert "not from the mission's start" in guide and "scale_with_opposition" in guide
 
     def test_the_default_answer_opens_on_when_a_mission_prompt_is_worth_its_weight(self) -> None:
         """Run 6: "a modern training mission" loaded the Open Training prompt, 77 622 characters, and built nothing."""

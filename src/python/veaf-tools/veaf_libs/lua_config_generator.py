@@ -2797,7 +2797,7 @@ def generate_mission_yaml_template(
                     "    #           - Group1",
                     "    #         random_pick: 1",
                     "    #     delay_before_rearming: 30",
-                    "    #     delay_before_activating: 30",
+                    "    #     delay_before_activating: 30  # seconds an intruder stays in the zone before the scramble",
                     "    #     active_at_start: true    # false = declared but not armed (wait for qra.start)",
                 ]
         else:

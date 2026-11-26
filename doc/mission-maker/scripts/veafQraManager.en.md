@@ -74,7 +74,7 @@ modules:
         delay_before_rearming: 30        # seconds before zone resets after intruders leave
         rearm_while_occupied: true       # rearm without waiting for the zone to clear
         scale_with_opposition: true      # tier also chosen from the opposition level
-        delay_before_activating: 30      # seconds after :start() before QRA goes online
+        delay_before_activating: 30      # seconds an intruder stays in the zone before the scramble
         react_on_helicopters: false      # true = also trigger on enemy helicopters
         airport_link: "Batumi"           # paused while this airbase is lost (shortcut for links)
         # links: ["Batumi", "SA-10 North"]  # airbases, FARPs, ships, groups or statics the QRA depends on
@@ -106,7 +106,7 @@ modules:
 | `groups_by_enemy_count[].groups` | string[] | — | Yes | Pool of group names or VEAF commands, as for `simple_groups` |
 | `groups_by_enemy_count[].random_pick` | integer | — | No | How many groups to **draw** from the pool, without replacement: never the same group twice until the list is used up. A number bigger than the list starts a new round: "4 of [A, B]" scrambles A and B twice each, as in v5. **Absent: every group of the tier takes off.** The tier used is the biggest whose `enemy_count` does not exceed the intruders, whatever order the tiers are written in |
 | `delay_before_rearming` | integer | `0` | No | Seconds before zone resets after intruders leave |
-| `delay_before_activating` | integer | `0` | No | Seconds after start before QRA goes online |
+| `delay_before_activating` | integer | `0` | No | Seconds an intruder stays in the zone before the QRA takes off, counted again at each entry once the QRA is ready — **not** from the mission's start. No setting brings a QRA online at a given time of the mission |
 | `rearm_while_occupied` | boolean | `false` | No | A destroyed QRA rearms **even with intruders still in its zone**. Without it, it waits for the zone to be empty — with several players over the target, almost never |
 | `scale_with_opposition` | boolean | `false` | No | Choose the tier from the [opposition level](#opposition-level) when it exceeds the intruders in the zone — the lowest tier's threshold too: a pair triggers a QRA whose first tier is 3 when the mission is sized for six. The trigger stays on the zone: nobody in it, no scramble |
 | `react_on_helicopters` | boolean | `false` | No | Also trigger on enemy helicopters |
@@ -259,7 +259,7 @@ Use one of the following to define the protected airspace:
 | `:setNoNeedToLeaveZoneBeforeRearming()` | Allow rearming even if enemies are still in the zone (`rearm_while_occupied`) |
 | `:setScaleWithOpposition()` | Choose the tier from the opposition level when it exceeds the intruders (`scale_with_opposition`) |
 | `:setResetWhenLeavingZone()` | Reset immediately the moment all enemies leave (no wait) |
-| `:setDelayBeforeActivating(seconds)` | Delay before the QRA goes online after `:start()` |
+| `:setDelayBeforeActivating(seconds)` | Seconds an intruder stays in the zone before the take-off |
 | `:setMinimumAltitudeInFeet(feet)` | Minimum enemy altitude to trigger a scramble |
 | `:setMaximumAltitudeInFeet(feet)` | Maximum enemy altitude to trigger a scramble |
 | `:setRespawnDefaultOffset(latDelta, lonDelta)` | Spawn offset from zone center (meters, lat/lon) — first number north, second east; see [veafAirWaves](veafAirWaves.en.md#spawn-offset) |
@@ -357,7 +357,7 @@ modules:
           - "MiG-29 QRA North"
 ```
 
-> A definition listed under `definitions:` is started automatically when the mission loads. To delay when it comes online, use `delay_before_activating`; to declare it **without arming it**, set `active_at_start: false` (it can then be armed by a `qra.start` radio command or a script); to drop it entirely, remove it from `definitions:`.
+> A definition listed under `definitions:` is started automatically when the mission loads. To make it wait before taking off once an intruder is in its zone, use `delay_before_activating`; to declare it **without arming it**, set `active_at_start: false` (it can then be armed by a `qra.start` radio command or a script); to drop it entirely, remove it from `definitions:`.
 
 **Via `mission-script.lua`** — call the builder after `veafQraManager.initialize()`, then `:start()` explicitly:
 

@@ -178,7 +178,7 @@ def test_the_reference_airbases_are_read_per_theatre_with_their_reference_point(
     }
 
 
-def test_the_reference_wins_over_a_dump_and_a_dump_fills_a_theatre_it_lacks(tmp_path: Path) -> None:
+def test_the_reference_wins_on_its_ids_and_a_dump_adds_the_ids_it_lacks(tmp_path: Path) -> None:
     out = tmp_path / "airdromes.yaml"
     dumps = tmp_path / "dumps"
     dumps.mkdir()
@@ -194,12 +194,32 @@ def test_the_reference_wins_over_a_dump_and_a_dump_fills_a_theatre_it_lacks(tmp_
     count = A.generate(dumps, out, reference=reference)
 
     table = yaml.safe_load(out.read_text(encoding="utf-8"))["theatres"]
-    assert table["Syria"] == {"Tiyas": 39}
+    assert table["Syria"] == {"Abu al-Duhur": 1, "Marj Ruhayyil": 23, "Tiyas": 39}
     assert table["TheChannel"] == {"Abbeville Drucat": 1}
     positions = yaml.safe_load((tmp_path / "airdrome-positions.yaml").read_text(encoding="utf-8"))["theatres"]
-    assert positions["Syria"] == [{"name": "Tiyas", "id": 39, "lat": 34.6, "lon": 37.7}]
+    assert positions["Syria"] == [
+        {"name": "Abu al-Duhur", "id": 1, "lat": 35.7, "lon": 37.1},
+        {"name": "Marj Ruhayyil", "id": 23, "lat": 33.2, "lon": 36.4},
+        {"name": "Tiyas", "id": 39, "lat": 34.6, "lon": 37.7},
+    ]
     assert positions["TheChannel"] == [{"name": "Abbeville Drucat", "id": 1, "lat": 50.1, "lon": 1.8}]
-    assert count == 2
+    assert count == 4
+
+
+def test_a_dump_never_adds_a_second_name_for_an_id_the_reference_knows(tmp_path: Path) -> None:
+    # An airbase DCS renamed keeps its id: the dump's old name must not come back beside the new one.
+    out = tmp_path / "airdromes.yaml"
+    dumps = tmp_path / "dumps"
+    dumps.mkdir()
+    (dumps / "Syria.json").write_text(
+        json.dumps({"theatre": "Syria", "airbases": [{"id": 39, "name": "Tiyas old", "lat": 34.5, "lon": 37.6}]}),
+        encoding="utf-8",
+    )
+    reference = A.reference_airbases(_reference(("Syria", 39, "Tiyas", 34.6, 37.7)))
+
+    A.generate(dumps, out, reference=reference)
+
+    assert yaml.safe_load(out.read_text(encoding="utf-8"))["theatres"]["Syria"] == {"Tiyas": 39}
 
 
 def test_committed_positions_are_the_reference_points() -> None:

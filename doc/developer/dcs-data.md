@@ -14,7 +14,7 @@ Les données DCS entrent dans le dépôt de plusieurs façons, non interchangeab
 |--------|---------|-----------------|----------|
 | **Datamine communautaire** | clone de `Quaggles/dcs-lua-datamine` à un ref pinné | non | table des pays, **base des unités**, specs radio |
 | **Base de référence `dcs-world-schema`** | base SQLite d'une release pinnée (version et SHA-256) | non | table nom→id et positions des aérodromes |
-| **Export in-DCS** | capturer un dump en jeu (dcs-bridge `world.getAirbases()`, ou `dcsDataExport.lua`), committer le dump | oui (DCS lancé) | aérodromes d'une carte absente de la base de référence, armements |
+| **Export in-DCS** | capturer un dump en jeu (dcs-bridge `world.getAirbases()`, ou `dcsDataExport.lua`), committer le dump | oui (DCS lancé) | aérodromes qu'ignore la base de référence (carte absente, ou terrains ajoutés depuis par DCS), armements |
 | **Fichiers d'install DCS** | lire les fichiers d'une install locale (`--dcs-path`) | install seule (pas lancé) | fréquences ATC d'aérodrome, contrôles de cockpit |
 
 La voie datamine est reproductible et vérifiable en CI ; c'est la voie par défaut
@@ -184,7 +184,10 @@ Mesuré le 2026-10-08 sur `v0.5.0` : ses 798 aérodromes de 13 théâtres ont le
 Sa position est le **point de référence** du terrain, qui tombe au centre des pistes (écart médian 0 m) ; `Airbase:getPoint()`, ce que portent les dumps, tombe à environ 1 km de là.
 `airdrome-positions.yaml` porte donc le point de référence depuis FEAT-DCS-REFERENCE-DATA.
 
-**Les dumps runtime ne servent plus qu'aux théâtres absents de la base** (TheChannel à `v0.5.0`) : pour un théâtre que la base connaît, la base l'emporte.
+**Les dumps runtime ne servent plus qu'à ce que la base ignore.** Ils couvrent un théâtre absent de la base (TheChannel à `v0.5.0`).
+Pour un théâtre que la base connaît, la base l'emporte sur chaque id qu'elle a, et le dump n'ajoute que les ids qu'elle n'a pas : les aérodromes qu'une mise à jour de DCS a ajoutés après sa lecture (20 sur Cold War Germany en DCS 2.9.32).
+La jointure se fait sur l'id : un aérodrome renommé par DCS garde son id, donc un dump plus ancien ne fait jamais revenir l'ancien nom.
+Pour ces aérodromes ajoutés, la position est celle du dump, `Airbase:getPoint()`, et pas le point de référence.
 Chaque dump est capturé une fois en jeu avec le **VEAF dcs-bridge** (`world.getAirbases()`, catégorie `AIRDROME` — tout, aérodromes **et** héliports de terrain, tous des `Airbase` valides avec warehouse).
 Les deux sources étant pinnées ou committées, les deux fichiers sont **gardés par la CI** (`dcs-data-consistency.yml`) :
 
@@ -206,11 +209,11 @@ veaf-tools dcs capture-map --api-key <token superuser dcs-serve> --out-dir <doss
 ```
 
 Le `veaf-build update-dcs-data --airdromes` (côté dev) fusionne ensuite les `.json`
-committés sous `veaf_build/dcs_data/airbase_dumps/` dans le YAML, pour les théâtres que la base de référence ne connaît pas.
+committés sous `veaf_build/dcs_data/airbase_dumps/` dans le YAML, pour les théâtres et les aérodromes que la base de référence ne connaît pas.
 Procédure complète pour les assistants : [capture-airbases](capture-airbases.md). Voir
 le [dépôt VEAF-dcs-bridge](https://github.com/VEAF/VEAF-dcs-bridge) pour `dcs-serve`.
 
-`veaf_libs.dcs_airdromes.airdrome_id_for_name(theatre, name)` la lit. Couverture : **les 14 théâtres DCS** (810 aérodromes : 798 de la base de référence, 12 du dump de TheChannel). Limite résiduelle : la
+`veaf_libs.dcs_airdromes.airdrome_id_for_name(theatre, name)` la lit. Couverture : **les 14 théâtres DCS** (830 aérodromes : 798 de la base de référence, 12 du dump de TheChannel, 20 du dump de Cold War Germany capturé sur DCS 2.9.32). Limite résiduelle : la
 table ne couvre que les théâtres de la base ou **déjà dumpés** ; un autre théâtre ne donne
 aucune entrée — l'appelant retombe alors sur les ids. La résolution est insensible
 à la casse.

@@ -19,10 +19,11 @@ Since FEAT-DCS-REFERENCE-DATA, the ``dcs-world-schema`` reference database (see
 the dumps for every theatre it knows (798 of 798 identical, measured 2026-10-08), read offline.
 Its position is the terrain's reference point, which sits on the runways' centre (median 0 m on
 13 theatres), where ``Airbase:getPoint()`` — what the dumps hold — lands about a kilometre away.
-A dump is used only for a theatre the reference lacks (TheChannel at ``v0.5.0``).
+A dump fills a theatre the reference lacks (TheChannel at ``v0.5.0``), and adds to a theatre it
+knows the airdrome ids it lacks: the airfields a DCS update added after the reference was read.
 
 ``generate`` **merges** those sources into ``airdromes.yaml``: a theatre found in the
-reference or a dump is fully replaced from it, a theatre in neither is left untouched.
+reference or a dump is fully replaced from them, a theatre in neither is left untouched.
 Both sources are pinned or committed, so the artifacts are CI-guarded. Run via
 ``veaf-build update-dcs-data --airdromes``.
 """
@@ -138,7 +139,7 @@ def write_positions_yaml(theatres: dict[str, list[dict[str, Any]]], output: Path
         f.write("# DCS airbase positions (lat/lon of the reference point, the runways' centre, and its\n")
         f.write("# elevation in m where the source has one), per theatre.\n")
         f.write("# Generated with airdromes.yaml from the dcs-world-schema reference data, and from\n")
-        f.write("# veaf_build/dcs_data/airbase_dumps/<Theatre>.json for a theatre it lacks.\n")
+        f.write("# veaf_build/dcs_data/airbase_dumps/<Theatre>.json for the airbases it lacks.\n")
         f.write("# DO NOT EDIT BY HAND — CI fails if it drifts. Re-run `veaf-build update-dcs-data --airdromes`.\n")
         f.write("# Read by the MCP list_airfields action.\n\n")
         yaml.dump(data, f, allow_unicode=True, sort_keys=False, default_flow_style=False)
@@ -163,6 +164,31 @@ def load_dumps(dumps_dir: Path = DUMPS_DIR) -> dict[str, dict[str, int]]:
     return result
 
 
+def _union_sources(
+    dumps: dict[str, list[dict[str, Any]]], reference: dict[str, list[dict[str, Any]]]
+) -> dict[str, list[dict[str, Any]]]:
+    """Join the reference airbases and the dumps' records, theatre by theatre, on the airdrome id.
+
+    The reference keeps every id it knows, with its name and its reference point. A dump adds only
+    the ids the reference lacks: the airfields a DCS update added after the reference was read. An
+    airbase DCS renamed keeps its id, so a dump older than the reference never brings its old name
+    back beside the new one.
+
+    Args:
+        dumps: Theatre -> the committed dump's airbase records.
+        reference: Theatre -> the reference database's airbase records.
+
+    Returns:
+        Theatre -> airbase records, for every theatre either source knows.
+    """
+    result = {theatre: list(records) for theatre, records in dumps.items()}
+    for theatre, records in reference.items():
+        known = {record["id"] for record in records}
+        extra = [record for record in dumps.get(theatre, []) if record.get("id") not in known]
+        result[theatre] = list(records) + extra
+    return result
+
+
 def _load_existing_theatres(output: Path) -> dict[str, dict[str, int]]:
     """Return the ``theatres`` table already committed in *output* (empty if absent)."""
     if not output.is_file():
@@ -184,7 +210,7 @@ def write_airdromes_yaml(theatres: dict[str, dict[str, int]], output: Path) -> N
     with open(output, "w", encoding="utf-8", newline="\n") as f:
         f.write("# DCS airdrome name -> id table, per theatre.\n")
         f.write("# Generated from the dcs-world-schema reference data, and from the runtime airbase dumps\n")
-        f.write("# (veaf_build/dcs_data/airbase_dumps/<Theatre>.json) for a theatre it lacks.\n")
+        f.write("# (veaf_build/dcs_data/airbase_dumps/<Theatre>.json) for the airbases it lacks.\n")
         f.write("# Names are exact Airbase:getName() values (what airport_link / Airbase.getByName expects).\n")
         f.write("# DO NOT EDIT BY HAND — CI fails if it drifts. Re-run `veaf-build update-dcs-data --airdromes`.\n")
         f.write(
@@ -200,8 +226,9 @@ def generate(
 ) -> int:
     """Merge the reference airbases and the committed runtime dumps into the airdrome table.
 
-    A theatre found in *reference* is fully (re)generated from it; otherwise a theatre that has
-    a dump is generated from the dump; a theatre in neither is preserved as already committed in
+    A theatre found in *reference* is generated from it, plus the airdrome ids its dump has and the
+    reference lacks (see :func:`_union_sources`); otherwise a theatre that has a dump is generated
+    from the dump; a theatre in neither is preserved as already committed in
     *output*. A legacy folder-named duplicate (see :data:`LEGACY_THEATRE_ALIASES`) is dropped
     once its canonical theatre has a source. The positions are written beside *output*, as
     ``airdrome-positions.yaml``, from the same sources: a theatre in neither has no position.
@@ -217,7 +244,7 @@ def generate(
     """
     if output is None:
         output = DEFAULT_OUTPUT
-    sources = {**_load_dump_records(dumps_dir), **(reference or {})}
+    sources = _union_sources(_load_dump_records(dumps_dir), reference or {})
     merged = _load_existing_theatres(output)
     merged.update({theatre: names_to_ids(records) for theatre, records in sources.items()})
     for legacy, canonical in LEGACY_THEATRE_ALIASES.items():

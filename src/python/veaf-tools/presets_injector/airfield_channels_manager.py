@@ -706,16 +706,50 @@ def theatre_airfields(presets: dict[str, Any], theatre: str, count: int = THEATR
     """
     entries = list(load_reference(theatre).values())
     entries.sort(key=lambda entry: (entry.get("tacan") is None, str(entry["name"])))
-    wanted = {_normalise(str(entry["name"])) for entry in entries}
-    best: dict[str, str] = {}
+    best = theatre_aliases(presets, theatre)
+    chosen = [best[key] for key in (_normalise(str(entry["name"])) for entry in entries) if key in best]
+    return chosen[:count]
+
+
+def theatre_collection(presets: dict[str, Any], theatre: str) -> str | None:
+    """Return the name of the plan's ``airports-*`` collection for a theatre.
+
+    Args:
+        presets: The parsed ``presets.yaml``.
+        theatre: The runtime theatre name.
+
+    Returns:
+        The collection naming the most airfields of the theatre, or None when none names any.
+    """
+    wanted = {_normalise(str(entry["name"])) for entry in load_reference(theatre).values()}
+    best, best_count = None, 0
     for name, collection in (presets.get("channels_collection") or {}).items():
         if not str(name).startswith("airports-") or not isinstance(collection, dict):
             continue
-        keys = {_normalise(re.sub(r" \(.*\)$", "", str(alias))): str(alias) for alias in collection}
-        if len(set(keys) & wanted) > len(set(best) & wanted):
-            best = keys
-    chosen = [best[key] for key in (_normalise(str(entry["name"])) for entry in entries) if key in best]
-    return chosen[:count]
+        count = len(set(_aliases_by_key(collection)) & wanted)
+        if count > best_count:
+            best, best_count = str(name), count
+    return best
+
+
+def theatre_aliases(presets: dict[str, Any], theatre: str) -> dict[str, str]:
+    """Return the aliases of the plan's ``airports-*`` collection for a theatre, by normalised name.
+
+    Args:
+        presets: The parsed ``presets.yaml``.
+        theatre: The runtime theatre name.
+
+    Returns:
+        ``{normalised airfield name: alias}``; empty when the plan has no collection for the theatre.
+    """
+    name = theatre_collection(presets, theatre)
+    collection = (presets.get("channels_collection") or {}).get(name) if name else None
+    return _aliases_by_key(collection) if isinstance(collection, dict) else {}
+
+
+def _aliases_by_key(collection: dict[str, Any]) -> dict[str, str]:
+    """Key a collection's aliases by their normalised airfield name, a ``(Syria)`` suffix dropped."""
+    return {_normalise(re.sub(r" \(.*\)$", "", str(alias))): str(alias) for alias in collection}
 
 
 def plan_for_theatre(text: str, theatre: str) -> str:
@@ -738,6 +772,21 @@ def plan_for_theatre(text: str, theatre: str) -> str:
     chosen = theatre_airfields(presets, theatre)
     if not current or not chosen or any(alias not in foreign for alias in current):
         return text
+    return rewrite_primary_2(text, chosen)
+
+
+def rewrite_primary_2(text: str, names: list[str]) -> str:
+    """Write the channels of ``channel_lists.blue.primary_2``, the second radio, as text.
+
+    The rest of the file, its comments included, is left as it is.
+
+    Args:
+        text: The ``presets.yaml`` text.
+        names: The channel aliases, in order: channel 1 first.
+
+    Returns:
+        The text with those entries; as it was when it has no ``primary_2`` under ``channel_lists``.
+    """
     newline = "\r\n" if "\r\n" in text else "\n"
     lines = text.split(newline)
     start = next((i for i, line in enumerate(lines) if line.startswith("channel_lists:")), None)
@@ -750,7 +799,7 @@ def plan_for_theatre(text: str, theatre: str) -> str:
     while end < len(lines) and lines[end].strip() and _indent(lines[end]) > _indent(lines[head]):
         end += 1
     pad = " " * (_indent(lines[head]) + 2)
-    entries = [f"{pad}{index:02d}: {yaml_scalar(name)}" for index, name in enumerate(chosen, start=1)]
+    entries = [f"{pad}{index:02d}: {yaml_scalar(name)}" for index, name in enumerate(names, start=1)]
     return newline.join([*lines[: head + 1], *entries, *lines[end:]])
 
 

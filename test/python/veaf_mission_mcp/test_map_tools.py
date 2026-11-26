@@ -162,6 +162,55 @@ class TestListAirfieldsWeight:
         airfields = list_airfields(mission_path=sample_miz)["airfields"]
         assert {a["coalition"] for a in airfields} <= {"red", "blue", "neutral"}
 
+    @staticmethod
+    def _syria_with_two_sides(monkeypatch: pytest.MonkeyPatch) -> None:
+        """Make every mission a Syria one where Mezzeh (25) is red and Ramat David (50) blue."""
+        from types import SimpleNamespace
+
+        from veaf_mission_mcp import map_tools
+
+        mission = SimpleNamespace(
+            theatre_content="Syria",
+            warehouses_content={"airports": {25: {"coalition": "RED"}, 50: {"coalition": "BLUE"}}},
+        )
+        monkeypatch.setattr(map_tools, "_load_mission", lambda _path: mission)
+
+    def test_compact_lists_only_the_mission_s_sided_airfields(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        from veaf_mission_mcp.map_tools import list_airfields
+
+        # Run 15 called it nine times for 16 000 characters each, cut to 6 000: Syria's 223 bases, two of them red.
+        self._syria_with_two_sides(monkeypatch)
+        monkeypatch.setenv("VEAF_MCP_PROFILE", "compact")
+        result = list_airfields(mission_path=tmp_path)
+        assert {a["coalition"] for a in result["airfields"]} == {"red", "blue"}
+        assert len(result["airfields"]) == 2
+        assert result["neutral_left_out"] > 200
+        assert "name_contains" in result["note"]
+
+    def test_compact_still_finds_a_neutral_airfield_by_name(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        from veaf_mission_mcp.map_tools import list_airfields
+
+        self._syria_with_two_sides(monkeypatch)
+        monkeypatch.setenv("VEAF_MCP_PROFILE", "compact")
+        result = list_airfields(mission_path=tmp_path, name_contains="incirlik")
+        assert [a["coalition"] for a in result["airfields"]] == ["neutral"]
+        assert "neutral_left_out" not in result
+
+    def test_standard_lists_every_airfield_of_the_theatre(
+        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    ) -> None:
+        from veaf_mission_mcp.map_tools import list_airfields
+
+        self._syria_with_two_sides(monkeypatch)
+        monkeypatch.setenv("VEAF_MCP_PROFILE", "standard")
+        result = list_airfields(mission_path=tmp_path)
+        assert len(result["airfields"]) > 200
+        assert "neutral_left_out" not in result
+
 
 class TestCoordinatesWithoutAMission:
     """FIX-OPENCODE-TEST-FINDINGS 03: with no mission folder the AI fitted its own model, 5 km off."""

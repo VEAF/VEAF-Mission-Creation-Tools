@@ -8,7 +8,7 @@ adapt four `src/*.yaml` files it could not open either.
 from pathlib import Path
 
 import pytest
-from veaf_mission_mcp.mission_files import edit_mission_file, read_mission_file
+from veaf_mission_mcp.mission_files import MAX_SLICE_CHARS, edit_mission_file, read_mission_file
 
 MISSION_YAML = "mission:\n  name: My-Mission  # the .miz name\n  era: MODERN\nmodules:\n  SKYNET: false\n"
 
@@ -35,6 +35,32 @@ def test_read_returns_a_slice_of_a_long_file(folder: Path) -> None:
 
     assert result["content"] == "line4: 4\nline5: 5\nline6: 6\n"
     assert (result["first_line"], result["last_line"], result["total_lines"]) == (4, 6, 10)
+
+
+def test_the_standard_profile_reads_by_lines_only(folder: Path) -> None:
+    (folder / "src" / "long.yaml").write_text("".join(f"k{i}: {'x' * 70}\n" for i in range(300)), encoding="utf-8")
+    assert read_mission_file(folder, "src/long.yaml")["last_line"] == 300
+
+
+@pytest.mark.usefixtures("compact")
+def test_read_stops_before_its_character_ceiling_and_says_where_to_go_on(folder: Path) -> None:
+    """MCP-CONTEXT-BUDGET: 400 lines of src/presets.yaml were up to 13 823 characters."""
+    (folder / "src" / "long.yaml").write_text("".join(f"k{i}: {'x' * 70}\n" for i in range(300)), encoding="utf-8")
+
+    first = read_mission_file(folder, "src/long.yaml")
+    assert len(first["content"]) <= MAX_SLICE_CHARS
+    assert first["last_line"] < first["total_lines"] == 300
+    rest = read_mission_file(folder, "src/long.yaml", start_line=first["last_line"] + 1)
+    assert (first["content"] + rest["content"]).startswith("k0: ")
+    assert rest["first_line"] == first["last_line"] + 1
+
+
+@pytest.mark.usefixtures("compact")
+def test_read_returns_one_line_longer_than_the_ceiling_whole(folder: Path) -> None:
+    (folder / "src" / "wide.yaml").write_text(f"k: {'x' * (MAX_SLICE_CHARS + 10)}\nj: 1\n", encoding="utf-8")
+
+    result = read_mission_file(folder, "src/wide.yaml")
+    assert (result["first_line"], result["last_line"]) == (1, 1)
 
 
 def test_edit_replaces_one_exact_passage_and_keeps_the_rest(folder: Path) -> None:
@@ -262,3 +288,14 @@ def test_a_mission_folder_can_create_a_src_yaml(folder: Path) -> None:
     edit_mission_file(folder, "src/waypoints.yaml", search="", replace="waypoints: []\n")
 
     assert (folder / "src" / "waypoints.yaml").read_text(encoding="utf-8") == "waypoints: []\n"
+
+
+def test_which_is_read_as_file(folder: Path) -> None:
+    """Run 7: a local model asked read_mission_file for `which` instead of `file`."""
+    from veaf_mission_mcp.actions import register_default_actions
+    from veaf_mission_mcp.catalog import ActionCatalog
+
+    catalog = ActionCatalog()
+    register_default_actions(catalog)
+    result = catalog.run_action("read_mission_file", {"mission_path": str(folder), "which": "src/versions.yaml"})
+    assert result["file"] == "src/versions.yaml"

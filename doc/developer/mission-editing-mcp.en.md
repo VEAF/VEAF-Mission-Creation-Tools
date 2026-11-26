@@ -76,12 +76,42 @@ surface, mirroring the `dcs-bridge` MCP tool (a bridge to a running mission):
 | MCP tool | Role |
 |----------|------|
 | `capabilities()` | Server identity (name, version). |
-| `list_catalog(full=False)` | List registered actions as `{name, summary}` — the description's first sentence, about 10 kB for all of them; `full=true` gives every `description` and `parameters_schema` (some 70 kB, which a client saves to a file rather than shows). `describe_action` gives one in full. |
+| `list_catalog(full=False, offset=0)` | List registered actions as `{name, summary}` — the description's first sentence, about 15 kB for all of them; `full=true` gives every `description` and `parameters_schema`. In the compact profile: summaries cut at 60 characters (7 652 characters in all), and `full=true` by pages, `{actions, total, next_offset}`. `describe_action` gives one in full. |
 | `describe_action(name)` | Detail one action's parameter JSON Schema. |
 | `run_action(name, params)` | Run a registered action. |
 
 Concrete actions are registered by `veaf_mission_mcp.actions.register_default_actions`
 (`src/python/veaf-tools/veaf_mission_mcp/actions.py`).
+
+### Context budget (MCP-CONTEXT-BUDGET lot) {#context-budget}
+
+A tool's answer stays in the model's context to the end of the session.
+On 2026-11-25, the reference chain (guide, limitations, catalogue, scaffold, adapting the skeleton, combat zone, validation, build, inspection) returned 177 186 characters: a local model with a 65 000-token context overflowed before the build.
+The server has two **response profiles**, chosen by the `VEAF_MCP_PROFILE` environment variable of its MCP configuration:
+
+- `standard`, the default: the server answers as it always has, for Claude and every large-context client. The guide and a prompt come whole, an answer is never cut.
+- `compact`, for a local model: the guide and the prompts are read by section, any answer is cut beyond 8 000 characters, the listings are shorter.
+
+An economy costs round trips to a client that has room: so it is chosen, never imposed.
+The tutorial's `llama-server` configuration carries `"env": {"VEAF_MCP_PROFILE": "compact"}`, and the pilot sets nothing.
+In the compact profile, the chain is 38 826 characters, a QRA included, tool schemas included; `test_context_budget.py` checks that it stays under 50 000.
+Most of the gain comes from the guide's `recipe` section: the calls of a simple mission, each with its exact JSON. Without it, a local model read the schema of every action it considered: 19 `describe_action`, 30 555 of the 106 857 characters of one run.
+
+In both profiles:
+
+- `list_catalog`, `describe_action` and `run_action` answer one text block of compact JSON, with no `structuredContent` copy: `mcp` indented every object and sent a list as one block per item. The content is the same.
+- `adapt_scaffold` adapts the skeleton in one call: the model no longer reads `src/presets.yaml` (48 777 bytes).
+- `build_mission` returns its log without the progress lines or the folder's path; the raw output is in `build.log`.
+
+In the compact profile only:
+
+- An answer over 8 000 characters (a schema: 16 000) is replaced by `{truncated, total_chars, shown_chars, how_to_read_the_rest, head}`: its start, and the action's own way of reading the rest. At 16 000, one unfiltered `describe_units` added 9 500 tokens and overflowed a 65 536-token context right after the build. Below 8 000, the guide's default answer (7 515) and its `combat-zone-vs-qra` section (7 549) would be cut themselves.
+- An explicit request for everything is not cut: `describe_authoring_guide` with `section: all`, `describe_mission_prompt` with `part: all`.
+- The guide and the mission prompts are read by section, the limitations listing by id, and `read_mission_file` by slices of 6 000 characters at most.
+- The guide's default answer opens on `start_here`: a request that says what the mission holds is a simple mission, whatever word it uses ("training"…), and follows the recipe; a mission prompt is loaded only when the user wants one, with its weight. The word "training" had loaded the Open Training prompt (77 622 characters) and built nothing.
+- `list_catalog` summarises `describe_mission_prompt` and `describe_authoring_guide` so as to send the model to the recipe, and `list_payloads` gives the loadout names without their CLSIDs (464 characters instead of 6 424 for the MiG-29A).
+- `build_mission` also drops from its log the step lines that carry nothing (a file read, written, a YAML file valid), recognised by their message keys; `inspect_built_mission` counts the slot types and preset layouts instead of listing them (`detail: true` gives them). Three builds and three inspections of one run repeated those lists.
+- In both profiles, a common invented parameter is read as the one the action publishes: `type_contains` for `name_contains`, `which` for `file`.
 
 ### `describe_mission`
 
@@ -983,8 +1013,7 @@ always returned, with the date they were measured). Each entry: `id`, `kind`, `a
 `docs/agents/dcs-runtime-traps.md` is generated from it.
 
 The whole text is about 74 000 characters, more than a tool result carries. **With no argument the action
-returns a short listing** — `id`, `kind`, `area` and `theatres` when set, no title, about 7 000 characters — and the count of each
-`area`. `area` (`spawning`, `air-defence`, `players`, `radio`, `ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`), `kind` and
+returns a short listing** — `id`, `kind`, `area` and `theatres` when set, no title, about 13 000 characters — and the count of each `area`. In the compact profile, the ids alone, grouped by `area` (`by_area`), about 4 700 characters (MCP-CONTEXT-BUDGET). `area` (`spawning`, `air-defence`, `players`, `radio`, `ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`), `kind` and
 `theatre` narrow that listing and keep it short; `theatre` drops the entries that concern other theatres only (an entry with no
 `theatres` applies everywhere). Read the entries you need in full with `id` or `ids` (a list); `full: true` returns everything selected.
 An area used to come back in full: three of them were 46 000 characters in one call, carried to the end of the session (FIX-OPENCODE-TEST-FINDINGS).
@@ -995,7 +1024,11 @@ An area used to come back in full: three of them were 46 000 characters in one c
 
 ### `describe_authoring_guide` (FEAT-AI-ASSISTANT-ANY-CLIENT lot)
 
-Read-only, no parameter. Returns `{"guide": …}`: the authoring guide, `veaf_mission_mcp/data/authoring-guide.md`, verbatim.
+Read-only. The authoring guide, `veaf_mission_mcp/data/authoring-guide.md`.
+With no parameter the action returns it whole, `{"guide": …}`.
+In the compact profile it is 41 555 characters in one block; with no parameter the action then returns `{"start_here", "guide", "sections", "read_more"}` (MCP-CONTEXT-BUDGET): when to load a mission prompt, the sections every mission needs (`recipe` — the calls of a simple mission with their parameters, AWACS and tankers included —, `report-back`) and the index of the others, `{id: when}`: each `id` with when to read its section. Section `more` gives, with their parameters, the calls of a QRA's tiers and delay, ground groups at given positions, a static, a JTAC and the briefing.
+`section` reads one section or a list of them; `section: all` returns the whole guide, uncut.
+Every `##` heading of the file carries its id (`{#combat-zone-vs-qra}`) and, right under it, a `<!-- when: … -->` line; the server removes both before serving the text.
 The build bundles the whole `veaf_mission_mcp/data/` folder into the exe; in development the action reads the package's file.
 
 The **server instructions** (the MCP protocol's `instructions`, sent to the client on connection) ask it to call this action first, then `describe_known_limitations`.
@@ -1003,7 +1036,7 @@ They are a few lines on purpose: a client puts them in every session's prompt, s
 Not every client honours them; [the install page](../mission-maker/AI_ASSISTANT_INSTALL.en.md#other-mcp-client) therefore opens the conversation with the explicit request.
 
 ```json
-{}
+{"section": "combat-zone-vs-qra"}
 ```
 
 ### `read_mission_file` / `edit_mission_file` (FEAT-AI-ZERO-SETUP lot)
@@ -1011,6 +1044,7 @@ Not every client honours them; [the install page](../mission-maker/AI_ASSISTANT_
 A mission folder's YAML sources — `mission.yaml` and `src/*.yaml`, nothing else, no `..`, no absolute path — for an assistant with no direct file access.
 In Claude Desktop's chat mode, an assistant asked to rename a mission answered that no action could; `mission.name`, `mission.era` and the `src/*.yaml` files the guide's checklist asks it to adapt had no action at all.
 `read_mission_file` returns `{file, first_line, last_line, total_lines, content}`, 400 lines by default (`start_line`, `line_count`): the slot catalogue runs to 11 000.
+In the compact profile, a slice also stops before 6 000 characters, one line at least: 400 lines of `src/presets.yaml` were up to 13 823 (MCP-CONTEXT-BUDGET). Read on from `last_line + 1`.
 Its lines end in `\n` whatever the file uses.
 Without `mission_path` it reads the scaffold shipped with the tools — what `scaffold_mission` lays down: the dynamic-slot templates, the presets plan, `mission.yaml` with each module's commented example — and says `shipped: true`, so a plan can be checked before any folder exists.
 `edit_mission_file` replaces one exact passage (`search` / `replace`), refused when it occurs zero or several times or when the result no longer reads as YAML; backed up first.
@@ -1029,7 +1063,10 @@ Read-only. Returns `{"kind", "lang", "prompt"}`: the instructions that build one
 `kind` is `objective` (a mission played once, in one session), `open-training` (a VEAF training mission on a whole map) or `persistent-campaign` (a persistent campaign, file `new-persistent-campaign.<lang>.md`); `lang` is `en` (default) or `fr`.
 The prompts live in `veaf_mission_mcp/data/mission-prompts/`, bundled with the guide; they used to sit in the repository's `.prompts/`, for the user to paste.
 The authoring guide sends a user who asks for a new mission here, so "create a mission" is enough.
-The objective prompt comes in two parts, cut at a `<!-- part: build -->` line: `part: scenario` (the default, about 13 000 characters, which ends by saying how to load the rest) and `part: build`, once the user has approved a scenario; `part: all` returns both.
+The objective prompt comes in two parts, cut at a `<!-- part: build -->` line: `part: scenario` (the default, about 13 000 characters, which ends by saying how to load the rest) and `part: build`, once the user has approved a scenario; `part: all` returns both, in one block and uncut.
+A part comes whole. In the compact profile, or when `section` is given, it comes by pages of whole numbered sections, 7 000 characters at most but one section at least: the Open Training prompt was one 55 635-character block (MCP-CONTEXT-BUDGET).
+Each page gives `sections` (its part's index: `id` and title) and `next_section` while the part goes on; `section` (`0`, `2.1`, `4.6`…, or `intro`, the same number in French and English) starts a page anywhere, and the page stays in that section's part.
+`next_part: build` comes on the scenario's last page.
 Sections 4 to 9, 21 000 of its 34 000 characters, serve only after approval, and were carried through every turn of the scenario discussion (FIX-OPENCODE-TEST-FINDINGS).
 
 ```json
@@ -1118,6 +1155,8 @@ coalition-agnostic) + an appended `modules.COMBATZONE.combat_zones[]` yaml block
 not a separate call. In category `ship`, ships are placed 600 m apart (a vehicle's 20 m made them
 collide as they spawned).
 
+A group may carry `command` (a `list_shortcuts` alias, `-armor`): the tool names its first unit `#command="-armor" <group name>`, the VEAF alias carrier. Without `units`, it places a carrier of the class the alias spawns itself (`Osa 9A33 ln` for `-sa8`, `T-72B` for `-armor`): a model had put a T-72B under `-sa8`. A marker written in the group's name is moved there, and quotes escaped twice (`\"`) are restored: a small model did both (MCP-CONTEXT-BUDGET).
+
 ### `add_combat_operation`
 
 Writes `mission.yaml` only: a `combat_zones[]` entry of type `operation` — `tasking_orders` (each task, its `dependencies`), `friendly_name`, `briefing`, `active_at_start`.
@@ -1184,6 +1223,27 @@ Write. On an **empty** target folder:
 
 This is **step 0** of a from-scratch mission, before the wave-8 composites.
 
+### `adapt_scaffold` (MCP-CONTEXT-BUDGET lot)
+
+Write. Right after `scaffold_mission`, adapts the skeleton to the mission asked for, in one call: steps 1 to 5 of the guide's `after-scaffold` section.
+A model did them by reading the files: 68 759 characters, and a local model with a 49 152-token context overflowed before placing anything.
+Every value is checked before anything is written; what is not given stays as the scaffold laid it down, except two things that are always wrong for a real mission.
+
+- `src/presets.yaml`: the other theatres' airfield lists always go (48 777 → about 8 700 bytes on the Caucasus), except on a theatre that has none of its own (Afghanistan, TheChannel, MarianaIslandsWWII), where they all stay; `airfields` puts the given airfields on the second radio (`primary_2`), channel 1 first, and a name the theatre does not have is refused with its list. Flight, tanker and AWACS channels stay.
+- `src/versions.yaml`: `date` becomes `base_date`, `start_time` the variant's time, named after the time (`morning`, `noon`…) unless `variant` is given; `position` (`{x, y}` on the map or `{latitude, longitude}`, `timezone` optional: the longitude's nominal zone by default) serves sunrise and sunset.
+- `src/waypoints.yaml`: the scaffold's example points go; a route already written stays when `waypoints` is not given; `waypoints` (`[{name, x, y, alt?}]`, altitude in metres, 6 096 by default) gives every player flight's route, then the BULLSEYE. Without them, the BULLSEYE alone.
+- `src/dynamic-slot-templates.yaml`: `dynamic_slot_coalitions` copies the shipped catalogue for those coalitions only, and `dynamic_slot_aircraft` (`F/A-18C`) for those aircraft only (a name the catalogue lacks is refused with its types); both omitted, the file stays empty and the build takes the whole catalogue. A model asked for players "in F/A-18C" read 31 384 characters of the catalogue to find that type.
+- `mission.yaml`: `mission_name`, `era` (`MODERN`, `COLD_WAR`, `WW2`), `language` (`fr`, `en`) and `skynet`.
+- The blank mission: `date` and `start_time` (`set_mission_date`).
+
+The result is `{folder, changes}`, one line per file, to tell the user.
+Each file it rewrites is backed up first in the folder's `.veaf-backups/`, as every MCP write is.
+Implementation: `veaf_mission_mcp/adapt_scaffold.py`.
+
+```json
+{"folder_path": "path/to/mission-folder", "mission_name": "Test-Beslan", "era": "MODERN", "date": "2024-06-10", "start_time": "07:30", "position": {"x": -158841, "y": 842000}, "airfields": ["Beslan", "Mozdok"], "dynamic_slot_coalitions": ["blue"], "skynet": true}
+```
+
 ## Map & coordinates (wave 10)
 
 Placement actions take **DCS local coordinates** (`x`/`y`, metres in the theatre's own projection);
@@ -1216,6 +1276,7 @@ theatre's projection is known (`lat`/`lon` otherwise), plus each base's `coaliti
 mission, `theatre`.
 `name_contains` keeps the bases whose name holds a text; `details: true` adds `lat`/`lon`, `parking` (the stands usable by `planes` and by `helicopters`) and `atc` (`uhf`, `vhf`, `fm` MHz and `tacan`, as DCS gives them).
 Short by default: every field for Syria was 37 000 characters, 21 000 now (FIX-OPENCODE-TEST-FINDINGS).
+In the compact profile, with a mission and no `name_contains`, only the bases with a side come back, with `neutral_left_out`, the count of the others: a local model called it nine times in one run for Syria's 223 bases, two of them red (MCP-CONTEXT-BUDGET).
 
 ```json
 {"theatre": "Syria", "name_contains": "incirlik", "details": true}
@@ -1313,6 +1374,8 @@ passed as `--profile` — `LOCAL_TEST` for a local test build.
 ```
 
 The result lists in `missions` the `.miz` the build wrote: the night's, and its training versions when `mission.yaml` holds a `training:` block.
+`log` is the build's output, every message and warning, without the progress lines ("✓ Done …!") or the folder's path, written unwrapped (`COLUMNS=4000`); the raw output is in the folder's `build.log` (`log_file`).
+It was 14 004 characters, two thirds of them the folder's path and the progress (MCP-CONTEXT-BUDGET).
 
 ### `propose_training_plan`
 

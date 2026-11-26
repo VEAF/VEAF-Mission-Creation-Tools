@@ -1,0 +1,220 @@
+"""adapt_scaffold — steps 1 to 5 of the authoring guide in one action (MCP-CONTEXT-BUDGET).
+
+The folder comes from `veaf-tools prepare --template standard --theatre caucasus`, in process: what
+`scaffold_mission` lays down after its download, without the network.
+"""
+
+from pathlib import Path
+
+import pytest
+import veaf_tools.commands  # noqa: F401  — side effect: registers all commands on `app`
+import yaml
+from mission_tools.miz_tools import read_mission_folder
+from typer.testing import CliRunner
+from veaf_mission_mcp.actions import register_default_actions
+from veaf_mission_mcp.adapt_scaffold import adapt_scaffold
+from veaf_mission_mcp.catalog import ActionCatalog
+from veaf_tools.app import app
+
+
+@pytest.fixture(scope="module")
+def scaffold(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    folder = tmp_path_factory.mktemp("scaffold")
+    result = CliRunner().invoke(
+        app, ["prepare", "--template", "standard", "--theatre", "caucasus", str(folder), "--force"]
+    )
+    assert result.exit_code == 0, result.output
+    return folder
+
+
+@pytest.fixture
+def folder(scaffold: Path, tmp_path: Path) -> Path:
+    import shutil
+
+    copy = tmp_path / "mission"
+    shutil.copytree(scaffold, copy)
+    return copy
+
+
+def _yaml(path: Path) -> dict:
+    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+
+
+def test_every_file_of_the_guide_is_adapted_in_one_call(folder: Path) -> None:
+    result = adapt_scaffold(
+        folder,
+        mission_name="Test-Beslan",
+        era="COLD_WAR",
+        date="1985-06-10",
+        start_time="07:30",
+        position={"latitude": 43.2, "longitude": 44.6},
+        airfields=["Beslan", "mozdok", "Nalchik"],
+        waypoints=[
+            {"name": "Push", "x": -150000, "y": 830000},
+            {"name": "IP Beslan", "x": -155000, "y": 838000, "alt": 1500},
+        ],
+        dynamic_slot_coalitions=["blue"],
+        skynet=True,
+    )
+
+    assert len(result["changes"]) == 6
+    presets = _yaml(folder / "src" / "presets.yaml")
+    assert presets["channel_lists"]["blue"]["primary_2"] == {1: "Beslan", 2: "Mozdok", 3: "Nalchik"}
+    assert [name for name in presets["channels_collection"] if name.startswith("airports-")] == ["airports-caucasus"]
+    versions = _yaml(folder / "src" / "versions.yaml")
+    assert versions["base_date"] == "1985-06-10"
+    assert versions["position"] == {"latitude": 43.2, "longitude": 44.6, "timezone": "Etc/GMT-3"}
+    assert (versions["versions"][0]["name"], versions["versions"][0]["time"]) == ("morning", "07:30")
+    waypoints = _yaml(folder / "src" / "waypoints.yaml")
+    assert list(waypoints["waypoints"]) == ["PUSH", "IP_BESLAN"]
+    assert waypoints["waypoints"]["IP_BESLAN"]["alt"] == 1500
+    assert waypoints["settings"]["every_player_flight"]["waypoints"] == ["PUSH", "IP_BESLAN"]
+    slots = _yaml(folder / "src" / "dynamic-slot-templates.yaml")
+    assert set(slots["airplanes"]["coalitions"]) == {"blue"}
+    assert slots["airplanes"]["coalitions"]["blue"], "the shipped blue templates are copied"
+    mission_yaml = _yaml(folder / "mission.yaml")
+    assert (mission_yaml["mission"]["name"], mission_yaml["mission"]["era"]) == ("Test-Beslan", "COLD_WAR")
+    assert mission_yaml["modules"]["SKYNET"] is True
+    date = read_mission_folder(folder / "src" / "mission").mission_content["date"]
+    assert (date["Year"], date["Month"], date["Day"]) == (1985, 6, 10)
+
+
+def test_with_nothing_given_only_what_is_always_wrong_changes(folder: Path) -> None:
+    before = {
+        name: (folder / "src" / name).read_text(encoding="utf-8")
+        for name in ("versions.yaml", "dynamic-slot-templates.yaml")
+    }
+    mission_before = (folder / "mission.yaml").read_text(encoding="utf-8")
+
+    result = adapt_scaffold(folder)
+
+    assert _yaml(folder / "src" / "waypoints.yaml")["waypoints"] == {}
+    assert "BULLSEYE only" in result["changes"][2]
+    assert [n for n in _yaml(folder / "src" / "presets.yaml")["channels_collection"] if n.startswith("airports-")] == [
+        "airports-caucasus"
+    ]
+    for name, text in before.items():
+        assert (folder / "src" / name).read_text(encoding="utf-8") == text
+    assert (folder / "mission.yaml").read_text(encoding="utf-8") == mission_before
+
+
+def test_the_presets_file_shrinks_to_its_theatre(folder: Path) -> None:
+    """The scaffold's plan was 48 777 bytes, every theatre's airfields: what a model used to read."""
+    size = (folder / "src" / "presets.yaml").stat().st_size
+    adapt_scaffold(folder)
+    assert (folder / "src" / "presets.yaml").stat().st_size < size / 3
+
+
+def test_a_position_on_the_map_is_converted(folder: Path) -> None:
+    adapt_scaffold(folder, position={"x": -158841, "y": 842000})
+    position = _yaml(folder / "src" / "versions.yaml")["position"]
+    assert 42.5 < position["latitude"] < 43.5 and 44 < position["longitude"] < 45
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"era": "VICTORIAN"}, "era must be one of"),
+        ({"date": "10/06/1985"}, "is not YYYY-MM-DD"),
+        ({"start_time": "7h30"}, "is not HH:MM"),
+        ({"mission_name": "Mission-Été"}, "ASCII"),
+        ({"position": {"latitude": 43}}, "position needs"),
+        ({"waypoints": [{"x": 1, "y": 2}]}, "waypoints[0] needs a name"),
+        ({"dynamic_slot_coalitions": ["green"]}, "not green"),
+        ({"airfields": ["Batumi", "Nevatim"]}, "no airfield ['Nevatim'] on Caucasus"),
+        ({"waypoints": [{"name": "A", "x": 1, "y": 2, "alt": "high"}]}, "alt must be a number"),
+        ({"dynamic_slot_coalitions": []}, "needs at least one coalition"),
+    ],
+)
+def test_a_bad_value_is_refused_before_anything_is_written(folder: Path, kwargs: dict, message: str) -> None:
+    before = {path: path.read_bytes() for path in (folder / "src").glob("*.yaml")}
+    with pytest.raises(ValueError, match=message.replace("[", r"\[").replace("]", r"\]")):
+        adapt_scaffold(folder, **kwargs)
+    assert {path: path.read_bytes() for path in (folder / "src").glob("*.yaml")} == before
+
+
+def test_a_theatre_with_no_airfield_list_keeps_every_list(tmp_path: Path) -> None:
+    """pr-code-review of #1349: on Afghanistan the second radio still names Caucasus airfields; dropping every
+    `airports-*` list left those aliases defined nowhere, and the build stops on an undefined alias."""
+    folder = tmp_path / "afghanistan"
+    result = CliRunner().invoke(
+        app, ["prepare", "--template", "standard", "--theatre", "afghanistan", str(folder), "--force"]
+    )
+    assert result.exit_code == 0, result.output
+    collections = [
+        n for n in _yaml(folder / "src" / "presets.yaml")["channels_collection"] if n.startswith("airports-")
+    ]
+
+    adapt_scaffold(folder)
+
+    presets = _yaml(folder / "src" / "presets.yaml")
+    assert [n for n in presets["channels_collection"] if n.startswith("airports-")] == collections
+    defined = {alias for collection in presets["channels_collection"].values() for alias in (collection or {})}
+    assert set(presets["channel_lists"]["blue"]["primary_2"].values()) <= defined
+    with pytest.raises(ValueError, match="no airfield channel list for Afghanistan"):
+        adapt_scaffold(folder, airfields=["Bagram"])
+
+
+def test_the_action_is_in_the_catalogue(folder: Path) -> None:
+    catalog = ActionCatalog()
+    register_default_actions(catalog)
+    result = catalog.run_action("adapt_scaffold", {"mission_path": str(folder), "skynet": True})
+    assert result["changes"][-1] == "mission.yaml: SKYNET on."
+
+
+def test_the_language_is_written_and_checked(folder: Path) -> None:
+    adapt_scaffold(folder, language="fr")
+    assert _yaml(folder / "mission.yaml")["mission"]["language"] == "fr"
+    with pytest.raises(ValueError, match="language must be one of"):
+        adapt_scaffold(folder, language="de")
+
+
+def test_the_aircraft_the_players_fly_keep_only_their_templates(folder: Path) -> None:
+    """Run 9: players "in F/A-18C" made a local model read 31 384 characters of the slot catalogue."""
+    result = adapt_scaffold(folder, dynamic_slot_coalitions=["blue"], dynamic_slot_aircraft=["F/A-18C"])
+    slots = _yaml(folder / "src" / "dynamic-slot-templates.yaml")
+    types = {
+        unit["type"]
+        for countries in slots["airplanes"]["coalitions"].values()
+        for groups in countries.values()
+        for group in groups.values()
+        for unit in group["units"].values()
+    }
+    assert types == {"FA-18C_hornet"}
+    assert slots["helicopters"]["coalitions"] == {}
+    assert "FA-18C_hornet" in result["changes"][3]
+
+
+def test_an_aircraft_the_catalogue_lacks_is_refused_before_writing(folder: Path) -> None:
+    before = (folder / "src" / "presets.yaml").read_bytes()
+    with pytest.raises(ValueError, match="no dynamic-slot template for"):
+        adapt_scaffold(folder, dynamic_slot_aircraft=["Concorde"])
+    assert (folder / "src" / "presets.yaml").read_bytes() == before
+
+
+def test_a_second_call_without_waypoints_keeps_the_route_of_the_first(folder: Path) -> None:
+    """PR #1349 review: a second call, to turn Skynet on, wrote an empty route over the first call's."""
+    adapt_scaffold(folder, waypoints=[{"name": "Push", "x": -150000, "y": 830000}])
+
+    result = adapt_scaffold(folder, skynet=True)
+
+    assert list(_yaml(folder / "src" / "waypoints.yaml")["waypoints"]) == ["PUSH"]
+    assert "waypoints.yaml" in result["changes"][2]
+
+
+def test_every_file_it_rewrites_is_backed_up_first(folder: Path) -> None:
+    """PR #1349 review: the three files it rewrites whole had no backup, unlike every other MCP write."""
+    before = {name: (folder / "src" / name).read_bytes() for name in _REWRITTEN}
+
+    adapt_scaffold(folder, airfields=["Beslan"], waypoints=[], dynamic_slot_coalitions=["blue"])
+
+    backups = folder / ".veaf-backups"
+    for name, content in before.items():
+        stem, suffix = name.rsplit(".", 1)
+        copies = sorted(backups.glob(f"{stem}.*.{suffix}"))
+        assert copies, f"no backup of src/{name}"
+        assert copies[-1].read_bytes() == content
+
+
+#: The files `adapt_scaffold` writes whole, rather than through `save_yaml`, which backs up by itself.
+_REWRITTEN = ("presets.yaml", "waypoints.yaml", "dynamic-slot-templates.yaml")

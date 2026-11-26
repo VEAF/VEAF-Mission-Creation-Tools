@@ -5,7 +5,8 @@ You edit a Mission Maker's DCS mission through the `veaf-mission-mcp` server. Th
 with two armor groups"); **you** derive the concrete unit types, group names and config — do not
 ask the user for mechanical details you can decide correctly yourself.
 
-## A user who asks for a new mission
+## A user who asks for a new mission {#new-mission}
+<!-- when: the kinds of mission and their prompts, summed up in start_here. -->
 
 "Create a mission" is enough: the user does not have to name a prompt. Every new mission, however small, starts
 with this question — which kind do they want? — then load its prompt with `describe_mission_prompt` and follow it
@@ -26,48 +27,66 @@ models' runs: accented French in the reasoning, then unaccented in the JavaScrip
 the DCS briefing pictures — is one action, `build_mission_briefing`, once the mission is built. A few steps
 are still scripts (the Open Training's `README.md`, a look at the PPTX's pages): without a shell, read `describe_known_limitations`
 entry `mission-prompt-scripts-need-a-shell` and say what you could not produce. A user who wants no more than what they described (a test mission with one SAM zone) gets no prompt, but still
-the next section. Only a change to an existing mission skips both.
+the section `after-scaffold`. Only a change to an existing mission skips both.
 
-## Right after `scaffold_mission` — every new mission
+## Right after `scaffold_mission` — every new mission {#after-scaffold}
+<!-- when: what the scaffold ships that a mission replaces (adapt_scaffold does it). -->
 
 The scaffold is a generic skeleton, not a mission for this request. Left as it is, it ships a channel plan, a
 date, example waypoints and aircraft that have nothing to do with what the user asked: a test mission built on
 6.30.0 (2026-10-19) kept every one of them until the user asked about each in turn. Before placing anything:
+call **`adapt_scaffold`** once, with what the request says. Do not read or rewrite these files yourself: `src/presets.yaml` alone is 48 000 characters, more than a small model's context can spare.
 
-(With no direct file access — Claude Desktop in chat mode — read these files with `read_mission_file` and change
-them with `edit_mission_file`; the same goes for `mission.name` and `mission.era` in `mission.yaml`.)
+1. `src/presets.yaml` — a channel plan for modern two-radio aircraft, every theatre's airfields listed. Pass `airfields`, the ones the mission uses (channel 1 first): they go on the second radio, and the other theatres' lists go. Flight, tanker and AWACS channels stay. The build drops, per aircraft, the channels its radios cannot tune and lists them in `presets-validation-report.md`: an `ℹ️` entry (a warbird losing the UHF channels, an L-39 the ones above 390 MHz) needs no action — the channels in range are kept. Never set a type to `none` to quiet the report: `none` removes all its presets, the working ones too. Pick a flight's channel **inside the band of its aircraft's preset radio**: the UH-1H's only preset radio is its UHF (225–399.975 MHz), so a VHF channel such as 123.5 MHz is dropped for it, with the ranges that are valid in the message — give a Huey flight a UHF channel (two runs ended on 250.700), and say so in the briefing.
+2. `src/versions.yaml` and the blank mission — pass `date` (consistent with `era`), `start_time` and `position` (where the mission flies, `{x, y}`): the variant is named after the time unless you pass `variant`.
+3. `src/waypoints.yaml` — example points that point at nothing. Pass `waypoints`, the mission's route; without them every player flight gets the BULLSEYE only.
+4. `src/dynamic-slot-templates.yaml` — the shipped catalogue covers both coalitions and every era. Pass `dynamic_slot_coalitions`, the coalitions that get dynamic slots; the other eras' aircraft stay, a warbird included: a player who wants one in a modern mission may take it (David, 2026-10-20).
+5. `mission.yaml` — pass `mission_name` and `era`; and `skynet: true` for a mission with a SAM or an EWR zone: without it there is no integrated air defence at all, the EWR feeds no battery, and each SAM is left to the plain DCS AI (`describe_module SKYNET`; then `describe_known_limitations`, area `air-defence`).
 
-1. `src/presets.yaml` — a channel plan for modern two-radio aircraft on the Caucasus (Batumi, carriers…), which
-   the build projects onto every aircraft type. Rewrite it for the theatre and the aircraft flown, or reduce it
-   to flight channels. The build drops, per aircraft, the channels its radios cannot tune and lists them in
-   `presets-validation-report.md`: an `ℹ️` entry (a warbird losing the UHF channels, an L-39 the ones above
-   390 MHz) needs no action — the channels in range are kept. Never set a type to `none` to quiet the report:
-   `none` removes all its presets, the working ones too.
-   Pick a flight's channel **inside the band of its aircraft's preset radio**: the UH-1H's only preset radio is its
-   UHF (225–399.975 MHz), so a VHF channel such as 123.5 MHz is dropped for it, with the ranges that are valid
-   in the message — give a Huey flight a UHF channel (two runs ended on 250.700), and say so in the briefing.
-2. `src/versions.yaml` — one variant, `noon`, and `base_date: "2024-03-15"`. Name the variant and set its time
-   for the mission, make `base_date` agree with `mission.era` and the mission date, and set `position` to where
-   the mission flies (it is commented out).
-3. `src/waypoints.yaml` — example points that point at nothing, injected into every slot. Replace them with the
-   mission's route, or empty the file.
-4. `src/dynamic-slot-templates.yaml` — the shipped catalogue covers both coalitions and every era. Keep only the
-   coalitions that get dynamic slots; keep the other eras' aircraft, a warbird included, unless the user asks
-   otherwise: a player who wants one in a modern mission may take it (David, 2026-10-20).
-5. `mission.yaml` `modules` — the `standard` template ships `SKYNET: false`. A mission with a SAM or an EWR zone
-   needs it on: without it there is no integrated air defence at all, the EWR feeds no battery, and each SAM is
-   left to the plain DCS AI (`describe_module SKYNET`; then `describe_known_limitations`, area `air-defence`).
+For a change `adapt_scaffold` does not cover, `read_mission_file` and `edit_mission_file` reach these files.
 
-Tell the user in one line what you changed.
+Tell the user the lines `adapt_scaffold` returned.
 
-## Always ground yourself in the oracle — never from memory
+## A simple mission, call by call {#recipe}
+<!-- when: always: the calls that take an empty folder to a built mission, with their parameters. -->
+
+These calls build a simple mission; their parameters are here, so call them directly, without `describe_action`.
+Replace the example values with the user's; read a section of the index only when the request needs more (a FARP, a convoy). Build once, at the end. After a context reset, `describe_mission` lists what is placed: never re-read `mission.yaml` for it.
+
+1. `scaffold_mission` `{"target_folder": "<empty folder>", "template": "minimal", "theatre": "Caucasus"}` — the `template` the user asked for (`minimal`, `standard` or `full`), `standard` when they named none.
+2. A place by its name: `geocode` `{"theatre": "Caucasus", "query": "Beslan"}` gives its `x` and `y`.
+3. `adapt_scaffold` `{"mission_path": "<folder>", "mission_name": "Beslan-Strike", "era": "MODERN", "language": "fr", "date": "2024-06-10", "start_time": "08:00", "position": {"x": -158841, "y": 842000}, "airfields": ["Beslan", "Mozdok"], "dynamic_slot_coalitions": ["blue"], "dynamic_slot_aircraft": ["F/A-18C"], "skynet": false}` — `skynet: true` when the mission has a SAM or an EWR zone; `language` is the user's; `dynamic_slot_aircraft` only when the user names the aircraft the players fly (never read the slot catalogue to find one).
+4. Airfields: `set_airbase_coalition` `{"mission_path": "<folder>", "name": "Mozdok", "coalition": "blue"}` for each airfield the players take off from — an airfield of no side offers no dynamic slot — and `{"mission_path": "<folder>", "name": "Nalchik", "coalition": "red", "dynamic_spawn": false}` for each airfield an enemy flight (a QRA) takes off from.
+5. An AWACS or a tanker the user asks for: `add_air_group` `{"target": "<folder>", "coalition": "blue", "country_id": 2, "country_name": "USA", "name": "Texaco-1", "unit_type": "KC135MPRS", "start": "air", "position": {"x": -120000, "y": 700000}, "altitude_ft": 18000, "speed_kt": 300, "task": "Refueling", "frequency_mhz": 290.1}`; the track's end, `edit_route` `{"miz_path": "<folder>", "group_name": "Texaco-1", "operation": "add", "position": {"x": -120000, "y": 740000}, "altitude_ft": 18000}`; then four `edit_route` `{..., "operation": "add_task", "index": 1, "task": ...}`, in this order: `tanker`; `activate_beacon` with `"task_params": {"channel": 60, "mode": "Y", "callsign": "TX1", "aa": true}`; `set_unlimited_fuel`; `orbit` with `"task_params": {"pattern": "Race-Track", "altitude_ft": 18000, "speed_kt": 300}` — a task after the orbit never runs. A boom tanker is a `KC-135`; an AWACS an `E-3A` named `Magic`, task `AWACS`, with `awacs`, `eplrs`, `set_unlimited_fuel` and the orbit. Channels in the plan: Magic 282.2, Texaco-1 290.1 (basket, 60Y), Shell-1 290.3, Shell-2 290.4, Arco-1 290.5 (boom, 64Y): name the asset after one; another frequency goes into `src/presets.yaml` with `edit_mission_file`.
+6. `create_combat_zone` `{"mission_path": "<folder>", "zone_name": "CZ-Beslan", "position": {"x": -158841, "y": 842000}, "radius": 6000, "coalition": "red", "country_id": 0, "country_name": "Russia", "groups": [{"name": "armor-1", "command": "-armor"}, {"name": "sam-1", "command": "-sa8"}]}` — each group is a VEAF alias (`command`); give no `units`: the tool places a carrier of the alias's class; `list_shortcuts` `{"name_contains": "sa8"}` checks an alias (search the alias itself: `armor`, `sa8`, `aaa`).
+7. Enemy interceptors that take off when players enter an area: `create_qra` `{"mission_path": "<folder>", "name": "QRA-Nalchik", "coalition": "red", "country_id": 0, "country_name": "Russia", "trigger_zone": "QRA-Nalchik-Zone", "position": {"x": -158841, "y": 842000}, "radius": 40000, "groups": [{"name": "QRA-Nalchik-1", "units": [{"type": "MiG-29A"}, {"type": "MiG-29A"}], "airfield": "Nalchik", "payload": "R-73*2,R-60M*2,R-27R*2"}]}` — `position` and `radius` are the protected area; `list_payloads` `{"unit_type": "MiG-29A"}` names another type's loadouts; more aircraft against more intruders, helicopters, a delay: section `more`.
+8. Ground groups at given positions, a static, a JTAC, the briefing: section `more` gives their calls.
+9. `validate_mission` `{"mission_path": "<folder>"}`: fix every error it reports.
+10. `build_mission` `{"mission_path": "<folder>"}`, then `inspect_built_mission` `{"mission_path": "<folder>"}`: read the counters and question any zero.
+
+Then tell the user in a few lines what you built: the `.miz`, the zone and its groups, and what you could not check.
+
+## Beyond the simple mission: QRA tiers, ground groups, a JTAC, the briefing {#more}
+<!-- when: a QRA's tiers or delay, ground units at given positions, a static, a JTAC, the briefing: their calls. -->
+
+Call these directly too, without `describe_action`. A position the user gave stays where it is with `"keep_position": true`; without it, a vehicle group is moved up to 1 km to clear ground.
+
+- A QRA sized to the intruders: in `create_qra`, one entry of `groups` per pair, and `"qra": {"groups_by_enemy_count": [{"enemy_count": 1, "groups": ["QRA-Nalchik-1"]}, {"enemy_count": 4, "groups": ["QRA-Nalchik-1", "QRA-Nalchik-2"]}], "react_on_helicopters": false, "delay_before_activating": 900}` — 2 aircraft, 4 from 4 intruders. `react_on_helicopters: false`: no scramble for helicopters, but once airborne it shoots them too. `delay_before_activating`: the seconds from the first intrusion to the scramble, not from the mission's start; an intruder leaving does not stop the count, only a rearm starts it again. `create_qra` also writes `scale_with_opposition: true`: at the opposition level the mission starts with (0) the tiers stay as written; a Mission Maker who raises it from the Opposition menu gets that level's tier.
+- Vehicles: `add_group` `{"mission_path": "<folder>", "coalition": "blue", "country_id": 15, "country_name": "Israel", "category": "vehicle", "name": "Merkava-1", "position": {"x": -207500, "y": -17500}, "units": [{"type": "Merkava_Mk4", "count": 4}], "keep_position": true}`. Infantry is a `vehicle` group too (`Soldier M4`); an air defence `M1097 Avenger`, a self-propelled gun `M-109`. A group that must not fire: `"roe": "weapons_hold"`. `list_unit_types` `{"name_contains": "merkava"}` gives another type's exact name.
+- A static (a command post, a depot): the same call with `"category": "static"` and one unit, `[{"type": ".Command Center"}]`.
+- A JTAC: a `Hummer` placed as above, named `JTAC-1`, then `set_mission_module` `{"mission_yaml_path": "<folder>/mission.yaml", "module_id": "ASSETS", "value": {"enabled": true, "assets": [{"sort": 1, "name": "JTAC-1", "description": "JTAC Tel Abu Nada", "information": "Laser 1511, FM 35.55", "jtac": 1511, "freq": 35.55, "mod": "FM"}]}}`. That value replaces the whole `ASSETS` block: keep the assets it already lists. CTLD does the lasing, so `CTLD` stays on; it designates vehicles, not statics.
+- The briefing: `set_briefing` `{"mission_path": "<folder>", "sortie": "Marteau du Golan", "situation": "...", "blue_task": "...", "red_task": "..."}`, in the user's language, accents kept; only the fields given change.
+- Names: never a combat zone's name, nor a `veafSpawn-` prefix (section `naming`).
+
+## Always ground yourself in the oracle — never from memory {#oracle}
+<!-- when: the read-only actions that give VEAF and DCS facts. -->
 
 **Before anything else, call `describe_known_limitations`.** It returns, for the installed
 veaf-tools version, what the tools cannot do yet (with how to do without) and the DCS behaviours
 that raise no error and are wrong anyway — a late-activated group visible to scripts, `start_time`
 not delaying an air spawn, a SAM without early-warning radar permanently lit… Take them into account
 throughout; this guide deliberately does not repeat them, since a trap copied here would go stale.
-With no argument it returns a **short listing** (`id`, `kind`, `area`; each id reads as a phrase): the whole text is too
+With no argument it returns a **short listing** (the ids, grouped by area; each id reads as a phrase): the whole text is too
 long for one result. `area` (`spawning`, `air-defence`, `players`, `radio`, `ground-ai`, `scripting`, `mcp`, `pipeline`, `runtime`), `kind` and `theatre` narrow that listing and keep it short.
 Read in full, with `id` or `ids`, only the entries your mission actually meets: everything you read stays in your context to the end of the session and is sent again with every turn.
 
@@ -90,7 +109,7 @@ VEAF conventions may be stale or wrong.
   `follows_era` (`-aaa`, `-samLR`, `-armor`, `-infantry`, `-transport`, `-convoy`: the units change
   with `mission.era`), `ww2`, `post_ww2` (fixed modern equipment — `-ewr`, `-arty`, `-sa6` — wrong in
   a WW2 mission), `era_free` or `unknown`; pass `era` (`WW2`…) to list only what fits the mission.
-- `describe_naming_conventions` — the reserved naming patterns (below).
+- `describe_naming_conventions` — the reserved naming patterns (section `naming`).
 - `describe_module` — is a module real? its doc page? enabled in this mission?
 
 For an action's exact parameters, call `describe_action(name)` **just before you use it**, one action at a time — not every action you might need up front: ten described in one batch are ten schemas carried to the end of the session.
@@ -108,14 +127,16 @@ building, etc.).
 Never unzip, grep or parse a `.miz`, a mission file or the tools' own data files in a shell or a script of your own: `describe_mission`, `describe_map`, `read_mission_file` and `inspect_built_mission` read them, and the reference data has its own actions (`list_airfields`, `list_countries`, `list_unit_types`…).
 When no action answers a question, tell the user what you could not check instead of improvising a parser: a guess built from raw tables reads as a fact and is often wrong.
 
-## The two editing worlds
+## The two editing worlds {#two-worlds}
+<!-- when: which of mission.yaml, src/ or the built .miz an edit goes to. -->
 
 - **Recipe** — the source `mission.yaml`. Durable: survives a rebuild. Prefer it for configuration.
 - **Built mission** — the `.miz`. Direct, no rebuild, but overwritten on the next build from the recipe.
 
 Every write is backed up first. State which world you are editing when you report back.
 
-## Reserved naming conventions (the traps)
+## Reserved naming conventions (the traps) {#naming}
+<!-- when: before naming a group, a unit or a zone yourself. -->
 
 Prefer to express intent and let `add_group` name the group for you (`for_combat_zone`,
 `late_activation`, `as_spawn_template`) — it applies these rules and returns `warnings`. To check a
@@ -134,7 +155,8 @@ The dangerous ones:
   `#spawndelay=`, `#alarm=` → tune combat-zone spawn behaviour.
 - QRA deploy entries starting with `[` or `-` are read as commands, not group names.
 
-## Prefer VEAF aliases over literal units
+## Prefer VEAF aliases over literal units {#aliases}
+<!-- when: before placing ground units, a SAM, AAA, infantry or a convoy. -->
 
 When a `list_shortcuts` alias covers what's asked (a SAM, AAA, infantry, armor, artillery, a
 convoy…), **use the alias, not hand-placed literal DCS units** — whether as a `#command` fake-unit
@@ -147,7 +169,8 @@ long-range SAM, place a `#veafInterpreter["-samVLR"]` carrier, **not** a literal
 **medium**-range group (defense level 4–5: Roland/Hawk, Osa/Tor). The `defense` level of `-sam`,
 `-samSR`, `-samLR`, `-aaa` and of the section escorts is rolled ±1 and follows `mission.era`.
 
-## Combat zone vs QRA — two different group models
+## Combat zone vs QRA — two different group models {#combat-zone-vs-qra}
+<!-- when: before a combat zone, a QRA, targets, difficulty levels or moving targets. -->
 
 **Combat zone** — groups are found by **geometry** (inside the trigger zone), coalition is
 ignored **for capture** (VEAF despawns then respawns any group inside, whatever its side), and
@@ -157,6 +180,7 @@ units, use a fake unit carrying `#command="-<alias> ..."` (an alias from `list_s
 as that unit's **`name`** (the `units` entry takes an optional `name`; the runtime reads
 `#command`/`#spawn*` off the unit name). **Prefer this `#command` fake-unit** for combat-zone
 content over hand-placing literal units.
+With `create_combat_zone`, give the group `"command": "-armor"` and no `units`: the tool places a carrier of the class the alias spawns and names it `#command="-armor" <group name>` itself, so you never type the marker's quotes.
 
 **A group belongs to one zone only, in practice.** At start a zone **destroys** the groups it
 captured, and zones look at live units — so a second zone whose name is also a prefix of that group
@@ -237,7 +261,8 @@ task** (`create_qra` does): when it scrambles, the QRA module sends it to patrol
 what enters it. A route you write yourself is flown as written only if it carries an
 `EngageTargets` (`Air`) task — without one it is replaced, and the build warns about it.
 
-## Airbases — coalition & dynamic slots
+## Airbases — coalition & dynamic slots {#airbases}
+<!-- when: making an airfield blue or red, dynamic slots. -->
 
 An airfield's coalition is **not** set by placing a unit near it — it lives in the mission's
 warehouses table. When the user says "make Mezzeh blue", call **`set_airbase_coalition`** (name +
@@ -246,7 +271,8 @@ slots** at the same time; the build then stocks the base's warehouse with that c
 templates. So a base the user assigns becomes both the right colour **and** playable (dynamic slots)
 without extra steps.
 
-## Worked examples
+## Worked examples {#examples}
+<!-- when: two worked examples: a combat zone with armor, a QRA. -->
 
 - *"Create a CZ with two enemy armor groups."* → Create trigger zone (e.g. `CZ-North`). Add two
   groups named `CZ-North-armor-1` / `CZ-North-armor-2` inside it — as fake-unit groups carrying
@@ -256,7 +282,8 @@ without extra steps.
   a Late-Activation group (coherent name, correct coalition), a trigger zone, and a `QRA`
   definition referencing the group name verbatim. The user did not give names — you did.
 
-## Step 0 — scaffold the folder when there's nothing yet
+## Step 0 — scaffold the folder when there's nothing yet {#scaffold}
+<!-- when: an empty folder: which template and theatre to ask for. -->
 
 If the user wants a mission but has only an **empty folder** (no `mission.yaml`, no `src/mission/`),
 start with `scaffold_mission` — it downloads the VEAF tools from GitHub, installs them into the
@@ -270,10 +297,11 @@ never guess it:
 (`custom` is not available through the MCP.) Also **ask which theatre** (map) the mission is on and
 pass it as `theatre`: `scaffold_mission` then lays down a synthetic blank mission for that map in
 `src/mission/`, so the folder is ready for the composites with no DCS round-trip. Omit `theatre`
-only if the user will supply their own `.miz`. Once the folder exists, use the composites below to
-fill it.
+only if the user will supply their own `.miz`. Once the folder exists, call `adapt_scaffold` (section
+`after-scaffold`), then fill it with the composites (section `composites`).
 
-## Prefer composites for whole features
+## Prefer composites for whole features {#composites}
+<!-- when: a whole feature in one call: a combat zone, a QRA, a CAP mission, a combat operation. -->
 
 When the user asks for a **whole feature** ("create a combat zone / a QRA / a CAP mission"), reach
 for the one-pass composite (`create_combat_zone` / `create_qra` / `create_cap_mission`) on a
@@ -286,7 +314,8 @@ Do not write `type: operation` by hand.
 **A zone of an operation has no "Deactivate" command of its own**: the F10 menu offers it on the operation only, so the Mission Maker can switch off the whole operation or nothing.
 Keep outside the operation (its own entry, `active_at_start: true`) any zone the Mission Maker may want to switch off alone — a SAM battery nobody will SEAD, a secondary objective when few pilots turn up: it keeps its command, and the operation ends without it (measured on "Marteau du Golan", 2026-10-28).
 
-## FARPs — the pad must be flat and clear
+## FARPs — the pad must be flat and clear {#farps}
+<!-- when: placing a FARP. -->
 
 Place a FARP with **`add_farp`**, never `add_group` in `static` (that places the object alone, which serves nobody). It checks the pad, and its warnings are for the user, not noise:
 
@@ -299,7 +328,8 @@ Place a FARP with **`add_farp`**, never `add_group` in `static` (that places the
 On a jungle map the clear spot can be more than a kilometre from where the FARP is wanted. **Do not try to clear the trees by trigger**: DCS's « SCENERY REMOVE OBJECTS ZONE » removed none on MarianaIslands or Caucasus (known limitation `scenery-remove-objects-zone-leaves-the-forest`). Move the FARP to clear ground instead, and say how far it went.
 A spot `farp-spot` leaves out is not necessarily wooded (`disposition-small-query-blocks-open-grass`): when it finds nothing near enough, ask the user to look in game before giving up on a place.
 
-## Coordinates and the map
+## Coordinates and the map {#coordinates}
+<!-- when: positions: x/y, lat/long, real place names. -->
 
 Placement actions take DCS local `x/y`. To orient, call `describe_map` (theatre, bullseyes,
 existing zones/groups as anchors, each with its `x/y` — and each group its number of `units`); do not read the mission table by hand for a position.
@@ -308,12 +338,13 @@ the `x/y` for the mission's theatre, then place. Real place names ("near Batumi"
 Kobuleti") resolve through the geocoder (`geocode` action) when available — always surface the
 resolved point so the user can sanity-check it (DCS terrain approximates the real world).
 
-## Building a complete mission — the checklist
+## Building a complete mission — the checklist {#checklist}
+<!-- when: an Open Training, objective or campaign: support aircraft, every rule learnt the hard way. -->
 
 Learned rebuilding the Open Training Germany Cold War from an empty folder. Each item is a thing
 that was wrong at least once.
 
-**Adapt what the scaffold ships** — done right after `scaffold_mission` (see that section above).
+**Adapt what the scaffold ships** — done right after `scaffold_mission` with `adapt_scaffold` (section `after-scaffold`).
 
 **Identity.**
 - `mission.name` ending in `_ICAO_<code>`: an airfield **of the theatre** whose METAR station is
@@ -442,7 +473,8 @@ if you can source it, else describe the threat without a figure. A player flies 
 **Referenced files exist.** A sound named in `CSAR` / `CTLD` settings must be in the mission (the
 build embeds only its defaults).
 
-## Finish: validate, then build
+## Finish: validate, then build {#finish}
+<!-- when: when the mission is authored: validate, build, then check the built mission. -->
 
 When the mission is authored, close the loop without leaving the tools: run `validate_mission` on
 the folder first (fix any error it reports), then `build_mission` to produce the playable `.miz`.
@@ -451,13 +483,14 @@ scaffold → edit → validate → build → play flow.
 
 **A build that exits 0 is not a mission that works.** Read the build's counters — presets injected
 into how many aircraft, waypoints into how many groups, warehouse template links, weather variants —
-and question any zero. Then call `inspect_built_mission` on the folder and check what the mission is about: the weather of two variants differs, the dynamic slots carry presets and a BULLSEYE, the tanker has its tasks and frequency; `describe_units` on the built `.miz` shows the routes and the combat-zone carriers and statics.
+and question any zero. Then call `inspect_built_mission` on the folder and check what the mission is about: the weather of two variants differs, the dynamic slots carry presets and a BULLSEYE, the tanker has its tasks and frequency; `describe_units` on the built `.miz`, filtered (`group_name`, `coalition` or `category`, `include_route: false` unless you check a route), shows the combat-zone carriers and statics: unfiltered, it lists every slot template the build injects.
 Then run `veaf-tools dcs mission-check` on the built `.miz`: its wind check needs no DCS and fails when the briefing's wind contradicts the simulated one.
 Say what you checked, and what you could not (anything that needs DCS running, anything no action reads).
 
 **Training versions.** When the user asks for them ("also build the training versions", a version for one role), or after the briefing of a mission night: `propose_training_plan`, then sort what the briefing states (stays as placed) from what it describes vaguely (moves to `randomize`, drawn again at every launch), show the plan, `set_training_plan`, `build_mission`. It works on a mission folder made by hand as well as on one you built; a bare `.miz` needs converting first.
 
-## Report back clearly
+## Report back clearly {#report-back}
+<!-- when: always, when you tell the user what you did. -->
 
 Tell the user which world you edited, the names/types you chose and why, and surface any
 convention warning the actions returned so they can veto before you proceed with irreversible or

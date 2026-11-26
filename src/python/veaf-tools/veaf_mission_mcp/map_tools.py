@@ -17,6 +17,7 @@ from veaf_libs import coordinates, dcs_airdromes, dcs_parking
 
 from veaf_mission_mcp.describe_mission import _list_groups, _list_zones
 from veaf_mission_mcp.mission_folder import load_folder_mission
+from veaf_mission_mcp.profile import is_compact
 
 
 def _load_mission(mission_path: Path) -> DcsMission:
@@ -249,4 +250,14 @@ def list_airfields(
             frequencies = reference.get(int(airfield["id"])) or {}
             entry["atc"] = {band: frequencies[band] for band in ("uhf", "vhf", "fm", "tacan") if band in frequencies}
         result.append(entry)
+    sided = [entry for entry in result if entry.get("coalition", "neutral") != "neutral"]
+    if is_compact() and mission_path is not None and not name_contains and sided:
+        # A local model called it nine times in one run for Syria's 223 bases, cut to a third, two of them
+        # red: the bases the mission plays are what it looks for (MCP-CONTEXT-BUDGET, run 15).
+        return {
+            "theatre": theatre,
+            "airfields": sided,
+            "neutral_left_out": len(result) - len(sided),
+            "note": "Only the airfields with a side; name_contains=<part of a name> finds any other.",
+        }
     return {"theatre": theatre, "airfields": result}

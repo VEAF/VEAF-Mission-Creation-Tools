@@ -6,6 +6,7 @@ action, mirroring the existing ``dcs-bridge`` MCP tool's shape. Concrete actions
 registered by :func:`veaf_mission_mcp.actions.register_default_actions`.
 """
 
+import inspect
 import os
 import sys
 import threading
@@ -21,6 +22,8 @@ from veaf_tools.app import VERSION
 
 from veaf_mission_mcp.actions import register_default_actions
 from veaf_mission_mcp.catalog import ActionCatalog, summary
+from veaf_mission_mcp.profile import is_compact
+from veaf_mission_mcp.response_budget import MAX_RESPONSE_CHARS, MAX_SCHEMA_CHARS, capped, to_text
 from veaf_mission_mcp.self_update import PINNED_TAG_ENV_VAR, start_update_if_due
 
 SERVER_NAME = "veaf-mission-mcp"
@@ -50,26 +53,52 @@ def capabilities() -> dict[str, str]:
     return {"name": SERVER_NAME, "version": VERSION}
 
 
-@mcp.tool()
-def list_catalog(full: bool = False) -> list[dict[str, Any]]:
+#: The most `list_catalog(full=True)` puts in one page of the compact profile, in characters.
+_FULL_CATALOG_PAGE_CHARS = MAX_SCHEMA_CHARS - 1_000
+
+
+def list_catalog(full: bool = False, offset: int = 0) -> list[dict[str, Any]] | dict[str, Any]:
     """List every action currently registered in the catalog.
 
     Every full schema at once was 67 388 characters: the client saved it to a file and the agent read
     it back in pieces (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 14). ``describe_action`` gives one.
 
     Args:
-        full: Return every action's full spec, as before.
+        full: Return the actions' full specs; in the compact profile, one page at a time (``offset``,
+            then ``next_offset``).
+        offset: With ``full`` in the compact profile, the first action of the page.
 
     Returns:
         One dict per registered action: ``{name, summary}`` — the description's first sentence — or,
-        with ``full``, ``{name, description, parameters_schema}``.
+        with ``full``, ``{name, description, parameters_schema}`` each; in the compact profile, ``{actions,
+        total, next_offset}``, ``next_offset`` null on the last page.
     """
-    if full:
-        return [spec.model_dump() for spec in CATALOG.list_catalog()]
-    return [{"name": spec.name, "summary": summary(spec.description)} for spec in CATALOG.list_catalog()]
+    specs = CATALOG.list_catalog()
+    if not full:
+        compact = is_compact()
+        return [
+            {
+                "name": spec.name,
+                "summary": (compact and CATALOG.compact_summary(spec.name)) or summary(spec.description),
+            }
+            for spec in specs
+        ]
+    if not is_compact():
+        return [spec.model_dump() for spec in specs]
+    page: list[dict[str, Any]] = []
+    size = 0
+    index = max(offset, 0)
+    while index < len(specs):
+        entry = specs[index].model_dump()
+        entry_size = len(to_text(entry))
+        if page and size + entry_size > _FULL_CATALOG_PAGE_CHARS:
+            break
+        page.append(entry)
+        size += entry_size
+        index += 1
+    return {"actions": page, "total": len(specs), "next_offset": index if index < len(specs) else None}
 
 
-@mcp.tool()
 def describe_action(name: str) -> dict[str, Any]:
     """Describe one action's parameters.
 
@@ -82,7 +111,6 @@ def describe_action(name: str) -> dict[str, Any]:
     return CATALOG.describe_action(name).model_dump()
 
 
-@mcp.tool()
 def run_action(name: str, params: dict[str, Any] | None = None) -> Any:
     """Run a registered action.
 
@@ -106,6 +134,49 @@ def run_action(name: str, params: dict[str, Any] | None = None) -> Any:
     except Exception as exc:
         logger.warning(t("mcp.run_action_failed", name=name, error=f"{type(exc).__name__}: {exc}"))
         raise ToolError(f"{type(exc).__name__}: {exc}") from exc
+
+
+# The tools the client sees answer one text block of compact JSON with no structured copy: `mcp` sent a
+# list as one block per item plus a `structuredContent` copy, and every object indented. In the compact
+# profile an answer is also cut at the response ceiling (MCP-CONTEXT-BUDGET). The functions above stay
+# the Python API.
+
+
+def _list_catalog_tool(full: bool = False, offset: int = 0) -> str:
+    text = to_text(list_catalog(full, offset))
+    if not is_compact():
+        return text
+    limit = MAX_SCHEMA_CHARS if full else MAX_RESPONSE_CHARS
+    return capped(text, "Read the next page with offset=next_offset.", limit)
+
+
+def _describe_action_tool(name: str) -> str:
+    text = to_text(describe_action(name))
+    return capped(text, limit=MAX_SCHEMA_CHARS) if is_compact() else text
+
+
+#: One action at a time. A client may send several tool calls at once, and `mcp` runs a synchronous tool in
+#: worker threads: two `set_airbase_coalition` on one folder both loaded the mission, and the second save
+#: erased the first one's change, each answering success (MCP-CONTEXT-BUDGET, local run 12, 2026-11-26).
+_ACTION_LOCK = threading.Lock()
+
+
+def _run_action_tool(name: str, params: dict[str, Any] | None = None) -> str:
+    with _ACTION_LOCK:
+        text = to_text(run_action(name, params))
+    if not is_compact() or CATALOG.is_uncapped(name, params or {}):
+        return text
+    return capped(text, CATALOG.oversize_hint(name))
+
+
+# Named from the Python function, each tool keeps its name and its docstring as description. (A literal
+# name argument would read, to `docs-check`'s regex, as one more catalogue action.)
+for _tool, _api in (
+    (_list_catalog_tool, list_catalog),
+    (_describe_action_tool, describe_action),
+    (_run_action_tool, run_action),
+):
+    mcp.add_tool(_tool, name=_api.__name__, description=inspect.getdoc(_api), structured_output=False)
 
 
 def self_update() -> str:

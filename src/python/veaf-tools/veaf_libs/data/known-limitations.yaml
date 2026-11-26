@@ -2309,6 +2309,23 @@ limitations:
   cost: |
     The campaign's AWACS answered no picture, bogey dope or "clean" for two evenings.
 
+- id: qra-has-no-start-time
+  kind: tool
+  area: runtime
+  title: "No setting brings a QRA online at a given time of the mission: `delay_before_activating` counts from the intrusion"
+  symptom: |
+    `delay_before_activating` is the seconds from the first intrusion, once the QRA is ready, to its take-off
+    (`veafQraCore.lua`, `STATUS_READY_WAITINGFORMORE`). An intruder leaving the zone does not stop the count: the
+    QRA takes off at the first check after the delay that finds an intruder in the zone, and the count starts
+    again only once the QRA has rearmed. A QRA asked "online at H+15 min" with `delay_before_activating: 900`
+    scrambles 15 minutes after the first intrusion, which can come in the first minute of the mission. `active_at_start` is a yes or no. Until 2026-11-26 the module's documentation and
+    the objective-mission prompt said "seconds after the start", and *Marteau du Golan*'s README promised a QRA
+    "en alerte à H+15 min".
+  workaround: |
+    Write in the briefing what the QRA does: "they take off N minutes after you enter their circle". For a QRA
+    that must stay on the ground for the first minutes, declare it `active_at_start: false` and arm it with the
+    `qra.start` radio command.
+
 - id: kola-airfields-added-by-dcs-2-9-32-unknown
   kind: tool
   area: pipeline

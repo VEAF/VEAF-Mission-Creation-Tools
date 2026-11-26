@@ -370,7 +370,7 @@ Rules:
 - **Complete presets**: the build lists every AWACS, tanker or carrier no preset carries (its log and
   `presets-validation-report.md`); the mission is not ready until that list is empty.
   Only the assets deliberately left off the UHF radio may stay on it (arena AWACS such as Darkstar, drones): tell the user.
-- **`src/presets.yaml` to rewrite for the map** (the template is not made for it), with the template's convention:
+- **`src/presets.yaml` to finish for the map** (`adapt_scaffold` puts its airfields on the VHF radio and drops the other maps' lists), with the template's convention:
   **the VHF radio (`primary_2`) carries the airfields** (their tower frequency, `bases` collection) and the FARPs;
   **the UHF radio (`primary_1`) carries the assets, then the flights**: AWACS and tankers first (the carriers' S-3Bs included), then the carriers, then the flights (Archer, Bengal…) in the channels left.
   Never mix the two: with 20 channels per radio, an airfield or a flight put on either one at random is on only one of them, and the pilot looks for it on the other (Syria OT, 2026-11-11: Ramat David missing from the VHF, Archer missing from the UHF).
@@ -395,7 +395,7 @@ Rules:
   channel falls on a tower of the theatre. That check was the one missing.
 - **No weather variants**: delete `src/versions.yaml` and set `pipeline.weather: false` (4.2).
   Measured on the Persian Gulf OT on 12/10/2026: a METAR without clouds makes every "clear" variant identical to its real twin, and the server replaces the weather anyway.
-- **`src/waypoints.yaml`**: remove the template's examples; one plan per category and per playable
+- **`src/waypoints.yaml`**: `adapt_scaffold` removes the template's examples; one plan per category and per playable
   side, with the bullseye.
 
 ### 4.11 Modules
@@ -560,7 +560,7 @@ A mission whose `mission.language` is `fr` takes the sheets of the French prompt
 
 ## 5. Build order
 
-1. `scaffold_mission` in the empty folder.
+1. `scaffold_mission` in the empty folder, then `adapt_scaffold` (guide section `after-scaffold`): name, era, date and time, position, the airfields, the dynamic-slot coalitions, SKYNET.
 2. Measure of the front and a figured plan (bases, support, zones, QRA, CAP), **presented to the
    user** before building.
 3. `mission.yaml`: identity, security and profiles, modules.

@@ -128,3 +128,22 @@ def test_the_action_is_in_the_catalogue() -> None:
     from veaf_mission_mcp.server import CATALOG
 
     assert CATALOG.run_action("inspect_built_mission", {"mission_path": str(BUILT)})["theatre"]
+
+
+def test_the_compact_profile_counts_the_lists(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Run 8: three inspections each listed the 61 slot types and every preset layout again."""
+    from veaf_mission_mcp.inspect_built import compact_inspection
+
+    result = {
+        "dynamic_slot_templates": {"blue": "61 types: A-10C_2, F-16C_50"},
+        "presets": ["a", "b"],
+        "counters": {"x": 1},
+    }
+    monkeypatch.setenv("VEAF_MCP_PROFILE", "compact")
+    short = compact_inspection(result)
+    assert short["dynamic_slot_templates"] == {"blue": "61 types"}
+    assert short["presets"].startswith("2 radio layouts")
+    assert short["counters"] == {"x": 1}
+    assert compact_inspection(result, detail=True) == result
+    monkeypatch.delenv("VEAF_MCP_PROFILE")
+    assert compact_inspection(result) == result

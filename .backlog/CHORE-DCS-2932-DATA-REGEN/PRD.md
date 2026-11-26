@@ -1,6 +1,6 @@
 # CHORE-DCS-2932-DATA-REGEN — regenerate the GermanyCW data that predates DCS 2.9.32
 
-Status: 🧑 waiting-human — the data is regenerated (2026-11-26); waits for the two in-game checks of R55 in `DCS-SESSION-TODO.md` and for David's choice on the landmarks `towns.lua` brings into the cities (kept for now, as on the other theatres)
+Status: 🧑 waiting-human — the data is regenerated (2026-11-26); waits for the two in-game checks of R55 in `DCS-SESSION-TODO.md`
 
 David moved to DCS 2.9.32.30490 on 2026-11-26. The repository data is pinned on 2.9.30.28536. Two release-note studies (2.9.32, then 2.9.31 = build 29434, which has no terrain section) found three GermanyCW data sets that predate 2.9.32; [FEAT-AIRDROMES-DUMP-UNION](../FEAT-AIRDROMES-DUMP-UNION/PRD.md) already recaptured the airfields and the parking stands.
 Decision (David, 2026-11-26): one lot, one PR.

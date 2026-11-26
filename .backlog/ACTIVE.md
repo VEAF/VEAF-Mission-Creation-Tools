@@ -10,7 +10,7 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ### [CHORE-DCS-2932-DATA-REGEN](CHORE-DCS-2932-DATA-REGEN/PRD.md) · 🧑
 
-Regenerate the GermanyCW data that predates DCS 2.9.32 (cities, airfield frequencies and the clear-ground sweep, done 2026-11-26). Waits for the two in-game checks of R55 (static-kill coalition, Prepare Mission presets) and David's choice on the landmarks kept in the cities.
+Regenerate the GermanyCW data that predates DCS 2.9.32 (cities, airfield frequencies and the clear-ground sweep, done 2026-11-26). Waits for the two in-game checks of R55 (static-kill coalition, Prepare Mission presets). The landmarks of `towns.lua` stay among the cities (David, 2026-11-26).
 
 ### [MCP-CONTEXT-BUDGET](MCP-CONTEXT-BUDGET/PRD.md) · 🧑
 

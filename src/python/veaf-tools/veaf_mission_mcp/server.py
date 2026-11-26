@@ -155,8 +155,15 @@ def _describe_action_tool(name: str) -> str:
     return capped(text, limit=MAX_SCHEMA_CHARS) if is_compact() else text
 
 
+#: One action at a time. A client may send several tool calls at once, and `mcp` runs a synchronous tool in
+#: worker threads: two `set_airbase_coalition` on one folder both loaded the mission, and the second save
+#: erased the first one's change, each answering success (MCP-CONTEXT-BUDGET, local run 12, 2026-11-26).
+_ACTION_LOCK = threading.Lock()
+
+
 def _run_action_tool(name: str, params: dict[str, Any] | None = None) -> str:
-    text = to_text(run_action(name, params))
+    with _ACTION_LOCK:
+        text = to_text(run_action(name, params))
     if not is_compact() or CATALOG.is_uncapped(name, params or {}):
         return text
     return capped(text, CATALOG.oversize_hint(name))

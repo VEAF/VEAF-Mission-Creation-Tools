@@ -298,3 +298,34 @@ def test_the_parameter_names_a_model_invents_are_read_as_the_published_ones() ->
     """Run 7 lost five calls to `type_contains` and `which`."""
     by_alias = server.run_action("list_unit_types", {"type_contains": "MiG-29"})
     assert by_alias == server.run_action("list_unit_types", {"name_contains": "MiG-29"})
+
+
+def test_actions_sent_together_run_one_at_a_time(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Local run 12: two set_airbase_coalition sent at once both loaded the folder; the second save erased the first."""
+    import threading
+    import time
+
+    monkeypatch.setattr(server, "CATALOG", ActionCatalog())
+    running = {"now": 0, "most": 0}
+    guard = threading.Lock()
+
+    def slow(_params: dict[str, object]) -> str:
+        with guard:
+            running["now"] += 1
+            running["most"] = max(running["most"], running["now"])
+        time.sleep(0.05)
+        with guard:
+            running["now"] -= 1
+        return "ok"
+
+    server.CATALOG.register(
+        ActionSpec(name="_test_slow", description="Slow.", parameters_schema={"type": "object", "properties": {}}), slow
+    )
+
+    async def together() -> None:
+        await asyncio.gather(
+            *(server.mcp.call_tool("run_action", {"name": "_test_slow", "params": {}}) for _ in range(4))
+        )
+
+    asyncio.run(together())
+    assert running["most"] == 1

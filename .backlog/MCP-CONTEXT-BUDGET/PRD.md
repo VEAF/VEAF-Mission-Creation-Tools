@@ -75,3 +75,5 @@ Run 9 (compact, f48dcb23): complete, 6 720 tokens to spare (58 810 of 65 536); t
 
 Run 10 (compact, c9e80c1f, client Cherry Studio): complete in 1 min 22 s, 14 calls, 19 341 characters, a peak of 16 662 tokens of 65 536; no describe_action, no file read, no mission prompt: the recipe followed end to end, Mozdok offering the F/A-18C alone.
 Two gaps, both from the recipe: `template: standard` copied where the user asked for minimal, and the QRA's airfield left without a side. The recipe now takes the user's template and gives the enemy airfield its side (`dynamic_spawn: false`).
+
+Runs 11 and 12 (Cherry Studio, 11b5b40e): peaks of 16 722 and 29 332 tokens, no mission prompt, no file read. Run 12's client sent two `set_airbase_coalition` at once: one failed, then was retried. Reproduced in process: the server ran the two in parallel threads, both loaded the folder, and the second save erased the first one's airfield, each answering success. A defect older than the lot, for every client. Done: `run_action` runs one action at a time (`_ACTION_LOCK`), with a test that fails without it.

@@ -205,13 +205,16 @@ class TestGuideBySection:
 
     def test_the_default_is_the_essential_sections_and_an_index_of_the_others(self) -> None:
         result = describe_authoring_guide()
-        assert len(json.dumps(result, ensure_ascii=False, separators=(",", ":"))) <= 8_000  # the compact ceiling
+        # Under the 8 000 ceiling with a margin: run 13 got this answer cut, the recipe grown past it unnoticed.
+        assert len(json.dumps(result, ensure_ascii=False, separators=(",", ":"))) <= 7_600
         assert "## A simple mission, call by call" in result["guide"]
         assert "adapt_scaffold" in result["guide"] and '"command": "-armor"' in result["guide"]
+        # Run 13 read the guide eight times looking for the support aircraft, and was cut off before placing them.
+        assert "`activate_beacon`" in result["guide"] and "`E-3A`" in result["guide"]
         assert "## Combat zone vs QRA" not in result["guide"]
-        index = {entry["id"]: entry for entry in result["sections"]}
-        assert {"combat-zone-vs-qra", "checklist", "after-scaffold"} <= set(index)
-        assert all(entry["when"] and entry["title"] for entry in result["sections"])
+        assert {"combat-zone-vs-qra", "checklist", "after-scaffold"} <= set(result["sections"])
+        assert all(result["sections"].values())
+        assert "support aircraft" in result["sections"]["checklist"]
         assert "section" in result["read_more"]
 
     def test_the_default_answer_opens_on_when_a_mission_prompt_is_worth_its_weight(self) -> None:
@@ -223,7 +226,7 @@ class TestGuideBySection:
 
     def test_the_default_and_the_index_cover_the_whole_guide(self) -> None:
         default = describe_authoring_guide()
-        rest = describe_authoring_guide([entry["id"] for entry in default["sections"]])["guide"]
+        rest = describe_authoring_guide(list(default["sections"]))["guide"]
         whole = describe_authoring_guide("all")["guide"]
         assert len(default["guide"]) + len(rest) == len(whole)
 

@@ -1026,7 +1026,7 @@ An area used to come back in full: three of them were 46 000 characters in one c
 
 Read-only. The authoring guide, `veaf_mission_mcp/data/authoring-guide.md`.
 With no parameter the action returns it whole, `{"guide": …}`.
-In the compact profile it is 41 555 characters in one block; with no parameter the action then returns `{"guide", "sections", "read_more"}` (MCP-CONTEXT-BUDGET): the sections every mission needs (`new-mission`, `recipe` — the calls of a simple mission with their parameters —, `report-back`) and the index of the others, each with its `id`, its title and when to read it (`when`).
+In the compact profile it is 41 555 characters in one block; with no parameter the action then returns `{"start_here", "guide", "sections", "read_more"}` (MCP-CONTEXT-BUDGET): when to load a mission prompt, the sections every mission needs (`recipe` — the calls of a simple mission with their parameters, AWACS and tankers included —, `report-back`) and the index of the others, `{id: when}`: each `id` with when to read its section.
 `section` reads one section or a list of them; `section: all` returns the whole guide, uncut.
 Every `##` heading of the file carries its id (`{#combat-zone-vs-qra}`) and, right under it, a `<!-- when: … -->` line; the server removes both before serving the text.
 The build bundles the whole `veaf_mission_mcp/data/` folder into the exe; in development the action reads the package's file.

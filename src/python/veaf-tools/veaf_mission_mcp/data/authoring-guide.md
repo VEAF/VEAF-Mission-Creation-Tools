@@ -48,24 +48,25 @@ For a change `adapt_scaffold` does not cover, `read_mission_file` and `edit_miss
 Tell the user the lines `adapt_scaffold` returned.
 
 ## A simple mission, call by call {#recipe}
-<!-- when: always: the calls that take an empty folder to a built mission, each with its parameters, so you need no describe_action for them. -->
+<!-- when: always: the calls that take an empty folder to a built mission, with their parameters. -->
 
 These calls build a simple mission; their parameters are here, so call them directly, without `describe_action`.
-Replace the example values with the user's; read a section of the index only when the request needs more than this (a QRA, a FARP, support aircraft, a briefing).
+Replace the example values with the user's; read a section of the index only when the request needs more than this (a FARP, a convoy, a briefing). Build once, at the end, when everything is placed.
 
 1. `scaffold_mission` `{"target_folder": "<empty folder>", "template": "minimal", "theatre": "Caucasus"}` — the `template` the user asked for (`minimal`, `standard` or `full`), `standard` when they named none.
 2. A place by its name: `geocode` `{"theatre": "Caucasus", "query": "Beslan"}` gives its `x` and `y`.
 3. `adapt_scaffold` `{"mission_path": "<folder>", "mission_name": "Beslan-Strike", "era": "MODERN", "language": "fr", "date": "2024-06-10", "start_time": "08:00", "position": {"x": -158841, "y": 842000}, "airfields": ["Beslan", "Mozdok"], "dynamic_slot_coalitions": ["blue"], "dynamic_slot_aircraft": ["F/A-18C"], "skynet": false}` — `skynet: true` when the mission has a SAM or an EWR zone; `language` is the user's; `dynamic_slot_aircraft` only when the user names the aircraft the players fly (never read the slot catalogue to find one).
 4. Airfields: `set_airbase_coalition` `{"mission_path": "<folder>", "name": "Mozdok", "coalition": "blue"}` for each airfield the players take off from — an airfield of no side offers no dynamic slot — and `{"mission_path": "<folder>", "name": "Nalchik", "coalition": "red", "dynamic_spawn": false}` for each airfield an enemy flight (a QRA) takes off from.
-5. `create_combat_zone` `{"mission_path": "<folder>", "zone_name": "CZ-Beslan", "position": {"x": -158841, "y": 842000}, "radius": 6000, "coalition": "red", "country_id": 0, "country_name": "Russia", "groups": [{"name": "armor-1", "command": "-armor"}, {"name": "sam-1", "command": "-sa8"}]}` — each group is a VEAF alias (`command`); give no `units`: the tool places a carrier of the alias's class; `list_shortcuts` `{"name_contains": "sa8"}` checks an alias (search the alias itself: `armor`, `sa8`, `aaa`).
-6. Enemy interceptors that take off when players enter an area: `create_qra` `{"mission_path": "<folder>", "name": "QRA-Nalchik", "coalition": "red", "country_id": 0, "country_name": "Russia", "trigger_zone": "QRA-Nalchik-Zone", "position": {"x": -158841, "y": 842000}, "radius": 40000, "groups": [{"name": "QRA-Nalchik-1", "units": [{"type": "MiG-29A"}, {"type": "MiG-29A"}], "airfield": "Nalchik", "payload": "R-73*2,R-60M*2,R-27R*2"}]}` — `position` and `radius` are the protected area; `list_payloads` `{"unit_type": "MiG-29A"}` names another type's loadouts.
-7. `validate_mission` `{"mission_path": "<folder>"}`: fix every error it reports.
-8. `build_mission` `{"mission_path": "<folder>"}`, then `inspect_built_mission` `{"mission_path": "<folder>"}`: read the counters and question any zero.
+5. An AWACS or a tanker the user asks for: `add_air_group` `{"target": "<folder>", "coalition": "blue", "country_id": 2, "country_name": "USA", "name": "Texaco-1", "unit_type": "KC135MPRS", "start": "air", "position": {"x": -120000, "y": 700000}, "altitude_ft": 18000, "speed_kt": 300, "task": "Refueling", "frequency_mhz": 290.1}`; the track's end, `edit_route` `{"miz_path": "<folder>", "group_name": "Texaco-1", "operation": "add", "position": {"x": -120000, "y": 740000}, "altitude_ft": 18000}`; then four `edit_route` `{..., "operation": "add_task", "index": 1, "task": ...}`, in this order: `tanker`; `activate_beacon` with `"task_params": {"channel": 60, "mode": "Y", "callsign": "TX1", "aa": true}`; `set_unlimited_fuel`; `orbit` with `"task_params": {"pattern": "Race-Track", "altitude_ft": 18000, "speed_kt": 300}` — a task after the orbit never runs. A boom tanker is a `KC-135`; an AWACS an `E-3A` named `Magic`, task `AWACS`, with `awacs`, `eplrs`, `set_unlimited_fuel` and the orbit. Channels in the plan: Magic 282.2, Texaco-1 290.1 (basket, 60Y), Shell-1 290.3, Shell-2 290.4, Arco-1 290.5 (boom, 64Y): name the asset after one; another frequency goes into `src/presets.yaml` with `edit_mission_file`.
+6. `create_combat_zone` `{"mission_path": "<folder>", "zone_name": "CZ-Beslan", "position": {"x": -158841, "y": 842000}, "radius": 6000, "coalition": "red", "country_id": 0, "country_name": "Russia", "groups": [{"name": "armor-1", "command": "-armor"}, {"name": "sam-1", "command": "-sa8"}]}` — each group is a VEAF alias (`command`); give no `units`: the tool places a carrier of the alias's class; `list_shortcuts` `{"name_contains": "sa8"}` checks an alias (search the alias itself: `armor`, `sa8`, `aaa`).
+7. Enemy interceptors that take off when players enter an area: `create_qra` `{"mission_path": "<folder>", "name": "QRA-Nalchik", "coalition": "red", "country_id": 0, "country_name": "Russia", "trigger_zone": "QRA-Nalchik-Zone", "position": {"x": -158841, "y": 842000}, "radius": 40000, "groups": [{"name": "QRA-Nalchik-1", "units": [{"type": "MiG-29A"}, {"type": "MiG-29A"}], "airfield": "Nalchik", "payload": "R-73*2,R-60M*2,R-27R*2"}]}` — `position` and `radius` are the protected area; `list_payloads` `{"unit_type": "MiG-29A"}` names another type's loadouts.
+8. `validate_mission` `{"mission_path": "<folder>"}`: fix every error it reports.
+9. `build_mission` `{"mission_path": "<folder>"}`, then `inspect_built_mission` `{"mission_path": "<folder>"}`: read the counters and question any zero.
 
 Then tell the user in a few lines what you built: the `.miz`, the zone and its groups, and what you could not check.
 
 ## Always ground yourself in the oracle — never from memory {#oracle}
-<!-- when: before your first placement: which read-only actions give the VEAF and DCS facts (units, aliases, modules, limitations). -->
+<!-- when: before your first placement: the read-only actions that give VEAF and DCS facts. -->
 
 **Before anything else, call `describe_known_limitations`.** It returns, for the installed
 veaf-tools version, what the tools cannot do yet (with how to do without) and the DCS behaviours
@@ -325,7 +326,7 @@ Kobuleti") resolve through the geocoder (`geocode` action) when available — al
 resolved point so the user can sanity-check it (DCS terrain approximates the real world).
 
 ## Building a complete mission — the checklist {#checklist}
-<!-- when: a complete mission (an Open Training, an objective mission, a campaign mission): identity, airbases, support aircraft, combat content, every rule learnt the hard way. -->
+<!-- when: a complete mission (Open Training, objective, campaign): airbases, support aircraft, every rule learnt the hard way. -->
 
 Learned rebuilding the Open Training Germany Cold War from an empty folder. Each item is a thing
 that was wrong at least once.

@@ -572,8 +572,8 @@ def describe_authoring_guide(section: str | list[str] | None = None) -> dict[str
         section: A section id, a list of them, or `"all"`.
 
     Returns:
-        `{"guide": <markdown>}`; with no `section` in the compact profile, also `"sections"` — `{"id",
-        "title", "when"}` of each section left out — and `"read_more"`, how to read one.
+        `{"guide": <markdown>}`; with no `section` in the compact profile, also `"start_here"`, `"sections"` —
+        `{id: when}` of each section left out — and `"read_more"`, how to read one.
 
     Raises:
         ValueError: An unknown section id, named with the known ones.
@@ -585,17 +585,15 @@ def describe_authoring_guide(section: str | list[str] | None = None) -> dict[str
         return {
             "start_here": _compact_routing(),
             "guide": preamble + "".join(entry["text"] for entry in sections if entry["id"] in GUIDE_ESSENTIAL_SECTIONS),
-            "sections": [
-                {key: entry[key] for key in ("id", "title", "when")}
-                for entry in sections
-                if entry["id"] not in GUIDE_ESSENTIAL_SECTIONS
-            ],
+            # An id and when to read it: the titles and the repeated keys were a third of a full answer.
+            "sections": {
+                entry["id"]: entry["when"] for entry in sections if entry["id"] not in GUIDE_ESSENTIAL_SECTIONS
+            },
             # The local model of run 5 still read 7 sections and 15 schemas the recipe made useless: 46 000
             # characters before its first action (MCP-CONTEXT-BUDGET, 2026-11-25).
-            "read_more": "For a simple mission the recipe above is all you need: start with its first call, and "
-            "neither read another section nor call describe_action for the recipe's actions. Read a section "
-            "only for what the recipe does not cover (a QRA, a FARP, support aircraft, a briefing...): "
-            "describe_authoring_guide with section=<id>.",
+            "read_more": "The recipe above is all a simple mission needs: neither read another section nor call "
+            "describe_action for its actions. Read a section only for what it does not cover (a FARP, a convoy, "
+            "a briefing...): describe_authoring_guide with section=<id>.",
         }
     wanted = [section] if isinstance(section, str) else list(section)
     known = {entry["id"]: entry for entry in sections}

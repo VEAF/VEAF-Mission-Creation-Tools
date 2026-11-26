@@ -86,6 +86,36 @@ def test_the_reference_chain_fits_the_budget(mission: Path) -> None:
     sizes["set_airbase_coalition"] = _run(
         "set_airbase_coalition", {"mission_path": folder, "name": "Mozdok", "coalition": "blue"}
     )
+    # The recipe's tanker, call for call: a local model asked for an AWACS and two tankers read the guide eight times
+    # and 14 schemas, 160 072 characters, and was cut off before placing them (2026-11-26).
+    sizes["add_air_group"] = _run(
+        "add_air_group",
+        {
+            "target": folder,
+            "coalition": "blue",
+            "country_id": 2,
+            "country_name": "USA",
+            "name": "Texaco-1",
+            "unit_type": "KC135MPRS",
+            "start": "air",
+            "position": {"x": -120000, "y": 700000},
+            "altitude_ft": 18000,
+            "speed_kt": 300,
+            "task": "Refueling",
+            "frequency_mhz": 290.1,
+        },
+    )
+    route = {"miz_path": folder, "group_name": "Texaco-1"}
+    second_point = {"position": {"x": -120000, "y": 740000}, "altitude_ft": 18000, "speed_kt": 300}
+    sizes["edit_route add"] = _run("edit_route", {**route, "operation": "add", **second_point})
+    tasks = (
+        {"task": "tanker"},
+        {"task": "activate_beacon", "task_params": {"channel": 60, "mode": "Y", "callsign": "TX1", "aa": True}},
+        {"task": "set_unlimited_fuel"},
+        {"task": "orbit", "task_params": {"pattern": "Race-Track", "altitude_ft": 18000, "speed_kt": 300}},
+    )
+    for task in tasks:
+        sizes[f"edit_route {task['task']}"] = _run("edit_route", {**route, "operation": "add_task", "index": 1, **task})
     # One section of the index, for margin: the recipe should make it unneeded.
     sizes["guide combat-zone-vs-qra"] = _run("describe_authoring_guide", {"section": "combat-zone-vs-qra"})
     sizes["create_combat_zone"] = _run(

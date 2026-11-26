@@ -1051,7 +1051,7 @@ tout ce qui est retenu. Une `area` revenait en entier : trois d'entre elles fais
 
 Lecture seule. Le guide de création, `veaf_mission_mcp/data/authoring-guide.md`.
 Sans paramètre, l'action le renvoie entier, `{"guide": …}`.
-En profil compact, il fait 41 555 caractères d'un bloc ; sans paramètre, l'action renvoie alors `{"guide", "sections", "read_more"}` (MCP-CONTEXT-BUDGET) : les sections dont toute mission a besoin (`new-mission`, `recipe` — les appels d'une mission simple avec leurs paramètres —, `report-back`) et l'index des autres, chacune avec son `id`, son titre et quand la lire (`when`).
+En profil compact, il fait 41 555 caractères d'un bloc ; sans paramètre, l'action renvoie alors `{"start_here", "guide", "sections", "read_more"}` (MCP-CONTEXT-BUDGET) : quand charger un prompt de mission, les sections dont toute mission a besoin (`recipe` — les appels d'une mission simple avec leurs paramètres, AWACS et ravitailleurs compris —, `report-back`) et l'index des autres, `{id: when}` : chaque `id` avec quand lire sa section.
 `section` lit une section ou une liste de sections ; `section: all` rend le guide entier, sans coupure.
 Chaque titre `##` du fichier porte son identifiant (`{#combat-zone-vs-qra}`) et, juste dessous, une ligne `<!-- when: … -->` ; le serveur retire les deux avant de servir le texte.
 Le build embarque tout le dossier `veaf_mission_mcp/data/` dans l'exe ; en développement l'action lit le fichier du paquet.

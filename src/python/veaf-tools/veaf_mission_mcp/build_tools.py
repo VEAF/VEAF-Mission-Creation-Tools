@@ -7,6 +7,7 @@ go from an empty folder to a playable mission without leaving the assistant. See
 ``.backlog/archive/FEAT-MCP-MISSION-EDITOR.md`` (wave 11).
 """
 
+import json
 import os
 import re
 import subprocess
@@ -15,7 +16,10 @@ from pathlib import Path
 from typing import Any
 
 from veaf_libs import platform_assets
+from veaf_libs.bundled_data import read_bundled_text
 from veaf_tools.helpers import NO_PAUSE_ENV_VAR
+
+from veaf_mission_mcp.profile import is_compact
 
 #: Upper bound on a single ``veaf-tools build`` — generous (a full build with many presets is slow
 #: on a fresh VM), but bounded so a stalled build surfaces as an error instead of a hung MCP call.
@@ -27,6 +31,61 @@ BUILD_LOG_NAME = "build.log"
 #: A progress line, `✓ <step> terminé !` / `✓ Done <step>!`: twenty of them, with no line end, glued to
 #: the message that follows them.
 _PROGRESS_DONE = re.compile(r"✓ [^!\n]*!")
+
+
+#: The build's step lines that say nothing a reader acts on — a file read, a file written, a YAML file
+#: valid — by their message key: three builds of a local model's run carried 14 of them each
+#: (MCP-CONTEXT-BUDGET, run 8). Recognised in either language from the shipped locales; a warning never
+#: matches.
+_STEP_LINE_KEYS = (
+    "aircraft_injector.validating_yaml",
+    "aircraft_injector.yaml_valid",
+    "aircraft_injector.loading_yaml",
+    "aircraft_injector.yaml_loaded",
+    "aircraft_injector.reading_mission",
+    "aircraft_injector.mission_loaded",
+    "aircraft_injector.writing_mission",
+    "aircraft_injector.mission_written",
+    "group_injector.reading_mission",
+    "group_injector.writing_mission",
+    "waypoints_injector.reading_mission",
+    "waypoints_injector.mission_loaded",
+    "presets_injector.processing_groups",
+    "weather.loading_config",
+    "msg.work_done",
+)
+_RICH_TAG = re.compile(r"\[/?[a-zA-Z][^\]]*\]")
+_step_lines: re.Pattern[str] | None = None
+
+
+def _step_line_pattern() -> re.Pattern[str]:
+    """Build, once, the pattern of the step lines from their French and English templates."""
+    global _step_lines
+    if _step_lines is None:
+        templates: list[str] = []
+        for language in ("fr", "en"):
+            messages = json.loads(read_bundled_text("veaf_libs", "locales", f"{language}.json"))
+            templates += [str(messages[key]) for key in _STEP_LINE_KEYS if key in messages]
+        alternatives = []
+        for template in templates:
+            text = _RICH_TAG.sub("", template).strip()
+            parts = re.split(r"\{[^}]*\}", text)
+            alternatives.append(".*".join(re.escape(part) for part in parts))
+        _step_lines = re.compile(r"^\s*(?:" + "|".join(alternatives) + r")\s*$")
+    return _step_lines
+
+
+def drop_step_lines(log: str) -> str:
+    """Remove the build's step lines that carry nothing (a file read or written, a YAML file valid).
+
+    Args:
+        log: A compacted build log.
+
+    Returns:
+        The log without those lines; every warning and count is kept.
+    """
+    pattern = _step_line_pattern()
+    return "\n".join(line for line in log.splitlines() if not pattern.match(line))
 
 
 def compact_build_log(log: str, folder: Path) -> str:
@@ -132,7 +191,7 @@ def build_mission(folder_path: Path, profile: str | None = None) -> dict[str, An
     return {
         "folder": str(folder),
         "ok": True,
-        "log": compact_build_log(log, folder),
+        "log": drop_step_lines(compact_build_log(log, folder)) if is_compact() else compact_build_log(log, folder),
         "log_file": str(log_file),
         "missions": missions,
     }

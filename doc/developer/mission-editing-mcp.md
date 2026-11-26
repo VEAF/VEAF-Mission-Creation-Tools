@@ -96,7 +96,7 @@ Le serveur a deux **profils de réponse**, choisis par la variable d'environneme
 
 Une économie coûte des allers-retours à un client qui a la place : elle est donc choisie, jamais imposée.
 La configuration `llama-server` du tutoriel porte `"env": {"VEAF_MCP_PROFILE": "compact"}`, et le pilote n'a rien à régler.
-En profil compact, la chaîne tient en 42 159 caractères, une QRA comprise, schéma des outils compris ; `test_context_budget.py` vérifie qu'elle reste sous 50 000.
+En profil compact, la chaîne tient en 38 826 caractères, une QRA comprise, schéma des outils compris ; `test_context_budget.py` vérifie qu'elle reste sous 50 000.
 Le gros du gain vient de la section `recipe` du guide : les appels d'une mission simple, chacun avec son JSON exact. Sans elle, un modèle local lisait le schéma de chaque action qu'il envisageait : 19 `describe_action`, 30 555 des 106 857 caractères d'un essai.
 
 Dans les deux profils :
@@ -112,6 +112,7 @@ En profil compact seulement :
 - Le guide et les prompts de mission se lisent par sections, la liste des limitations par identifiants, et `read_mission_file` par tranches de 6 000 caractères au plus.
 - La réponse par défaut du guide s'ouvre sur `start_here` : une demande qui dit ce que la mission contient est une mission simple, quel que soit le mot employé (« entraînement »…), et suit la recette ; un prompt de mission ne se charge que si l'utilisateur le veut, avec son poids. Le mot « entraînement » avait fait charger le prompt Open Training (77 622 caractères) et rien construire.
 - `list_catalog` résume `describe_mission_prompt` et `describe_authoring_guide` pour orienter le modèle vers la recette, et `list_payloads` donne les noms d'armement sans les CLSID (464 caractères au lieu de 6 424 pour le MiG-29A).
+- `build_mission` retire aussi de son journal les lignes d'étape sans information (fichier lu, écrit, YAML valide), reconnues par leurs clés de traduction ; `inspect_built_mission` compte les types de slots et les jeux de presets au lieu de les lister (`detail: true` les rend). Trois builds et trois inspections d'un essai répétaient ces listes.
 - Dans les deux profils, un paramètre inventé courant est lu comme celui que l'action publie : `type_contains` pour `name_contains`, `which` pour `file`.
 
 ### `describe_mission`
@@ -1183,7 +1184,7 @@ Chaque groupe accepte `route` et `patrol`, de la même forme qu'`add_group` : un
 zone est un groupe de la zone, pas un appel séparé. En catégorie `ship`, les navires sont espacés de
 600 m (ceux d'un véhicule, 20 m, les faisaient se percuter à l'apparition).
 
-Un groupe peut porter `command` (un alias de `list_shortcuts`, `-armor`) : l'outil nomme sa première unité `#command="-armor" <nom du groupe>`, le porteur de l'alias VEAF. Un marqueur écrit dans le nom du groupe y est déplacé, et des guillemets échappés deux fois (`\"`) sont rétablis : un petit modèle faisait les deux (MCP-CONTEXT-BUDGET).
+Un groupe peut porter `command` (un alias de `list_shortcuts`, `-armor`) : l'outil nomme sa première unité `#command="-armor" <nom du groupe>`, le porteur de l'alias VEAF. Sans `units`, il pose lui-même un porteur de la classe que l'alias fait apparaître (`Osa 9A33 ln` pour `-sa8`, `T-72B` pour `-armor`) : un modèle avait mis un T-72B sous `-sa8`. Un marqueur écrit dans le nom du groupe y est déplacé, et des guillemets échappés deux fois (`\"`) sont rétablis : un petit modèle faisait les deux (MCP-CONTEXT-BUDGET).
 
 ### `add_combat_operation`
 

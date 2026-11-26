@@ -712,3 +712,19 @@ def test_the_compact_profile_lists_loadouts_by_name() -> None:
 
 def test_the_standard_profile_lists_loadouts_with_their_pylons() -> None:
     assert "pylons" in list_payloads("MiG-29A")["payloads"][0]
+
+
+@pytest.mark.parametrize(
+    ("alias", "carrier"),
+    [
+        ("-sa8", "Osa 9A33 ln"),
+        ("sa6", "Kub 1S91 str"),
+        ("-armor", "T-72B"),
+        ("-aaa", "ZSU-23-4 Shilka"),
+        ("-shilka", "ZSU-23-4 Shilka"),
+    ],
+)
+def test_an_alias_s_carrier_is_of_the_class_it_spawns(alias: str, carrier: str) -> None:
+    from veaf_mission_mcp.oracle import alias_carrier_type
+
+    assert alias_carrier_type(alias) == carrier

@@ -321,3 +321,14 @@ class TestAliasCarrier:
         name = '#command=\\"-armor\\" CZ-North-armor-1'
         group = self._zone(tmp_path, {"name": "armor-1", "units": [{"type": "T-72B", "name": name}]})
         assert _unit_names(group) == ['#command="-armor" CZ-North-armor-1']
+
+    def test_without_units_the_carrier_is_of_the_alias_class(self, tmp_path: Path) -> None:
+        """Run 8: a T-72B under -sa8, copied from an example; the editor drew no SAM ring."""
+        group = self._zone(tmp_path, {"name": "sam-1", "command": "-sa8"})
+        units = group["units"]
+        first = next(iter(units.values())) if isinstance(units, dict) else units[0]
+        assert (first["type"], first["name"]) == ("Osa 9A33 ln", '#command="-sa8" CZ-North-sam-1')
+
+    def test_an_alias_with_no_known_carrier_asks_for_units(self, tmp_path: Path) -> None:
+        with pytest.raises(ValueError, match="give 'units'"):
+            self._zone(tmp_path, {"name": "smoke-1", "command": "-smoke"})

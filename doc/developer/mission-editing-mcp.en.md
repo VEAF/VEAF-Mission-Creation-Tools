@@ -94,7 +94,7 @@ The server has two **response profiles**, chosen by the `VEAF_MCP_PROFILE` envir
 
 An economy costs round trips to a client that has room: so it is chosen, never imposed.
 The tutorial's `llama-server` configuration carries `"env": {"VEAF_MCP_PROFILE": "compact"}`, and the pilot sets nothing.
-In the compact profile, the chain is 42 159 characters, a QRA included, tool schemas included; `test_context_budget.py` checks that it stays under 50 000.
+In the compact profile, the chain is 38 826 characters, a QRA included, tool schemas included; `test_context_budget.py` checks that it stays under 50 000.
 Most of the gain comes from the guide's `recipe` section: the calls of a simple mission, each with its exact JSON. Without it, a local model read the schema of every action it considered: 19 `describe_action`, 30 555 of the 106 857 characters of one run.
 
 In both profiles:
@@ -110,6 +110,7 @@ In the compact profile only:
 - The guide and the mission prompts are read by section, the limitations listing by id, and `read_mission_file` by slices of 6 000 characters at most.
 - The guide's default answer opens on `start_here`: a request that says what the mission holds is a simple mission, whatever word it uses ("training"…), and follows the recipe; a mission prompt is loaded only when the user wants one, with its weight. The word "training" had loaded the Open Training prompt (77 622 characters) and built nothing.
 - `list_catalog` summarises `describe_mission_prompt` and `describe_authoring_guide` so as to send the model to the recipe, and `list_payloads` gives the loadout names without their CLSIDs (464 characters instead of 6 424 for the MiG-29A).
+- `build_mission` also drops from its log the step lines that carry nothing (a file read, written, a YAML file valid), recognised by their message keys; `inspect_built_mission` counts the slot types and preset layouts instead of listing them (`detail: true` gives them). Three builds and three inspections of one run repeated those lists.
 - In both profiles, a common invented parameter is read as the one the action publishes: `type_contains` for `name_contains`, `which` for `file`.
 
 ### `describe_mission`
@@ -1154,7 +1155,7 @@ coalition-agnostic) + an appended `modules.COMBATZONE.combat_zones[]` yaml block
 not a separate call. In category `ship`, ships are placed 600 m apart (a vehicle's 20 m made them
 collide as they spawned).
 
-A group may carry `command` (a `list_shortcuts` alias, `-armor`): the tool names its first unit `#command="-armor" <group name>`, the VEAF alias carrier. A marker written in the group's name is moved there, and quotes escaped twice (`\"`) are restored: a small model did both (MCP-CONTEXT-BUDGET).
+A group may carry `command` (a `list_shortcuts` alias, `-armor`): the tool names its first unit `#command="-armor" <group name>`, the VEAF alias carrier. Without `units`, it places a carrier of the class the alias spawns itself (`Osa 9A33 ln` for `-sa8`, `T-72B` for `-armor`): a model had put a T-72B under `-sa8`. A marker written in the group's name is moved there, and quotes escaped twice (`\"`) are restored: a small model did both (MCP-CONTEXT-BUDGET).
 
 ### `add_combat_operation`
 

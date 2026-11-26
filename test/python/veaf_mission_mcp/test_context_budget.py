@@ -25,8 +25,10 @@ from veaf_tools.app import app
 #: The most characters the chain's answers may put in the model's context, tool schemas included.
 BUDGET_CHARS = 50_000
 
-#: Answers measured over stdio on 2026-11-25 (`scaffold_mission` copied: 252 characters, before the lot).
-MEASURED_CHARS = {"scaffold_mission": 252, "build_mission": 5_826, "inspect_built_mission": 2_869}
+#: Answers measured, compact profile: `scaffold_mission` over stdio on 2026-11-25 (before the lot); the build and
+#: the inspection of the local model's run 8 (D:\tmp\test-mission8, a zone, a SA-8 and a QRA) through
+#: `drop_step_lines` and `compact_inspection`, 2026-11-26 (5 083 and 2 878 characters before them).
+MEASURED_CHARS = {"scaffold_mission": 252, "build_mission": 4_064, "inspect_built_mission": 1_281}
 
 
 @pytest.fixture(scope="module")

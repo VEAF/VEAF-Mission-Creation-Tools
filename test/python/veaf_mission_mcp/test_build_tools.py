@@ -159,3 +159,21 @@ class TestBuildMission:
         monkeypatch.setattr(build_tools.subprocess, "run", fake_run)
         with pytest.raises(RuntimeError, match="timed out"):
             build_tools.build_mission(tmp_path)
+
+
+def test_the_compact_profile_drops_the_step_lines(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Run 8: each of three builds carried 14 lines of file read, file written, YAML valid."""
+    monkeypatch.setenv("VEAF_MCP_PROFILE", "compact")
+    log = "\n".join(
+        [
+            "Lecture du fichier mission Night.miz",
+            "Validation YAML réussie",
+            "Mission written successfully",
+            "16 radio(s) tiennent moins de presets que leur liste",
+            "  Préréglages injectés dans 43 aéronefs",
+        ]
+    )
+    assert build_tools.drop_step_lines(log).splitlines() == [
+        "16 radio(s) tiennent moins de presets que leur liste",
+        "  Préréglages injectés dans 43 aéronefs",
+    ]

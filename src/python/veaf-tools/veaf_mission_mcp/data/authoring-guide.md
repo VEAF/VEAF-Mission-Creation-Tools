@@ -57,7 +57,7 @@ Replace the example values with the user's; read a section of the index only whe
 2. A place by its name: `geocode` `{"theatre": "Caucasus", "query": "Beslan"}` gives its `x` and `y`.
 3. `adapt_scaffold` `{"mission_path": "<folder>", "mission_name": "Beslan-Strike", "era": "MODERN", "language": "fr", "date": "2024-06-10", "start_time": "08:00", "position": {"x": -158841, "y": 842000}, "airfields": ["Beslan", "Mozdok"], "dynamic_slot_coalitions": ["blue"], "skynet": false}` — `skynet: true` when the mission has a SAM or an EWR zone; `language` is the user's.
 4. Player slots: `set_airbase_coalition` `{"mission_path": "<folder>", "name": "Mozdok", "coalition": "blue"}` for each airfield the players take off from — an airfield of no side offers no dynamic slot.
-5. `create_combat_zone` `{"mission_path": "<folder>", "zone_name": "CZ-Beslan", "position": {"x": -158841, "y": 842000}, "radius": 6000, "coalition": "red", "country_id": 0, "country_name": "Russia", "groups": [{"name": "armor-1", "command": "-armor", "units": [{"type": "T-72B"}]}, {"name": "sam-1", "command": "-sa8", "units": [{"type": "T-72B"}]}]}` — each group is a VEAF alias (`command`) with one carrier unit; `list_shortcuts` `{"name_contains": "sa8"}` checks an alias (search the alias itself: `armor`, `sa8`, `aaa`).
+5. `create_combat_zone` `{"mission_path": "<folder>", "zone_name": "CZ-Beslan", "position": {"x": -158841, "y": 842000}, "radius": 6000, "coalition": "red", "country_id": 0, "country_name": "Russia", "groups": [{"name": "armor-1", "command": "-armor"}, {"name": "sam-1", "command": "-sa8"}]}` — each group is a VEAF alias (`command`); give no `units`: the tool places a carrier of the alias's class; `list_shortcuts` `{"name_contains": "sa8"}` checks an alias (search the alias itself: `armor`, `sa8`, `aaa`).
 6. Enemy interceptors that take off when players enter an area: `create_qra` `{"mission_path": "<folder>", "name": "QRA-Nalchik", "coalition": "red", "country_id": 0, "country_name": "Russia", "trigger_zone": "QRA-Nalchik-Zone", "position": {"x": -158841, "y": 842000}, "radius": 40000, "groups": [{"name": "QRA-Nalchik-1", "units": [{"type": "MiG-29A"}, {"type": "MiG-29A"}], "airfield": "Nalchik", "payload": "R-73*2,R-60M*2,R-27R*2"}]}` — `position` and `radius` are the protected area; `list_payloads` `{"unit_type": "MiG-29A"}` names another type's loadouts.
 7. `validate_mission` `{"mission_path": "<folder>"}`: fix every error it reports.
 8. `build_mission` `{"mission_path": "<folder>"}`, then `inspect_built_mission` `{"mission_path": "<folder>"}`: read the counters and question any zero.
@@ -166,7 +166,7 @@ units, use a fake unit carrying `#command="-<alias> ..."` (an alias from `list_s
 as that unit's **`name`** (the `units` entry takes an optional `name`; the runtime reads
 `#command`/`#spawn*` off the unit name). **Prefer this `#command` fake-unit** for combat-zone
 content over hand-placing literal units.
-With `create_combat_zone`, give the group `"command": "-armor"` and one unit: the tool names that unit `#command="-armor" <group name>` itself, so you never type the marker's quotes.
+With `create_combat_zone`, give the group `"command": "-armor"` and no `units`: the tool places a carrier of the class the alias spawns and names it `#command="-armor" <group name>` itself, so you never type the marker's quotes.
 
 **A group belongs to one zone only, in practice.** At start a zone **destroys** the groups it
 captured, and zones look at live units — so a second zone whose name is also a prefix of that group

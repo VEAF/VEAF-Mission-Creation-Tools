@@ -51,7 +51,7 @@ from veaf_mission_mcp.edit_veaf_config import (
 from veaf_mission_mcp.edit_zone import edit_zone
 from veaf_mission_mcp.geo import geocode
 from veaf_mission_mcp.group_naming import validate_group_name
-from veaf_mission_mcp.inspect_built import inspect_built_mission
+from veaf_mission_mcp.inspect_built import compact_inspection, inspect_built_mission
 from veaf_mission_mcp.map_drawings import LINE_STYLES, add_map_drawing, edit_map_drawing
 from veaf_mission_mcp.map_tools import (
     describe_map,
@@ -2062,11 +2062,15 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "string",
                         "description": "The mission folder (its latest built .miz) or a built .miz.",
                     },
+                    "detail": {
+                        "type": "boolean",
+                        "description": "Every slot type and preset layout, where a short answer gives their counts.",
+                    },
                 },
                 "required": ["mission_path"],
             },
         ),
-        handler=lambda p: inspect_built_mission(Path(p["mission_path"])),
+        handler=lambda p: compact_inspection(inspect_built_mission(Path(p["mission_path"])), bool(p.get("detail"))),
     )
     catalog.register(
         ActionSpec(
@@ -2746,8 +2750,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "(names auto-prefixed with the zone so it captures them) in src/mission, and a "
                 "modules.COMBATZONE.combat_zones[] entry appended in mission.yaml. Make each group a "
                 "VEAF alias carrier, not literal units: give it 'command': '-armor' (an alias from "
-                "list_shortcuts: -armor, -sa8, -aaa, -infantry...) and one unit as carrier; the tool writes "
-                "the #command marker on the unit's name. Literal DCS types only when no alias fits."
+                "list_shortcuts: -armor, -sa8, -aaa, -infantry...) and no 'units': the tool places one carrier "
+                "of the class the alias spawns and writes the #command marker on its name. Literal DCS types only "
+                "when no alias fits."
             ),
             parameters_schema={
                 "type": "object",
@@ -2770,7 +2775,12 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                             "type": "object",
                             "properties": {
                                 "name": {"type": "string"},
-                                "units": {"type": "array", "items": {"type": "object"}},
+                                "units": {
+                                    "type": "array",
+                                    "items": {"type": "object"},
+                                    "description": "[{type, count?}]; with 'command' it may be left out: the tool "
+                                    "places one carrier of the class the alias spawns.",
+                                },
                                 "command": {
                                     "type": "string",
                                     "description": "A list_shortcuts alias (-armor, -sa8...): the first unit becomes "
@@ -2822,7 +2832,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                     "description": "This group's AI skill; wins over the call's.",
                                 },
                             },
-                            "required": ["name", "units"],
+                            "required": ["name"],
                         },
                         "description": "Groups placed inside the zone; names are auto-prefixed with zone_name.",
                     },

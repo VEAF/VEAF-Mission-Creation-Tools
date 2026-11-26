@@ -17,6 +17,8 @@ from presets_injector.airfield_channels_manager import load_reference
 from veaf_libs.mission_table import indexed
 from veaf_libs.mission_wind import has_helicopter_slot, helicopter_breaches, helicopter_places
 
+from veaf_mission_mcp.profile import is_compact
+
 #: The folder the build writes the weather variants into, beside the main `.miz`.
 _VARIANTS_FOLDER = "missions"
 _ABSENT = "absent"
@@ -325,3 +327,29 @@ def inspect_built_mission(mission_path: Path) -> dict[str, Any]:
             "variants": len(variants),
         },
     }
+
+
+def compact_inspection(result: dict[str, Any], detail: bool = False) -> dict[str, Any]:
+    """Shorten an inspection for the compact profile: the slot types and preset layouts counted, not listed.
+
+    A local model checked its build three times, each answer listing the 61 slot types and every preset
+    layout again (MCP-CONTEXT-BUDGET, run 8); the counters and the airbases already say what matters.
+
+    Args:
+        result: What :func:`inspect_built_mission` returned.
+        detail: Keep the lists whatever the profile.
+
+    Returns:
+        ``result`` unchanged in the standard profile or with ``detail``; otherwise with
+        ``dynamic_slot_templates`` as ``{side: "<n> types"}`` and ``presets`` as a count of layouts.
+    """
+    if detail or not is_compact():
+        return result
+    shortened = dict(result)
+    slots = result.get("dynamic_slot_templates")
+    if isinstance(slots, dict):
+        shortened["dynamic_slot_templates"] = {side: str(text).split(":")[0] for side, text in slots.items()}
+    presets = result.get("presets")
+    if isinstance(presets, list):
+        shortened["presets"] = f"{len(presets)} radio layouts (detail: true lists them)"
+    return shortened

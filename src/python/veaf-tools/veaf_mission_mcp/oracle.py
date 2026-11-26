@@ -183,6 +183,62 @@ def _command_category(aliases: list[str], description: str) -> str:
     return "other"
 
 
+#: A carrier for the aliases that spawn no fixed group, by what they spawn (`_spawn <kind>`): a unit of the
+#: class the alias spawns, as the guide asks ("The carrier's unit type is not indifferent").
+_CARRIER_BY_SPAWN_KIND = {
+    "armorgroup": "T-72B",
+    "infantrygroup": "Infantry AK",
+    "samgroup": "Osa 9A33 ln",
+    "longrangesam": "S-300PS 5P85C ln",
+    "combatgroup": "BMP-2",
+    "transportgroup": "Ural-375",
+    "convoy": "Ural-375",
+}
+#: Aliases whose kind says less than the alias: `-aaa` is a `samgroup` of guns.
+_CARRIER_BY_ALIAS = {"-aaa": "ZSU-23-4 Shilka"}
+
+
+def alias_carrier_type(command: str) -> str | None:
+    """Return a unit type to carry a `#command` alias: one of the class the alias spawns.
+
+    A local model put a T-72B under `-sa8`, copying an example (MCP-CONTEXT-BUDGET, run 8): the editor then
+    draws no SAM ring, and the map reads like armour. The type comes from the group the alias spawns
+    (`_spawn group, name sa8_squad` → its first unit, `Osa 9A33 ln`), else from what the alias spawns.
+
+    Args:
+        command: The alias, `-sa8` (the leading `-` optional).
+
+    Returns:
+        The DCS unit type, or None for an alias that spawns nothing a carrier could stand for.
+    """
+    alias = command.strip() if command.strip().startswith("-") else f"-{command.strip()}"
+    entry = next((e for e in get_shortcuts() if alias in (e.get("aliases") or [])), None)
+    if entry is None:
+        return None
+    if alias in _CARRIER_BY_ALIAS:
+        return _CARRIER_BY_ALIAS[alias]
+    veaf_command = str(entry.get("veafCommand", ""))
+    named = re.search(r"name ([\w-]+)", veaf_command)
+    if named:
+        data = _load_bundled_data_yaml("veaf-units.yaml")
+        group = next((g for g in data.get("groups") or [] if named[1] in (g.get("aliases") or [])), None)
+        types = [u.get("type") for u in (group or {}).get("units") or [] if u.get("type")]
+        if types:
+            return str(types[0])
+        unit = next(
+            (
+                u
+                for u in data.get("units") or []
+                if named[1] in (u.get("aliases") or []) or str(u.get("unitType", "")).startswith(named[1])
+            ),
+            None,
+        )
+        if unit and unit.get("unitType"):
+            return str(unit["unitType"])
+    kind = re.match(r"_spawn (\w+)", veaf_command)
+    return _CARRIER_BY_SPAWN_KIND.get(kind[1]) if kind else None
+
+
 def list_shortcuts(name_contains: str | None = None, era: str | None = None) -> dict[str, Any]:
     """List the VEAF spawn aliases (the `-shilka`/`-sa8`… vocabulary).
 

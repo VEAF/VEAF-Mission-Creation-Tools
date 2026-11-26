@@ -22,6 +22,7 @@ from veaf_mission_mcp.add_trigger_zone import insert_trigger_zone
 from veaf_mission_mcp.aircraft_payload import resolve_flight_loadout
 from veaf_mission_mcp.group_naming import resolve_group_name, validate_group_name
 from veaf_mission_mcp.mission_folder import load_folder_mission, mission_yaml_path, save_folder_mission
+from veaf_mission_mcp.oracle import alias_carrier_type
 
 
 def create_combat_zone(
@@ -52,7 +53,8 @@ def create_combat_zone(
         radius: The zone radius, in metres.
         groups: `[{"name", "units": [{"type","count"}], "command"?, "category"?, "position"?, "route"?,
             "patrol"?, "roe"?, "disperse"?}, ...]` placed inside the zone. `command` (a `list_shortcuts` alias,
-            `-armor`) names the first unit `#command="-armor" <group name>`: a VEAF alias carrier. A group's `category` (`"vehicle"`, `"static"`, `"ship"`…)
+            `-armor`) names the first unit `#command="-armor" <group name>`: a VEAF alias carrier; without
+            `units`, the carrier is a unit of the class the alias spawns (`alias_carrier_type`). A group's `category` (`"vehicle"`, `"static"`, `"ship"`…)
             overrides the call's, so one call makes a zone of vehicles **and** statics. `route`, `patrol`, `roe` and `disperse` have
             `add_group`'s shape: a convoy moving through the zone is one of its groups, not a separate
             `add_group` call, and an inert target is `roe: "weapons_hold"`, `disperse: false`.
@@ -146,7 +148,8 @@ def _with_command_carrier(spec: dict[str, Any]) -> dict[str, Any]:
     spec = dict(spec)
     spec["name"] = _unescaped(str(spec["name"]))
     spec["units"] = [
-        {**unit, "name": _unescaped(str(unit["name"]))} if unit.get("name") else unit for unit in spec["units"]
+        {**unit, "name": _unescaped(str(unit["name"]))} if unit.get("name") else unit
+        for unit in spec.get("units") or []
     ]
     match = _GROUP_NAME_COMMAND.match(spec["name"])
     if match and not spec.get("command"):
@@ -170,6 +173,11 @@ def _carrier_named(spec: dict[str, Any], group_name: str) -> dict[str, Any]:
     command = str(spec["command"]).strip()
     if not command.startswith("-"):
         command = f"-{command}"
+    if not spec.get("units"):
+        carrier_type = alias_carrier_type(command)
+        if carrier_type is None:
+            raise ValueError(f"group {spec['name']!r}: no carrier type known for {command!r}; give 'units'")
+        spec = {**spec, "units": [{"type": carrier_type}]}
     first, *rest = spec["units"]
     carrier = {**first, "count": 1, "name": f'#command="{command}" {group_name}'}
     extra = [{**first, "count": first.get("count", 1) - 1}] if first.get("count", 1) > 1 else []

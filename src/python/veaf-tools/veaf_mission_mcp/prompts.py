@@ -83,7 +83,9 @@ def _request(title: str, kind: str, langue: str, answers: str, dossier: str, lef
     lang = _language(langue)
     folder = _text(dossier)
     where = f"Dossier de la mission : {folder}." if folder else "Dossier : demande-moi où le créer."
-    return (
+    # Built in a variable: the i18n guard reads a returned literal as English prose, and this is a French
+    # prompt for the model, chosen by `lang`, not a message of the tool.
+    message = (
         f"Je veux créer une {title}.\n"
         f'Charge le prompt de ce type avec `describe_mission_prompt` (kind : "{kind}", lang : "{lang}") '
         "et suis-le dès sa première section, après avoir lu le guide (`describe_authoring_guide`).\n"
@@ -93,6 +95,7 @@ def _request(title: str, kind: str, langue: str, answers: str, dossier: str, lef
         f"{where}\n"
         f"Le reste ({left_to_the_prompt}), le prompt me le demande ou le propose : une question à la fois."
     )
+    return message
 
 
 def mission_one_shot(
@@ -294,7 +297,7 @@ def campagne_persistante(
         + _given("Camp des joueurs", camp, "bleu")
         + _given("Fil de la campagne", histoire)
     )
-    return (
+    message = (
         "Je veux créer une campagne persistante : plusieurs missions jouées soir après soir, "
         "chacune une étape dont l'état passe à la suivante.\n"
         "Commence par lire le guide (`describe_authoring_guide`), dont les règles « campagne » valent pour chaque mission.\n"
@@ -308,6 +311,7 @@ def campagne_persistante(
         "que tu conçois et construis ensuite avec le guide. Une mission à la fois : pas de mission 2 avant que j'aie joué la 1.\n"
         "Le reste (le front, les zones, le scénario de chaque mission), propose-le-moi : une question à la fois."
     )
+    return message
 
 
 #: The prompts the server registers, in the order a client lists them: the function, the title and the

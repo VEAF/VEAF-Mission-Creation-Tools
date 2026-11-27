@@ -2760,7 +2760,9 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "COLD_WAR mission.era), for the airfield's owner's side, or the side asked for, and only for the kinds "
                 "of aircraft the airfield has stands for (a helipad-only field answers helicopters). "
                 "Returns {airfield, airdrome_id, owner, parks, era, aircraft: {side: {type: template}}}. "
-                "The build stocks every one of them by default: edit nothing to offer them all."
+                "An owned airfield gets all of them unless src/warehouses.yaml gives an 'aircrafts:' list for it, "
+                "which replaces them (not read here); a neutral airfield offers none until set_airbase_coalition "
+                "gives it a side, and its answer carries a 'note' saying so."
             ),
             parameters_schema={
                 "type": "object",

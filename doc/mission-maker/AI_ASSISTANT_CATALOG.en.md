@@ -415,7 +415,7 @@ Works before a mission exists too, by naming the map.
 
 ### Know which aircraft an airfield can offer {#airfield-aircraft}
 
-*Read · ⭐* — The aircraft an airfield can offer as dynamic slots, with the **exact name the build expects** (`F-16C_50`, not `F-16C`; `AV8BNA`, not `AV-8B`). The AI reads the template catalogue the build injects, keeps the mission's era, and keeps only what the base can park: a helipad-only base offers helicopters only. The build already stocks every base with all of them: there is nothing to write to offer them.
+*Read · ⭐* — The aircraft an airfield can offer as dynamic slots, with the **exact name the build expects** (`F-16C_50`, not `F-16C`; `AV8BNA`, not `AV-8B`). The AI reads the template catalogue the build injects, keeps the mission's era, and keeps only what the base can park: a helipad-only base offers helicopters only. The build stocks a base of its side with all of them, unless `src/warehouses.yaml` gives an `aircrafts:` list for it, which replaces them. A neutral base offers none until it has a side: the answer says so.
 
 > 💬 *"Which aircraft can Ramat David offer?"*
 

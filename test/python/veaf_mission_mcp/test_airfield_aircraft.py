@@ -176,3 +176,27 @@ def test_the_action_is_in_the_catalogue_and_maps_its_arguments(tmp_path: Path, m
     assert spec["parameters_schema"]["required"] == ["mission_path", "airfield"]
     answer = server.run_action("list_airfield_aircraft", {"mission_path": str(folder), "airfield": "Batumi"})
     assert answer["aircraft"]["blue"]["F-16C_50"] == "F-16CM Template"
+
+
+class TestWhatTheAnswerDoesNotPromise:
+    """FIX-MCP-REPLAY-FINDINGS 04: the answer lists the catalogue, which is not always what the build stocks."""
+
+    def test_a_neutral_airfield_says_it_offers_nothing_until_it_has_a_side(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _serve(monkeypatch, "Caucasus", {})
+        result = list_airfield_aircraft(_folder(tmp_path, catalogue=_catalogue()), "Batumi")
+        assert "no dynamic slot" in result["note"]
+        assert "set_airbase_coalition" in result["note"]
+
+    def test_an_owned_airfield_carries_no_note(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        _serve(monkeypatch, "Caucasus", {_id("Caucasus", "Batumi"): {"coalition": "BLUE"}})
+        result = list_airfield_aircraft(_folder(tmp_path, catalogue=_catalogue()), "Batumi")
+        assert "note" not in result
+
+    def test_the_description_does_not_promise_every_type_on_every_base(self) -> None:
+        from veaf_mission_mcp import server
+
+        description = server.describe_action("list_airfield_aircraft")["description"]
+        assert "stocks every one of them by default" not in description
+        assert "aircrafts:" in description and "neutral" in description

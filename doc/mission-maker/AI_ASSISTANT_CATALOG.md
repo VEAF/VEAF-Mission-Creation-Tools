@@ -420,7 +420,7 @@ Marche aussi avant qu'une mission existe, en nommant la carte.
 
 ### Savoir quels appareils une base peut offrir {#airfield-aircraft}
 
-*Lecture · ⭐* — Les appareils qu'un aérodrome peut offrir en slots dynamiques, avec le **nom exact que le build attend** (`F-16C_50`, pas `F-16C` ; `AV8BNA`, pas `AV-8B`). L'IA lit le catalogue de gabarits que le build injecte, garde l'époque de la mission, et ne retient que ce que la base peut garer : une base à hélistations n'offre que des hélicoptères. Le build garnit déjà chaque base avec tous ces appareils : il n'y a rien à écrire pour les offrir.
+*Lecture · ⭐* — Les appareils qu'un aérodrome peut offrir en slots dynamiques, avec le **nom exact que le build attend** (`F-16C_50`, pas `F-16C` ; `AV8BNA`, pas `AV-8B`). L'IA lit le catalogue de gabarits que le build injecte, garde l'époque de la mission, et ne retient que ce que la base peut garer : une base à hélistations n'offre que des hélicoptères. Le build garnit une base de son camp avec tous ces appareils, sauf si `src/warehouses.yaml` donne pour elle une liste `aircrafts:`, qui les remplace. Une base neutre n'en offre aucun tant qu'elle n'a pas de camp : la réponse le dit.
 
 > 💬 *« Quels appareils Ramat David peut-il offrir ? »*
 

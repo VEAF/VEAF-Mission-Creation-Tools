@@ -1,6 +1,7 @@
 # 02 — `setup_cherry` in `ai_clients.py`
 
-Status: ⬜ ready (ticket 01 gave its verdict: feasible, Cherry closed)
+Status: 🔄 in-progress — code and tests done (2026-11-27); the three measures on David's PC below are pending.
+The backup uses SQLite's backup API rather than a copy of the `.sqlite` and `-wal` files: it reads the WAL too and gives one self-contained file.
 Type: feature
 Files: `src/python/veaf-tools/veaf_libs/ai_clients.py`, `test/python/veaf_libs/test_ai_clients.py` (or the file that covers the other clients), the `ai-setup` command if it lists the clients
 

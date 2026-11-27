@@ -103,6 +103,7 @@ L'IA peut agir à deux endroits, et ça change ce qui « survit » :
 | 58 | [Construire une campagne persistante de bout en bout](#build-persistent-campaign) | 🎖️ Campagne persistante | Campagne (dossier) | ⭐ |
 | 59 | [Démarrer une campagne](#campaign-init) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
 | 60 | [Vérifier une campagne](#campaign-validate) | 🎖️ Campagne | Campagne (dossier) | ⭐ |
+| 61 | [Savoir quels appareils une base peut offrir](#airfield-aircraft) | 🛫 Bases & aérodromes | Recette (dossier) | ⭐ |
 
 ---
 
@@ -416,6 +417,12 @@ choisir les bases à colorer, ou placer quelque chose près de l'une d'elles, sa
 Marche aussi avant qu'une mission existe, en nommant la carte.
 
 > 💬 *« Quelles bases y a-t-il en Allemagne de l'Est sur GermanyCW ? »*
+
+### Savoir quels appareils une base peut offrir {#airfield-aircraft}
+
+*Lecture · ⭐* — Les appareils qu'un aérodrome peut offrir en slots dynamiques, avec le **nom exact que le build attend** (`F-16C_50`, pas `F-16C` ; `AV8BNA`, pas `AV-8B`). L'IA lit le catalogue de gabarits que le build injecte, garde l'époque de la mission, et ne retient que ce que la base peut garer : une base à hélistations n'offre que des hélicoptères. Le build garnit déjà chaque base avec tous ces appareils : il n'y a rien à écrire pour les offrir.
+
+> 💬 *« Quels appareils Ramat David peut-il offrir ? »*
 
 ### Donner aux bases leurs vraies fréquences radio {#airfield-channels}
 

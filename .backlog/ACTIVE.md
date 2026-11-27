@@ -6,6 +6,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
+### [FEAT-MCP-PROMPTS](FEAT-MCP-PROMPTS/PRD.md) · 🔄
+
+The MCP server publishes four prompts (new mission, add a QRA, add a combat zone, add a JTAC) with typed arguments in French, so a pilot who is not a developer fills a few fields in the client (Cherry Studio) instead of pasting a block of text. Texts taken from the "Marteau du Golan" tutorial; no resources.
+
 ## 🧑 Waiting for a human
 
 ### [CHORE-DCS-2932-DATA-REGEN](CHORE-DCS-2932-DATA-REGEN/PRD.md) · 🧑

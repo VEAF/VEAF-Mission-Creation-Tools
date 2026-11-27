@@ -1,6 +1,6 @@
 # 01 — The guide's examples must not tempt a model to run them as written
 
-Status: ⬜ ready
+Status: ✅ done
 Type: fix (guide text)
 Files: `src/python/veaf-tools/veaf_mission_mcp/data/authoring-guide.md`, the mission prompts if they carry the same example, `test/python/veaf_mission_mcp/` (the guide and budget tests)
 

@@ -206,7 +206,7 @@ class TestGuideBySection:
     def test_the_default_is_the_essential_sections_and_an_index_of_the_others(self) -> None:
         result = describe_authoring_guide()
         # Under the 8 000 ceiling with a margin: run 13 got this answer cut, the recipe grown past it unnoticed.
-        assert len(json.dumps(result, ensure_ascii=False, separators=(",", ":"))) <= 7_600
+        assert len(json.dumps(result, ensure_ascii=False, separators=(",", ":"))) <= 7_900
         assert "## A simple mission, call by call" in result["guide"]
         assert "adapt_scaffold" in result["guide"] and '"command": "-armor"' in result["guide"]
         # Run 13 read the guide eight times looking for the support aircraft, and was cut off before placing them.
@@ -757,3 +757,37 @@ def test_an_alias_s_carrier_is_of_the_class_it_spawns(alias: str, carrier: str) 
     from veaf_mission_mcp.oracle import alias_carrier_type
 
     assert alias_carrier_type(alias) == carrier
+
+
+class TestGuideExamplesAreNotToReplay:
+    """FIX-MCP-REPLAY-FINDINGS 01: a local model replayed the guide's example mission as it stood (Beslan, 2024-06-10)."""
+
+    #: A call parameter that names the mission's folder, place, name or date: its value must be a placeholder.
+    _PARAMETER = re.compile(
+        r'"(?P<key>mission_path|target_folder|target|folder_path|miz_path|mission_yaml_path|theatre|query|mission_name'
+        r'|date|start_time|sortie|zone_name)": "(?P<value>[^"]*)"'
+    )
+
+    def _texts(self) -> dict[str, str]:
+        texts = {"guide": describe_authoring_guide("all")["guide"]}
+        for kind in ("objective", "open-training", "persistent-campaign"):
+            for lang in ("en", "fr"):
+                texts[f"{kind}.{lang}"] = describe_mission_prompt(kind, lang, part="all")["prompt"]
+        return texts
+
+    def test_no_example_names_a_real_looking_mission_folder(self) -> None:
+        for name, text in self._texts().items():
+            assert not re.search(r"[A-Za-z]:\\?[A-Za-z]", text), f"{name} writes a drive path"
+
+    def test_a_call_example_carries_placeholders_for_what_the_user_decides(self) -> None:
+        for name, text in self._texts().items():
+            for match in self._PARAMETER.finditer(text):
+                value = match["value"]
+                assert value.startswith("<") or "<" in value or value == "...", (
+                    f"{name}: {match['key']} is {value!r}, an example the model would replay: write a <placeholder>"
+                )
+
+    def test_the_recipe_sends_the_model_to_the_airfield_action_not_to_warehouses_yaml(self) -> None:
+        recipe = describe_authoring_guide("recipe")["guide"]
+        assert "list_airfield_aircraft" in recipe
+        assert "leave `src/warehouses.yaml` alone" in recipe

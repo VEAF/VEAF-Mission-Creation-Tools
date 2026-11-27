@@ -1,6 +1,6 @@
 # FIX-MCP-REPLAY-FINDINGS — what the local-model replay of "Marteau du Golan" block 1 found
 
-Status: ⬜ ready
+Status: 🔄 in progress
 
 Reported by the local-model test session on 2026-11-27, relayed with David's go: block 1 of "Marteau du Golan" replayed with Inkling local in Cherry Studio on develop `4ec65302`, compact profile. The mission was built — 120 MCP calls, 27 minutes, two harmless errors. Four points came out, measured in `E:\AI\mcp-calls.log` and `C:\VEAF-Missions\Marteau-du-Golan-3`.
 

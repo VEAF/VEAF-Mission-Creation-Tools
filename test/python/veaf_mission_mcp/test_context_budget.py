@@ -86,6 +86,9 @@ def test_the_reference_chain_fits_the_budget(mission: Path) -> None:
     sizes["set_airbase_coalition"] = _run(
         "set_airbase_coalition", {"mission_path": folder, "name": "Mozdok", "coalition": "blue"}
     )
+    # The recipe's call for the aircraft an airfield offers, which replaced a hand edit of `src/warehouses.yaml` and the
+    # second build it cost (FIX-MCP-REPLAY-FINDINGS 02).
+    sizes["list_airfield_aircraft"] = _run("list_airfield_aircraft", {"mission_path": folder, "airfield": "Mozdok"})
     # The recipe's tanker, call for call: a local model asked for an AWACS and two tankers read the guide eight times
     # and 14 schemas, 160 072 characters, and was cut off before placing them (2026-11-26).
     sizes["add_air_group"] = _run(

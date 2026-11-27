@@ -733,6 +733,12 @@ initialise):
 - `set_airbase_coalition(folder_path, name, coalition, dynamic_spawn=True)` — durably assign a DCS
   airfield to a coalition, in a **mission folder**; `dynamic_spawn=False` keeps its dynamic slots
   closed (an enemy base).
+- `list_airfield_aircraft(mission_path, airfield, coalition?)` — read-only: the aircraft types an
+  airfield can offer as dynamic slots, **as the build writes them** (`F-16C_50`, `AV8BNA`), each with its
+  template. Source: the catalogue the build injects (the folder's `src/dynamic-slot-templates.yaml`, else
+  the shipped one, kept to `mission.era` for a WW2 or COLD_WAR mission), for the coalition that owns the base or the one asked for, and
+  only the types the base can park (`parkable_kinds`). The build already stocks every base with all of
+  them: the recipe no longer edits `src/warehouses.yaml` by hand.
 
 > ⚠️ An airfield's coalition lives in `warehouses.airports[<id>].coalition`, **not** in
 > `mission.coalition`. Placing a unit near a base therefore never turns the base itself — this action

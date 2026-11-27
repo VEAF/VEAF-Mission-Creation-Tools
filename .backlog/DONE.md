@@ -6,6 +6,18 @@ Closed lots still on disk; each moves to the archive three days after it closed.
 
 ## ✅ Done
 
+### [FEAT-CHERRY-AI-SETUP](FEAT-CHERRY-AI-SETUP/PRD.md) · ✅
+
+`ai-setup` connects Cherry Studio: it sets the MCP server `veaf` in Cherry's database with Cherry closed, with `--only`, `--cherry-assistant` and `--cherry-data-dir`. Closed 2026-11-27.
+
+### [FEAT-MCP-PROMPTS](FEAT-MCP-PROMPTS/PRD.md) · ✅
+
+The MCP server publishes four prompts, one per kind of mission, with typed arguments in French; phase 2 (editing prompts) is a list only. Closed 2026-11-27.
+
+### [FIX-MCP-REPLAY-FINDINGS](FIX-MCP-REPLAY-FINDINGS/PRD.md) · ✅
+
+What the local-model replay of Marteau du Golan block 1 found: the guide's examples are placeholders, the action `list_airfield_aircraft` says what an airfield offers, a misspelt aircraft type gets a suggestion. Closed 2026-11-27.
+
 ### [FEAT-AIRDROMES-DUMP-UNION](FEAT-AIRDROMES-DUMP-UNION/PRD.md) · ✅
 
 The airfields DCS adds after the reference database resolve by name: the generator joins the database and the runtime dumps on the airdrome id, and GermanyCW was captured again on DCS 2.9.32 (+20 airfields). Kola's three new airfields wait for a capture. Closed 2026-11-26.

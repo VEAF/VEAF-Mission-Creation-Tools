@@ -1,6 +1,6 @@
 # FEAT-CHERRY-AI-SETUP — `ai-setup` declares the VEAF MCP server in Cherry Studio
 
-Status: 🔄 in-progress
+Status: ✅ done
 
 Asked by David on 2026-11-26, through the local-model test session: with Inkling-2-Mini (llama.cpp) and Cherry Studio 2.2.3 as the chat client, the VEAF MCP server works end to end (the three blocks of the "Marteau du Golan" trial, PR #1349). A tutorial for non-technical pilots is being prepared on that stack (24 GB cards).
 One manual step remains: declare the MCP server in Cherry (Settings → MCP → JSON import, then link it to the assistant).

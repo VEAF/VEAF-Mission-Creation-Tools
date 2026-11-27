@@ -1,6 +1,6 @@
 # FEAT-MCP-PROMPTS — the MCP server publishes one prompt per kind of mission
 
-Status: 🔄 in progress
+Status: ✅ done
 
 Asked by David on 2026-11-27, from the local-model test session. Measured the same day with a trial server (`MCPServer` of `mcp` 2.x, `@prompt`) in Cherry Studio 2.2.3: the server's prompts appear in Cherry; choosing one opens a dialog "Renseigner les arguments du prompt" (each argument's name and description); the text the server returns is inserted into the input box, which the user rereads and sends. The model receives that text.
 

@@ -154,3 +154,15 @@ def test_the_shipped_catalogue_names_f_16c_and_av_8b_as_the_build_spells_them(
     assert blue["F-16C_50"]
     assert blue["AV8BNA"]
     assert "F-16C" not in blue
+
+
+def test_the_action_is_in_the_catalogue_and_maps_its_arguments(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from veaf_mission_mcp import server
+
+    _serve(monkeypatch, "Caucasus", {_id("Caucasus", "Batumi"): {"coalition": "BLUE"}})
+    folder = _folder(tmp_path, catalogue=_catalogue())
+    spec = server.describe_action("list_airfield_aircraft")
+    assert {"mission_path", "airfield"} <= set(spec["parameters_schema"]["properties"])
+    assert spec["parameters_schema"]["required"] == ["mission_path", "airfield"]
+    answer = server.run_action("list_airfield_aircraft", {"mission_path": str(folder), "airfield": "Batumi"})
+    assert answer["aircraft"]["blue"]["F-16C_50"] == "F-16CM Template"

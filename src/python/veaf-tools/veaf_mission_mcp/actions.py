@@ -16,6 +16,7 @@ from veaf_mission_mcp.add_sound import add_sound
 from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigger
 from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
 from veaf_mission_mcp.airbase import set_airbase_coalition
+from veaf_mission_mcp.airfield_aircraft import list_airfield_aircraft
 from veaf_mission_mcp.briefing_picture import set_briefing_picture
 from veaf_mission_mcp.build_briefing import build_briefing
 from veaf_mission_mcp.build_promotion import build_promotion
@@ -2747,6 +2748,39 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             coalition=p["coalition"],
             dynamic_spawn=p.get("dynamic_spawn", True),
         ),
+    )
+    catalog.register(
+        ActionSpec(
+            name="list_airfield_aircraft",
+            description=(
+                "Which aircraft types an airfield can offer as dynamic slots, spelled as the build validates "
+                "them: the key of a src/warehouses.yaml 'aircrafts:' entry is the TYPE ('F-16C_50', 'AV8BNA'), "
+                "never the name a pilot says ('F-16C', 'AV-8B'). Read-only. Answers from the catalogue the "
+                "build injects (the folder's src/dynamic-slot-templates.yaml, else the shipped one, kept to "
+                "mission.era), for the airfield's owner's side, or the side asked for, and only for the kinds "
+                "of aircraft the airfield has stands for (a helipad-only field answers helicopters). "
+                "Returns {airfield, airdrome_id, owner, parks, era, aircraft: {side: {type: template}}}. "
+                "The build stocks every one of them by default: edit nothing to offer them all."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {
+                        "type": "string",
+                        "description": "Path to the mission folder (mission.yaml + src/mission/).",
+                    },
+                    "airfield": {"type": "string", "description": "The airfield display name (e.g. 'Ramat David')."},
+                    "coalition": {
+                        "type": "string",
+                        "enum": ["blue", "red"],
+                        "description": "The side to answer for; the airfield's owner when omitted.",
+                    },
+                },
+                "required": ["mission_path", "airfield"],
+            },
+        ),
+        handler=lambda p: list_airfield_aircraft(Path(p["mission_path"]), p["airfield"], p.get("coalition")),
+        compact_summary="The aircraft types an airfield can offer, as the build spells them (F-16C_50, not F-16C).",
     )
     catalog.register(
         ActionSpec(

@@ -30,8 +30,10 @@ def test_ai_setup_declares_the_running_exe_and_reports_each_client(
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "Local"))
     seen: dict[str, Any] = {}
 
-    def setup_all(exe_arg: Path, *, home: Path, appdata: Path, localappdata: Path) -> list[ClientResult]:
-        seen.update(exe=exe_arg, appdata=appdata, localappdata=localappdata)
+    def setup_all(
+        exe_arg: Path, *, home: Path, appdata: Path, localappdata: Path, cherry_assistants: list[str]
+    ) -> list[ClientResult]:
+        seen.update(exe=exe_arg, appdata=appdata, localappdata=localappdata, cherry_assistants=cherry_assistants)
         return [
             ClientResult("Claude Desktop", "configured", "x.json"),
             ClientResult("Claude Code", "not_found"),
@@ -43,8 +45,32 @@ def test_ai_setup_declares_the_running_exe_and_reports_each_client(
     result = CliRunner().invoke(app, ["ai-setup"])
 
     assert result.exit_code == 0, result.output
-    assert seen == {"exe": exe.resolve(), "appdata": tmp_path / "Roaming", "localappdata": tmp_path / "Local"}
+    assert seen == {
+        "exe": exe.resolve(),
+        "appdata": tmp_path / "Roaming",
+        "localappdata": tmp_path / "Local",
+        "cherry_assistants": [],
+    }
     assert "Claude Desktop" in result.output and "Gemini CLI" in result.output
+
+
+def test_ai_setup_passes_the_cherry_assistants_on(app: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """`--cherry-assistant`, repeatable, names the Cherry Studio assistants to link (FEAT-CHERRY-AI-SETUP)."""
+    _frozen(monkeypatch, tmp_path / "veaf-tools.exe")
+    seen: list[Any] = []
+
+    def setup_all(*_a: Any, cherry_assistants: list[str], **_k: Any) -> list[ClientResult]:
+        seen.append(cherry_assistants)
+        return [ClientResult("Cherry Studio", "configured", "cherrystudio.sqlite")]
+
+    monkeypatch.setattr("veaf_tools.commands.ai_setup.setup_all", setup_all)
+
+    result = CliRunner().invoke(
+        app, ["ai-setup", "--cherry-assistant", "VEAF missions", "--cherry-assistant", "VEAF chatbot"]
+    )
+
+    assert result.exit_code == 0, result.output
+    assert seen == [["VEAF missions", "VEAF chatbot"]]
 
 
 def test_ai_setup_fails_when_a_client_could_not_be_configured(

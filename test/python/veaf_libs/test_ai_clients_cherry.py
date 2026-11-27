@@ -315,7 +315,9 @@ def _no_process(*_a: Any, **_k: Any) -> subprocess.CompletedProcess[str]:
 
 def test_cherry_is_running_when_its_process_is_listed(tmp_path: Path) -> None:
     def tasklist(*_a: Any, **_k: Any) -> subprocess.CompletedProcess[str]:
-        return subprocess.CompletedProcess([], 0, stdout='"Cherry Studio.exe","4242","Console","1","200 K"\n', stderr="")
+        return subprocess.CompletedProcess(
+            [], 0, stdout='"Cherry Studio.exe","4242","Console","1","200 K"\n', stderr=""
+        )
 
     assert cherry_is_running(tmp_path, run=tasklist, windows=True)
 
@@ -347,7 +349,9 @@ def test_a_process_list_that_cannot_be_read_counts_as_running(tmp_path: Path) ->
 def test_setup_all_passes_the_assistants_to_cherry_studio(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     # The other clients are stubbed: the real Claude Code one would run the `claude` found on this PC's PATH.
     for name in ("claude_desktop", "claude_code", "gemini", "antigravity", "codex", "opencode"):
-        monkeypatch.setattr(ai_clients, f"setup_{name}", lambda *_a, _n=name, **_k: ai_clients.ClientResult(_n, "not_found"))
+        monkeypatch.setattr(
+            ai_clients, f"setup_{name}", lambda *_a, _n=name, **_k: ai_clients.ClientResult(_n, "not_found")
+        )
     seen: dict[str, Any] = {}
 
     def cherry(exe: Path, *, appdata: Path, home: Path, assistants: Any) -> ai_clients.ClientResult:
@@ -357,9 +361,17 @@ def test_setup_all_passes_the_assistants_to_cherry_studio(tmp_path: Path, monkey
     monkeypatch.setattr(ai_clients, "setup_cherry", cherry)
 
     results = setup_all(
-        EXE, home=tmp_path / "home", appdata=tmp_path / "Roaming", localappdata=tmp_path / "Local",
+        EXE,
+        home=tmp_path / "home",
+        appdata=tmp_path / "Roaming",
+        localappdata=tmp_path / "Local",
         cherry_assistants=["VEAF missions"],
     )
 
     assert results[-1].client == "Cherry Studio"
-    assert seen == {"exe": EXE, "appdata": tmp_path / "Roaming", "home": tmp_path / "home", "assistants": ["VEAF missions"]}
+    assert seen == {
+        "exe": EXE,
+        "appdata": tmp_path / "Roaming",
+        "home": tmp_path / "home",
+        "assistants": ["VEAF missions"],
+    }

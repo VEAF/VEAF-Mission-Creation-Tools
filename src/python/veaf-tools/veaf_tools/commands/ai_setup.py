@@ -17,8 +17,13 @@ _STATUS_STYLE = {"configured": "green", "not_found": "dim", "failed": "red"}
 
 
 @app.command(name="ai-setup", help=t("cmd.ai_setup.help"))
-def ai_setup() -> None:
-    """Declare this executable's MCP server in Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI and OpenCode.
+def ai_setup(
+    cherry_assistant: list[str] = typer.Option([], "--cherry-assistant", help=t("cmd.ai_setup.opt.cherry_assistant")),
+) -> None:
+    """Declare this executable's MCP server in every AI client found: Claude, Codex, Antigravity, Gemini CLI, OpenCode, Cherry Studio.
+
+    Args:
+        cherry_assistant: Cherry Studio assistants to link to the server; none by default.
 
     Raises:
         typer.Exit: Exit code 1 when no client was found or one could not be configured.
@@ -29,7 +34,9 @@ def ai_setup() -> None:
     exe = Path(sys.executable).resolve()
     appdata = Path(os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming")
     localappdata = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
-    results = setup_all(exe, home=Path.home(), appdata=appdata, localappdata=localappdata)
+    results = setup_all(
+        exe, home=Path.home(), appdata=appdata, localappdata=localappdata, cherry_assistants=cherry_assistant
+    )
 
     console.print(t("cmd.ai_setup.server", exe=str(exe)))
     for result in results:

@@ -23,19 +23,24 @@ REFUSED = (MCPError, ExceptionGroup)
 KINDS = {
     "mission_one_shot": "objective",
     "open_training": "open-training",
-    "campagne_persistante": "persistent-campaign",
+    "mission_dynamique": "persistent-campaign",
 }
+#: The fourth prompt has no mission prompt behind it: a campaign of several missions, whose steps the message carries.
+CAMPAIGN = "campagne_persistante"
+ALL = [*KINDS, CAMPAIGN]
 #: Arguments each prompt must require: without them the message would be a sentence with holes.
 REQUIRED = {
     "mission_one_shot": {"carte"},
     "open_training": {"carte"},
-    "campagne_persistante": {"carte", "nom"},
+    "mission_dynamique": {"carte", "nom"},
+    CAMPAIGN: {"carte", "nom"},
 }
 #: A complete set of arguments for each prompt, as Cherry sends them: strings.
 FILLED: dict[str, dict[str, str]] = {
     "mission_one_shot": {"carte": "Syrie"},
     "open_training": {"carte": "Caucase"},
-    "campagne_persistante": {"carte": "Syrie", "nom": "Bouclier-de-l-Oronte"},
+    "mission_dynamique": {"carte": "Syrie", "nom": "Bouclier-de-l-Oronte"},
+    CAMPAIGN: {"carte": "Caucase", "nom": "Kolkhida"},
 }
 
 
@@ -58,10 +63,10 @@ def get(name: str, arguments: dict[str, str] | None = None) -> str:
     return asyncio.run(_get(name, arguments))
 
 
-def test_the_server_lists_the_three_prompts() -> None:
+def test_the_server_lists_the_four_prompts() -> None:
     prompts = asyncio.run(_list())
 
-    assert [p.name for p in prompts] == list(KINDS)
+    assert [p.name for p in prompts] == ALL
     assert all(p.description and p.title for p in prompts)
 
 
@@ -88,13 +93,13 @@ def test_every_prompt_takes_the_language_and_the_folder() -> None:
         assert {"langue", "dossier"} <= {a.name for a in prompt.arguments or []}, prompt.name
 
 
-@pytest.mark.parametrize("name", sorted(KINDS))
+@pytest.mark.parametrize("name", ALL)
 def test_a_missing_required_argument_is_refused(name: str) -> None:
     with pytest.raises(REFUSED):
         get(name, {})
 
 
-@pytest.mark.parametrize("name", sorted(KINDS))
+@pytest.mark.parametrize("name", ALL)
 def test_a_language_other_than_fr_or_en_is_refused(name: str) -> None:
     with pytest.raises(REFUSED):
         get(name, {**FILLED[name], "langue": "de"})
@@ -168,19 +173,46 @@ def test_open_training_defaults_to_modern_and_standard() -> None:
     assert "une mission existante dont s'inspirer" in text  # stays with the prompt
 
 
-def test_persistent_campaign_fixes_no_date_and_keeps_the_front_for_the_prompt() -> None:
+def test_dynamic_mission_fixes_no_date_and_keeps_the_front_for_the_prompt() -> None:
     text = get(
-        "campagne_persistante",
-        {**FILLED["campagne_persistante"], "camp": "rouge", "fichier": "Campagne_Oronte", "epoque": "WW2"},
+        "mission_dynamique",
+        {**FILLED["mission_dynamique"], "camp": "rouge", "fichier": "Campagne_Oronte", "epoque": "WW2"},
     )
 
-    assert "Nom de la campagne : Bouclier-de-l-Oronte" in text
+    assert "Nom de la mission : Bouclier-de-l-Oronte" in text
     assert "Camp des joueurs : rouge" in text
     assert "Nom de fichier fixe de la mission : Campagne_Oronte" in text
     assert "Époque : WW2" in text
+    assert "à la Foothold" in text
     assert "aucune date ni météo" in text
     assert "un tableau à valider" in text
-    assert "Camp des joueurs : bleu" in get("campagne_persistante", FILLED["campagne_persistante"])
+    assert "Camp des joueurs : bleu" in get("mission_dynamique", FILLED["mission_dynamique"])
+
+
+def test_persistent_campaign_walks_the_model_through_the_campaign_actions() -> None:
+    """Several missions, one per evening: no mission prompt exists for it, the message carries the sequence."""
+    text = get(CAMPAIGN, {**FILLED[CAMPAIGN], "histoire": "La Géorgie contre la Russie", "camp": "rouge"})
+
+    assert "plusieurs missions jouées soir après soir" in text
+    assert "Théâtre : Caucase" in text
+    assert "Nom de la campagne : Kolkhida" in text
+    assert "Camp des joueurs : rouge" in text
+    assert "Fil de la campagne : La Géorgie contre la Russie" in text
+    assert "`campaign_init`" in text
+    assert '"multi-mission"' in text
+    assert "`campaign_validate`" in text
+    assert "`campaign_next`" in text
+    assert "pas de mission 2 avant" in text
+    assert "describe_mission_prompt" not in text  # not the persistent-campaign mission prompt
+    assert "demande-moi où le créer" in text
+    assert len(text) < 1_800
+
+
+def test_the_campaign_actions_the_message_names_take_the_example_it_gives() -> None:
+    """`campaign_init` really offers the "multi-mission" example the message tells the model to pass."""
+    spec = server.CATALOG.describe_action("campaign_init")
+
+    assert "multi-mission" in spec.parameters_schema["properties"]["example"]["enum"]
 
 
 def test_blank_optional_arguments_count_as_absent() -> None:
@@ -188,7 +220,8 @@ def test_blank_optional_arguments_count_as_absent() -> None:
     blanks = {
         "mission_one_shot": {"appareils": "", "duree": " ", "genre": "", "opposition": "", "langue": "", "dossier": ""},
         "open_training": {"epoque": "", "gabarit": " ", "langue": "", "dossier": ""},
-        "campagne_persistante": {"epoque": "", "camp": "", "fichier": " ", "langue": "", "dossier": ""},
+        "mission_dynamique": {"epoque": "", "camp": "", "fichier": " ", "langue": "", "dossier": ""},
+        CAMPAIGN: {"epoque": "", "camp": "", "histoire": " ", "langue": "", "dossier": ""},
     }
     for name, empty in blanks.items():
         assert get(name, {**FILLED[name], **empty}) == get(name, FILLED[name]), name
@@ -196,7 +229,7 @@ def test_blank_optional_arguments_count_as_absent() -> None:
 
 def test_special_characters_pass_through_unchanged() -> None:
     nasty = "Ké\"ro'sène `x` {nom} \\ ça\nligne 2"
-    text = get("campagne_persistante", {**FILLED["campagne_persistante"], "nom": nasty})
+    text = get(CAMPAIGN, {**FILLED[CAMPAIGN], "nom": nasty})
 
     assert nasty in text
     text = get("mission_one_shot", {**FILLED["mission_one_shot"], "genre": "Été-{0}-%s"})
@@ -208,7 +241,11 @@ def _cited_actions(text: str) -> set[str]:
     return set(re.findall(r"`([a-z][a-z0-9_]*)`", text))
 
 
-@pytest.mark.parametrize("name", sorted(KINDS))
+#: Actions the guide does not name, only the multi-mission campaign's message does: no mission prompt holds it.
+NOT_IN_THE_GUIDE = {"campaign_init", "campaign_validate"}
+
+
+@pytest.mark.parametrize("name", ALL)
 def test_every_cited_action_exists_and_the_guide_names_it(name: str) -> None:
     """No prompt promises a tool that is not there, in either profile, nor one the guide never teaches."""
     cited = _cited_actions(get(name, FILLED[name]))
@@ -217,18 +254,17 @@ def test_every_cited_action_exists_and_the_guide_names_it(name: str) -> None:
     guide = read_bundled_text("veaf_mission_mcp", "data", "authoring-guide.md")
 
     assert cited <= catalogue, cited - catalogue
-    taught = {
-        a for a in cited if f"`{a}`" in guide or a == "describe_authoring_guide"
-    }  # the guide is not its own subject
+    # The guide is not its own subject; the campaign's two actions are in their catalogue descriptions.
+    taught = {a for a in cited if f"`{a}`" in guide or a == "describe_authoring_guide" or a in NOT_IN_THE_GUIDE}
     assert cited <= taught, cited - taught
 
 
 @pytest.mark.usefixtures("compact")
-@pytest.mark.parametrize("name", sorted(KINDS))
+@pytest.mark.parametrize("name", ALL)
 def test_compact_profile_serves_the_same_prompts(name: str) -> None:
     """The compact profile hides no action a prompt cites: `list_catalog` still lists each of them."""
     listed = {entry["name"] for entry in server.list_catalog()}
-    assert set(KINDS) == {p.name for p in asyncio.run(_list())}
+    assert set(ALL) == {p.name for p in asyncio.run(_list())}
     assert _cited_actions(get(name, FILLED[name])) <= listed
 
 
@@ -236,4 +272,4 @@ def test_prompts_are_not_a_resource_or_a_tool() -> None:
     """The lot adds no tool: the prompts are not among the server's tools."""
     tools = {tool.name for tool in asyncio.run(server.mcp.list_tools())}
 
-    assert not tools & set(KINDS)
+    assert not tools & set(ALL)

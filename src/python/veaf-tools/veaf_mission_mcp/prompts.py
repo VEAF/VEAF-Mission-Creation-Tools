@@ -5,12 +5,16 @@ then inserts the text returned here in its input box, where the user rereads and
 receives that text.
 
 Each prompt answers the first question of the authoring guide, *which kind of mission?*, for the user:
-a one-shot mission with objectives, an Open Training, a persistent campaign. It **does not copy** the
+a one-shot mission with objectives, an Open Training, a dynamic mission (one Foothold-style mission),
+a persistent campaign (several missions, one per evening). It **does not copy** the
 mission prompt of that kind: it gathers the closed answers the prompt asks first (map, era, aircraft...)
 and tells the model to load the prompt with ``describe_mission_prompt`` and follow it from its first
 section. The guide and the mission prompts stay the single source. What needs a discussion, a table to
 validate or a measure stays with the mission prompt: scenario, objectives, front, zones, escorts, and
-the date, time and weather, which the prompt proposes (a persistent campaign fixes none at all).
+the date, time and weather, which the prompt proposes (a dynamic mission fixes none at all).
+
+The persistent campaign is the exception: no mission prompt holds its steps, so its message carries the
+sequence itself (`campaign_init`, `campaign_validate`, `campaign_next`).
 
 An action is written between backticks and nothing else is: a test reads the backticks to check that
 each action exists, in the catalogue both profiles serve, and that the authoring guide teaches it.
@@ -192,9 +196,9 @@ def open_training(
     )
 
 
-def campagne_persistante(
-    carte: Annotated[str, Field(description="Théâtre DCS de la campagne : Caucase, Syrie, Golfe Persique…")],
-    nom: Annotated[str, Field(description="Nom de la campagne, sans espace (ex. Bouclier-de-l-Oronte)")],
+def mission_dynamique(
+    carte: Annotated[str, Field(description="Carte DCS de la mission dynamique : Caucase, Syrie, Golfe Persique…")],
+    nom: Annotated[str, Field(description="Nom de la mission, sans espace (ex. Bouclier-de-l-Oronte)")],
     epoque: Annotated[
         str, Field(description="Époque : moderne, Guerre froide (avec l'année) ou WW2. Vide : moderne")
     ] = "",
@@ -205,21 +209,25 @@ def campagne_persistante(
             description="Nom de fichier fixe de la mission sur le serveur (ex. Campagne_Oronte). Vide : le modèle propose"
         ),
     ] = "",
-    langue: Annotated[str, Field(description="Langue de la campagne et de ses textes : fr ou en. Vide : fr")] = "",
+    langue: Annotated[str, Field(description="Langue de la mission et de ses textes : fr ou en. Vide : fr")] = "",
     dossier: Annotated[
-        str, Field(description="Dossier de la campagne (ex. C:\\VEAF-Campagnes\\Oronte). Vide : le modèle demande")
+        str, Field(description="Dossier de la mission (ex. C:\\VEAF-Missions\\Oronte). Vide : le modèle demande")
     ] = "",
 ) -> str:
-    """Return the request that starts a persistent campaign: zones that change hands, a front that moves.
+    """Return the request that starts a dynamic mission: one mission on one map, run like Foothold.
+
+    The campaign engine in its persistent mode (prompt kind ``persistent-campaign``): zones that change
+    hands, a front that moves by itself, a save that resumes where the server stopped. One mission, not a
+    series of evenings' missions (that is :func:`campagne_persistante`).
 
     Args:
         carte: The DCS theatre (question 1 of the mission prompt).
-        nom: The campaign's name (question 2).
+        nom: The mission's name (question 2).
         epoque: The era (question 1); blank means modern.
         camp: The players' side (question 2); blank means blue.
         fichier: The mission's fixed file name (question 2); blank lets the prompt propose it.
         langue: ``fr`` or ``en``; blank means ``fr``.
-        dossier: The campaign's folder; blank makes the model ask.
+        dossier: The mission's folder; blank makes the model ask.
 
     Returns:
         The French text the client puts in the user's input box.
@@ -227,18 +235,78 @@ def campagne_persistante(
     answers = (
         _given("Théâtre", carte)
         + _given("Époque", epoque, "moderne")
-        + _given("Nom de la campagne", nom)
+        + _given("Nom de la mission", nom)
         + _given("Camp des joueurs", camp, "bleu")
         + _given("Nom de fichier fixe de la mission", fichier)
     )
     return _request(
-        "campagne persistante : des zones qui changent de camp et un front qui avance tout seul",
+        "mission dynamique, à la Foothold : une seule mission sur une carte, des zones qui changent de camp et un front qui avance tout seul",
         "persistent-campaign",
         langue,
         answers,
         dossier,
         "le front et ses zones (un tableau à valider), les usines et dépôts, les SAM longue portée, l'IA ennemie ; "
         "aucune date ni météo, le serveur les fixe à chaque chargement",
+    )
+
+
+def campagne_persistante(
+    carte: Annotated[str, Field(description="Théâtre DCS de la campagne : Caucase, Syrie, Golfe Persique…")],
+    nom: Annotated[str, Field(description="Nom de la campagne, sans espace (ex. Kolkhida)")],
+    epoque: Annotated[
+        str, Field(description="Époque : moderne, Guerre froide (avec l'année) ou WW2. Vide : moderne")
+    ] = "",
+    camp: Annotated[str, Field(description="Camp des joueurs : bleu ou rouge. Vide : bleu")] = "",
+    histoire: Annotated[
+        str,
+        Field(description="Le fil de la campagne en quelques phrases : qui s'affronte, où. Vide : le modèle propose"),
+    ] = "",
+    langue: Annotated[str, Field(description="Langue de la campagne et de ses textes : fr ou en. Vide : fr")] = "",
+    dossier: Annotated[
+        str, Field(description="Dossier de la campagne (ex. C:\\VEAF-Campagnes\\Kolkhida). Vide : le modèle demande")
+    ] = "",
+) -> str:
+    """Return the request that starts a persistent campaign: several missions, one step per evening.
+
+    A campaign in the sense of ``campaign_next``: each mission is a step, played evening after evening, and
+    the state of the zones passes from one to the next. No mission prompt holds its steps, so the message
+    carries the sequence the ``campaign_init`` description gives; it is the only prompt that does.
+
+    Args:
+        carte: The DCS theatre.
+        nom: The campaign's name.
+        epoque: The era; blank means modern.
+        camp: The players' side; blank means blue.
+        histoire: The campaign's storyline; blank lets the model propose it.
+        langue: ``fr`` or ``en``; blank means ``fr``.
+        dossier: The campaign's folder; blank makes the model ask.
+
+    Returns:
+        The French text the client puts in the user's input box.
+    """
+    lang = _language(langue)
+    folder = _text(dossier)
+    where = f"Dossier de la campagne : {folder}." if folder else "Dossier : demande-moi où le créer."
+    answers = (
+        _given("Théâtre", carte)
+        + _given("Époque", epoque, "moderne")
+        + _given("Nom de la campagne", nom)
+        + _given("Camp des joueurs", camp, "bleu")
+        + _given("Fil de la campagne", histoire)
+    )
+    return (
+        "Je veux créer une campagne persistante : plusieurs missions jouées soir après soir, "
+        "chacune une étape dont l'état passe à la suivante.\n"
+        "Commence par lire le guide (`describe_authoring_guide`), dont les règles « campagne » valent pour chaque mission.\n"
+        "Mes réponses (ne me les repose pas) :\n"
+        f"{answers}"
+        f"- Langue de la campagne et de ses textes : {lang}.\n"
+        f"{where}\n"
+        'Déroulé : `campaign_init` avec l\'exemple "multi-mission", puis réécris campaign.yaml pour cette campagne, '
+        "pose le gabarit (`scaffold_mission`) et lance `campaign_validate` jusqu'à zéro erreur ; "
+        "`campaign_init` encore pour tirer l'état de départ ; `campaign_next` pour poser la première mission, "
+        "que tu conçois et construis ensuite avec le guide. Une mission à la fois : pas de mission 2 avant que j'aie joué la 1.\n"
+        "Le reste (le front, les zones, le scénario de chaque mission), propose-le-moi : une question à la fois."
     )
 
 
@@ -252,8 +320,13 @@ PROMPTS: tuple[tuple[Any, str, str], ...] = (
     ),
     (open_training, "Open Training", "Une mission d'entraînement VEAF sur une carte entière : carte, époque, gabarit."),
     (
+        mission_dynamique,
+        "Mission dynamique",
+        "Une seule mission sur une carte, à la Foothold : zones qui changent de camp, front qui avance.",
+    ),
+    (
         campagne_persistante,
         "Campagne persistante",
-        "Des missions dynamiques sur un serveur : zones qui changent de camp, front qui avance.",
+        "Une vraie campagne de plusieurs missions, jouées soir après soir, une étape après l'autre.",
     ),
 )

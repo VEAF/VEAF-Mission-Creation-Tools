@@ -170,7 +170,7 @@ An objective mission or an Open Training also reads its prompt, page by page: al
 
 ### The VEAF server's prompts {#mcp-prompts}
 
-The VEAF server also offers three **prompts** (MCP prompts), one per kind of mission: *Mission one-shot*, *Open Training* and *Campagne persistante* (persistent campaign).
+The VEAF server also offers four **prompts** (MCP prompts), one per kind of mission: *Mission one-shot* (one session), *Open Training* (a whole map), *Mission dynamique* (one Foothold-style mission: zones that change hands, a front that moves) and *Campagne persistante* (a persistent campaign: several missions, one per evening).
 A client that supports them, such as Cherry Studio, lists them in its prompt picker.
 Pick one: a dialog asks for a few fields (map, era, aircraft, side…), then a short message appears in the input box.
 Reread it, fix it if needed, send it: the model then loads the prompt for that kind of mission and asks you the remaining questions one by one.

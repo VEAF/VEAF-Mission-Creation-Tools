@@ -16,7 +16,12 @@ Goal: a friend who is not a developer starts a mission by filling a few fields i
 |---|---|---|---|
 | `mission_one_shot` | `describe_mission_prompt` kind `objective` | `carte` | `appareils`, `duree` (2 h), `genre`, `opposition`, `langue` (fr), `dossier` |
 | `open_training` | kind `open-training` | `carte` | `epoque` (moderne), `gabarit` (standard), `langue`, `dossier` |
-| `campagne_persistante` | kind `persistent-campaign` | `carte`, `nom` | `epoque` (moderne), `camp` (bleu), `fichier`, `langue`, `dossier` |
+| `mission_dynamique` | kind `persistent-campaign` | `carte`, `nom` | `epoque` (moderne), `camp` (bleu), `fichier`, `langue`, `dossier` |
+| `campagne_persistante` | none (see below) | `carte`, `nom` | `epoque` (moderne), `camp` (bleu), `histoire`, `langue`, `dossier` |
+
+**Vocabulary (David, 2026-11-27).** *Mission dynamique* is **one mission** on one map that uses the campaign engine in its `persistent` mode, run like Foothold: it is the `persistent-campaign` mission prompt (the code's name). *Campagne persistante* is a **real campaign of several missions**, one per evening (`campaign_init` `multi-mission`, `campaign_next`). The first draft of this phase named the first one "campagne persistante"; renamed.
+
+`campagne_persistante` has **no mission prompt** behind it: `describe_mission_prompt` knows only `objective`, `open-training` and `persistent-campaign`. Its message therefore carries the sequence itself, taken from the `campaign_init` description (init with the `multi-mission` example, rewrite campaign.yaml, scaffold the template, `campaign_validate` to zero errors, init again to draw the state, `campaign_next`), and asks for one mission at a time. A dedicated `multi-mission` mission prompt would be better and is a follow-up (not in this lot). `campaign_init` and `campaign_validate` are checked against the catalogue, not against the guide, which does not name them.
 
 A prompt **does not copy** the mission prompt. It returns a short message: the answers already given, `lang`, the folder, and the order to read the guide, load the prompt of its kind with `describe_mission_prompt` and follow it from its first section. The guide and the mission prompts stay the single source.
 

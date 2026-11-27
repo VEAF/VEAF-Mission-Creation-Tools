@@ -170,7 +170,7 @@ Une mission à objectifs ou un Open Training lisent en plus leur prompt, page pa
 
 ### Les invites du serveur VEAF {#mcp-prompts}
 
-Le serveur VEAF propose aussi trois **invites** (prompts MCP), une par type de mission : *Mission one-shot*, *Open Training* et *Campagne persistante*.
+Le serveur VEAF propose aussi quatre **invites** (prompts MCP), une par type de mission : *Mission one-shot* (une séance), *Open Training* (une carte entière), *Mission dynamique* (une seule mission à la Foothold : zones qui changent de camp, front qui avance) et *Campagne persistante* (plusieurs missions, une par soir).
 Un client qui les gère, comme Cherry Studio, les liste dans son sélecteur d'invites.
 Choisissez-en une : une fenêtre demande quelques champs (carte, époque, appareils, camp…), puis un court message apparaît dans la zone de saisie.
 Relisez-le, corrigez-le si besoin, envoyez-le : le modèle charge alors le prompt de ce type de mission et vous pose le reste des questions une par une.

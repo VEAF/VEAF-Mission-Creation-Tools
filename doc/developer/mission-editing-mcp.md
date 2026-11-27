@@ -756,7 +756,7 @@ modules) :
 - `list_airfield_aircraft(mission_path, airfield, coalition?)` — lecture seule : les types d'appareils
   qu'un aérodrome peut offrir en slots dynamiques, **tels que le build les écrit** (`F-16C_50`, `AV8BNA`),
   chacun avec son gabarit. Source : le catalogue que le build injecte (`src/dynamic-slot-templates.yaml` du
-  dossier, sinon celui livré, réduit à `mission.era`), pour la coalition qui possède la base ou celle
+  dossier, sinon celui livré, réduit à `mission.era` pour une mission WW2 ou COLD_WAR), pour la coalition qui possède la base ou celle
   demandée, et seulement les types que la base peut garer (`parkable_kinds`). Le build garnit déjà chaque
   base avec tous ces types : la recette n'édite plus `src/warehouses.yaml` à la main.
 

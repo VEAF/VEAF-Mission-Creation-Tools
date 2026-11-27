@@ -101,6 +101,16 @@ class TestWhatAnAirfieldOffers:
         assert "F-100D" in result["aircraft"]["blue"]
         assert result["era"] == "COLD_WAR"
 
+    def test_a_modern_mission_keeps_the_warbirds_as_the_build_does(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # The build filters the shipped catalogue for WW2 and COLD_WAR only: a modern mission keeps its warbirds
+        # (David, 2026-10-20). `filter_by_era` alone would drop 34 templates the build stocks.
+        _serve(monkeypatch, "Caucasus", {_id("Caucasus", "Batumi"): {"coalition": "BLUE"}})
+        result = list_airfield_aircraft(_folder(tmp_path, era="MODERN"), "Batumi")
+        assert "P-51D-30-NA" in result["aircraft"]["blue"]
+        assert "F-16C_50" in result["aircraft"]["blue"]
+
     def test_a_makers_own_catalogue_is_taken_as_written(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         _serve(monkeypatch, "Caucasus", {_id("Caucasus", "Batumi"): {"coalition": "BLUE"}})
         result = list_airfield_aircraft(_folder(tmp_path, catalogue=_catalogue(), era="COLD_WAR"), "Batumi")

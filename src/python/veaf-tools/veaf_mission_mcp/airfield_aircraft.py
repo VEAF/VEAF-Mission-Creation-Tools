@@ -1,18 +1,19 @@
 """Which aircraft types an airfield can offer as dynamic slots (FIX-MCP-REPLAY-FINDINGS ticket 02).
 
 The build stocks an airfield's warehouse from the dynamic-slot template catalogue — the mission's own
-`src/dynamic-slot-templates.yaml`, else the one shipped with the tool, kept to the mission's era — and links
+`src/dynamic-slot-templates.yaml`, else the one shipped with the tool, kept to a WW2 or Cold War mission's era — and links
 each stocked type to its template. The key a `warehouses.yaml` entry carries is the template's **unit type**
 (`F-16C_50`, `AV8BNA`), not the name a pilot says (`F-16C`, `AV-8B`). A local model that wrote the latter by
 hand got warnings at the first build and rebuilt. This module answers with the catalogue's own spelling, so
 there is no second table to keep in step.
 """
 
+import tempfile
 from pathlib import Path
 from typing import Any
 
 import yaml
-from aircrafts_injector.catalogue import CatalogueUnreadable, filter_by_era, iter_groups, load_catalogue
+from aircrafts_injector.catalogue import CatalogueUnreadable, iter_groups, load_catalogue
 from veaf_libs.dcs_airdromes import airdrome_id_for_name
 from veaf_libs.dcs_parking import parkable_kinds
 
@@ -45,8 +46,8 @@ def list_airfield_aircraft(folder_path: Path, airfield: str, coalition: str | No
     """Return the aircraft types an airfield can offer as dynamic slots, spelled as the build validates them.
 
     The catalogue is the one the build injects: the mission folder's own `src/dynamic-slot-templates.yaml`
-    when it holds templates, else the shipped one — the latter kept to the mission's era (`mission.era`),
-    as the build does; a maker's own file is taken as written. An airfield is stocked with its owner's
+    when it holds templates, else the shipped one — the latter kept to a WW2 or COLD_WAR `mission.era`
+    and left whole for MODERN, as the build does; a maker's own file is taken as written. An airfield is stocked with its owner's
     templates, so without `coalition` the answer is for the owner, or for both sides while it has none.
     DCS offers a slot only for an aircraft the airfield has a stand for, so a helipad-only field answers
     helicopters only.
@@ -68,7 +69,7 @@ def list_airfield_aircraft(folder_path: Path, airfield: str, coalition: str | No
             or the catalogue file cannot be read.
         FileNotFoundError: The folder holds no mission.
     """
-    from veaf_tools.commands.build import resolve_aircraft_catalogue
+    from veaf_tools.commands.build import era_filtered_catalogue, resolve_aircraft_catalogue
 
     if coalition is not None and coalition.strip().lower() not in _SIDES:
         raise ValueError(f"coalition must be one of {list(_SIDES)}, got '{coalition}'.")
@@ -92,12 +93,14 @@ def list_airfield_aircraft(folder_path: Path, airfield: str, coalition: str | No
     path, is_shipped = resolve_aircraft_catalogue(
         mission_yaml.get("pipeline") or {}, folder_path, "dynamic_slot_templates", _CATALOGUE_FILE
     )
-    try:
-        catalogue = load_catalogue(path) if path else {}
-    except CatalogueUnreadable as exc:
-        raise ValueError(f"The dynamic-slot template catalogue cannot be read: {exc}") from exc
-    if is_shipped and era:
-        catalogue, _ = filter_by_era(catalogue, era)
+    with tempfile.TemporaryDirectory() as workdir:
+        if path and is_shipped:
+            # The build's own rule: the shipped catalogue is kept to WW2 or COLD_WAR, never cut for MODERN.
+            path, _ = era_filtered_catalogue(path, era, Path(workdir))
+        try:
+            catalogue = load_catalogue(path) if path else {}
+        except CatalogueUnreadable as exc:
+            raise ValueError(f"The dynamic-slot template catalogue cannot be read: {exc}") from exc
 
     kinds = parkable_kinds(theatre, airdrome_id)
     aircraft: dict[str, dict[str, str]] = {side: {} for side in sides}

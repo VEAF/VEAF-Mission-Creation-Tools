@@ -14,6 +14,10 @@ The MCP server publishes four prompts, one per kind of mission (one-shot, Open T
 
 What the local-model replay of Marteau du Golan block 1 found (2026-11-27): the guide's examples replayed as written, no action for the aircraft an airfield offers, and a tanker display name accepted. One PR, three tickets.
 
+### [FEAT-CHERRY-AI-SETUP](FEAT-CHERRY-AI-SETUP/PRD.md) · 🔄
+
+`ai-setup` declares the VEAF MCP server in Cherry Studio, the chat client of the local-model tutorial, so pilots do not import it by hand. Study done (feasible, Cherry closed); `setup_cherry` and its doc in progress on `feature/FEAT-CHERRY-AI-SETUP` (2026-11-27).
+
 ## 🧑 Waiting for a human
 
 ### [CHORE-DCS-2932-DATA-REGEN](CHORE-DCS-2932-DATA-REGEN/PRD.md) · 🧑

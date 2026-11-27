@@ -1255,15 +1255,20 @@ out, and the command says so plainly when it does. See
 
 ### `veaf-tools ai-setup` {#ai-setup}
 
-Connects the AI assistants installed on this PC to the VEAF tools: **Claude Desktop**, **Claude Code**, **Codex** (ChatGPT Desktop), **Antigravity**, **Gemini CLI** and **OpenCode**.
+Connects the AI assistants installed on this PC to the VEAF tools: **Claude Desktop**, **Claude Code**, **Codex** (ChatGPT Desktop), **Antigravity**, **Gemini CLI**, **OpenCode** and **Cherry Studio**.
 The command declares the executable that runs it as the `veaf-mission-editor` MCP server in each one's configuration, without touching their other settings, and says for each whether it is connected, absent or failed.
+In Cherry Studio it sets up the server named `veaf`, with the compact profile, and only while Cherry is closed: see [Cherry Studio](mission-maker/AI_ASSISTANT_INSTALL.en.md#cherry-studio).
 It can be run again safely, for instance after moving the tools folder.
 
 ```powershell
 .\veaf-tools.exe ai-setup
 ```
 
-It takes no option. Then quit the AI assistant completely and start it again: it reads its servers only at start-up.
+| Option | Description |
+|---|---|
+| `--cherry-assistant NAME` | Links the Cherry Studio assistant `NAME` to the VEAF server (repeatable). By default no link is added or removed. |
+
+Then quit the AI assistant completely and start it again: it reads its servers only at start-up.
 It exits with an error (code 1) when no assistant is found or a setting could not be written, leaving the file in question untouched.
 
 **See also**: [Create with an AI](mission-maker/AI_ASSISTANT_INSTALL.en.md)

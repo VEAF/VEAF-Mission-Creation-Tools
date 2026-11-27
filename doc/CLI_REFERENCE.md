@@ -1261,15 +1261,20 @@ elle peut s'épuiser, et la commande le dit alors clairement. Voir
 
 ### `veaf-tools ai-setup` {#ai-setup}
 
-Branche sur les outils VEAF les assistants IA installés sur ce PC : **Claude Desktop**, **Claude Code**, **Codex** (ChatGPT Desktop), **Antigravity**, **Gemini CLI** et **OpenCode**.
+Branche sur les outils VEAF les assistants IA installés sur ce PC : **Claude Desktop**, **Claude Code**, **Codex** (ChatGPT Desktop), **Antigravity**, **Gemini CLI**, **OpenCode** et **Cherry Studio**.
 La commande déclare l'exécutable qui la lance comme serveur MCP `veaf-mission-editor` dans la configuration de chacun, sans toucher à leurs autres réglages, et dit pour chacun s'il est branché, absent ou en échec.
+Dans Cherry Studio, elle règle le serveur nommé `veaf`, avec le profil compact, et seulement quand Cherry est fermé : voir [Cherry Studio](mission-maker/AI_ASSISTANT_INSTALL.md#cherry-studio).
 On peut la relancer sans risque, par exemple après avoir déplacé le dossier des outils.
 
 ```powershell
 .\veaf-tools.exe ai-setup
 ```
 
-Elle n'a pas d'option. Quittez ensuite complètement l'assistant IA et relancez-le : il ne lit ses serveurs qu'au démarrage.
+| Option | Description |
+|---|---|
+| `--cherry-assistant NOM` | Relie l'assistant Cherry Studio `NOM` au serveur VEAF (répétable). Par défaut, aucun lien n'est ajouté ni retiré. |
+
+Quittez ensuite complètement l'assistant IA et relancez-le : il ne lit ses serveurs qu'au démarrage.
 Elle sort en erreur (code 1) quand aucun assistant n'est trouvé ou qu'un réglage n'a pas pu être écrit, sans rien modifier dans le fichier en cause.
 
 **Voir aussi** : [Créer avec une IA](mission-maker/AI_ASSISTANT_INSTALL.md)

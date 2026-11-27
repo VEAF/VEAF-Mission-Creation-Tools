@@ -68,7 +68,7 @@ Invoke-WebRequest https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/d
 
 1. Le dossier `%USERPROFILE%\VEAF\outils` reçoit les outils : c'est leur place définitive, à part de vos missions.
 2. `veaf-tools-updater.exe` télécharge la dernière version et installe `veaf-tools.exe` à côté de lui.
-3. `veaf-tools.exe ai-setup` branche le serveur dans chaque assistant IA installé sur le PC — Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI, OpenCode — et dit pour chacun ce qu'il a fait.
+3. `veaf-tools.exe ai-setup` branche le serveur dans chaque assistant IA installé sur le PC — Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI, OpenCode, [Cherry Studio](#cherry-studio) — et dit pour chacun ce qu'il a fait.
 
 Ensuite, **quittez complètement l'assistant IA et relancez-le** : il ne lit ses serveurs qu'au démarrage.
 Si vous tapez les commandes vous-même pour Claude Desktop, quittez-le **avant** `ai-setup` : il garde ses réglages dans le même fichier, et pourrait réécrire sa propre copie par-dessus.
@@ -129,7 +129,7 @@ Si vous déplacez le dossier des outils, relancez `.\veaf-tools.exe ai-setup` de
 
 ## Une autre IA compatible MCP {#other-mcp-client}
 
-`ai-setup` connaît Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI et OpenCode.
+`ai-setup` connaît Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI, OpenCode et Cherry Studio.
 Le serveur VEAF est un programme standard : n'importe quelle autre IA qui sait lancer un **serveur MCP local** peut s'en servir, une fois déclaré à la main.
 Toutes ces IA demandent les deux mêmes informations : la **commande** (le chemin complet de `veaf-tools.exe`) et ses **arguments** (`mcp`).
 La plupart les lisent dans un fichier JSON de cette forme :
@@ -167,6 +167,55 @@ Sans elle, le serveur répond comme à Claude : entier, ce qui convient à une I
 Mesuré le 25 novembre 2026 en profil compact : une mission simple, du dossier vide au `.miz` construit et vérifié (une zone de combat), renvoie environ 42 000 caractères au modèle, soit environ 21 000 tokens (le JSON compte environ 2 caractères par token).
 Il faut y ajouter ce que le modèle écrit et réfléchit : prévoyez au moins 64 000 tokens de contexte.
 Une mission à objectifs ou un Open Training lisent en plus leur prompt, page par page : comptez plus large.
+
+#### Cherry Studio {#cherry-studio}
+
+Cherry Studio est le client de chat que nous utilisons avec un modèle local.
+`ai-setup` y règle le serveur MCP nommé `veaf` : il le crée s'il n'existe pas.
+
+**Fermez Cherry Studio avant de lancer `ai-setup`.**
+Cherry garde ses serveurs dans sa base de données, et réécrit les liens d'un assistant quand il l'enregistre : une modification faite pendant qu'il tourne peut être perdue.
+Si Cherry est ouvert, `ai-setup` le dit et ne touche à rien.
+
+Ce que `ai-setup` écrit dans le serveur `veaf` :
+
+1. la commande : le chemin complet de `veaf-tools.exe`, celui que vous lancez ;
+2. l'argument `mcp` ;
+3. la variable `VEAF_MCP_PROFILE=compact`, ajoutée aux autres variables du serveur, qui restent ;
+4. le serveur actif, de type `stdio` : un serveur désactivé, par exemple importé par un lien `cherrystudio://`, est réactivé.
+
+Par défaut, `ai-setup` ne relie le serveur à aucun assistant de Cherry et n'en délie aucun.
+La sauvegarde de départ du tutoriel ne contient pas de serveur MCP : nommez l'assistant à relier.
+
+```powershell
+.\veaf-tools.exe ai-setup --cherry-assistant "VEAF - édition de mission"
+```
+
+Le nom doit être exactement celui de l'assistant dans Cherry : majuscules, accents, espaces et tiret compris.
+Répétez l'option pour relier plusieurs assistants ; un nom inconnu est signalé, sans erreur.
+
+Si vous lancez Cherry avec `--user-data-dir`, donnez le même dossier à `ai-setup` :
+
+```powershell
+.\veaf-tools.exe ai-setup --cherry-data-dir "E:\AI\mon-profil-cherry" --cherry-assistant "VEAF - édition de mission"
+```
+
+Sans cette option, `ai-setup` règle le dossier que Cherry utilise lui-même, `%APPDATA%\CherryStudio` en général.
+
+Pour ne régler que Cherry, sans toucher aux autres assistants IA du PC, ajoutez `--only cherry` :
+
+```powershell
+.\veaf-tools.exe ai-setup --only cherry --cherry-assistant "VEAF - édition de mission"
+```
+
+Avec `--only cherry`, un Cherry introuvable est une erreur.
+Avant d'écrire, `ai-setup` copie la base à côté d'elle, sous le nom `cherrystudio.sqlite.veaf-backup-<date>`, dans le dossier `Data` de ce dossier Cherry (`%APPDATA%\CherryStudio\Data` en général).
+Relancé sans changement à faire, il n'écrit rien.
+
+`ai-setup` refuse aussi, sans rien écrire, quand la base n'existe pas (Cherry 1.x, ou jamais lancé), quand ses tables ne sont pas celles qu'il connaît, ou quand deux serveurs s'appellent `veaf`.
+Il a été écrit et testé avec Cherry Studio 2.2.3 ; si une version plus récente change ses tables, déclarez le serveur à la main dans Cherry (ses réglages MCP, import JSON).
+La version portable de Cherry garde sa base à côté de son exécutable : `ai-setup` ne la trouve pas, déclarez-y le serveur à la main.
+Relancez ensuite Cherry Studio.
 
 ### Les invites du serveur VEAF {#mcp-prompts}
 

@@ -20,10 +20,6 @@ Claude acting in a running mission while the squadron flies — spawn, destroy, 
 
 Measure DCS's dynamic weather on our server before using it in persistent campaigns: does it change during a mission, do clients see the same, what a restart gives. A test mission flown by two clients on Privé 2; answers go to the DCS traps and the campaign page. Until then, persistent campaigns take the bot's real weather (David, 2026-11-17).
 
-### [FEAT-CHERRY-AI-SETUP](FEAT-CHERRY-AI-SETUP/PRD.md) · ⬜
-
-`ai-setup` declares the VEAF MCP server in Cherry Studio, the chat client of the local-model tutorial, so pilots do not import it by hand. A study first (where Cherry keeps its MCP servers), then `setup_cherry`, then the doc; after PR #1349 (David, 2026-11-26).
-
 ### [FEAT-CHERRY-PORTABLE-KIT](FEAT-CHERRY-PORTABLE-KIT/PRD.md) · ⬜
 
 Study shipping Cherry Studio portable with its data folder prefilled, so the kit's users get the two VEAF assistants without a restore (David, 2026-11-27).

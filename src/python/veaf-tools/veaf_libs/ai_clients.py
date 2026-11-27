@@ -337,6 +337,8 @@ CHERRY_SERVER_ENV = {"VEAF_MCP_PROFILE": "compact"}
 
 #: The Cherry Studio version whose database layout `setup_cherry` was written and tested against.
 CHERRY_TESTED_VERSION = "2.2.3"
+CLIENT_KEYS = ("claude-desktop", "claude-code", "gemini", "antigravity", "codex", "opencode", "cherry")
+"""The names `ai-setup --only` takes, in the order the clients are set up."""
 
 #: The columns `setup_cherry` reads or writes, per table. In the two tables it inserts into, any other
 #: NOT NULL column without a default would make the insert fail, or mean the layout changed: both are
@@ -660,8 +662,9 @@ def setup_all(
     localappdata: Path,
     cherry_assistants: Sequence[str] = (),
     cherry_data_dir: Path | None = None,
+    only: Sequence[str] = (),
 ) -> list[ClientResult]:
-    """Declare the server in every supported client.
+    """Declare the server in every supported client, or only in the ones named.
 
     Args:
         exe: The `veaf-tools` executable that runs the server.
@@ -670,16 +673,33 @@ def setup_all(
         localappdata: The user's `%LOCALAPPDATA%` folder.
         cherry_assistants: Cherry Studio assistants to link to the server (`--cherry-assistant`).
         cherry_data_dir: Cherry Studio's data folder, when not the default one (`--cherry-data-dir`).
+        only: Keys from `CLIENT_KEYS` (`--only`); the other clients are neither read nor written. Empty:
+            every client.
 
     Returns:
-        One result per client, in a fixed order.
+        One result per client set up, in a fixed order. A client named in `only` and not found is
+        `failed`: the user asked for it.
+
+    Raises:
+        ValueError: `only` names a client that is not in `CLIENT_KEYS`; nothing is then run.
     """
-    return [
-        setup_claude_desktop(exe, appdata=appdata, localappdata=localappdata),
-        setup_claude_code(exe, home=home),
-        setup_gemini(exe, home=home),
-        setup_antigravity(exe, home=home),
-        setup_codex(exe, home=home),
-        setup_opencode(exe, home=home),
-        setup_cherry(exe, appdata=appdata, home=home, assistants=cherry_assistants, data_dir=cherry_data_dir),
-    ]
+    unknown = [key for key in only if key not in CLIENT_KEYS]
+    if unknown:
+        raise ValueError(f"unknown client: {', '.join(unknown)}")
+    steps: dict[str, Callable[[], ClientResult]] = {
+        "claude-desktop": lambda: setup_claude_desktop(exe, appdata=appdata, localappdata=localappdata),
+        "claude-code": lambda: setup_claude_code(exe, home=home),
+        "gemini": lambda: setup_gemini(exe, home=home),
+        "antigravity": lambda: setup_antigravity(exe, home=home),
+        "codex": lambda: setup_codex(exe, home=home),
+        "opencode": lambda: setup_opencode(exe, home=home),
+        "cherry": lambda: setup_cherry(
+            exe, appdata=appdata, home=home, assistants=cherry_assistants, data_dir=cherry_data_dir
+        ),
+    }
+    results = [step() for key, step in steps.items() if not only or key in only]
+    if only:
+        results = [
+            ClientResult(r.client, "failed", "not found on this PC") if r.status == "not_found" else r for r in results
+        ]
+    return results

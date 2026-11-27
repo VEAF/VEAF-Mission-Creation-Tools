@@ -36,9 +36,13 @@ Two or more rows named `veaf`: refuse (the name is unique only in the applicatio
 
 Cherry starts the server again at the next chat request; a restart of Cherry is enough.
 
+## `--only` (David, 2026-11-27)
+
+`ai-setup` sets up every client it finds, so testing Cherry used to rewrite Claude Desktop, Claude Code and the others too. `--only CLIENT`, repeatable, named like `--only` in `mission check` and `recon`, sets up the named clients alone (`CLIENT_KEYS`: `claude-desktop`, `claude-code`, `gemini`, `antigravity`, `codex`, `opencode`, `cherry`); the others are neither read nor written. An unknown name is refused before anything runs; a named client that is not found is `failed`, not a silent success. Without `--only`, nothing changes.
+
 ## Tests
 
-Absent → `not_found`; run twice → unchanged; other servers and settings kept; link rows untouched; Cherry open → refusal (process and locked `lockfile`); unexpected columns → refusal and nothing written; two `veaf` rows → refusal; `env` merged with the other keys kept; `--cherry-assistant` links only the named one, a name with accents, spaces and a dash included; `--cherry-data-dir` writes that folder only, and refuses one without database; a backup of the database is made before the write. Use a reference database copied from a real Cherry 2.2.3 and regenerate it for each version tested.
+Absent → `not_found`; run twice → unchanged; other servers and settings kept; link rows untouched; Cherry open → refusal (process and locked `lockfile`); unexpected columns → refusal and nothing written; two `veaf` rows → refusal; `env` merged with the other keys kept; `--cherry-assistant` links only the named one, a name with accents, spaces and a dash included; `--cherry-data-dir` writes that folder only, and refuses one without database; `--only cherry` runs Cherry alone, refuses an unknown client and fails on an absent one; a backup of the database is made before the write. Use a reference database copied from a real Cherry 2.2.3 and regenerate it for each version tested.
 
 ## To measure on David's PC, with Cherry closed then relaunched (do it with him)
 

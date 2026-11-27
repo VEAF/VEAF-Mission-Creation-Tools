@@ -442,3 +442,55 @@ def test_setup_all_passes_the_assistants_to_cherry_studio(tmp_path: Path, monkey
         "assistants": ["VEAF missions"],
         "data_dir": tmp_path / "E",
     }
+    assert len(results) == len(ai_clients.CLIENT_KEYS)
+
+
+def _stub_every_client(monkeypatch: pytest.MonkeyPatch, cherry_status: str) -> list[str]:
+    """Replace every client setup with a stub that records its call; nothing on this PC is read."""
+    called: list[str] = []
+    for name in ("claude_desktop", "claude_code", "gemini", "antigravity", "codex", "opencode", "cherry"):
+        status = cherry_status if name == "cherry" else "configured"
+
+        def stub(*_a: Any, _n: str = name, _s: str = status, **_k: Any) -> ai_clients.ClientResult:
+            called.append(_n)
+            return ai_clients.ClientResult(_n, _s)
+
+        monkeypatch.setattr(ai_clients, f"setup_{name}", stub)
+    return called
+
+
+def _setup_all(tmp_path: Path, **kwargs: Any) -> list[ai_clients.ClientResult]:
+    return setup_all(
+        EXE, home=tmp_path / "home", appdata=tmp_path / "Roaming", localappdata=tmp_path / "Local", **kwargs
+    )
+
+
+def test_only_cherry_reads_and_writes_no_other_client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    called = _stub_every_client(monkeypatch, "configured")
+
+    results = _setup_all(tmp_path, only=["cherry"])
+
+    assert called == ["cherry"]
+    assert [r.status for r in results] == ["configured"]
+
+
+def test_only_with_the_client_absent_is_a_failure_not_a_silent_success(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _stub_every_client(monkeypatch, "not_found")
+
+    (result,) = _setup_all(tmp_path, only=["cherry"])
+
+    assert result.status == "failed"
+    assert result.detail
+
+
+def test_only_with_an_unknown_client_is_refused_before_anything_runs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    called = _stub_every_client(monkeypatch, "configured")
+
+    with pytest.raises(ValueError, match="cherri"):
+        _setup_all(tmp_path, only=["cherri"])
+
+    assert called == []

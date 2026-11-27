@@ -201,6 +201,14 @@ Si vous lancez Cherry avec `--user-data-dir`, donnez le même dossier à `ai-set
 ```
 
 Sans cette option, `ai-setup` règle le dossier que Cherry utilise lui-même, `%APPDATA%\CherryStudio` en général.
+
+Pour ne régler que Cherry, sans toucher aux autres assistants IA du PC, ajoutez `--only cherry` :
+
+```powershell
+.\veaf-tools.exe ai-setup --only cherry --cherry-assistant "VEAF - édition de mission"
+```
+
+Avec `--only cherry`, un Cherry introuvable est une erreur.
 Avant d'écrire, `ai-setup` copie la base à côté d'elle, sous le nom `cherrystudio.sqlite.veaf-backup-<date>`, dans le dossier `Data` de ce dossier Cherry (`%APPDATA%\CherryStudio\Data` en général).
 Relancé sans changement à faire, il n'écrit rien.
 

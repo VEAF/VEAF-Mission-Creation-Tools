@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 import typer
-from veaf_libs.ai_clients import setup_all
+from veaf_libs.ai_clients import CLIENT_KEYS, setup_all
 
 from veaf_tools.app import app, console, logger, t
 
@@ -20,12 +20,16 @@ _STATUS_STYLE = {"configured": "green", "not_found": "dim", "failed": "red"}
 def ai_setup(
     cherry_assistant: list[str] = typer.Option([], "--cherry-assistant", help=t("cmd.ai_setup.opt.cherry_assistant")),
     cherry_data_dir: Path | None = typer.Option(None, "--cherry-data-dir", help=t("cmd.ai_setup.opt.cherry_data_dir")),
+    only: list[str] = typer.Option(
+        [], "--only", help=t("cmd.ai_setup.opt.only", clients=", ".join(CLIENT_KEYS)), show_default=False
+    ),
 ) -> None:
     """Declare this executable's MCP server in every AI client found: Claude, Codex, Antigravity, Gemini CLI, OpenCode, Cherry Studio.
 
     Args:
         cherry_assistant: Cherry Studio assistants to link to the server; none by default.
         cherry_data_dir: Cherry Studio's data folder, for a profile started with `--user-data-dir`.
+        only: Clients to set up, among `CLIENT_KEYS`; every client by default.
 
     Raises:
         typer.Exit: Exit code 1 when no client was found or one could not be configured.
@@ -36,6 +40,12 @@ def ai_setup(
     exe = Path(sys.executable).resolve()
     appdata = Path(os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming")
     localappdata = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
+    unknown = [key for key in only if key not in CLIENT_KEYS]
+    if unknown:
+        raise typer.BadParameter(
+            t("cmd.ai_setup.unknown_client", names=", ".join(unknown), clients=", ".join(CLIENT_KEYS)),
+            param_hint="--only",
+        )
     results = setup_all(
         exe,
         home=Path.home(),
@@ -43,6 +53,7 @@ def ai_setup(
         localappdata=localappdata,
         cherry_assistants=cherry_assistant,
         cherry_data_dir=cherry_data_dir,
+        only=only,
     )
 
     console.print(t("cmd.ai_setup.server", exe=str(exe)))

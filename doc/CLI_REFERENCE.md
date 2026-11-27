@@ -1273,6 +1273,7 @@ On peut la relancer sans risque, par exemple après avoir déplacé le dossier d
 | Option | Description |
 |---|---|
 | `--cherry-assistant NOM` | Relie l'assistant Cherry Studio `NOM` au serveur VEAF (répétable). Par défaut, aucun lien n'est ajouté ni retiré. |
+| `--only CLIENT` | Ne règle que ce client (répétable) : `claude-desktop`, `claude-code`, `gemini`, `antigravity`, `codex`, `opencode`, `cherry`. Les autres ne sont ni lus ni modifiés ; un client nommé ici mais absent est une erreur. Par défaut : tous les clients. |
 | `--cherry-data-dir DOSSIER` | Dossier de données de Cherry Studio, pour un profil lancé avec `--user-data-dir`. Par défaut : le dossier que Cherry Studio utilise lui-même. |
 
 Quittez ensuite complètement l'assistant IA et relancez-le : il ne lit ses serveurs qu'au démarrage.

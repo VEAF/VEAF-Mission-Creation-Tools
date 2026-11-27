@@ -1267,6 +1267,7 @@ It can be run again safely, for instance after moving the tools folder.
 | Option | Description |
 |---|---|
 | `--cherry-assistant NAME` | Links the Cherry Studio assistant `NAME` to the VEAF server (repeatable). By default no link is added or removed. |
+| `--only CLIENT` | Sets up only this client (repeatable): `claude-desktop`, `claude-code`, `gemini`, `antigravity`, `codex`, `opencode`, `cherry`. The others are neither read nor changed; a client named here and not found is an error. By default: every client. |
 | `--cherry-data-dir FOLDER` | Cherry Studio data folder, for a profile started with `--user-data-dir`. By default: the folder Cherry Studio uses itself. |
 
 Then quit the AI assistant completely and start it again: it reads its servers only at start-up.

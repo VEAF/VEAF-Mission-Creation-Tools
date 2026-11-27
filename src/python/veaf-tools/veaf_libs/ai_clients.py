@@ -428,7 +428,7 @@ def cherry_is_running(
     return "cherry studio.exe" in (listed.stdout or "").lower()
 
 
-def _check_cherry_tables(con: sqlite3.Connection, tables: Sequence[str]) -> str:
+def _check_cherry_tables(con: sqlite3.Connection, tables: Sequence[str]) -> tuple[str, str, list[str]] | None:
     """Compare Cherry's tables with the layout `setup_cherry` writes.
 
     Args:
@@ -436,20 +436,21 @@ def _check_cherry_tables(con: sqlite3.Connection, tables: Sequence[str]) -> str:
         tables: The tables to check.
 
     Returns:
-        What differs, or an empty string when the layout is the expected one.
+        `None` when the layout is the expected one; otherwise the first table that differs, how
+        (`missing` columns, or `new required` columns), and those columns.
     """
     for table in tables:
         info = con.execute(f"PRAGMA table_info({table})").fetchall()  # cid, name, type, notnull, default, pk
         columns = {row[1] for row in info}
-        missing = _CHERRY_COLUMNS[table] - columns
+        missing = sorted(_CHERRY_COLUMNS[table] - columns)
         if missing:
-            return f"table {table} lacks {sorted(missing)}"
+            return table, "missing", missing
         if table == "assistant":
             continue  # only read
         unfilled = sorted(row[1] for row in info if row[3] and row[4] is None and row[1] not in _CHERRY_COLUMNS[table])
         if unfilled:
-            return f"table {table} has new required columns {unfilled}"
-    return ""
+            return table, "new required", unfilled
+    return None
 
 
 def _cherry_env(text: str | None) -> dict[str, Any]:
@@ -553,14 +554,16 @@ def _write_cherry(db: Path, exe: Path, assistants: Sequence[str], now_ms: int, u
     try:
         con.execute("PRAGMA foreign_keys = ON")
         tables = ["mcp_server", "assistant_mcp_server"] + (["assistant"] if assistants else [])
-        layout = _check_cherry_tables(con, tables)
-        if layout:
+        gap = _check_cherry_tables(con, tables)
+        if gap:
+            table, how, gap_columns = gap
             version_log = user_data / "version.log"
             found = version_log.read_text(encoding="utf-8", errors="replace").strip() if version_log.is_file() else "?"
             return ClientResult(
                 client,
                 "failed",
-                f"{db}: {layout}. This Cherry Studio ({found}) stores its servers differently from the version "
+                f"{db}: table {table}, {how} columns {gap_columns}. "
+                f"This Cherry Studio ({found}) stores its servers differently from the version "
                 f"ai-setup knows ({CHERRY_TESTED_VERSION}): declare the server by hand",
             )
         rows = con.execute(

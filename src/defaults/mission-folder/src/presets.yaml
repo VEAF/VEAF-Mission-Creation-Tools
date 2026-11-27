@@ -424,6 +424,12 @@ channels_collection: # Lists all the radio channels available on the map
       Adelsheim:
         title: Adelsheim
         freqs: { uhf: 256.15, vhf: 118.0, fm: 42.0 }
+      Ahlhorn:
+        title: Ahlhorn / 17X
+        freqs: { uhf: 255.0, vhf: 125.5, fm: 41.2 }
+      Ahlhorn Highway Strip:
+        title: Ahlhorn Highway Strip
+        freqs: { uhf: 256.05, vhf: 127.7, fm: 39.25 }
       Airracing Frankfurt:
         title: Airracing Frankfurt
         freqs: { uhf: 252.65, vhf: 118.4, fm: 41.05 }
@@ -439,9 +445,15 @@ channels_collection: # Lists all the radio channels available on the map
       Altes Lager:
         title: Altes Lager
         freqs: { uhf: 253.8, vhf: 122.5, fm: 42.2 }
+      Avno:
+        title: Avno
+        freqs: { uhf: 225.0, vhf: 142.05, fm: 38.4 }
       Bad Durkheim:
         title: Bad Durkheim
         freqs: { uhf: 253.05, vhf: 134.5, fm: 41.45 }
+      Baden-Soellingen:
+        title: Baden-Soellingen
+        freqs: { uhf: 243.0, vhf: 134.1, fm: 38.4 }
       Barth:
         title: Barth
         freqs: { uhf: 254.0, vhf: 124.1, fm: 41.8 }
@@ -469,9 +481,15 @@ channels_collection: # Lists all the radio channels available on the map
       Bremen:
         title: Bremen
         freqs: { uhf: 254.1, vhf: 118.45, fm: 41.7 }
+      Bremerhaven:
+        title: Bremerhaven
+        freqs: { uhf: 225.0, vhf: 125.1, fm: 38.4 }
       Briest:
         title: Briest
         freqs: { uhf: 254.15, vhf: 135.55, fm: 40.2 }
+      Bruchsal:
+        title: Bruchsal
+        freqs: { uhf: 253.55, vhf: 124.0, fm: 41.95 }
       Buchel:
         title: Buchel / 118X
         freqs: { uhf: 252.9, vhf: 122.1, fm: 41.3 }
@@ -511,6 +529,9 @@ channels_collection: # Lists all the radio channels available on the map
       Finow:
         title: Finow
         freqs: { uhf: 251.1, vhf: 125.8, fm: 39.5 }
+      Finsterwalde:
+        title: Finsterwalde
+        freqs: { uhf: 254.2, vhf: 124.05, fm: 39.55 }
       Frankfurt:
         title: Frankfurt / 89X
         freqs: { uhf: 251.85, vhf: 127.3, fm: 40.25 }
@@ -589,12 +610,21 @@ channels_collection: # Lists all the radio channels available on the map
       Kiel:
         title: Kiel
         freqs: { uhf: 255.45, vhf: 119.9, fm: 41.85 }
+      Kluczewo:
+        title: Kluczewo
+        freqs: { uhf: 257.0, vhf: 121.7, fm: 39.3 }
+      Kolobrzeg-Bagicz:
+        title: Kolobrzeg-Bagicz
+        freqs: { uhf: 225.15, vhf: 118.5, fm: 38.55 }
       Kothen:
         title: Kothen
         freqs: { uhf: 254.35, vhf: 125.9, fm: 39.8 }
       Laage:
         title: Laage
         freqs: { uhf: 252.7, vhf: 129.5, fm: 41.1 }
+      Lahr:
+        title: Lahr / 39X
+        freqs: { uhf: 225.0, vhf: 119.8, fm: 38.4 }
       Landstuhl:
         title: Landstuhl
         freqs: { uhf: 266.65, vhf: 138.6, fm: 38.45 }
@@ -607,6 +637,9 @@ channels_collection: # Lists all the radio channels available on the map
       Leipzig Mockau:
         title: Leipzig Mockau
         freqs: { uhf: 252.95, vhf: 119.75, fm: 41.35 }
+      Lolland-Falster:
+        title: Lolland-Falster
+        freqs: { uhf: 225.0, vhf: 118.9, fm: 38.4 }
       Lubeck:
         title: Lubeck
         freqs: { uhf: 254.3, vhf: 128.7, fm: 41.6 }
@@ -619,6 +652,9 @@ channels_collection: # Lists all the radio channels available on the map
       Mainz Finthen:
         title: Mainz Finthen
         freqs: { uhf: 230.0, vhf: 124.0, fm: 38.8 }
+      Makowice:
+        title: Makowice
+        freqs: { uhf: 225.0, vhf: 118.05, fm: 38.4 }
       Marxwalde:
         title: Marxwalde
         freqs: { uhf: 255.65, vhf: 120.5, fm: 41.85 }
@@ -641,7 +677,7 @@ channels_collection: # Lists all the radio channels available on the map
         title: Northeim
         freqs: { uhf: 254.65, vhf: 134.6, fm: 41.25 }
       Norvenich:
-        title: Norvenich / 77X
+        title: Norvenich / 109X
         freqs: { uhf: 365.0, vhf: 123.0, fm: 41.2 }
       Ober-Morlen:
         title: Ober-Morlen
@@ -649,12 +685,18 @@ channels_collection: # Lists all the radio channels available on the map
       Obermehler Schlotheim:
         title: Obermehler Schlotheim
         freqs: { uhf: 252.05, vhf: 122.9, fm: 40.45 }
+      Oldenburg:
+        title: Oldenburg / 0X
+        freqs: { uhf: 255.0, vhf: 125.5, fm: 41.2 }
       Oranienburg:
         title: Oranienburg
         freqs: { uhf: 365.5, vhf: 124.0, fm: 41.2 }
       Parchim:
         title: Parchim
         freqs: { uhf: 254.45, vhf: 129.0, fm: 39.85 }
+      Pattonville:
+        title: Pattonville
+        freqs: { uhf: 252.75, vhf: 129.9, fm: 41.15 }
       Peenemunde:
         title: Peenemunde
         freqs: { uhf: 253.55, vhf: 124.0, fm: 41.95 }
@@ -664,6 +706,9 @@ channels_collection: # Lists all the radio channels available on the map
       Pferdsfeld:
         title: Pferdsfeld / 77X
         freqs: { uhf: 252.85, vhf: 132.65, fm: 41.25 }
+      Phalsbourg:
+        title: Phalsbourg / 23X
+        freqs: { uhf: 256.1, vhf: 129.8, fm: 42.0 }
       Pinnow:
         title: Pinnow
         freqs: { uhf: 250.6, vhf: 119.0, fm: 39.0 }
@@ -694,6 +739,12 @@ channels_collection: # Lists all the radio channels available on the map
       Sittensen:
         title: Sittensen
         freqs: { uhf: 255.9, vhf: 118.0, fm: 42.0 }
+      Sjobo:
+        title: Sjobo
+        freqs: { uhf: 315.7, vhf: 142.9, fm: 40.25 }
+      Sniatowo:
+        title: Sniatowo
+        freqs: { uhf: 256.5, vhf: 121.2, fm: 39.05 }
       Spangdahlem:
         title: Spangdahlem / 32X
         freqs: { uhf: 251.8, vhf: 122.2, fm: 40.2 }
@@ -706,9 +757,15 @@ channels_collection: # Lists all the radio channels available on the map
       Stendal:
         title: Stendal
         freqs: { uhf: 253.65, vhf: 122.0, fm: 42.05 }
+      Strasbourg Entzeim:
+        title: Strasbourg Entzeim
+        freqs: { uhf: 253.55, vhf: 119.25, fm: 41.95 }
       Sturup:
         title: Sturup
         freqs: { uhf: 255.6, vhf: 118.8, fm: 39.9 }
+      Stuttgart:
+        title: Stuttgart
+        freqs: { uhf: 360.8, vhf: 118.8, fm: 39.8 }
       Szczecin-Goleniow:
         title: Szczecin-Goleniow
         freqs: { uhf: 256.1, vhf: 121.25, fm: 42.0 }
@@ -739,6 +796,9 @@ channels_collection: # Lists all the radio channels available on the map
       Ummern:
         title: Ummern
         freqs: { uhf: 250.75, vhf: 134.2, fm: 39.15 }
+      Vaerlose:
+        title: Vaerlose
+        freqs: { uhf: 344.0, vhf: 122.1, fm: 38.5 }
       Verden-Scharnhorst:
         title: Verden-Scharnhorst
         freqs: { uhf: 250.85, vhf: 127.7, fm: 39.25 }

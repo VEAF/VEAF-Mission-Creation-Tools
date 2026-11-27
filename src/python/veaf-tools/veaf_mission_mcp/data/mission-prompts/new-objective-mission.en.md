@@ -388,9 +388,10 @@ approximation of it.
   (`create_qra`) on the enemy base, circle in red territory, with `delay_before_activating` and
   `react_on_helicopters` decided and written in the briefing; period interceptors with a **loadout**
   (`pylons`, `payload` by name from `list_payloads`, or `loadout_from`), `airport_link` on the base. A patrol already airborne = a native group
-  in orbit, not an on-demand CAP. `delay_before_activating` counts **from the start of the mission**,
-  not from the intrusion: once online, the QRA takes off at the intrusion. Write it that way in the
-  briefing ("online from H+15 min").
+  in orbit, not an on-demand CAP. `delay_before_activating` is the seconds from
+  the first intrusion to the take-off: **not** from the start of the mission, an intruder leaving does not stop
+  the count, and no setting brings a QRA online at a mission time. Write it that way in the briefing
+  ("they take off 2 min after you enter their circle").
   **`react_on_helicopters: false` is about take-off, not engagement**: the QRA does not scramble for helicopters, but once airborne for a jet it attacks them too — two AH-64s were shot down with R-73s over the Beit Jinn pass on 2026-10-29. Never write "they do not react to helicopters" without that nuance, and give the helicopters cover (a CAP, or a route out of the QRA's circle).
 - **The Mission Maker switches the big threats off** when the players present are no match for them. `create_qra` writes `scale_with_opposition: true` and the `opposition: {level: 0}` block (the mission starts unchanged): the **Opposition** menu's "0 aircraft" keeps the QRA on the ground; `radio_menu: true` adds its own stop command. A long-range SAM is a zone **outside the operation**, `active_at_start: true`, with its own deactivate command. Say both in the Mission Maker's notes.
 - **AI friendly CAP on demand** (the scenario's way out): `create_cap_mission` with `menu_name` (the F10 menu's name, e.g. "Friendly CAP (2 F-15C, MASADA)") and `briefing`, a `route` for the race-track, out of the SAMs' reach.
@@ -412,14 +413,13 @@ approximation of it.
 - **`src/presets.yaml` = the briefing's frequency plan**, channel by channel, no Guard (channel 1 is the flight's starting frequency): bases, carrier,
   AWACS, tankers, package frequency — the airfields on the VHF radio (`primary_2`), everything else on the UHF radio (`primary_1`), AWACS and tankers first, never one kind spread over both. **Base channels carry the frequencies DCS gives the airfield**:
   `describe_airfield_channels` then `set_airfield_channels`, never a hand-typed airfield frequency.
-  Rewrite **all** the template's `channel_lists`: on another map, it keeps Caucasus airfields
-  (Batumi, Beslan…). Re-read the presets actually injected, aircraft by aircraft (`inspect_built_mission`). The
+  `adapt_scaffold` puts the mission's airfields on the VHF radio and drops the other maps' lists; rewrite the rest of the `channel_lists` (`edit_mission_file`). Re-read the presets actually injected, aircraft by aircraft (`inspect_built_mission`). The
   SA342 Gazelle gets none (only its FM radio takes presets): say in the briefing that its radios are
   set by hand.
   The build lists every AWACS, tanker or carrier no preset carries (its log and
   `presets-validation-report.md`): the mission is not ready until that list is empty. *Kolkhida*
   flew two missions on the template's Open Training plan, the warning on screen.
-- **`src/waypoints.yaml`**: remove the template's examples; `set_route` names any example plan that would still win over yours.
+- **`src/waypoints.yaml`**: `adapt_scaffold` removes the template's examples; `set_route` names any example plan that would still win over yours.
 - **Briefing maps and DCS briefing pictures**: `build_mission_briefing` (section 6) makes them from
   the built mission, never by hand: an overview map (departure, route and numbered waypoints,
   objectives, known threats with their engagement circle plain and their detection circle dashed,
@@ -440,7 +440,7 @@ approximation of it.
 
 ## 5. Build order
 
-1. `scaffold_mission` in the empty folder.
+1. `scaffold_mission` in the empty folder, then `adapt_scaffold` (guide section `after-scaffold`): name, era, date and time, position, the airfields, the dynamic-slot coalitions, SKYNET.
 2. `mission.yaml`: identity, security and `LOCAL_TEST` profile, modules.
 3. Airfields (`set_airbase_coalition`), carrier, player flights (4.3).
 4. Objectives (4.4), threat (4.5), and the site to defend if there is one (2.1).

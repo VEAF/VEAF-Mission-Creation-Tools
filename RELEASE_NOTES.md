@@ -1,34 +1,34 @@
-# VEAF Mission Creation Tools — 6.39.1
+# VEAF Mission Creation Tools — 6.40.0
 
-**Une campagne persistante se monte avec l'assistant IA seul, et les menus radio gardent « Page suivante » à leur place.**
-
----
-
-## 🤖 La campagne persistante avec l'assistant IA
-
-- **Plus besoin de terminal ni du dépôt** : avec Claude Desktop et le serveur MCP VEAF, l'assistant crée la campagne, la valide et prépare le `.miz` à envoyer sur le serveur.
-- Deux nouvelles actions : `campaign_init` pose l'exemple livré (campagne persistante ou multi-missions), et `campaign_validate` rend les erreurs et avertissements de `campaign validate`.
-- L'assistant peut lire et modifier `campaign.yaml` et `briefing.yaml`.
-- Un prompt de départ « campagne persistante » : les questions à vous poser, puis l'ordre de travail, de l'exemple jusqu'au `.miz`.
-- Nouvelle section *Avec une IA* dans la page *Campagne persistante*, et une section *Campagne persistante* dans le catalogue de l'IA.
+**Le serveur MCP VEAF fonctionne avec un modèle local, et `ai-setup` branche Cherry Studio.**
 
 ---
 
-## 📻 Menus radio
+## 🤖 Le MCP avec un modèle local
 
-- **« Page suivante » est toujours la dernière entrée d'une page de menu.** Une entrée ajoutée après coup (le groupe d'un pilote qui rejoint, une entrée recréée) se plaçait en dessous, et le menu F10 n'était plus le même que le F9.
-
----
-
-## 🌍 Campagne persistante : ce que la soirée du 22/11 a montré
-
-- Une capture en cours affiche le temps restant avant la prise (« prise dans 4 min 30 s »), sur la carte F10 et dans la situation.
-- Une zone n'est plus réparée tant qu'un véhicule d'un convoi ennemi est à moins de 5 km de son centre (`network.threat_radius`).
-- Un convoi d'assaut ne tourne plus en boucle devant une zone sur des ennemis qu'il ne voit pas.
-- L'infanterie d'une garnison tient une seule position près du centre de la zone (`infantry_radius`, 600 m), hors du béton et des bâtiments.
+- **Un profil compact** pour les modèles à petit contexte (65 000 tokens) : `VEAF_MCP_PROFILE=compact` dans la configuration MCP du serveur. Les réponses de la chaîne de référence passent de 177 000 à 39 000 caractères, et le guide se lit par sections avec une recette appel par appel. Le profil standard, celui de Claude Desktop, ne change pas.
+- **Quatre invites, une par type de mission** : Mission one-shot, Open Training, Mission dynamique, Campagne persistante. Le client (Cherry Studio, par exemple) demande chaque argument, puis place un message court dans la zone de saisie.
+- **Une nouvelle action `list_airfield_aircraft`** : les types d'appareils qu'une base offre, avec les noms exacts que le build attend (`F-16C_50`, `AV8BNA`). Un type mal écrit reçoit un « did you mean ».
+- **Deux actions envoyées en même temps ne s'écrasent plus** : l'une effaçait l'aérodrome de l'autre, et les deux répondaient « succès ».
+- **Le délai d'une QRA est documenté tel qu'il fonctionne** : il compte depuis la première intrusion jusqu'au décollage, pas depuis le début de la mission. Rien ne change en jeu.
 
 ---
 
-## 🔧 Corrections
+## 🍒 Cherry Studio
 
-Un avion recréé ou téléporté par VEAF (AWACS et ravitailleurs rachetés en boutique, `veafAssets.respawn`) garde l'indicatif de l'éditeur de mission : ses appels radio échouaient avec « Callname -1 not found ».
+- **`veaf-tools ai-setup` branche Cherry Studio** : avec Cherry fermé, il règle le serveur `veaf` dans sa base, après une sauvegarde. Il refuse sans écrire si Cherry tourne ou si la structure de la base est inconnue (testé avec Cherry 2.2.3).
+- `--only cherry` ne règle que Cherry. `--cherry-assistant "NOM"` lie un assistant au serveur. `--cherry-data-dir DOSSIER` vise un profil lancé avec `--user-data-dir`.
+
+---
+
+## 🇩🇪 Cold War Germany sur DCS 2.9.32
+
+- **20 aérodromes ajoutés par DCS** (Ahlhorn, Stuttgart, Lahr, Strasbourg…) se résolvent par leur nom : une QRA ou un entrepôt qui les nomme est câblé.
+- Villes, fréquences et catalogue `clear-ground` recalculés sur la 2.9.32.
+- Kola : ses trois nouveaux aérodromes attendent une capture.
+
+---
+
+## 📋 Briefing
+
+- Chaque page de zone indique son waypoint (`Point : W4/H4`).

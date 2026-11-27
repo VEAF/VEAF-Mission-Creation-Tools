@@ -498,7 +498,7 @@ theatres:
       fm: 41.2
       vhf: 123.0
       uhf: 365.0
-      tacan: 77X
+      tacan: 109X
     49:
       name: Oranienburg
       fm: 41.2
@@ -684,6 +684,11 @@ theatres:
       fm: 42.0
       vhf: 118.0
       uhf: 256.05
+    138:
+      name: Stuttgart
+      fm: 39.8
+      vhf: 118.8
+      uhf: 360.8
     140:
       name: Hasselfelde
       fm: 39.6
@@ -766,6 +771,11 @@ theatres:
       fm: 40.4
       vhf: 126.0
       uhf: 252.0
+    167:
+      name: Ahlhorn Highway Strip
+      fm: 39.25
+      vhf: 127.7
+      uhf: 256.05
     168:
       name: Mendig
       fm: 40.5
@@ -787,6 +797,59 @@ theatres:
       fm: 40.7
       vhf: 129.0
       uhf: 252.3
+    172:
+      name: Ahlhorn
+      fm: 41.2
+      vhf: 125.5
+      uhf: 255.0
+      tacan: 17X
+    173:
+      name: Finsterwalde
+      fm: 39.55
+      vhf: 124.05
+      uhf: 254.2
+    174:
+      name: Oldenburg
+      fm: 41.2
+      vhf: 125.5
+      uhf: 255.0
+      tacan: 0X
+    175:
+      name: Sjobo
+      fm: 40.25
+      vhf: 142.9
+      uhf: 315.7
+    176:
+      name: Strasbourg Entzeim
+      fm: 41.95
+      vhf: 119.25
+      uhf: 253.55
+    177:
+      name: Phalsbourg
+      fm: 42.0
+      vhf: 129.8
+      uhf: 256.1
+      tacan: 23X
+    178:
+      name: Bremerhaven
+      fm: 38.4
+      vhf: 125.1
+      uhf: 225.0
+    179:
+      name: Sniatowo
+      fm: 39.05
+      vhf: 121.2
+      uhf: 256.5
+    183:
+      name: Kluczewo
+      fm: 39.3
+      vhf: 121.7
+      uhf: 257.0
+    192:
+      name: Baden-Soellingen
+      fm: 38.4
+      vhf: 134.1
+      uhf: 243.0
     200:
       name: Bitburg
       fm: 40.95
@@ -798,11 +861,52 @@ theatres:
       fm: 41.0
       vhf: 118.35
       uhf: 252.6
+    203:
+      name: Kolobrzeg-Bagicz
+      fm: 38.55
+      vhf: 118.5
+      uhf: 225.15
     204:
       name: Airracing Frankfurt
       fm: 41.05
       vhf: 118.4
       uhf: 252.65
+    205:
+      name: Makowice
+      fm: 38.4
+      vhf: 118.05
+      uhf: 225.0
+    206:
+      name: Avno
+      fm: 38.4
+      vhf: 142.05
+      uhf: 225.0
+    207:
+      name: Lolland-Falster
+      fm: 38.4
+      vhf: 118.9
+      uhf: 225.0
+    209:
+      name: Lahr
+      fm: 38.4
+      vhf: 119.8
+      uhf: 225.0
+      tacan: 39X
+    210:
+      name: Vaerlose
+      fm: 38.5
+      vhf: 122.1
+      uhf: 344.0
+    214:
+      name: Bruchsal
+      fm: 41.95
+      vhf: 124.0
+      uhf: 253.55
+    216:
+      name: Pattonville
+      fm: 41.15
+      vhf: 129.9
+      uhf: 252.75
     232:
       name: Pferdsfeld
       fm: 41.25

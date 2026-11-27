@@ -1,6 +1,6 @@
 # 05 — CTLD crates and troops at the blue airfields
 
-Status: 🧑 waiting-human
+Status: 🚫 wontfix — the Kolkhida campaign was won (2026-11-24) without this having been checked in game
 Type: fix
 
 ## Found

@@ -8,6 +8,7 @@ from veaf_libs.blank_mission import supported_theatres
 from veaf_libs.clear_ground_check import offer_check
 from veaf_libs.scenery_lookup import DEFAULT_RADIUS_METERS, offer_lookup
 
+from veaf_mission_mcp.adapt_scaffold import COALITIONS, ERAS, LANGUAGES, adapt_scaffold
 from veaf_mission_mcp.add_air_group import add_air_group
 from veaf_mission_mcp.add_farp import add_farp
 from veaf_mission_mcp.add_group import add_group
@@ -15,6 +16,7 @@ from veaf_mission_mcp.add_sound import add_sound
 from veaf_mission_mcp.add_startup_script_trigger import add_startup_script_trigger
 from veaf_mission_mcp.add_trigger_zone import add_trigger_zone
 from veaf_mission_mcp.airbase import set_airbase_coalition
+from veaf_mission_mcp.airfield_aircraft import list_airfield_aircraft
 from veaf_mission_mcp.briefing_picture import set_briefing_picture
 from veaf_mission_mcp.build_briefing import build_briefing
 from veaf_mission_mcp.build_promotion import build_promotion
@@ -50,7 +52,7 @@ from veaf_mission_mcp.edit_veaf_config import (
 from veaf_mission_mcp.edit_zone import edit_zone
 from veaf_mission_mcp.geo import geocode
 from veaf_mission_mcp.group_naming import validate_group_name
-from veaf_mission_mcp.inspect_built import inspect_built_mission
+from veaf_mission_mcp.inspect_built import compact_inspection, inspect_built_mission
 from veaf_mission_mcp.map_drawings import LINE_STYLES, add_map_drawing, edit_map_drawing
 from veaf_mission_mcp.map_tools import (
     describe_map,
@@ -164,6 +166,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             limit=params.get("limit"),
             include_route=params.get("include_route", True),
         ),
+        oversize_hint="Filter: group_name (a fragment), coalition or category, and include_route=false "
+        "unless the question is about routes.",
     )
     catalog.register(
         ActionSpec(
@@ -1950,6 +1954,104 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     )
     catalog.register(
         ActionSpec(
+            name="adapt_scaffold",
+            description=(
+                "ADAPT a freshly scaffolded mission FOLDER to the mission asked for, in one call, right after "
+                "scaffold_mission and before placing anything: the airfields on the second radio and no other "
+                "theatre's airfield list (src/presets.yaml), the weather variant's name and time, base_date and "
+                "position (src/versions.yaml), the route every player flight gets in place of the example points "
+                "(src/waypoints.yaml), the coalitions whose dynamic-slot templates stay "
+                "(src/dynamic-slot-templates.yaml), mission.name, mission.era, mission.language and SKYNET (mission.yaml), and the "
+                "blank mission's date and start time. Do not read or rewrite those files yourself. What is not "
+                "given stays as scaffolded, but the scaffold's example waypoints are removed. Every value is checked "
+                "before anything is written. Returns one line per file: tell them to the user."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "folder_path": {"type": "string", "description": "The mission folder scaffold_mission laid down."},
+                    "mission_name": {"type": "string", "description": "mission.name, ASCII (it names the .miz)."},
+                    "era": {"type": "string", "enum": list(ERAS), "description": "mission.era."},
+                    "language": {
+                        "type": "string",
+                        "enum": list(LANGUAGES),
+                        "description": "mission.language: the user's language, for the in-game messages and the briefing.",
+                    },
+                    "date": {"type": "string", "description": "The mission's date, YYYY-MM-DD, consistent with era."},
+                    "start_time": {"type": "string", "description": "HH:MM on the theatre's clock."},
+                    "variant": {
+                        "type": "string",
+                        "description": "The weather variant's name; by default named after start_time (morning, noon...).",
+                    },
+                    "position": {
+                        "type": "object",
+                        "description": "Where the mission flies, for sunrise and sunset: {x, y} on the map, or "
+                        "{latitude, longitude}; timezone optional.",
+                        "properties": {
+                            "x": {"type": "number"},
+                            "y": {"type": "number"},
+                            "latitude": {"type": "number"},
+                            "longitude": {"type": "number"},
+                            "timezone": {"type": "string"},
+                        },
+                    },
+                    "airfields": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "The airfields the mission uses, channel 1 first, on the second radio "
+                        "(names of the theatre; a wrong one is refused with the theatre's list).",
+                    },
+                    "waypoints": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "x": {"type": "number"},
+                                "y": {"type": "number"},
+                                "alt": {"type": "number", "description": "Metres, 6096 (20 000 ft) by default."},
+                            },
+                            "required": ["name", "x", "y"],
+                        },
+                        "description": "The route every player flight gets, in order; none: the BULLSEYE only.",
+                    },
+                    "dynamic_slot_coalitions": {
+                        "type": "array",
+                        "items": {"type": "string", "enum": list(COALITIONS)},
+                        "description": "The coalitions that fly dynamic slots; omitted: both.",
+                    },
+                    "dynamic_slot_aircraft": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "The aircraft the players fly ('F/A-18C'): only their dynamic-slot templates "
+                        "stay. Omitted: every type of the catalogue.",
+                    },
+                    "skynet": {
+                        "type": "boolean",
+                        "description": "true when the mission has a SAM or an EWR zone (integrated air defence).",
+                    },
+                },
+                "required": ["folder_path"],
+            },
+        ),
+        handler=lambda p: adapt_scaffold(
+            Path(p["folder_path"]),
+            mission_name=p.get("mission_name"),
+            era=p.get("era"),
+            language=p.get("language"),
+            date=p.get("date"),
+            start_time=p.get("start_time"),
+            variant=p.get("variant"),
+            position=p.get("position"),
+            airfields=p.get("airfields"),
+            waypoints=p.get("waypoints"),
+            dynamic_slot_coalitions=p.get("dynamic_slot_coalitions"),
+            dynamic_slot_aircraft=p.get("dynamic_slot_aircraft"),
+            skynet=p.get("skynet"),
+        ),
+    )
+    catalog.register(
+        ActionSpec(
             name="inspect_built_mission",
             description=(
                 "CHECK a BUILT mission: what the .miz holds after the build, compactly -- each airbase, "
@@ -1968,11 +2070,15 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                         "type": "string",
                         "description": "The mission folder (its latest built .miz) or a built .miz.",
                     },
+                    "detail": {
+                        "type": "boolean",
+                        "description": "Every slot type and preset layout, where a short answer gives their counts.",
+                    },
                 },
                 "required": ["mission_path"],
             },
         ),
-        handler=lambda p: inspect_built_mission(Path(p["mission_path"])),
+        handler=lambda p: compact_inspection(inspect_built_mission(Path(p["mission_path"])), bool(p.get("detail"))),
     )
     catalog.register(
         ActionSpec(
@@ -2645,12 +2751,51 @@ def register_default_actions(catalog: ActionCatalog) -> None:
     )
     catalog.register(
         ActionSpec(
+            name="list_airfield_aircraft",
+            description=(
+                "Which aircraft types an airfield can offer as dynamic slots, spelled as the build validates "
+                "them: the key of a src/warehouses.yaml 'aircrafts:' entry is the TYPE ('F-16C_50', 'AV8BNA'), "
+                "never the name a pilot says ('F-16C', 'AV-8B'). Read-only. Answers from the catalogue the "
+                "build injects (the folder's src/dynamic-slot-templates.yaml, else the shipped one, kept to a WW2 or "
+                "COLD_WAR mission.era), for the airfield's owner's side, or the side asked for, and only for the kinds "
+                "of aircraft the airfield has stands for (a helipad-only field answers helicopters). "
+                "Returns {airfield, airdrome_id, owner, parks, era, aircraft: {side: {type: template}}}. "
+                "An owned airfield gets all of them unless src/warehouses.yaml gives an 'aircrafts:' list for it, "
+                "which replaces them (not read here); a neutral airfield offers none until set_airbase_coalition "
+                "gives it a side, and its answer carries a 'note' saying so."
+            ),
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "mission_path": {
+                        "type": "string",
+                        "description": "Path to the mission folder (mission.yaml + src/mission/).",
+                    },
+                    "airfield": {"type": "string", "description": "The airfield display name (e.g. 'Ramat David')."},
+                    "coalition": {
+                        "type": "string",
+                        "enum": ["blue", "red"],
+                        "description": "The side to answer for; the airfield's owner when omitted.",
+                    },
+                },
+                "required": ["mission_path", "airfield"],
+            },
+        ),
+        handler=lambda p: list_airfield_aircraft(Path(p["mission_path"]), p["airfield"], p.get("coalition")),
+        compact_summary="The aircraft types an airfield can offer, as the build spells them (F-16C_50, not F-16C).",
+    )
+    catalog.register(
+        ActionSpec(
             name="create_combat_zone",
             description=(
                 "Lay down a complete VEAF combat zone in a mission FOLDER, in one pass, editing "
                 "both worlds durably (no build): a circular trigger zone + groups placed inside it "
                 "(names auto-prefixed with the zone so it captures them) in src/mission, and a "
-                "modules.COMBATZONE.combat_zones[] entry appended in mission.yaml."
+                "modules.COMBATZONE.combat_zones[] entry appended in mission.yaml. Make each group a "
+                "VEAF alias carrier, not literal units: give it 'command': '-armor' (an alias from "
+                "list_shortcuts: -armor, -sa8, -aaa, -infantry...) and no 'units': the tool places one carrier "
+                "of the class the alias spawns and writes the #command marker on its name. Literal DCS types only "
+                "when no alias fits."
             ),
             parameters_schema={
                 "type": "object",
@@ -2673,7 +2818,17 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                             "type": "object",
                             "properties": {
                                 "name": {"type": "string"},
-                                "units": {"type": "array", "items": {"type": "object"}},
+                                "units": {
+                                    "type": "array",
+                                    "items": {"type": "object"},
+                                    "description": "[{type, count?}]; with 'command' it may be left out: the tool "
+                                    "places one carrier of the class the alias spawns.",
+                                },
+                                "command": {
+                                    "type": "string",
+                                    "description": "A list_shortcuts alias (-armor, -sa8...): the first unit becomes "
+                                    'its carrier, named #command="-armor" <group name> by the tool.',
+                                },
                                 "category": {
                                     "type": "string",
                                     "description": "This group's category (vehicle, static, ship...), over the call's: one call makes a zone of vehicles and statics.",
@@ -2720,7 +2875,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                                     "description": "This group's AI skill; wins over the call's.",
                                 },
                             },
-                            "required": ["name", "units"],
+                            "required": ["name"],
                         },
                         "description": "Groups placed inside the zone; names are auto-prefixed with zone_name.",
                     },
@@ -3088,7 +3243,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "instead of guessing names or reading data files. Pass the mission, or a theatre name "
                 "before there is one. details: true adds lat/lon, the parking stands (planes, "
                 "helicopters) and the ATC frequencies and TACAN DCS gives each base -- narrow it with "
-                "name_contains."
+                "name_contains. In the compact profile, a mission without name_contains lists only its "
+                "airfields with a side."
             ),
             parameters_schema={
                 "type": "object",
@@ -3372,11 +3528,24 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             description=(
                 "Read this first, before any other action. Returns the VEAF mission authoring guide: the "
                 "order of work, the reserved naming conventions, combat zone vs QRA groups, and which "
-                "actions to consult instead of guessing. Read-only."
+                "actions to consult instead of guessing. When it answers with a 'sections' index, read each "
+                "section its 'when' calls for with 'section'. Read-only."
             ),
-            parameters_schema={"type": "object", "properties": {}},
+            parameters_schema={
+                "type": "object",
+                "properties": {
+                    "section": {
+                        "type": ["string", "array"],
+                        "items": {"type": "string"},
+                        "description": "A section id from the index, a list of them, or 'all' for the whole guide.",
+                    },
+                },
+            },
         ),
-        handler=lambda _p: describe_authoring_guide(),
+        handler=lambda p: describe_authoring_guide(p.get("section")),
+        oversize_hint="Read fewer sections at once.",
+        compact_summary="Read this FIRST: when to load a mission prompt, and the recipe of a simple mission.",
+        uncapped_when=lambda p: p.get("section") == "all",
     )
     catalog.register(
         ActionSpec(
@@ -3390,7 +3559,8 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "hands and a front moving on its own (campaign.yaml, mode: persistent). Load ONE prompt, the "
                 "kind the user chose -- never two. The objective prompt comes "
                 "in two parts: the scenario first; its build part ('part': 'build') once the user has "
-                "approved a scenario. Read-only."
+                "approved a scenario. When the answer carries next_section, the part goes on: read it with "
+                "'section' set to next_section until there is none. Read-only."
             ),
             parameters_schema={
                 "type": "object",
@@ -3404,13 +3574,23 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                     "part": {
                         "type": "string",
                         "enum": list(MISSION_PROMPT_PARTS),
-                        "description": "'scenario' by default; 'build' after approval; 'all' for both.",
+                        "description": "'scenario' by default; 'build' after approval; 'all' for the whole "
+                        "prompt in one answer.",
+                    },
+                    "section": {
+                        "type": "string",
+                        "description": "The numbered section a page starts at ('2.1', '4.6'...): the "
+                        "answer's next_section, or one from its sections.",
                     },
                 },
                 "required": ["kind"],
             },
         ),
-        handler=lambda p: describe_mission_prompt(p["kind"], p.get("lang", "en"), p.get("part")),
+        handler=lambda p: describe_mission_prompt(p["kind"], p.get("lang", "en"), p.get("part"), p.get("section")),
+        oversize_hint="Read the prompt by pages: 'section' set to next_section.",
+        compact_summary="Only for a whole-map Open Training, an objective mission with briefing or a campaign "
+        "(~50 000 characters); a simple mission follows the guide's recipe.",
+        uncapped_when=lambda p: p.get("part") == "all" and not p.get("section"),
     )
     catalog.register(
         ActionSpec(
@@ -3420,7 +3600,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
                 "the known limitations of the tools (not yet fixed) and the DCS behaviours that raise "
                 "no error and are wrong anyway (late-activated groups visible to scripts, start_time "
                 "not delaying an air spawn, a SAM without EWR permanently lit…): symptom, what to do, "
-                "and what it cost. With no argument it returns a SHORT listing (id, kind, area -- each id reads as a phrase: "
+                "and what it cost. With no argument it returns a SHORT listing (the ids; each reads as a phrase: "
                 "the whole text is too long for one result); 'area', 'kind' and 'theatre' narrow that "
                 "listing. Then read in full only the entries your mission meets, with 'id' or 'ids' -- "
                 "what you read stays in your context to the end. Read-only."
@@ -3474,6 +3654,7 @@ def register_default_actions(catalog: ActionCatalog) -> None:
             id=[*([p["id"]] if p.get("id") else []), *(p.get("ids") or [])] or None,
             full=bool(p.get("full", False)),
         ),
+        oversize_hint="Read fewer entries at once: one 'area', or a few 'ids' from the short listing.",
     )
     catalog.register(
         ActionSpec(

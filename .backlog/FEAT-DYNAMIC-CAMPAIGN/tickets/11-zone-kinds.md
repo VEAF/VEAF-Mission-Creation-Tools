@@ -1,6 +1,6 @@
 # 11 — Zone kinds: factories and depots
 
-Status: 🧑 waiting-human — built and tested outside DCS in #1282 (2026-11-16); the in-game check of the test mission is David's
+Status: ✅ done
 
 PRD row "Zone kinds" (David, 2026-11-16); analysis notes 01 §1, §5 and 07 §27–§29.
 

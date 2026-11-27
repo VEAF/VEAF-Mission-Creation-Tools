@@ -1,5 +1,6 @@
 """`veaf-tools ai-setup` — the command that connects every AI client on the PC (FEAT-AI-ZERO-SETUP)."""
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -30,8 +31,19 @@ def test_ai_setup_declares_the_running_exe_and_reports_each_client(
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "Local"))
     seen: dict[str, Any] = {}
 
-    def setup_all(exe_arg: Path, *, home: Path, appdata: Path, localappdata: Path) -> list[ClientResult]:
-        seen.update(exe=exe_arg, appdata=appdata, localappdata=localappdata)
+    def setup_all(
+        exe_arg: Path,
+        *,
+        home: Path,
+        appdata: Path,
+        localappdata: Path,
+        cherry_assistants: list[str],
+        cherry_data_dir: Path | None,
+        only: list[str],
+    ) -> list[ClientResult]:
+        seen.update(
+            exe=exe_arg, appdata=appdata, localappdata=localappdata, cherry_assistants=cherry_assistants, only=only
+        )
         return [
             ClientResult("Claude Desktop", "configured", "x.json"),
             ClientResult("Claude Code", "not_found"),
@@ -43,8 +55,106 @@ def test_ai_setup_declares_the_running_exe_and_reports_each_client(
     result = CliRunner().invoke(app, ["ai-setup"])
 
     assert result.exit_code == 0, result.output
-    assert seen == {"exe": exe.resolve(), "appdata": tmp_path / "Roaming", "localappdata": tmp_path / "Local"}
+    assert seen == {
+        "exe": exe.resolve(),
+        "appdata": tmp_path / "Roaming",
+        "localappdata": tmp_path / "Local",
+        "cherry_assistants": [],
+        "only": [],
+    }
     assert "Claude Desktop" in result.output and "Gemini CLI" in result.output
+
+
+def test_ai_setup_passes_the_cherry_assistants_on(app: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """`--cherry-assistant`, repeatable, names the Cherry Studio assistants to link (FEAT-CHERRY-AI-SETUP)."""
+    _frozen(monkeypatch, tmp_path / "veaf-tools.exe")
+    seen: list[Any] = []
+
+    def setup_all(
+        *_a: Any, cherry_assistants: list[str], cherry_data_dir: Path | None, **_k: Any
+    ) -> list[ClientResult]:
+        seen.append((cherry_assistants, cherry_data_dir))
+        return [ClientResult("Cherry Studio", "configured", "cherrystudio.sqlite")]
+
+    monkeypatch.setattr("veaf_tools.commands.ai_setup.setup_all", setup_all)
+
+    result = CliRunner().invoke(
+        app, ["ai-setup", "--cherry-assistant", "VEAF missions", "--cherry-assistant", "VEAF chatbot"]
+    )
+    forced = CliRunner().invoke(app, ["ai-setup", "--cherry-data-dir", str(tmp_path / "E profile")])
+
+    assert result.exit_code == 0, result.output
+    assert forced.exit_code == 0, forced.output
+    assert seen == [(["VEAF missions", "VEAF chatbot"], None), ([], tmp_path / "E profile")]
+
+
+def _stub_every_client(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Stub each client's setup, so the real `setup_all` runs without touching this PC."""
+    from veaf_libs import ai_clients
+
+    called: list[str] = []
+    for name in ("claude_desktop", "claude_code", "gemini", "antigravity", "codex", "opencode", "cherry"):
+
+        def stub(*_a: Any, _n: str = name, **_k: Any) -> ClientResult:
+            called.append(_n)
+            return ClientResult(_n, "configured", "stub")
+
+        monkeypatch.setattr(ai_clients, f"setup_{name}", stub)
+    return called
+
+
+def test_ai_setup_only_cherry_touches_cherry_alone(app: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """`--only cherry` sets up Cherry Studio and leaves every other client unread (FEAT-CHERRY-AI-SETUP)."""
+    _frozen(monkeypatch, tmp_path / "veaf-tools.exe")
+    called = _stub_every_client(monkeypatch)
+
+    result = CliRunner().invoke(app, ["ai-setup", "--only", "cherry"])
+
+    assert result.exit_code == 0, result.output
+    assert called == ["cherry"]
+
+
+def test_ai_setup_only_with_a_failed_client_does_not_claim_no_assistant_is_installed(
+    app: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _frozen(monkeypatch, tmp_path / "veaf-tools.exe")
+    monkeypatch.setattr(
+        "veaf_tools.commands.ai_setup.setup_all",
+        lambda *_a, **_k: [ClientResult("Cherry Studio", "failed", "not found on this PC")],
+    )
+
+    result = CliRunner().invoke(app, ["ai-setup", "--only", "cherry"])
+
+    assert result.exit_code == 1
+    assert "not found on this PC" in result.output
+    assert "AI_ASSISTANT_INSTALL" not in result.output
+
+
+@pytest.mark.parametrize("cherry_option", [["--cherry-assistant", "VEAF missions"], ["--cherry-data-dir", "E:/x"]])
+def test_ai_setup_refuses_a_cherry_option_when_only_leaves_cherry_out(
+    app: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, cherry_option: list[str]
+) -> None:
+    """`--only codex --cherry-data-dir X` would drop the Cherry option without a word: refused instead."""
+    _frozen(monkeypatch, tmp_path / "veaf-tools.exe")
+    called = _stub_every_client(monkeypatch)
+
+    result = CliRunner().invoke(app, ["ai-setup", "--only", "codex", *cherry_option])
+
+    assert result.exit_code != 0
+    # In CI rich colours the usage error, and the escape codes split an option's name.
+    assert cherry_option[0] in re.sub(r"\x1b\[[0-9;]*m", "", result.output)
+    assert called == []
+
+
+def test_ai_setup_refuses_an_unknown_client(app: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _frozen(monkeypatch, tmp_path / "veaf-tools.exe")
+    called = _stub_every_client(monkeypatch)
+
+    result = CliRunner().invoke(app, ["ai-setup", "--only", "cherri"])
+
+    assert result.exit_code != 0
+    assert "cherri" in result.output and "cherry" in result.output
+    assert called == []
 
 
 def test_ai_setup_fails_when_a_client_could_not_be_configured(

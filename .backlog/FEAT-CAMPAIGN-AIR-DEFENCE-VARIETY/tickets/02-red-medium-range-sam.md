@@ -1,6 +1,6 @@
 # 02 — A medium-range SAM for red
 
-Status: 🧑 waiting-human
+Status: ✅ done
 Type: feature
 
 ## To do

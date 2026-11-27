@@ -1,6 +1,6 @@
 # 05 — A respawned AWACS keeps its callsign
 
-Status: 🧑 waiting-human — the measure in DCS and the flight check
+Status: 🧑 waiting-human — the measure in DCS (David's DCS, through the bridge), then the flight check
 Type: fix
 
 ## Read

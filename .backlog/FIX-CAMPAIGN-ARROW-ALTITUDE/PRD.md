@@ -1,6 +1,8 @@
 # FIX-CAMPAIGN-ARROW-ALTITUDE — the assault convoy arrows slide off the ground on the F10 map
 
-Status: 🧑 waiting-human — merged on `develop` (#1103, #1105); the line to be checked in game
+Status: ✅ done — merged on `develop` (#1103, #1105, 2026-10-08)
+
+Flight check: on the F10 map, a convoy's axis is one line in its side's colour, and it does not slide when the map is panned.
 
 ## Problem
 

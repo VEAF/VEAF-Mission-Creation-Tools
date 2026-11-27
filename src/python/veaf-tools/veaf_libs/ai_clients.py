@@ -7,9 +7,12 @@ backslashes; this module writes them, merging into whatever the file already hol
 
 import json
 import os
+import sqlite3
 import subprocess
+import time
 import tomllib
-from collections.abc import Callable
+import uuid
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
@@ -326,23 +329,377 @@ def setup_claude_code(
     return _merge_result("Claude Code", config, exe)
 
 
-def setup_all(exe: Path, *, home: Path, appdata: Path, localappdata: Path) -> list[ClientResult]:
-    """Declare the server in every supported client.
+#: The server's name in Cherry Studio: the one the starting backup of the local-model tutorial carries.
+CHERRY_SERVER_NAME = "veaf"
+
+#: What the server's `env` must hold in Cherry: the local model's 65 536-token context needs the compact answers.
+CHERRY_SERVER_ENV = {"VEAF_MCP_PROFILE": "compact"}
+
+#: The Cherry Studio version whose database layout `setup_cherry` was written and tested against.
+CHERRY_TESTED_VERSION = "2.2.3"
+CLIENT_KEYS = ("claude-desktop", "claude-code", "gemini", "antigravity", "codex", "opencode", "cherry")
+"""The names `ai-setup --only` takes, in the order the clients are set up."""
+
+#: The columns `setup_cherry` reads or writes, per table. In the two tables it inserts into, any other
+#: NOT NULL column without a default would make the insert fail, or mean the layout changed: both are
+#: refused before anything is written. `assistant` is only read.
+_CHERRY_COLUMNS = {
+    "mcp_server": {
+        "id", "name", "type", "command", "args", "env", "is_active", "install_source", "is_trusted",
+        "trusted_at", "installed_at", "created_at", "updated_at",
+    },
+    "assistant_mcp_server": {"assistant_id", "mcp_server_id", "created_at", "updated_at"},
+    "assistant": {"id", "name", "deleted_at"},
+}  # fmt: skip
+
+
+def cherry_user_data(appdata: Path, home: Path) -> Path:
+    """Find Cherry Studio's data folder: `%APPDATA%\\CherryStudio`, unless the user moved it.
+
+    Cherry 2.x keeps a moved folder in `~/.cherrystudio/boot-config.json`, under the flat key
+    `app.user_data_path`, as a map from Cherry's executable path to the folder
+    (`src/main/core/preboot/userDataLocation.ts`, tag v2.2.3). Which executable runs is not known here,
+    so only a map with a single folder is followed. Like Cherry, a moved folder that no longer exists
+    falls back to the default one.
+
+    Args:
+        appdata: The user's `%APPDATA%` folder.
+        home: The user's home folder.
+
+    Returns:
+        The data folder, whether it exists or not.
+
+    Raises:
+        ValueError: `boot-config.json` cannot be read, or names more than one folder.
+    """
+    boot = home / ".cherrystudio" / "boot-config.json"
+    if boot.is_file():
+        try:
+            config = json.loads(boot.read_text(encoding="utf-8-sig"))
+        except (OSError, json.JSONDecodeError) as e:
+            raise ValueError(f"{boot} cannot be read: {e}") from e
+        moved = config.get("app.user_data_path") if isinstance(config, dict) else None
+        if moved:
+            folders = list(moved.values()) if isinstance(moved, dict) else []
+            if len(folders) != 1 or not isinstance(folders[0], str):
+                raise ValueError(f"{boot}: cannot tell which Cherry Studio data folder to use: {moved}")
+            if Path(folders[0]).is_dir():
+                return Path(folders[0])
+    return appdata / "CherryStudio"
+
+
+def cherry_is_running(
+    user_data: Path,
+    *,
+    run: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+    windows: bool = os.name == "nt",
+) -> bool:
+    """Tell whether Cherry Studio is open.
+
+    Its `lockfile` cannot be opened while it runs (measured 2026-11-26), and its process is listed by
+    `tasklist`. A process list that cannot be read counts as open: writing under a running Cherry is the
+    one thing to avoid.
+
+    Args:
+        user_data: Cherry's data folder, which holds its `lockfile`.
+        run: Runs a command (injected for tests).
+        windows: Whether to ask `tasklist` (injected for tests).
+
+    Returns:
+        True when Cherry is, or may be, running.
+    """
+    lock = user_data / "lockfile"
+    if lock.exists():
+        try:
+            with lock.open("ab"):
+                pass
+        except PermissionError:
+            return True
+    if not windows:
+        return False
+    try:
+        listed = run(
+            ["tasklist", "/FI", "IMAGENAME eq Cherry Studio.exe", "/NH", "/FO", "CSV"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return True
+    return "cherry studio.exe" in (listed.stdout or "").lower()
+
+
+def _check_cherry_tables(con: sqlite3.Connection, tables: Sequence[str]) -> tuple[str, str, list[str]] | None:
+    """Compare Cherry's tables with the layout `setup_cherry` writes.
+
+    Args:
+        con: The open database.
+        tables: The tables to check.
+
+    Returns:
+        `None` when the layout is the expected one; otherwise the first table that differs, how
+        (`missing` columns, or `new required` columns), and those columns.
+    """
+    for table in tables:
+        info = con.execute(f"PRAGMA table_info({table})").fetchall()  # cid, name, type, notnull, default, pk
+        columns = {row[1] for row in info}
+        missing = sorted(_CHERRY_COLUMNS[table] - columns)
+        if missing:
+            return table, "missing", missing
+        if table == "assistant":
+            continue  # only read
+        unfilled = sorted(row[1] for row in info if row[3] and row[4] is None and row[1] not in _CHERRY_COLUMNS[table])
+        if unfilled:
+            return table, "new required", unfilled
+    return None
+
+
+def _cherry_env(text: str | None) -> dict[str, Any]:
+    """Merge the compact profile into a server's `env`, keeping its other variables.
+
+    Args:
+        text: The `env` column, JSON text or NULL.
+
+    Returns:
+        The merged variables.
+
+    Raises:
+        ValueError: The column is not a JSON object.
+    """
+    try:
+        env = json.loads(text) if text else {}
+    except json.JSONDecodeError as e:
+        raise ValueError(f"the env of the '{CHERRY_SERVER_NAME}' server is not JSON: {e}") from e
+    if not isinstance(env, dict):
+        raise ValueError(f"the env of the '{CHERRY_SERVER_NAME}' server is not a JSON object")
+    return {**env, **CHERRY_SERVER_ENV}
+
+
+def _compact_json(value: Any) -> str:
+    """Write JSON the way Cherry's `JSON.stringify` does: no spaces, non-ASCII kept.
+
+    Args:
+        value: The value to write.
+
+    Returns:
+        Its JSON text.
+    """
+    return json.dumps(value, separators=(",", ":"), ensure_ascii=False)
+
+
+def setup_cherry(
+    exe: Path,
+    *,
+    appdata: Path,
+    home: Path,
+    assistants: Sequence[str] = (),
+    data_dir: Path | None = None,
+    is_running: Callable[[Path], bool] = cherry_is_running,
+    clock: Callable[[], float] = time.time,
+) -> ClientResult:
+    """Point Cherry Studio's `veaf` server at this executable, with the compact profile.
+
+    Cherry 2.x keeps its MCP servers in its SQLite database, `<data>\\Data\\cherrystudio.sqlite`, table
+    `mcp_server`, and the assistants that use one in `assistant_mcp_server` (CherryHQ/cherry-studio,
+    tag v2.2.3). Nothing outside the database declares a server, so it is written directly — only with
+    Cherry closed: its assistant form saves the whole set of links of an assistant, and would undo a
+    write made under it.
+
+    The server named `veaf` gets `command` = the executable, `args` = `["mcp"]`,
+    `VEAF_MCP_PROFILE=compact` merged into its `env`, and is made an active `stdio` server; it is created
+    when missing. No assistant is linked or unlinked unless named in `assistants`.
+    The database is copied next to itself before any write.
+
+    Args:
+        exe: The `veaf-tools` executable that runs the server.
+        appdata: The user's `%APPDATA%` folder.
+        home: The user's home folder.
+        assistants: Names of assistants to link to the server; an unknown name is reported, not fatal.
+        data_dir: Cherry's data folder, as given to Cherry's `--user-data-dir` (`--cherry-data-dir`); it
+            replaces both `boot-config.json` and `%APPDATA%\\CherryStudio`.
+        is_running: Tells whether Cherry is open (injected for tests).
+        clock: The current time in seconds (injected for tests).
+
+    Returns:
+        The outcome; `not_found` when Cherry's default data folder does not exist, `failed` with the
+        reason when a forced folder does not exist, Cherry is open or its database is not the one
+        expected — nothing is then written.
+    """
+    client = "Cherry Studio"
+    if data_dir is not None:
+        user_data = data_dir
+        if not user_data.is_dir():
+            return ClientResult(client, "failed", f"{user_data} not found")
+    else:
+        try:
+            user_data = cherry_user_data(appdata, home)
+        except ValueError as e:
+            return ClientResult(client, "failed", str(e))
+        if not user_data.is_dir():
+            return ClientResult(client, "not_found")
+    if is_running(user_data):
+        return ClientResult(client, "failed", "Cherry Studio is open: close Cherry Studio, then run again")
+    db = user_data / "Data" / "cherrystudio.sqlite"
+    if not db.is_file():
+        return ClientResult(client, "failed", f"{db} not found: Cherry Studio 2.x must have been started once")
+    try:
+        return _write_cherry(db, exe, assistants, int(clock() * 1000), user_data)
+    except (OSError, ValueError, sqlite3.Error) as e:
+        return ClientResult(client, "failed", str(e))
+
+
+def _write_cherry(db: Path, exe: Path, assistants: Sequence[str], now_ms: int, user_data: Path) -> ClientResult:
+    """Check Cherry's database, back it up and write the `veaf` server, in one transaction.
+
+    Args:
+        db: `cherrystudio.sqlite`.
+        exe: The `veaf-tools` executable that runs the server.
+        assistants: Names of assistants to link to the server.
+        now_ms: The current time in milliseconds, Cherry's timestamp unit.
+        user_data: Cherry's data folder, for the version shown in a refusal.
+
+    Returns:
+        The outcome.
+
+    Raises:
+        ValueError: The `veaf` server's `env` is not a JSON object.
+        sqlite3.Error: The database could not be read or written.
+        OSError: The backup could not be written.
+    """
+    client = "Cherry Studio"
+    con = sqlite3.connect(db, timeout=10, isolation_level=None)
+    try:
+        con.execute("PRAGMA foreign_keys = ON")
+        tables = ["mcp_server", "assistant_mcp_server"] + (["assistant"] if assistants else [])
+        gap = _check_cherry_tables(con, tables)
+        if gap:
+            table, how, gap_columns = gap
+            version_log = user_data / "version.log"
+            found = version_log.read_text(encoding="utf-8", errors="replace").strip() if version_log.is_file() else "?"
+            return ClientResult(
+                client,
+                "failed",
+                f"{db}: table {table}, {how} columns {gap_columns}. "
+                f"This Cherry Studio ({found}) stores its servers differently from the version "
+                f"ai-setup knows ({CHERRY_TESTED_VERSION}): declare the server by hand",
+            )
+        select = "SELECT id, command, args, env, type, is_active FROM mcp_server WHERE name = ?"
+        rows = con.execute(select, (CHERRY_SERVER_NAME,)).fetchall()
+        if len(rows) > 1:
+            return ClientResult(
+                client, "failed", f"{db}: {len(rows)} servers are named '{CHERRY_SERVER_NAME}': keep one in Cherry"
+            )
+        command, args = str(exe), _compact_json(["mcp"])
+        env = _compact_json(_cherry_env(rows[0][3] if rows else None))
+        server_id = rows[0][0] if rows else str(uuid.uuid4())
+        # An inactive or non-stdio server (one imported through Cherry's link, say) would never start: repaired too.
+        up_to_date = bool(rows) and rows[0][1:] == (command, args, env, "stdio", 1)
+
+        links: list[str] = []
+        unknown: list[str] = []
+        for name in assistants:
+            ids = [r[0] for r in con.execute("SELECT id FROM assistant WHERE name = ? AND deleted_at IS NULL", (name,))]
+            if not ids:
+                unknown.append(name)
+            links += [
+                i
+                for i in ids
+                if not con.execute(
+                    "SELECT 1 FROM assistant_mcp_server WHERE assistant_id = ? AND mcp_server_id = ?", (i, server_id)
+                ).fetchone()
+            ]
+        detail = str(db) + (f" (assistants not found: {', '.join(unknown)})" if unknown else "")
+        if up_to_date and not links:
+            return ClientResult(client, "configured", detail)
+
+        stamp = time.strftime("%Y%m%d-%H%M%S", time.localtime(now_ms / 1000)) + f"-{now_ms % 1000:03d}"
+        backup = db.with_name(f"{db.name}.veaf-backup-{stamp}")
+        target = sqlite3.connect(backup)
+        try:
+            con.backup(target)  # reads the -wal too: one self-contained copy
+        finally:
+            target.close()
+
+        # sqlite3's backup() never ends from inside a transaction (measured, Python 3.13): the write lock is
+        # taken after it, and what the write relies on is read again under it.
+        con.execute("BEGIN IMMEDIATE")
+        if con.execute(select, (CHERRY_SERVER_NAME,)).fetchall() != rows:
+            return ClientResult(
+                client, "failed", f"{db} changed while ai-setup ran: close Cherry Studio, then run again"
+            )
+        if rows:
+            con.execute(
+                "UPDATE mcp_server SET command = ?, args = ?, env = ?, type = 'stdio', is_active = 1, updated_at = ?"
+                " WHERE id = ?",
+                (command, args, env, now_ms, server_id),
+            )
+        else:
+            con.execute(
+                "INSERT INTO mcp_server (id, name, type, command, args, env, is_active, install_source,"
+                " is_trusted, trusted_at, installed_at, created_at, updated_at)"
+                " VALUES (?, ?, 'stdio', ?, ?, ?, 1, 'manual', 1, ?, ?, ?, ?)",
+                (server_id, CHERRY_SERVER_NAME, command, args, env, now_ms, now_ms, now_ms, now_ms),
+            )
+        con.executemany(
+            "INSERT OR IGNORE INTO assistant_mcp_server (assistant_id, mcp_server_id, created_at, updated_at)"
+            " VALUES (?, ?, ?, ?)",
+            [(i, server_id, now_ms, now_ms) for i in links],
+        )
+        con.execute("COMMIT")
+        return ClientResult(client, "configured", f"{detail}, backup {backup.name}")
+    finally:
+        if con.in_transaction:
+            con.execute("ROLLBACK")  # a refusal, a no-op run or an error: nothing is written
+        con.close()
+
+
+def setup_all(
+    exe: Path,
+    *,
+    home: Path,
+    appdata: Path,
+    localappdata: Path,
+    cherry_assistants: Sequence[str] = (),
+    cherry_data_dir: Path | None = None,
+    only: Sequence[str] = (),
+) -> list[ClientResult]:
+    """Declare the server in every supported client, or only in the ones named.
 
     Args:
         exe: The `veaf-tools` executable that runs the server.
         home: The user's home folder.
         appdata: The user's `%APPDATA%` folder.
         localappdata: The user's `%LOCALAPPDATA%` folder.
+        cherry_assistants: Cherry Studio assistants to link to the server (`--cherry-assistant`).
+        cherry_data_dir: Cherry Studio's data folder, when not the default one (`--cherry-data-dir`).
+        only: Keys from `CLIENT_KEYS` (`--only`); the other clients are neither read nor written. Empty:
+            every client.
 
     Returns:
-        One result per client, in a fixed order.
+        One result per client set up, in a fixed order. A client named in `only` and not found is
+        `failed`: the user asked for it.
+
+    Raises:
+        ValueError: `only` names a client that is not in `CLIENT_KEYS`; nothing is then run.
     """
-    return [
-        setup_claude_desktop(exe, appdata=appdata, localappdata=localappdata),
-        setup_claude_code(exe, home=home),
-        setup_gemini(exe, home=home),
-        setup_antigravity(exe, home=home),
-        setup_codex(exe, home=home),
-        setup_opencode(exe, home=home),
-    ]
+    unknown = [key for key in only if key not in CLIENT_KEYS]
+    if unknown:
+        raise ValueError(f"unknown client: {', '.join(unknown)}")
+    steps: dict[str, Callable[[], ClientResult]] = {
+        "claude-desktop": lambda: setup_claude_desktop(exe, appdata=appdata, localappdata=localappdata),
+        "claude-code": lambda: setup_claude_code(exe, home=home),
+        "gemini": lambda: setup_gemini(exe, home=home),
+        "antigravity": lambda: setup_antigravity(exe, home=home),
+        "codex": lambda: setup_codex(exe, home=home),
+        "opencode": lambda: setup_opencode(exe, home=home),
+        "cherry": lambda: setup_cherry(
+            exe, appdata=appdata, home=home, assistants=cherry_assistants, data_dir=cherry_data_dir
+        ),
+    }
+    results = [step() for key, step in steps.items() if not only or key in only]
+    if only:
+        results = [
+            ClientResult(r.client, "failed", "not found on this PC") if r.status == "not_found" else r for r in results
+        ]
+    return results

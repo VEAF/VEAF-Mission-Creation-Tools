@@ -1,6 +1,8 @@
 # FIX-SANCTUARY-WEAPON-TARGET-NO-ISEXIST — a weapon whose target has no `isExist` raises in the sanctuary
 
-Status: 🧑 waiting-human
+Status: ✅ done — merged in #1139 (2026-10-14)
+
+Flight check: grep `weapon target with no isExist method` in the next server `dcs.log` of a mission built with the fix (category 5 scenery, 1 unit, 3 static, 4 base); a pilot's Maverick and GBU-12 on a house and a Maverick on a hangar answer the rest (R50 of `DCS-SESSION-TODO.md`).
 
 ## Found
 

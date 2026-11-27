@@ -102,6 +102,7 @@ The AI can act in two places, and it changes what "survives":
 | 58 | [Build a persistent campaign end to end](#build-persistent-campaign) | 🎖️ Persistent campaign | Campaign (folder) | ⭐ |
 | 59 | [Start a campaign](#campaign-init) | 🎖️ Campaign | Campaign (folder) | ⭐ |
 | 60 | [Check a campaign](#campaign-validate) | 🎖️ Campaign | Campaign (folder) | ⭐ |
+| 61 | [Know which aircraft an airfield can offer](#airfield-aircraft) | 🛫 Bases & airfields | Recipe (folder) | ⭐ |
 
 ---
 
@@ -411,6 +412,12 @@ choose which bases to colour, or to place something near one of them, without gu
 Works before a mission exists too, by naming the map.
 
 > 💬 *"Which bases are there in East Germany on GermanyCW?"*
+
+### Know which aircraft an airfield can offer {#airfield-aircraft}
+
+*Read · ⭐* — The aircraft an airfield can offer as dynamic slots, with the **exact name the build expects** (`F-16C_50`, not `F-16C`; `AV8BNA`, not `AV-8B`). The AI reads the template catalogue the build injects, keeps the mission's era, and keeps only what the base can park: a helipad-only base offers helicopters only. The build stocks a base of its side with all of them, unless `src/warehouses.yaml` gives an `aircrafts:` list for it, which replaces them. A neutral base offers none until it has a side: the answer says so.
+
+> 💬 *"Which aircraft can Ramat David offer?"*
 
 ### Give the bases their real radio frequencies {#airfield-channels}
 

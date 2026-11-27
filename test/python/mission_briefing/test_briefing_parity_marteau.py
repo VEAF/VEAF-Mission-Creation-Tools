@@ -7,6 +7,7 @@ in `test_dcs_recon.py`.
 from __future__ import annotations
 
 import io
+import re
 import zipfile
 from dataclasses import replace
 from pathlib import Path
@@ -163,7 +164,37 @@ class TestBullseyeAndFlights:
         assert notes[:2] == ["Le dépôt", "Le détruire."]
         assert "Pour : Ninja et Arctic" in notes
         assert any(note.startswith("Bullseye : ") for note in notes)
-        assert "Point : KHOBI du plan de vol" in notes
+        point = next(note for note in notes if note.startswith("Point : "))
+        assert point.endswith(" — KHOBI du plan de vol")
+        assert re.fullmatch(r"Point : W\d+(/H\d+)? — KHOBI du plan de vol", point)
+
+    def test_the_point_numbers_are_the_maps_labels_planes_then_helicopters(self, tmp_path: Path) -> None:
+        picture = read_mission_picture(objective_mission(tmp_path), "blue", tmp_path)
+        name, x, y, radius = KHOBI_ZONE
+        waypoint = lambda wp_name: Waypoint(wp_name, x, y, 0.0, "RADIO")  # noqa: E731
+        plans = (
+            FlightPlan("plane", ("A-10C",), (waypoint("PUSH"), waypoint("KHOBI"))),
+            FlightPlan("helicopter", ("Ka-50",), (waypoint("MASADA"), waypoint("khobi"))),
+        )
+        picture = replace(picture, flight_plans=plans)
+        area = ObjectiveArea(name, x, y, radius, label="KHOBI")
+        objective = Objective(name, "Le dépôt", ("Le détruire.",))
+        with language("fr"):
+            notes = [text for text, _ in objective_notes(objective, area, picture)]
+        assert "Point : W2/H2 — KHOBI du plan de vol" in notes
+
+    def test_an_objective_without_a_numbered_point_keeps_the_name_alone_or_no_line(self, tmp_path: Path) -> None:
+        picture = read_mission_picture(objective_mission(tmp_path), "blue", tmp_path)
+        name, x, y, radius = KHOBI_ZONE
+        objective = Objective(name, "Le dépôt", ("Le détruire.",))
+        picture = replace(picture, flight_plans=())
+        with language("fr"):
+            named = [
+                t for t, _ in objective_notes(objective, ObjectiveArea(name, x, y, radius, label="KHOBI"), picture)
+            ]
+            nameless = [t for t, _ in objective_notes(objective, ObjectiveArea(name, x, y, radius), picture)]
+        assert "Point : KHOBI du plan de vol" in named
+        assert not any(note.startswith("Point : ") for note in nameless)
 
     def test_the_point_on_an_objective_is_the_flight_plans_nearest_within_its_zone(self, tmp_path: Path) -> None:
         picture = read_mission_picture(objective_mission(tmp_path), "blue", tmp_path)

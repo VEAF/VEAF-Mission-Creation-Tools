@@ -6,6 +6,7 @@ edits the durable source — the exploded ``src/mission/`` (trigger zones + grou
 is triggered here. See ``.backlog/archive/FEAT-MCP-MISSION-EDITOR.md`` (wave 8).
 """
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,7 @@ from veaf_mission_mcp.add_trigger_zone import insert_trigger_zone
 from veaf_mission_mcp.aircraft_payload import resolve_flight_loadout
 from veaf_mission_mcp.group_naming import resolve_group_name, validate_group_name
 from veaf_mission_mcp.mission_folder import load_folder_mission, mission_yaml_path, save_folder_mission
+from veaf_mission_mcp.oracle import alias_carrier_type
 
 
 def create_combat_zone(
@@ -49,8 +51,10 @@ def create_combat_zone(
         zone_name: The combat zone's trigger-zone name.
         position: The zone centre, `{"x": ..., "y": ...}`.
         radius: The zone radius, in metres.
-        groups: `[{"name", "units": [{"type","count"}], "category"?, "position"?, "route"?, "patrol"?, "roe"?,
-            "disperse"?}, ...]` placed inside the zone. A group's `category` (`"vehicle"`, `"static"`, `"ship"`…)
+        groups: `[{"name", "units": [{"type","count"}], "command"?, "category"?, "position"?, "route"?,
+            "patrol"?, "roe"?, "disperse"?}, ...]` placed inside the zone. `command` (a `list_shortcuts` alias,
+            `-armor`) names the first unit `#command="-armor" <group name>`: a VEAF alias carrier; without
+            `units`, the carrier is a unit of the class the alias spawns (`alias_carrier_type`). A group's `category` (`"vehicle"`, `"static"`, `"ship"`…)
             overrides the call's, so one call makes a zone of vehicles **and** statics. `route`, `patrol`, `roe` and `disperse` have
             `add_group`'s shape: a convoy moving through the zone is one of its groups, not a separate
             `add_group` call, and an inert target is `roe: "weapons_hold"`, `disperse: false`.
@@ -79,7 +83,10 @@ def create_combat_zone(
     created: list[str] = []
     warnings: list[dict[str, Any]] = []
     for spec in groups:
+        spec = _with_command_carrier(spec)
         group_name = resolve_group_name(spec["name"], for_combat_zone=zone_name)
+        if spec.get("command"):
+            spec = _carrier_named(spec, group_name)
         build_warnings: list[str] = []
         group_category = spec.get("category", category)
         try:
@@ -114,6 +121,67 @@ def create_combat_zone(
     warnings += [{"warning": warning} for warning in missing_accents_warnings(texts)]
 
     return {"zone_name": zone_name, "zone_id": zone_id, "groups": created, "warnings": warnings}
+
+
+#: A `#command` marker a model wrote into a group's name: `#command="-armor" armor-1`.
+_GROUP_NAME_COMMAND = re.compile(r'^\s*#command="(?P<command>[^"]+)"\s*(?P<name>.*)$')
+
+
+def _unescaped(name: str) -> str:
+    """Undo a JSON escape done twice: `#command=\"-armor\"` arrives with real backslashes.
+
+    A small model escapes the quotes of a marker once for the JSON and once more by habit
+    (MCP-CONTEXT-BUDGET, 2026-11-25); no DCS name has a backslash before a quote on purpose.
+    """
+    return name.replace('\\"', '"')
+
+
+def _with_command_carrier(spec: dict[str, Any]) -> dict[str, Any]:
+    """Bring a group spec's command marker to its `command` key, its names unescaped.
+
+    Args:
+        spec: One `groups[]` entry of `create_combat_zone`.
+
+    Returns:
+        A copy whose `name` carries no marker: a marker found there moves to `command`.
+    """
+    spec = dict(spec)
+    spec["name"] = _unescaped(str(spec["name"]))
+    spec["units"] = [
+        {**unit, "name": _unescaped(str(unit["name"]))} if unit.get("name") else unit
+        for unit in spec.get("units") or []
+    ]
+    match = _GROUP_NAME_COMMAND.match(spec["name"])
+    if match and not spec.get("command"):
+        spec["command"] = match["command"]
+        spec["name"] = match["name"] or match["command"].lstrip("-").split()[0]
+    return spec
+
+
+def _carrier_named(spec: dict[str, Any], group_name: str) -> dict[str, Any]:
+    """Name the group's first unit `#command="<command>" <group name>`: the VEAF alias carrier.
+
+    The runtime reads the marker off the unit's name; the group keeps the zone-prefixed name it captures by.
+
+    Args:
+        spec: The group spec, with `command` (an alias from `list_shortcuts`, `-` optional) and `units`.
+        group_name: The group's resolved name.
+
+    Returns:
+        A copy whose first unit, one carrier, bears the marker.
+    """
+    command = str(spec["command"]).strip()
+    if not command.startswith("-"):
+        command = f"-{command}"
+    if not spec.get("units"):
+        carrier_type = alias_carrier_type(command)
+        if carrier_type is None:
+            raise ValueError(f"group {spec['name']!r}: no carrier type known for {command!r}; give 'units'")
+        spec = {**spec, "units": [{"type": carrier_type}]}
+    first, *rest = spec["units"]
+    carrier = {**first, "count": 1, "name": f'#command="{command}" {group_name}'}
+    extra = [{**first, "count": first.get("count", 1) - 1}] if first.get("count", 1) > 1 else []
+    return {**spec, "units": [carrier, *extra, *rest]}
 
 
 def _append_combat_zone(yaml_path: Path, zone_name: str, combat_zone: dict[str, Any] | None) -> None:

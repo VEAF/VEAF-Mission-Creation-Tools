@@ -1,6 +1,6 @@
 # 03 — An evening's balance: earned and spent
 
-Status: ✅ done (in-game check pending)
+Status: ✅ done
 Type: feature
 
 ## Decided

@@ -79,11 +79,11 @@ So a size class is a set of parameters of those generators (`size`, `defense`, `
 | 08 | [Between missions: merge the state file, the enemy's turn, victory](tickets/08-between-missions.md) | ✅ |
 | 09 | [Build the next mission from the state, with its strategic briefing](tickets/09-build-next-mission.md) | ✅ |
 | 10 | [Documentation and an example campaign](tickets/10-doc-and-example.md) | 🧑 |
-| 11 | [Two missions flown end to end](tickets/11-two-missions-flown.md) | 🧑 |
+| 11 | [Two missions flown end to end](tickets/11-two-missions-flown.md) | ✅ |
 | 12 | [The debriefing written by `campaign apply`](tickets/12-debriefing.md) | ✅ |
 | 13 | [Garrisons of a sensible size](tickets/13-garrison-size.md) | ✅ |
 
-Tickets 04 to 07 and 11 wait for the game (item **R44** of [`DCS-SESSION-TODO.md`](../../DCS-SESSION-TODO.md)); ticket 10 waits for the demo mission step.
+Tickets 04 to 07 wait for the game (item **R44** of [`DCS-SESSION-TODO.md`](../../DCS-SESSION-TODO.md)); ticket 10 waits for the demo mission step.
 
 ## Progress, 2026-10-06 — everything that can be done without DCS
 

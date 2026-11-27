@@ -137,8 +137,8 @@
     {
       "id": 20,
       "name": "Laage",
-      "lat": 53.919812,
-      "lon": 12.260841,
+      "lat": 53.919806,
+      "lon": 12.260902,
       "coalition": 0
     },
     {
@@ -242,8 +242,8 @@
     {
       "id": 35,
       "name": "Brandis",
-      "lat": 51.330329,
-      "lon": 12.670063,
+      "lat": 51.326327,
+      "lon": 12.642695,
       "coalition": 0
     },
     {
@@ -256,8 +256,8 @@
     {
       "id": 37,
       "name": "Cologne",
-      "lat": 50.877794,
-      "lon": 7.133831,
+      "lat": 50.87991,
+      "lon": 7.130769,
       "coalition": 0
     },
     {
@@ -284,8 +284,8 @@
     {
       "id": 41,
       "name": "Kastrup",
-      "lat": 55.614387,
-      "lon": 12.66461,
+      "lat": 55.613869,
+      "lon": 12.665991,
       "coalition": 0
     },
     {
@@ -347,8 +347,8 @@
     {
       "id": 50,
       "name": "Szczecin-Goleniow",
-      "lat": 53.578866,
-      "lon": 14.912986,
+      "lat": 53.578791,
+      "lon": 14.913131,
       "coalition": 0
     },
     {
@@ -592,8 +592,8 @@
     {
       "id": 86,
       "name": "Uetersen",
-      "lat": 53.645944,
-      "lon": 9.712089,
+      "lat": 53.645964,
+      "lon": 9.712101,
       "coalition": 0
     },
     {
@@ -606,15 +606,15 @@
     {
       "id": 89,
       "name": "Luneburg",
-      "lat": 53.249034,
-      "lon": 10.463902,
+      "lat": 53.249184,
+      "lon": 10.464752,
       "coalition": 0
     },
     {
       "id": 90,
       "name": "Northeim",
-      "lat": 52.984606,
-      "lon": 11.243762,
+      "lat": 52.984605,
+      "lon": 11.243759,
       "coalition": 0
     },
     {
@@ -718,8 +718,8 @@
     {
       "id": 106,
       "name": "Weser Wumme",
-      "lat": 53.060947,
-      "lon": 9.208321,
+      "lat": 53.060946,
+      "lon": 9.208309,
       "coalition": 0
     },
     {
@@ -732,8 +732,8 @@
     {
       "id": 108,
       "name": "Wismar",
-      "lat": 53.91429,
-      "lon": 11.497933,
+      "lat": 53.914296,
+      "lon": 11.498005,
       "coalition": 0
     },
     {
@@ -753,8 +753,8 @@
     {
       "id": 111,
       "name": "Pinnow",
-      "lat": 53.621228,
-      "lon": 11.565138,
+      "lat": 53.621236,
+      "lon": 11.565166,
       "coalition": 0
     },
     {
@@ -774,8 +774,8 @@
     {
       "id": 114,
       "name": "Ummern",
-      "lat": 52.618729,
-      "lon": 10.414364,
+      "lat": 52.618769,
+      "lon": 10.414276,
       "coalition": 0
     },
     {
@@ -795,8 +795,8 @@
     {
       "id": 117,
       "name": "Rinteln",
-      "lat": 52.175927,
-      "lon": 9.04906,
+      "lat": 52.175903,
+      "lon": 9.049162,
       "coalition": 0
     },
     {
@@ -929,7 +929,14 @@
       "id": 137,
       "name": "Zollschen",
       "lat": 51.261892,
-      "lon": 12.091337,
+      "lon": 12.091336,
+      "coalition": 0
+    },
+    {
+      "id": 138,
+      "name": "Stuttgart",
+      "lat": 48.690295,
+      "lon": 9.225751,
       "coalition": 0
     },
     {
@@ -1076,7 +1083,7 @@
       "id": 159,
       "name": "Giebelstadt",
       "lat": 49.646513,
-      "lon": 9.952675,
+      "lon": 9.952676,
       "coalition": 0
     },
     {
@@ -1129,6 +1136,13 @@
       "coalition": 0
     },
     {
+      "id": 167,
+      "name": "Ahlhorn Highway Strip",
+      "lat": 52.911648,
+      "lon": 8.165062,
+      "coalition": 0
+    },
+    {
       "id": 168,
       "name": "Mendig",
       "lat": 50.367587,
@@ -1157,6 +1171,62 @@
       "coalition": 0
     },
     {
+      "id": 172,
+      "name": "Ahlhorn",
+      "lat": 52.889012,
+      "lon": 8.220354,
+      "coalition": 0
+    },
+    {
+      "id": 173,
+      "name": "Finsterwalde",
+      "lat": 51.607469,
+      "lon": 13.724379,
+      "coalition": 0
+    },
+    {
+      "id": 174,
+      "name": "Oldenburg",
+      "lat": 53.178688,
+      "lon": 8.17534,
+      "coalition": 0
+    },
+    {
+      "id": 175,
+      "name": "Sjobo",
+      "lat": 55.653352,
+      "lon": 13.615759,
+      "coalition": 0
+    },
+    {
+      "id": 176,
+      "name": "Strasbourg Entzeim",
+      "lat": 48.531743,
+      "lon": 7.616521,
+      "coalition": 0
+    },
+    {
+      "id": 177,
+      "name": "Phalsbourg",
+      "lat": 48.771607,
+      "lon": 7.214168,
+      "coalition": 0
+    },
+    {
+      "id": 178,
+      "name": "Bremerhaven",
+      "lat": 53.511894,
+      "lon": 8.571111,
+      "coalition": 0
+    },
+    {
+      "id": 179,
+      "name": "Sniatowo",
+      "lat": 53.875702,
+      "lon": 14.881136,
+      "coalition": 0
+    },
+    {
       "id": 180,
       "name": "H Med GDR 12",
       "lat": 50.987915,
@@ -1175,6 +1245,13 @@
       "name": "H Med GDR 14",
       "lat": 50.809082,
       "lon": 10.21873,
+      "coalition": 0
+    },
+    {
+      "id": 183,
+      "name": "Kluczewo",
+      "lat": 53.273666,
+      "lon": 14.97402,
       "coalition": 0
     },
     {
@@ -1231,6 +1308,13 @@
       "name": "H FRG 25",
       "lat": 50.724075,
       "lon": 9.931884,
+      "coalition": 0
+    },
+    {
+      "id": 192,
+      "name": "Baden-Soellingen",
+      "lat": 48.788411,
+      "lon": 8.089441,
       "coalition": 0
     },
     {
@@ -1304,6 +1388,13 @@
       "coalition": 0
     },
     {
+      "id": 203,
+      "name": "Kolobrzeg-Bagicz",
+      "lat": 54.203083,
+      "lon": 15.704724,
+      "coalition": 0
+    },
+    {
       "id": 204,
       "name": "Airracing Frankfurt",
       "lat": 50.006801,
@@ -1311,10 +1402,45 @@
       "coalition": 0
     },
     {
+      "id": 205,
+      "name": "Makowice",
+      "lat": 53.757376,
+      "lon": 15.306349,
+      "coalition": 0
+    },
+    {
+      "id": 206,
+      "name": "Avno",
+      "lat": 55.08583,
+      "lon": 11.752192,
+      "coalition": 0
+    },
+    {
+      "id": 207,
+      "name": "Lolland-Falster",
+      "lat": 54.698649,
+      "lon": 11.446665,
+      "coalition": 0
+    },
+    {
       "id": 208,
       "name": "H Med FRG 21",
       "lat": 49.246117,
       "lon": 7.36523,
+      "coalition": 0
+    },
+    {
+      "id": 209,
+      "name": "Lahr",
+      "lat": 48.358032,
+      "lon": 7.818387,
+      "coalition": 0
+    },
+    {
+      "id": 210,
+      "name": "Vaerlose",
+      "lat": 55.767137,
+      "lon": 12.342916,
       "coalition": 0
     },
     {
@@ -1339,10 +1465,24 @@
       "coalition": 0
     },
     {
+      "id": 214,
+      "name": "Bruchsal",
+      "lat": 49.133373,
+      "lon": 8.567751,
+      "coalition": 0
+    },
+    {
       "id": 215,
       "name": "H FRG 34",
       "lat": 50.416492,
       "lon": 7.441757,
+      "coalition": 0
+    },
+    {
+      "id": 216,
+      "name": "Pattonville",
+      "lat": 48.865092,
+      "lon": 9.220946,
       "coalition": 0
     },
     {
@@ -1537,15 +1677,15 @@
     {
       "id": 247,
       "name": "Walldorf",
-      "lat": 49.300125,
-      "lon": 8.661047,
+      "lat": 49.299374,
+      "lon": 8.661051,
       "coalition": 0
     },
     {
       "id": 248,
       "name": "Ober-Morlen",
-      "lat": 50.364653,
-      "lon": 8.716647,
+      "lat": 50.36465,
+      "lon": 8.716635,
       "coalition": 0
     },
     {
@@ -1558,8 +1698,8 @@
     {
       "id": 250,
       "name": "Worms",
-      "lat": 49.607376,
-      "lon": 8.369167,
+      "lat": 49.605609,
+      "lon": 8.361592,
       "coalition": 0
     },
     {

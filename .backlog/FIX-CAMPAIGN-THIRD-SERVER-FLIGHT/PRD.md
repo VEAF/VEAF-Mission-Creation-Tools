@@ -1,6 +1,8 @@
 # FIX-CAMPAIGN-THIRD-SERVER-FLIGHT — what the third evening on the server taught
 
-Status: 🔄 in-progress — scope decided by David on 2026-11-19 ("on suit tes recommandations")
+Status: 🧑 waiting-human — ticket 08: the redraw of the Oronte red garrisons (live server, server empty, David's go), then its in-game check
+
+Flight check: tickets 01 to 07, 09 and 10 on the Campagne server: a slot on every campaign airfield including a captured one, the sitac's players, ranking, ejected pilots, tasks and support aircraft, a convoy under fire that keeps its place, revived units paid at their spawn price, and the air defence prices to tune after an evening (its `ECONOMY SUMMARY`).
 
 The persistent campaign "Bouclier de l'Oronte" (Northern Syria), restarted from scratch on 2026-11-18 with FIX-CAMPAIGN-SECOND-SERVER-FLIGHT, the sitac block (FEAT-CAMPAIGN-SITAC-STATE) and the fixed file name `Campagne_Oronte.miz` (FEAT-CAMPAIGN-MISSION-FILE), flown on the Campagne server (`foothold2`) on 2026-11-19.
 The integration branch is `feature/dynamic-campaign`: one branch and one pull request into it for the whole lot.

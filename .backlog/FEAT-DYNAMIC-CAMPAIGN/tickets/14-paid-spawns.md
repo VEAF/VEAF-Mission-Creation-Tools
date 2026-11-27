@@ -1,6 +1,6 @@
 # 14 — VEAF spawn commands paid in credits or resources
 
-Status: 🧑 waiting-human — built and tested outside DCS in #1282 (2026-11-16); the in-game check of the test mission is David's
+Status: ✅ done
 
 PRD row "VEAF spawn commands paid in credits" and player experience point 9 (David, 2026-10-08 and 2026-11-16).
 

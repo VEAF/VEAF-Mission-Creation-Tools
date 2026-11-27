@@ -1,6 +1,6 @@
 # 04 — Probe `c_cockpit_param_in_range`, then decide whether it is worth using
 
-Status: ⬜ ready
+Status: 🚫 wontfix — closed 2026-11-24 (David, "fermons tout ça"): an optimisation of small gain. If the per-loop parameter dump ever shows as a hitch, reopen it: the probe described below is still the way in.
 Type: chore
 
 ## What this is about

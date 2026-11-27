@@ -4,7 +4,7 @@ status: accepted
 
 # The UI toolkit of the Go `veaf-logs`, chosen on what the application needs
 
-Lot: [FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](../../.backlog/FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL/PRD.md), ticket 04.
+Lot: [FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL](../../.backlog/archive/FEAT-GO-VEAF-LOGS-ISOFUNCTIONAL.md), ticket 04.
 Measured on DAVID-BUREAU (Windows 11, display scaled), 2026-10-24, Go 1.27.3.
 Once a decision is taken, it supersedes [ADR 0021](0021-gio-for-the-go-veaf-logs-proof-of-concept.md), whose choice of Gio rested on scrolling one list.
 

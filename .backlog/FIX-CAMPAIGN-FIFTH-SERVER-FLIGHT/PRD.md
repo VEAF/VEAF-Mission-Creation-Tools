@@ -1,6 +1,8 @@
 # FIX-CAMPAIGN-FIFTH-SERVER-FLIGHT — what the 22/11 afternoon on the Campagne server showed
 
-Status: 🧑 waiting-human — the in-game checks, and ticket 02's measure in DCS
+Status: 🧑 waiting-human — ticket 02: David's call on the Hawk (keep it, or replace it in the blue level-5 template); the other tickets wait for flight checks
+
+Flight check: tickets 01, 03 and 04 on the Campagne server (red strikes fire on their targets only, an AWACS holds `awacs_standoff` from every enemy zone, a supply helicopter's timeout follows its distance); ticket 02: read the Campagne log for `initiator_unit_type=Hawk ln` shots and `Hawk sr` deaths against the red strikes on Hatay.
 
 The persistent campaign "Bouclier de l'Oronte" (Northern Syria, `foothold2_server`), flown on 2026-11-22 in the afternoon, after the 22/11 redeploy. David's four remarks, each read in the server's `dcs.log` and the code (2026-11-22).
 
@@ -17,10 +19,10 @@ David, 2026-11-22: one lot, four tickets, the recommendations below. The integra
 
 | # | Ticket | Status |
 |---|---|---|
-| 01 | [Red strikes engage only their targets](tickets/01-strikes-engage-only-their-targets.md) | 🧑 |
+| 01 | [Red strikes engage only their targets](tickets/01-strikes-engage-only-their-targets.md) | ✅ |
 | 02 | [A garrison's SAM in a group of its own](tickets/02-garrison-sam-in-its-own-group.md) | 🧑 |
-| 03 | [The AWACS holds well behind the front](tickets/03-awacs-holds-behind-the-front.md) | 🧑 |
-| 04 | [A supply helicopter's timeout from its distance](tickets/04-helicopter-timeout-from-distance.md) | 🧑 |
+| 03 | [The AWACS holds well behind the front](tickets/03-awacs-holds-behind-the-front.md) | ✅ |
+| 04 | [A supply helicopter's timeout from its distance](tickets/04-helicopter-timeout-from-distance.md) | ✅ |
 
 ## State (2026-11-22)
 

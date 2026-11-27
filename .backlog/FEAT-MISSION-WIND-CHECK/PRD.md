@@ -1,6 +1,6 @@
 # FEAT-MISSION-WIND-CHECK — set the wind pilots will meet, and say the wind DCS simulates
 
-Status: 🧑 waiting-human
+Status: 🧑 waiting-human — the ATIS max-wind line seen in game (David's DCS, through the bridge)
 
 ## Why
 

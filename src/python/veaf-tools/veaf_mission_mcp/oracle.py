@@ -7,6 +7,7 @@ module scanner — so the oracle cannot drift from what the tooling actually shi
 `.backlog/archive/FEAT-MCP-MISSION-EDITOR.md`, wave 5).
 """
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,8 @@ from veaf_libs.dcs_payloads import payload_names, payload_pylons, payload_types
 from veaf_libs.known_limitations import active_limitations, load_known_limitations
 from veaf_libs.lua_module_scanner import get_modules
 from veaf_libs.veaf_shortcuts_scanner import get_shortcuts
+
+from veaf_mission_mcp.profile import is_compact
 
 _DOC_SCRIPTS_DIR = "doc/mission-maker/scripts"
 
@@ -104,8 +107,9 @@ def list_payloads(unit_type: str | None = None) -> dict[str, Any]:
         unit_type: The exact DCS type; ``None`` lists the types that have loadouts.
 
     Returns:
-        ``{"unit_type", "payloads": [{"name", "pylons": {station: CLSID}}, ...]}`` for a type, or
-        ``{"types": [...]}`` without one (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 09).
+        ``{"unit_type", "payloads": [{"name", "pylons": {station: CLSID}}, ...]}`` for a type — in the
+        compact profile ``{"unit_type", "payloads": [name, ...]}`` — or ``{"types": [...]}`` without one
+        (FIX-OPEN-TRAINING-SYRIA-FINDINGS ticket 09).
 
     Raises:
         ValueError: For a type with no DCS loadout, naming the types that have some.
@@ -115,6 +119,10 @@ def list_payloads(unit_type: str | None = None) -> dict[str, Any]:
     names = payload_names(unit_type)
     if not names:
         raise ValueError(f"DCS has no named loadout for {unit_type!r}; types that have some: {payload_types()}")
+    if is_compact():
+        # The names alone: the actions take a loadout by its name, and the MiG-29A's pylons were 6 424
+        # characters of CLSIDs in a local model's run (MCP-CONTEXT-BUDGET, run 7).
+        return {"unit_type": unit_type, "payloads": list(names)}
     return {
         "unit_type": unit_type,
         "payloads": [
@@ -173,6 +181,62 @@ def _command_category(aliases: list[str], description: str) -> str:
         if any(keyword in haystack for keyword in keywords):
             return category
     return "other"
+
+
+#: A carrier for the aliases that spawn no fixed group, by what they spawn (`_spawn <kind>`): a unit of the
+#: class the alias spawns, as the guide asks ("The carrier's unit type is not indifferent").
+_CARRIER_BY_SPAWN_KIND = {
+    "armorgroup": "T-72B",
+    "infantrygroup": "Infantry AK",
+    "samgroup": "Osa 9A33 ln",
+    "longrangesam": "S-300PS 5P85C ln",
+    "combatgroup": "BMP-2",
+    "transportgroup": "Ural-375",
+    "convoy": "Ural-375",
+}
+#: Aliases whose kind says less than the alias: `-aaa` is a `samgroup` of guns.
+_CARRIER_BY_ALIAS = {"-aaa": "ZSU-23-4 Shilka"}
+
+
+def alias_carrier_type(command: str) -> str | None:
+    """Return a unit type to carry a `#command` alias: one of the class the alias spawns.
+
+    A local model put a T-72B under `-sa8`, copying an example (MCP-CONTEXT-BUDGET, run 8): the editor then
+    draws no SAM ring, and the map reads like armour. The type comes from the group the alias spawns
+    (`_spawn group, name sa8_squad` → its first unit, `Osa 9A33 ln`), else from what the alias spawns.
+
+    Args:
+        command: The alias, `-sa8` (the leading `-` optional).
+
+    Returns:
+        The DCS unit type, or None for an alias that spawns nothing a carrier could stand for.
+    """
+    alias = command.strip() if command.strip().startswith("-") else f"-{command.strip()}"
+    entry = next((e for e in get_shortcuts() if alias in (e.get("aliases") or [])), None)
+    if entry is None:
+        return None
+    if alias in _CARRIER_BY_ALIAS:
+        return _CARRIER_BY_ALIAS[alias]
+    veaf_command = str(entry.get("veafCommand", ""))
+    named = re.search(r"name ([\w-]+)", veaf_command)
+    if named:
+        data = _load_bundled_data_yaml("veaf-units.yaml")
+        group = next((g for g in data.get("groups") or [] if named[1] in (g.get("aliases") or [])), None)
+        types = [u.get("type") for u in (group or {}).get("units") or [] if u.get("type")]
+        if types:
+            return str(types[0])
+        unit = next(
+            (
+                u
+                for u in data.get("units") or []
+                if named[1] in (u.get("aliases") or []) or str(u.get("unitType", "")).startswith(named[1])
+            ),
+            None,
+        )
+        if unit and unit.get("unitType"):
+            return str(unit["unitType"])
+    kind = re.match(r"_spawn (\w+)", veaf_command)
+    return _CARRIER_BY_SPAWN_KIND.get(kind[1]) if kind else None
 
 
 def list_shortcuts(name_contains: str | None = None, era: str | None = None) -> dict[str, Any]:
@@ -324,12 +388,6 @@ def describe_naming_conventions() -> dict[str, Any]:
     return {"conventions": [dict(convention) for convention in _NAMING_CONVENTIONS]}
 
 
-#: What a short listing of the known limitations keeps of an entry: enough to decide which to read.
-#: What the short listing keeps of an entry. No title (FIX-LIMITATIONS-SHORT-LISTING): with titles the listing
-#: reached 14 988 of the 15 000 characters a tool result holds; the kebab-case ids say what an entry is about.
-_LIMITATION_SUMMARY_FIELDS = ("id", "kind", "area", "theatres")
-
-
 def describe_known_limitations(
     kind: str | None = None,
     area: str | None = None,
@@ -343,9 +401,12 @@ def describe_known_limitations(
     veaf-tools not yet fixed in this version, and the DCS behaviours that raise no error and are
     wrong anyway (always returned — DCS is not ours to fix).
 
-    Without ``id`` or ``full``, only a short listing comes back — ``id``, ``kind``, ``area`` of each
-    entry: the whole text is about 74 000 characters, more than a tool result can carry, and an author
-    needs a tenth of it (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 10). ``kind``, ``area`` and
+    Without ``id`` or ``full``, only a short listing comes back — ``id``, ``kind``, ``area``,
+    ``theatres`` of each entry: the whole text is about 74 000 characters, more than a tool result can
+    carry, and an author needs a tenth of it (FIX-OPEN-TRAINING-NORMANDY-FINDINGS ticket 10). In the
+    compact profile, the ids alone, grouped by area: one object per entry was 13 008 characters, a
+    local model's tenth of its context before its first action; the kebab-case ids read as phrases
+    (MCP-CONTEXT-BUDGET). ``kind``, ``area`` and
     ``theatre`` narrow the listing and keep it short: three areas in full were 46 000 characters in
     one call, sent back with every later turn of the session (FIX-OPENCODE-TEST-FINDINGS 06). One or
     more ``id`` return those entries in full.
@@ -360,10 +421,12 @@ def describe_known_limitations(
         full: Return every selected entry in full, whatever the filters.
 
     Returns:
-        `{"veaf_tools_version", "limitations": [...], "detail": "short"|"full", "areas"?}`. A short
-        entry is `{"id", "kind", "area", "title", "theatres"?}`; a full one adds `"symptom"`,
-        `"workaround"`, `"cost"?`, `"measured"?`, `"fixed_in"?`. A short listing also carries `"areas"`,
-        the entry count of each area.
+        `{"veaf_tools_version", "detail": "short", "limitations": [{"id", "kind", "area", "theatres"?}],
+        "areas": {area: count}}` for a short listing, `{"veaf_tools_version", "detail": "short", "by_area":
+        {area: [id, ...]}}` in the compact profile;
+        `{"veaf_tools_version", "detail": "full", "limitations": [...]}` otherwise, an entry being
+        `{"id", "kind", "area", "title", "symptom", "workaround", "theatres"?, "cost"?, "measured"?,
+        "fixed_in"?}`.
 
     Raises:
         ValueError: An ``id`` names no entry.
@@ -387,7 +450,12 @@ def describe_known_limitations(
         ]
     short = not (full or ids)
     result: dict[str, Any] = {"veaf_tools_version": version, "detail": "short" if short else "full"}
-    if short:
+    if short and is_compact():
+        by_area: dict[str, list[str]] = {}
+        for entry in entries:
+            by_area.setdefault(entry["area"], []).append(entry["id"])
+        result["by_area"] = by_area
+    elif short:
         result["limitations"] = [
             {key: entry[key] for key in _LIMITATION_SUMMARY_FIELDS if key in entry} for entry in entries
         ]
@@ -400,6 +468,12 @@ def describe_known_limitations(
     return result
 
 
+#: What the short listing keeps of an entry, in the standard profile. No title (FIX-LIMITATIONS-SHORT-LISTING):
+#: with titles the listing reached 14 988 of the 15 000 characters a tool result holds; the kebab-case ids say
+#: what an entry is about.
+_LIMITATION_SUMMARY_FIELDS = ("id", "kind", "area", "theatres")
+
+
 #: The mission prompts shipped in `data/mission-prompts/`, by the `kind` the action takes.
 MISSION_PROMPT_KINDS: tuple[str, ...] = ("objective", "open-training", "persistent-campaign")
 #: A prompt's file stem, by kind: `new-<kind>-mission` but for a campaign, which is no one mission.
@@ -407,23 +481,185 @@ _MISSION_PROMPT_STEMS = {"persistent-campaign": "new-persistent-campaign"}
 MISSION_PROMPT_LANGS: tuple[str, ...] = ("en", "fr")
 
 
-def describe_authoring_guide() -> dict[str, Any]:
-    """Return the VEAF mission authoring guide, the first thing an MCP client reads.
+#: A guide section's heading: `## Title {#id}`, the id stable whatever the title says.
+_GUIDE_HEADING = re.compile(r"^## (?P<title>.+?) \{#(?P<id>[a-z0-9-]+)\}[ \t]*$", re.MULTILINE)
+#: The line under a guide section's heading saying when to read it: `<!-- when: ... -->`.
+_GUIDE_WHEN = re.compile(r"^<!-- when: (?P<when>.+?) -->[ \t]*\n", re.MULTILINE)
+#: The guide sections the compact profile's default answer carries whole: the calls of a simple mission with
+#: their parameters, and the report; `start_here` stands for the first-message section, whose "every new
+#: mission starts by choosing its kind, then loads its prompt" sent a local model to a 50 000-character
+#: prompt (run 7). The others come by `section`, from the index. With the
+#: recipe, a local model no longer described every action it might use: 19 describe_action were 30 555 of
+#: the 106 857 characters of its run (MCP-CONTEXT-BUDGET, 2026-11-25).
+GUIDE_ESSENTIAL_SECTIONS: tuple[str, ...] = ("recipe", "report-back")
+
+
+def _guide_sections(text: str) -> tuple[str, list[dict[str, str]]]:
+    """Split the authoring guide into its preamble and its `## ... {#id}` sections.
+
+    Args:
+        text: The guide's markdown.
 
     Returns:
-        `{"guide": <markdown text>}`.
+        The text before the first section, then one `{"id", "title", "when", "text"}` per section, its
+        text rendered as the model reads it: the heading without its id, no `when` line.
+
+    Raises:
+        ValueError: A `## ` heading without an id, or a section without its `when` line.
     """
-    return {"guide": read_bundled_text("veaf_mission_mcp", "data", "authoring-guide.md")}
+    bare = [line for line in text.splitlines() if line.startswith("## ") and not _GUIDE_HEADING.match(line)]
+    if bare:
+        raise ValueError(f"guide headings without an id: {bare}")
+    matches = list(_GUIDE_HEADING.finditer(text))
+    preamble = text[: matches[0].start()] if matches else text
+    sections: list[dict[str, str]] = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        body = text[match.end() + 1 : end]
+        when = _GUIDE_WHEN.match(body)
+        if when is None:
+            raise ValueError(f"guide section {match['id']!r} has no '<!-- when: ... -->' line")
+        sections.append(
+            {
+                "id": match["id"],
+                "title": match["title"],
+                "when": when["when"],
+                "text": f"## {match['title']}\n{body[when.end() :]}",
+            }
+        )
+    return preamble, sections
+
+
+#: Guidance to the model, in English as the whole guide: not a message to the user.
+_COMPACT_ROUTING = (
+    "A request that says what the mission holds (a zone, a SAM, a QRA, player slots, a date) is a simple "
+    "mission, whatever word it uses (training, exercise, test): follow the recipe below and load no mission "
+    "prompt. Load one only when the user asks for one of these by name or plainly wants it — an Open "
+    "Training on a whole map, an objective mission with its briefing, a persistent campaign — and know "
+    "its weight first, in characters: {sizes}. When a detail is missing, choose a sensible value and say "
+    "so rather than ask. What a human reads is in the user's language and keeps "
+    "its accents; identifiers (mission, zone and group names) are ASCII."
+)
+
+
+def _compact_routing() -> str:
+    """Say, first in the compact guide, when a mission prompt is worth its weight and when the recipe is enough.
+
+    A local model asked for "a modern training mission" with a zone, a SAM and a QRA loaded the Open Training
+    prompt: 12 pages, 77 622 of the run's 113 885 characters, and it filled 96 % of a 65 536-token context with
+    a plan and questions, building nothing (MCP-CONTEXT-BUDGET, run 6, 2026-11-25). The sizes are read from the
+    shipped prompts, so they stay true.
+
+    Returns:
+        The routing, one paragraph.
+    """
+    sizes = ", ".join(
+        f"{kind} about {len(describe_mission_prompt(kind, 'en', part='all')['prompt']) // 1000} 000"
+        for kind in MISSION_PROMPT_KINDS
+    )
+    return _COMPACT_ROUTING.format(sizes=sizes)
+
+
+def describe_authoring_guide(section: str | list[str] | None = None) -> dict[str, Any]:
+    """Return the VEAF mission authoring guide, the first thing an MCP client reads.
+
+    With no argument it returns the whole guide, as it always has; in the compact profile, the sections
+    every mission needs and an index of the others with when to read each: whole, it was 41 555
+    characters, a sixth of a local model's context before its first action (MCP-CONTEXT-BUDGET).
+    `section` reads one or more sections; `section="all"` the whole guide.
+
+    Args:
+        section: A section id, a list of them, or `"all"`.
+
+    Returns:
+        `{"guide": <markdown>}`; with no `section` in the compact profile, also `"start_here"`, `"sections"` —
+        `{id: when}` of each section left out — and `"read_more"`, how to read one.
+
+    Raises:
+        ValueError: An unknown section id, named with the known ones.
+    """
+    preamble, sections = _guide_sections(read_bundled_text("veaf_mission_mcp", "data", "authoring-guide.md"))
+    if section == "all" or (section is None and not is_compact()):
+        return {"guide": preamble + "".join(entry["text"] for entry in sections)}
+    if section is None:
+        return {
+            "start_here": _compact_routing(),
+            "guide": preamble + "".join(entry["text"] for entry in sections if entry["id"] in GUIDE_ESSENTIAL_SECTIONS),
+            # An id and when to read it: the titles and the repeated keys were a third of a full answer.
+            "sections": {
+                entry["id"]: entry["when"] for entry in sections if entry["id"] not in GUIDE_ESSENTIAL_SECTIONS
+            },
+            # The local model of run 5 still read 7 sections and 15 schemas the recipe made useless: 46 000
+            # characters before its first action (MCP-CONTEXT-BUDGET, 2026-11-25).
+            "read_more": "Call the recipe's actions without describe_action. Read a section only for what the "
+            "recipe does not cover: describe_authoring_guide with section=<id>.",
+        }
+    wanted = [section] if isinstance(section, str) else list(section)
+    known = {entry["id"]: entry for entry in sections}
+    unknown = [name for name in wanted if name not in known]
+    if unknown:
+        raise ValueError(f"Unknown guide section(s) {unknown}: expected 'all' or one of {', '.join(known)}.")
+    return {"guide": "".join(known[name]["text"] for name in wanted)}
 
 
 #: Where a mission prompt's part read after the user's approval starts (FIX-OPENCODE-TEST-FINDINGS 06).
 _BUILD_PART_MARKER = "<!-- part: build -->\n"
 #: The parts `describe_mission_prompt` takes; `all` is the whole text.
 MISSION_PROMPT_PARTS: tuple[str, ...] = ("scenario", "build", "all")
+#: A mission prompt's numbered heading, `## 4. Phase 2` or `### 4.6 Support`: the number is the section's
+#: id, the same in French and English.
+_PROMPT_HEADING = re.compile(r"^#{2,3} (?P<id>\d+(?:\.\d+)*)\.? (?P<title>.+)$", re.MULTILINE)
+#: The text before a prompt's first numbered section.
+PROMPT_INTRO_SECTION = "intro"
+#: The most prompt text one page of the compact profile carries, in characters, under its response ceiling.
+PROMPT_PAGE_CHARS = 7_000
 
 
-def describe_mission_prompt(kind: str, lang: str = "en", part: str | None = None) -> dict[str, Any]:
-    """Return the prompt that builds one kind of VEAF mission, end to end.
+def _prompt_sections(text: str, part: str | None) -> list[dict[str, str | None]]:
+    """Split one part of a mission prompt into its numbered sections.
+
+    Args:
+        text: The part's markdown.
+        part: The part's name, `None` for a prompt in one piece.
+
+    Returns:
+        One `{"id", "title", "text", "part"}` per section, in order; the text before the first numbered
+        heading is the section `intro` when there is any.
+    """
+    matches = list(_PROMPT_HEADING.finditer(text))
+    sections: list[dict[str, str | None]] = []
+    head = text[: matches[0].start()] if matches else text
+    if head.strip():
+        sections.append({"id": PROMPT_INTRO_SECTION, "title": "", "text": head, "part": part})
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        sections.append({"id": match["id"], "title": match["title"], "text": text[match.start() : end], "part": part})
+    return sections
+
+
+def _whole_part(result: dict[str, Any], prompt: str, part: str | None) -> dict[str, Any]:
+    """Return a prompt part whole, as the standard profile always has.
+
+    Args:
+        result: `{"kind", "lang"}`.
+        prompt: The whole prompt.
+        part: `scenario` (the default), `build`, or None.
+
+    Returns:
+        `{"kind", "lang", "prompt"}`, with `"part"` (and `"next_part"` after the scenario) for a prompt in two.
+    """
+    if _BUILD_PART_MARKER not in prompt:
+        return {**result, "prompt": prompt}
+    scenario, build = prompt.split(_BUILD_PART_MARKER, 1)
+    if part == "build":
+        return {**result, "prompt": build, "part": "build"}
+    return {**result, "prompt": scenario, "part": "scenario", "next_part": "build"}
+
+
+def describe_mission_prompt(
+    kind: str, lang: str = "en", part: str | None = None, section: str | None = None
+) -> dict[str, Any]:
+    """Return the prompt that builds one kind of VEAF mission, one page at a time.
 
     They used to live in the repository's `.prompts/`, for the user to paste; shipped in the
     executable, a user only has to ask for a mission (FEAT-AI-ZERO-SETUP).
@@ -434,19 +670,28 @@ def describe_mission_prompt(kind: str, lang: str = "en", part: str | None = None
     scenario discussion (FIX-OPENCODE-TEST-FINDINGS 06). The first part ends by saying how to load
     the second.
 
+    A part comes whole; in the compact profile, or when `section` is given, by pages of whole numbered
+    sections, :data:`PROMPT_PAGE_CHARS` at most but one section at least: the Open Training prompt was
+    one 55 635-character answer (MCP-CONTEXT-BUDGET). Each page gives the part's index and the next
+    section to read; `section` starts a page anywhere.
+
     Args:
         kind: `objective` (a mission played once, in one session), `open-training` (a VEAF
             training mission on a whole map) or `persistent-campaign` (one mission that runs on a server
             for weeks, its front moving on its own).
         lang: `en` or `fr`, the language the prompt is written in.
-        part: `scenario` (the default for a prompt in two parts), `build`, or `all`.
+        part: `scenario` (the default for a prompt in two parts), `build`, or `all` — the whole text
+            in one answer, when no `section` is given.
+        section: The numbered section a page starts at (`0`, `2.1`, `4.6`…, or `intro`); the page stays
+            in that section's part.
 
     Returns:
-        `{"kind", "lang", "prompt": <markdown text>}`; for one part of a prompt in two, `"part"` too,
-        and `"next_part"` after the first.
+        `{"kind", "lang", "prompt": <markdown text>}`; a page also carries `"sections"` — `{"id", "title"}`
+        of its part's sections — and `"next_section"` while the part goes on; for one part of a prompt
+        in two, `"part"` too, and `"next_part"` on the scenario's last page.
 
     Raises:
-        ValueError: An unknown kind, language or part.
+        ValueError: An unknown kind, language, part or section.
     """
     if kind not in MISSION_PROMPT_KINDS:
         raise ValueError(f"Unknown mission kind {kind!r}: expected one of {', '.join(MISSION_PROMPT_KINDS)}.")
@@ -456,13 +701,47 @@ def describe_mission_prompt(kind: str, lang: str = "en", part: str | None = None
         raise ValueError(f"Unknown part {part!r}: expected one of {', '.join(MISSION_PROMPT_PARTS)}.")
     stem = _MISSION_PROMPT_STEMS.get(kind, f"new-{kind}-mission")
     prompt = read_bundled_text("veaf_mission_mcp", "data", "mission-prompts", f"{stem}.{lang}.md")
-    result: dict[str, Any] = {"kind": kind, "lang": lang, "prompt": prompt}
-    if part == "all" or _BUILD_PART_MARKER not in prompt:
-        return result
-    scenario, build = prompt.split(_BUILD_PART_MARKER, 1)
-    if part == "build":
-        return {**result, "prompt": build, "part": "build"}
-    return {**result, "prompt": scenario, "part": "scenario", "next_part": "build"}
+    result: dict[str, Any] = {"kind": kind, "lang": lang}
+    if part == "all" and section is None:
+        return {**result, "prompt": prompt}
+    if section is None and not is_compact():
+        return _whole_part(result, prompt, part)
+    if _BUILD_PART_MARKER in prompt:
+        scenario, build = prompt.split(_BUILD_PART_MARKER, 1)
+        sections = _prompt_sections(scenario, "scenario") + _prompt_sections(build, "build")
+    else:
+        sections = _prompt_sections(prompt, None)
+    if section is not None:
+        start = next((index for index, entry in enumerate(sections) if entry["id"] == section), None)
+        if start is None:
+            known = ", ".join(str(entry["id"]) for entry in sections)
+            raise ValueError(f"Unknown section {section!r} in the {kind} prompt: expected one of {known}.")
+        current = sections[start]["part"]
+    else:
+        # `build` of a prompt in one part is that prompt, as the standard profile answers it.
+        has_build = any(entry["part"] == "build" for entry in sections)
+        current = None if part == "all" else ("build" if part == "build" and has_build else sections[0]["part"])
+        start = next(index for index, entry in enumerate(sections) if part == "all" or entry["part"] == current)
+    in_part = [entry for entry in sections if part == "all" or entry["part"] == current]
+    page: list[str] = []
+    size = 0
+    index = start
+    while index < len(sections) and (part == "all" or sections[index]["part"] == current):
+        text = str(sections[index]["text"])
+        if page and size + len(text) > PROMPT_PAGE_CHARS:
+            break
+        page.append(text)
+        size += len(text)
+        index += 1
+    result["prompt"] = "".join(page)
+    result["sections"] = [{"id": entry["id"], "title": entry["title"]} for entry in in_part]
+    if index < len(sections) and (part == "all" or sections[index]["part"] == current):
+        result["next_section"] = sections[index]["id"]
+    if current is not None and part != "all":
+        result["part"] = current
+        if current == "scenario" and "next_section" not in result:
+            result["next_part"] = "build"
+    return result
 
 
 def _module_enabled(mission_yaml_path: Path, module_id: str) -> bool | None:

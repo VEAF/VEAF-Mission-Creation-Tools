@@ -1,6 +1,6 @@
 # 05 — One price rule, fixed at its source
 
-Status: ✅ done (in-game check pending)
+Status: ✅ done
 Type: fix
 
 ## Decided

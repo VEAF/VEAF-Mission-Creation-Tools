@@ -299,7 +299,7 @@ limitations:
   symptom: |
     `add_group` puts a stationary vehicle group on ground measured clear only where a clear-ground
     catalogue covers the place: shipped are Caucasus (6 km around each of its 21 airfields) and
-    GermanyCW (6 km around the 25 combat zones of GermanyCW-v6). Elsewhere the group stays where it
+    GermanyCW (6 km around the 26 combat zones of GermanyCW-v6, swept again on DCS 2.9.32 on 2026-11-26). Elsewhere the group stays where it
     was asked to go, with a warning that names the places the theatre's catalogue holds and gives the sweep
     command for the spot ("no catalogue covers this place" is not "no catalogue": two AI runs read it so).
     A combat-zone marker whose group is assembled from dice rolls
@@ -554,7 +554,7 @@ limitations:
     Sinai (2026-10-12, 3 614 stands on 56 airfields), Falklands, Normandy (2026-10-13, 3 716 stands on
     90 airfields); and since 6.31.3 Afghanistan (1 435 stands on 26 airfields), GermanyCW (7 035 on
     227), MarianaIslands (282 on 8), MarianaIslandsWWII (534 on 11) and TheChannel (616 on 12),
-    captured on 2026-10-22.
+    captured on 2026-10-22; GermanyCW captured again on 2026-11-26 on DCS 2.9.32 (8 028 stands on 247).
     Dynamic slots work on every map: DCS places those players on the airfield itself, with no capture.
     The capture only lets the build trim a field's dynamic-slot stock to what it can park, and
     `list_airfields` count its stands; on these three maps neither happens.
@@ -608,6 +608,7 @@ limitations:
   kind: tool
   area: runtime
   title: "A JTAC's imposed laser code can be handed to another JTAC, and its ASSETS frequency is not the one CTLD announces"
+  fixed_in: "6.29.0"
   symptom: |
     Measured on the Syria Open Training v6, 2026-10-02: `modules.ASSETS` declares Reaper 1 with
     `jtac: 1688`, `freq: 36.0`, `mod: FM`; CTLD registered **two** JTACs on 1688 — the Reaper and the
@@ -1252,6 +1253,17 @@ limitations:
     the F-16C, measured 2026-10-08), and a squadron or mod skin installed on a server is legitimate
     and absent from any stock list.
   workaround: Check the livery in the Mission Editor, or copy it from a unit that already shows it.
+- id: airfield-aircraft-ignores-warehouses-yaml
+  kind: tool
+  area: mcp
+  title: "`list_airfield_aircraft` answers from the template catalogue, not from `src/warehouses.yaml`"
+  symptom: |
+    The action lists the types the build injects for the airfield's side. The build stocks exactly those
+    only when `src/warehouses.yaml` gives no `aircrafts:` list for that base: a list in the side's
+    `defaults:` or under the base in `airports:` replaces them, and a base in `exclude_airports:` gets
+    none. The action does not read that file, so after such an edit its answer is wider than what the
+    build stocks (found by the review of PR #1357, 2026-11-27).
+  workaround: Read the side's block of `src/warehouses.yaml` before telling which aircraft a base offers.
 - id: a-convoy-drives-through-an-ambush
   kind: dcs
   area: ground-ai
@@ -2307,3 +2319,36 @@ limitations:
     since FIX-CAMPAIGN-SIXTH-SERVER-FLIGHT, so a respawn or a teleport of a Mission Editor group keeps it.
   cost: |
     The campaign's AWACS answered no picture, bogey dope or "clean" for two evenings.
+
+- id: qra-has-no-start-time
+  kind: tool
+  area: runtime
+  title: "No setting brings a QRA online at a given time of the mission: `delay_before_activating` counts from the intrusion"
+  symptom: |
+    `delay_before_activating` is the seconds from the first intrusion, once the QRA is ready, to its take-off
+    (`veafQraCore.lua`, `STATUS_READY_WAITINGFORMORE`). An intruder leaving the zone does not stop the count: the
+    QRA takes off at the first check after the delay that finds an intruder in the zone, and the count starts
+    again only once the QRA has rearmed. A QRA asked "online at H+15 min" with `delay_before_activating: 900`
+    scrambles 15 minutes after the first intrusion, which can come in the first minute of the mission. `active_at_start` is a yes or no. Until 2026-11-26 the module's documentation and
+    the objective-mission prompt said "seconds after the start", and *Marteau du Golan*'s README promised a QRA
+    "en alerte à H+15 min".
+  workaround: |
+    Write in the briefing what the QRA does: "they take off N minutes after you enter their circle". For a QRA
+    that must stay on the ground for the first minutes, declare it `active_at_start: false` and arm it with the
+    `qra.start` radio command.
+
+- id: kola-airfields-added-by-dcs-2-9-32-unknown
+  kind: tool
+  area: pipeline
+  title: "Kola's three airfields added by DCS 2.9.32 (Honningsvåg, Hasvik, Vardø) are unknown to the tools"
+  theatres: [Kola]
+  symptom: |
+    DCS 2.9.32.30490 (2026-11-26) added Honningsvåg, Hasvik and Vardø to Kola. The airdrome table is built from
+    the `dcs-world-schema` reference database, read on DCS 2.9.30, and from a Kola dump captured before the
+    update: none of the three is in it. `airdrome_id_for_name` returns nothing for them, so a dynamic-slot
+    warehouse or a QRA `airport_link` that names one is not wired, with no error, and `list_airfields` does not
+    show them.
+  workaround: |
+    Name the airfield by its numeric id where a tool accepts one, or set it in the DCS Mission Editor. The fix
+    is a capture on a PC where Kola is installed (`veaf-tools dcs capture-map --parking`): the generator adds the
+    ids its dump has and the reference lacks (FEAT-AIRDROMES-DUMP-UNION).

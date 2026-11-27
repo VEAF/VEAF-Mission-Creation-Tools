@@ -1,6 +1,6 @@
 # 02 — The sitac shows the players, as Foothold's does
 
-Status: 🧑 waiting-human — implemented, waits for the in-game check
+Status: ✅ done
 Type: feature
 
 ## Found

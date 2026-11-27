@@ -1,6 +1,6 @@
 # 02 — A garrison's SAM in a group of its own
 
-Status: 🧑 waiting-human (in-game check)
+Status: ✅ done
 Type: feature
 
 ## To do

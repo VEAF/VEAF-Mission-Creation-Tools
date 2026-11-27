@@ -1,6 +1,6 @@
 # 02 — An order is checked 30 s later
 
-Status: 🧑 waiting-human
+Status: ✅ done
 Type: fix
 
 ## To do

@@ -20,4 +20,10 @@ Claude acting in a running mission while the squadron flies — spawn, destroy, 
 
 Measure DCS's dynamic weather on our server before using it in persistent campaigns: does it change during a mission, do clients see the same, what a restart gives. A test mission flown by two clients on Privé 2; answers go to the DCS traps and the campaign page. Until then, persistent campaigns take the bot's real weather (David, 2026-11-17).
 
+### [FEAT-CHERRY-PORTABLE-KIT](FEAT-CHERRY-PORTABLE-KIT/PRD.md) · ⬜
 
+Study shipping Cherry Studio portable with its data folder prefilled, so the kit's users get the two VEAF assistants without a restore (David, 2026-11-27).
+
+### [FIX-MCP-LIST-CATALOG-COMPACT-CAP](FIX-MCP-LIST-CATALOG-COMPACT-CAP/PRD.md) · ⬜
+
+In the compact profile `list_catalog` answers 7 921 characters with the response cut (77 actions, 8 228 raw, cap 8 000), already true on develop. Its own lot with two more tickets from the review of PR #1357: the guide recipe still keeps real values (Israel, Merkava), and the compact guide has only 100 characters of margin. Not implemented before David's go (2026-11-27).

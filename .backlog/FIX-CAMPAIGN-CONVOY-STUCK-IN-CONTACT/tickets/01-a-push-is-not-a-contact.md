@@ -1,6 +1,6 @@
 # 01 — A push that moves nothing is not a contact
 
-Status: 🧑 waiting-human
+Status: ✅ done
 Type: fix
 
 ## To do

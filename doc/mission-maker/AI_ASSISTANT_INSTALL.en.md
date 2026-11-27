@@ -68,7 +68,7 @@ Invoke-WebRequest https://github.com/VEAF/VEAF-Mission-Creation-Tools/releases/d
 
 1. The `%USERPROFILE%\VEAF\tools` folder receives the tools: it is their permanent place, apart from your missions.
 2. `veaf-tools-updater.exe` downloads the latest version and installs `veaf-tools.exe` next to it.
-3. `veaf-tools.exe ai-setup` connects the server to every AI assistant installed on the PC — Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI, OpenCode — and says for each what it did.
+3. `veaf-tools.exe ai-setup` connects the server to every AI assistant installed on the PC — Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI, OpenCode, [Cherry Studio](#cherry-studio) — and says for each what it did.
 
 Then **quit the AI assistant completely and start it again**: it reads its servers only at start-up.
 If you type the commands yourself for Claude Desktop, quit it **before** `ai-setup`: it keeps its settings in the same file, and could write its own copy back over it.
@@ -129,7 +129,7 @@ If you move the tools folder, run `.\veaf-tools.exe ai-setup` again from its new
 
 ## Another MCP-capable AI {#other-mcp-client}
 
-`ai-setup` knows Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI and OpenCode.
+`ai-setup` knows Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI, OpenCode and Cherry Studio.
 The VEAF server is a standard program: any other AI that can start a **local MCP server** can use it, once declared by hand.
 All of them ask for the same two facts: the **command** (the full path of `veaf-tools.exe`) and its **arguments** (`mcp`).
 Most read them from a JSON file of this shape:
@@ -152,6 +152,79 @@ Look for "MCP" in your AI's documentation: the file name changes, the two facts 
 The server asks the AI to read its authoring guide before any action, but not every AI honours that request; if yours starts guessing, open the conversation with:
 
 > "Before anything else, read the VEAF authoring guide with the `describe_authoring_guide` action, then the known limitations with `describe_known_limitations`."
+
+### A local model {#local-model}
+
+A model running on your graphics card (llama.cpp with `llama-server --mcp-servers-config`, for instance) has a much smaller context than an online AI: often 32 000 to 80 000 tokens.
+The VEAF server has a **compact profile** for it: it serves its guide by section, reads the large files by slices, cuts any answer beyond 8 000 characters and says how to read the rest.
+Add the `VEAF_MCP_PROFILE` variable to the server's declaration, next to `command` and `args`:
+
+```json
+"env": {"VEAF_MCP_PROFILE": "compact"}
+```
+
+Without it, the server answers as it answers Claude: whole, which suits an online AI and overflows a small context.
+Measured on 25 November 2026 in the compact profile: a simple mission, from the empty folder to the built and checked `.miz` (one combat zone), returns about 42 000 characters to the model, that is about 21 000 tokens (JSON counts about 2 characters a token).
+Add what the model writes and thinks: plan for at least 64 000 tokens of context.
+An objective mission or an Open Training also reads its prompt, page by page: allow more.
+
+#### Cherry Studio {#cherry-studio}
+
+Cherry Studio is the chat client we use with a local model.
+`ai-setup` sets up its MCP server named `veaf`, and creates it when it does not exist.
+
+**Close Cherry Studio before you run `ai-setup`.**
+Cherry keeps its servers in its database, and rewrites the links of an assistant when it saves it: a change made while it runs can be lost.
+If Cherry is open, `ai-setup` says so and touches nothing.
+
+What `ai-setup` writes into the `veaf` server:
+
+1. the command: the full path of `veaf-tools.exe`, the one you run;
+2. the argument `mcp`;
+3. the variable `VEAF_MCP_PROFILE=compact`, added to the server's other variables, which stay;
+4. the server active, of type `stdio`: a disabled server, for instance imported through a `cherrystudio://` link, is enabled again.
+
+By default, `ai-setup` links the server to no Cherry assistant and unlinks none.
+The tutorial's starting backup holds no MCP server: name the assistant to link.
+
+```powershell
+.\veaf-tools.exe ai-setup --cherry-assistant "VEAF - édition de mission"
+```
+
+The name must be exactly the assistant's name in Cherry: capitals, accents, spaces and dash included.
+Repeat the option to link several assistants; an unknown name is reported, without an error.
+
+If you start Cherry with `--user-data-dir`, give the same folder to `ai-setup`:
+
+```powershell
+.\veaf-tools.exe ai-setup --cherry-data-dir "E:\AI\my-cherry-profile" --cherry-assistant "VEAF - édition de mission"
+```
+
+Without this option, `ai-setup` sets up the folder Cherry uses itself, usually `%APPDATA%\CherryStudio`.
+
+To set up Cherry alone, without touching the other AI assistants on the PC, add `--only cherry`:
+
+```powershell
+.\veaf-tools.exe ai-setup --only cherry --cherry-assistant "VEAF - édition de mission"
+```
+
+With `--only cherry`, a Cherry that cannot be found is an error.
+Before it writes, `ai-setup` copies the database next to itself, as `cherrystudio.sqlite.veaf-backup-<date>`, in the `Data` folder of that Cherry folder (usually `%APPDATA%\CherryStudio\Data`).
+Run again with nothing to change, it writes nothing.
+
+`ai-setup` also refuses, writing nothing, when the database does not exist (Cherry 1.x, or never started), when its tables are not the ones it knows, or when two servers are named `veaf`.
+It was written and tested with Cherry Studio 2.2.3; if a newer version changes its tables, declare the server by hand in Cherry (its MCP settings, JSON import).
+The portable build of Cherry keeps its database next to its executable: `ai-setup` does not find it, so declare the server there by hand.
+Then start Cherry Studio again.
+
+### The VEAF server's prompts {#mcp-prompts}
+
+The VEAF server also offers four **prompts** (MCP prompts), one per kind of mission: *Mission one-shot* (one session), *Open Training* (a whole map), *Mission dynamique* (one Foothold-style mission: zones that change hands, a front that moves) and *Campagne persistante* (a persistent campaign: several missions, one per evening).
+A client that supports them, such as Cherry Studio, lists them in its prompt picker.
+Pick one: a dialog asks for a few fields (map, era, aircraft, side…), then a short message appears in the input box.
+Reread it, fix it if needed, send it: the model then loads the prompt for that kind of mission and asks you the remaining questions one by one.
+An optional field left blank leaves the choice to the model.
+The arguments are detailed on the [developer page](../developer/mission-editing-mcp.en.md#mcp-prompts).
 
 ## An AI without MCP {#no-mcp}
 

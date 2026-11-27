@@ -77,3 +77,9 @@ def _isolated_veaf_home(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None
     a test's warnings depend on the machine that runs it. A test that needs a grid sets its own home.
     """
     monkeypatch.setenv("VEAF_HOME", str(tmp_path / "veaf-home"))
+
+
+@pytest.fixture
+def compact(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Answer in the compact profile, the one a small-context client's MCP configuration selects."""
+    monkeypatch.setenv("VEAF_MCP_PROFILE", "compact")

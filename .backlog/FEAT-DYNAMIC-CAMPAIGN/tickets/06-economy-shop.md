@@ -1,6 +1,6 @@
 # 06 — Coalition credits and a small shop
 
-Status: 🧑 waiting-human — code and tests done on `feature/dynamic-campaign-v1` (2026-11-15); the in-game check of the test mission is David's
+Status: ✅ done
 
 Analysis note 05 §1–§2, §5. Coalition credits only: personal credits, ranks and career are V2.
 

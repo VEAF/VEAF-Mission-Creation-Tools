@@ -1,7 +1,8 @@
 # 18 — CTLD JTAC: an imposed laser code taken twice, the ASSETS frequency ignored
 
-Status: 🧑 waiting-human — filed in VEAF/CTLD as the lot `FIX-JTAC-IMPOSED-CODE-AND-RADIO`
-([VEAF/CTLD#240](https://github.com/VEAF/CTLD/pull/240), 2026-10-02); waits on its release
+Status: ✅ done — filed in VEAF/CTLD as the lot `FIX-JTAC-IMPOSED-CODE-AND-RADIO`
+([VEAF/CTLD#240](https://github.com/VEAF/CTLD/pull/240), 2026-10-02); vendored here with CTLD `2.0.0-rc13`
+(`7d205f2c`, #1116), shipped in 6.29.0 (2026-10-10)
 
 Files (VEAF/CTLD, `src/CTLD_jtac.lua`): `CTLDJTACManager:spawnJTAC`, `_initLaserPool`, `_assignLaserCode`,
 `_freeLaserCode`, `CTLDJTAC:new`; then the vendored `src/scripts/community/CTLD.lua` here, verbatim.
@@ -31,3 +32,11 @@ Checked in the vendored rc11 and on `VEAF/CTLD` develop (2026-10-02):
   `known-limitations.yaml` gets its `fixed_in`.
 
 Until then the limitation is in `known-limitations.yaml`, with the Syria mission's workaround.
+
+## Verified (2026-11-24)
+
+In the vendored `src/scripts/community/CTLD.lua`: `_resolveLaserCode` removes an imposed code from `_laserPool`
+and re-codes an automatic JTAC holding it; `CTLDJTAC:new` keeps a supplied radio (`radioSupplied`) and derives
+one from the code only when none is given; `_initLaserPool` skips codes with a 0 or a 9.
+`veafSpawn.JTACAutoLase` passes the ASSETS radio through to `autoLase`. `known-limitations.yaml` now carries
+`fixed_in: "6.29.0"` on `ctld-jtac-imposed-code-and-radio`.

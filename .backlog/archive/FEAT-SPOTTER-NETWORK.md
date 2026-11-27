@@ -123,7 +123,7 @@ not in the copy carried here, so a mission switching the feature on got one plai
 alerts travel and no site is ever woken.
 
 **Unblocked 2026-09-21.**
-[FIX-SKYNET-HELPER-AND-VENDORING ticket 03](../FIX-SKYNET-HELPER-AND-VENDORING/tickets/03-vendor-the-new-skynet-version.md)
+[FIX-SKYNET-HELPER-AND-VENDORING ticket 03](FIX-SKYNET-HELPER-AND-VENDORING.md)
 vendored Skynet 3.5.0, and `reportContact` was read back out of a freshly built `.miz` rather than
 assumed. Nothing stands between this lot and its reading now except a DCS session.
 

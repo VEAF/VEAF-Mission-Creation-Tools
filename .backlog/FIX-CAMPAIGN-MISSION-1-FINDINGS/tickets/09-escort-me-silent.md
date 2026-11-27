@@ -1,6 +1,6 @@
 # 09 — "Escort me" in an A-10C answered nothing
 
-Status: 🧑 waiting-human
+Status: 🚫 wontfix — the Kolkhida campaign was won (2026-11-24) without this having been checked in game
 Type: fix
 
 ## Found

@@ -13,7 +13,7 @@ The user may have neither a terminal nor the repository: everything is done thro
 
 ## 0. First of all
 
-1. **Read the VEAF authoring guide** (`describe_authoring_guide`) and follow it, in particular its **"A campaign mission"** and **"A persistent campaign"** paragraphs: they are the rules learnt on the first persistent campaign (*Bouclier de l'Oronte*, Syria). This prompt does not copy them: it says **when** to apply them.
+1. **Read the VEAF authoring guide** (`describe_authoring_guide`) and follow it, in particular its **"A campaign mission"** and **"A persistent campaign"** paragraphs (section `checklist`): they are the rules learnt on the first persistent campaign (*Bouclier de l'Oronte*, Syria). This prompt does not copy them: it says **when** to apply them.
 2. Call `capabilities` and read the **known limitations** (`describe_known_limitations`, the short list, then in full only the entries the campaign meets).
 3. **What is missing or broken in the tools, you report** in a **"Feedback for VMCT"** block of your final report (what, where, how you saw it, what you did instead).
 4. Answer in English, concisely. Ask your questions **one at a time**, with choices and your recommendation.
@@ -51,15 +51,15 @@ Everything else you decide with the guide and the shipped example, and you say s
    - `zones:` and `connections:`;
    - in `dynamic:`, keep the shipped values; adapt `support.assets` and `economy.tanker` to the names of the groups you will place in the template (step 3).
    Then `campaign_validate`, until it is clean. It checks the template (AWACS, tankers, radio plan) only once the template is there: its silence at this point says nothing about the template.
-3. **The template**: `scaffold_mission` into `<campaign folder>\template`, with the campaign's `theatre` (template `standard`).
-   Then apply the guide, paragraphs "A campaign mission" and "A persistent campaign": an AWACS and two tankers (a boom, a basket) orbiting over your own rear, their channels in `src/presets.yaml`, `modules.ASSETS`, the exact names repeated in `dynamic.support.assets` and `dynamic.economy.tanker`.
+3. **The template**: `scaffold_mission` into `<campaign folder>\template`, with the campaign's `theatre` (template `standard`), then `adapt_scaffold` on it (guide section `after-scaffold`).
+   Then apply the guide, paragraphs "A campaign mission" and "A persistent campaign" (section `checklist`): an AWACS and two tankers (a boom, a basket) orbiting over your own rear, their channels in `src/presets.yaml`, `modules.ASSETS`, the exact names repeated in `dynamic.support.assets` and `dynamic.economy.tanker`.
    **No `#veafInterpreter` unit** in the template: what the campaign must hold is declared as a zone.
 4. **`campaign_validate` until zero errors and zero warnings.**
 5. **`briefing.yaml`**: create it (`edit_mission_file`, empty `search`) with `operation`, `subtitle`, `situation` and the **axes of effort** under `axes:` (a `title` and a `text` each), in the pilots' language. A text holding ": " is quoted. Then `campaign_validate`.
 6. **Start**: `campaign_init` **without** `example`. It writes `campaign-state.yaml`.
    Change the zones **before** this step: afterwards, a zone added or renamed is a `campaign_validate` error. For a persistent campaign the way out loses nothing: the user deletes `campaign-state.yaml` in the File Explorer, and you run `campaign_init` again.
 7. **The mission**: `campaign_next`. It lays down `missions\mission-01\mission`, the players' waypoints, the radio plan, the DCS briefing, the theatre dossier and the kneeboard pages. Read every warning it returns and fix it in the template or `campaign.yaml`, then run `campaign_next` again: it refreshes without overwriting the work done.
-8. **Build**: `validate_mission` then `build_mission` on `missions\mission-01\mission`, then `inspect_built_mission`. The guide, section "Finish", says what to read in the result.
+8. **Build**: `validate_mission` then `build_mission` on `missions\mission-01\mission`, then `inspect_built_mission`. The guide, section `finish`, says what to read in the result.
 
 ## 4. What you hand the user
 

@@ -1,6 +1,6 @@
 # 01 — Zone upgrades: a permanent group bought on a friendly zone
 
-Status: 🔄 in-progress
+Status: ✅ done
 Type: feature
 
 ## Asked

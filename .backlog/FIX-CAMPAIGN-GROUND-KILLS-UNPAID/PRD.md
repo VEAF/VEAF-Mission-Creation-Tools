@@ -1,6 +1,8 @@
 # FIX-CAMPAIGN-GROUND-KILLS-UNPAID — a player's ground kill pays nothing and counts nothing
 
-Status: 🧑 waiting-human
+Status: ✅ done — merged in #1327 (2026-11-22), on `develop` with #1336 (2026-11-23), shipped in 6.39.0
+
+Flight check: after an evening on the Campagne server, ground kills are paid and counted (the `CREDITS SUMMARY` lists them), every pilot who took a slot is on the sitac's ranking, and the summary is written when the last player leaves (tickets 01 to 03's in-game checks).
 
 David, 2026-11-21, on the sitac's ranking of "Bouclier de l'Oronte": "le classement de la SITAC a l'air incomplet ; il manque des gens". It showed four pilots: RexAttaque 250, Paluche 90, griffin 0 with 3 deaths, Mitch 0 with 1 death.
 

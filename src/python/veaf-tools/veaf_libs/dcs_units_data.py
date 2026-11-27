@@ -12,6 +12,7 @@ from what the tooling actually knows about (see ``veaf-build update-dcs-data``).
 
 from __future__ import annotations
 
+import difflib
 import functools
 from collections.abc import Iterable
 from typing import Any
@@ -115,6 +116,48 @@ def _entries() -> dict[str, dict[str, Any]]:
         for entry in units or []
         if isinstance(entry, dict) and str(entry.get("type") or "").strip()
     }
+
+
+def _squash(text: str) -> str:
+    """Lower-case a name and drop every character that is not a letter or a digit."""
+    return "".join(ch for ch in text.lower() if ch.isalnum())
+
+
+def suggest_aircraft_types(unit_type: str, limit: int = 3) -> list[str]:
+    """Return the aircraft types an unknown name most likely meant, best first.
+
+    A display name (``"KC-135MPRS"``) and the type DCS expects (``"KC135MPRS"``) differ in
+    punctuation, and DCS ignores a type it does not know. A type or display name equal to the
+    request once punctuation and case are dropped is the only answer; otherwise close spellings.
+
+    Args:
+        unit_type: The name the caller wrote.
+        limit: The most types to return.
+
+    Returns:
+        Aircraft type names, spelled as DCS spells them; empty when nothing is close.
+    """
+    wanted = _squash(unit_type)
+    if not wanted:
+        return []
+    aircraft = [
+        e for e in _entries().values() if str(e.get("category") or "").strip().lower() in ("plane", "helicopter")
+    ]
+    exact = [
+        str(e["type"]).strip()
+        for e in aircraft
+        if wanted in (_squash(str(e["type"])), _squash(str(e.get("name") or "")))
+    ]
+    if exact:
+        return exact[:limit]
+    by_squash = {_squash(str(e["type"])): str(e["type"]).strip() for e in aircraft}
+    close = [by_squash[k] for k in difflib.get_close_matches(wanted, list(by_squash), n=limit, cutoff=0.6)]
+    prefixed = [t for k, t in by_squash.items() if k.startswith(wanted)]
+    ordered: list[str] = []
+    for candidate in [*exact, *prefixed, *close]:
+        if candidate not in ordered:
+            ordered.append(candidate)
+    return ordered[:limit]
 
 
 def get_unit_shape_name(unit_type: str) -> str | None:

@@ -1,6 +1,6 @@
 # 01 — Measure the object, then guard by what it can answer
 
-Status: 🧑 waiting-human
+Status: ✅ done
 
 - `veafSanctuary.lua` (around line 605): `weapon:getTarget()` can return an object with no `isExist` method; the guard `not target:isExist()` then raises in the scheduler.
 - First **measure** what that object is: log its `getCategory()` and `getName()` once, on a shot at a building, a unit, a static and a weapon, in a test mission or through the bridge. The scenery hypothesis is not proved.

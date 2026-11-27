@@ -1,6 +1,6 @@
 # 01 — The state file carries a `sitac` block
 
-Status: 🔄 in-progress
+Status: ✅ done
 Type: feature
 
 ## What

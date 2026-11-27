@@ -31,7 +31,7 @@ check that cannot come out negative proves nothing.
 **Session of 2026-10-03, flown without a pilot** — R1, R2, R3, R5, R9, R11, R12, R13, R14, R15, R16,
 R18, R21, R22, R32 and the three French items on the cloned QRA, the zone SA-6 and the neutral slot
 were run and are removed below; the results are in the lots and in
-[`FIX-IN-GAME-SESSION-2026-10-03`](.backlog/FIX-IN-GAME-SESSION-2026-10-03/PRD.md). R7, R17 and R19
+[`FIX-IN-GAME-SESSION-2026-10-03`](.backlog/archive/FIX-IN-GAME-SESSION-2026-10-03.md). R7, R17 and R19
 are rewritten to what is left. The missions are in `D:\dev\_VEAF\tmp\dcs-session-2026-10-03\`, with
 the plan and a `fiddle.sh` that runs a Lua file in the live mission.
 
@@ -58,6 +58,28 @@ M2 is the Syria Open Training of 2026-08-30, unchanged — R4, measured by a pro
 R36 (the C-130 on Ramstein stand #111, 997 m out, reads `EQUIPMENT (AB_Ramstein)`) and R4 passed and are
 removed; GermanyCW turned out to have type-100 stands, so M2 was not needed. R4's answer — a C-130 on a
 `100` is moved up to 1 473 m away or seated inside a hangar — is in `known-limitations.yaml`.
+
+### R55. Two DCS 2.9.31 fixes, still unmeasured on 2.9.32 — **a pilot for (a), none for (b)**
+
+[`CHORE-DCS-2932-DATA-REGEN`](.backlog/CHORE-DCS-2932-DATA-REGEN/PRD.md) 04. DCS 2.9.31 (build 29434) lists two fixes that touch what VMCT reads or writes; David runs DCS 2.9.32.30490 since 2026-11-26. Nothing is known yet: a measurement goes to `known-limitations.yaml` (`kind: dcs`, with its date and the value), no measurement, nothing is written.
+
+**(a) The coalition of a killed static — « Wrong attribution of coalition on kills of statics and S_EVENT_KILL missing in some cases ».**
+Handlers that read the kill: `veafEventHandler` (what it hands over as `target`), `veafCampaign.readPlayerKill`, `veafCampaignOps.onKill`, `veafCampaignEconomy.onKill`.
+Already measured on 2.9.31 (vehicles only): the fix does **not** resolve « kill target gone by name ».
+
+1. On a mission with the bridge, spawn a blue and a red static (a hangar, a barrel) and a blue A-10C II slot with guns armed.
+2. Through the bridge, log the events: register an event handler that writes `id`, `initiator`, `target`, `target:getCoalition()`, `target:getName()` for `S_EVENT_KILL` and `S_EVENT_DEAD`.
+3. Destroy the red static, then the blue static, with the guns.
+   - **S_EVENT_KILL arrives with the right coalition for both statics**: the DCS fix holds on statics. The fallback in `readPlayerKill` (ask the raw `dcsTarget`) stays as it is, harmless; write the measurement.
+   - **S_EVENT_KILL arrives with coalition 0 or the wrong one**: the fix is not complete; the campaign pays or misses the kill on statics. Write the symptom in `known-limitations.yaml`.
+   - **No S_EVENT_KILL at all, only `S_EVENT_DEAD`**: the kill reaches the campaign through the DEAD path only; note which handlers see it.
+
+**(b) « Prepare Mission » and the radio presets — « Prepare Mission stores unchangeable radio presets ».** No pilot needed.
+
+1. Build any mission with a preset radio plan (the Open Training Caucasus does), open it in the Mission Editor.
+2. Run « Prepare Mission » (find its menu entry in the editor and say which one it was), save, open a client slot's radio page.
+   - **Presets are editable in the cockpit and in the Mission Editor**: fixed in 2.9.31; write the measurement with the date.
+   - **They are locked**: the injector's presets cannot be changed after Prepare Mission; write it as a limitation with the exact button.
 
 ### R54. What the combat log records of a real fight — **two pilots, one of them in a helicopter with a gun**
 
@@ -175,12 +197,12 @@ The tests check what is written in the mission; what DCS draws from `style = "da
 
 ### R47. What *Kolkhida* mission 1 found, once fixed — **a pilot for items 1 to 3, two for item 7**
 
-[`FIX-CAMPAIGN-MISSION-1-FINDINGS`](.backlog/FIX-CAMPAIGN-MISSION-1-FINDINGS/PRD.md), and ticket 02 of [`FIX-CAPTURE-ZONE-MEMBERSHIP`](.backlog/FIX-CAPTURE-ZONE-MEMBERSHIP/PRD.md).
+[`FIX-CAMPAIGN-MISSION-1-FINDINGS`](.backlog/FIX-CAMPAIGN-MISSION-1-FINDINGS/PRD.md), and ticket 02 of [`FIX-CAPTURE-ZONE-MEMBERSHIP`](.backlog/archive/FIX-CAPTURE-ZONE-MEMBERSHIP.md).
 Measured with David on 2026-10-09 (`D:\dev\_VEAF\tmp\dcs-session-2026-10-09-kolkhida`, mission 1 rebuilt as flown, fiddle hook): every stand of Batumi and Senaki is on `RUNWAY` surface; a CH-47F inside Batumi's zone gets *Request Equipment* and no crate, because CTLD creates it under the USA, absent from a campaign's coalitions (fixed in VEAF/CTLD, to be vendored); "Escort me" spawns its escort locally, from a placed slot in the air and from a dynamic slot on the ground.
 
 **Prepare**: a copy of `D:\dev\_VEAF\_campaigns\campaign-kolkhida` (never the live campaign), mission 1 rebuilt from the lot's branch **with the CTLD release that takes the unit's country**, security off in the copy, a game master slot, a CH-47F slot on Batumi stand 6 and on a Kobuleti stand **inside its logistic circle** (stand 24 is 1 200 m out of it: no crate, no troops — measured 2026-10-10; David keeps the 250 m zone, pilots taxi into the circle), an A-10C slot in the air near Batumi, `rules.assault_seconds: 60`.
 
-**Run 2026-10-10** (`D:\dev\_VEAF\tmp\dcs-session-2026-10-10`, CTLD rc13, no pilot): item 1 at Batumi — troops board, the crate appears **20 m** abeam, because the campaign's `ctld-config.yaml` predates rc13's per-type `crateSpawnSector`/`crateSpawnDistance` (to be completed before mission 2); item 2 passed (`EL:16` on the CDU, ground 5.0 m); item 3 — ATC silent and no garrison unit on the concrete at all three fields, but the QRA on the runway was destroyed 5 s after its scramble: fixed in [`FIX-QRA-GROUND-START`](.backlog/FIX-QRA-GROUND-START/PRD.md), to be run again. The QRA counts **human** aircraft only: an AI intruder does not trigger it. Item 4 passed without a red player (no smoke, no call; the red-player half needs a second pilot); item 6 passed (the convoy became Poti's garrison and drove on to the centre, 0 m); item 7 passed (A-10C 0, Hornet with AIM-120 1, *3 player(s) on CAP* fixes 3). Found on the way: a convoy holding at its standoff in front of an enemy DCS does not make it engage stays frozen, its watch refreshing the contact for ever. **Second pass, the same afternoon** (`TEST-Kolkhida-M1b`, built from `develop` with FIX-QRA-GROUND-START): item 1 passed at Kobuleti too, the CH-47F set to a ground start 40 m from the circle's centre (a client helicopter on a stand is seated elsewhere by DCS, now in `known-limitations.yaml`); item 3 passed, the Senaki MiG-29 pair rolling from the runway with its wheels up 25–35 s after the scramble. Not explained: on the first entry into the air slot inside the zone the QRA did not react for about 90 s; on the second it did within 5 s.
+**Run 2026-10-10** (`D:\dev\_VEAF\tmp\dcs-session-2026-10-10`, CTLD rc13, no pilot): item 1 at Batumi — troops board, the crate appears **20 m** abeam, because the campaign's `ctld-config.yaml` predates rc13's per-type `crateSpawnSector`/`crateSpawnDistance` (to be completed before mission 2); item 2 passed (`EL:16` on the CDU, ground 5.0 m); item 3 — ATC silent and no garrison unit on the concrete at all three fields, but the QRA on the runway was destroyed 5 s after its scramble: fixed in [`FIX-QRA-GROUND-START`](.backlog/archive/FIX-QRA-GROUND-START.md), to be run again. The QRA counts **human** aircraft only: an AI intruder does not trigger it. Item 4 passed without a red player (no smoke, no call; the red-player half needs a second pilot); item 6 passed (the convoy became Poti's garrison and drove on to the centre, 0 m); item 7 passed (A-10C 0, Hornet with AIM-120 1, *3 player(s) on CAP* fixes 3). Found on the way: a convoy holding at its standoff in front of an enemy DCS does not make it engage stays frozen, its watch refreshing the contact for ever. **Second pass, the same afternoon** (`TEST-Kolkhida-M1b`, built from `develop` with FIX-QRA-GROUND-START): item 1 passed at Kobuleti too, the CH-47F set to a ground start 40 m from the circle's centre (a client helicopter on a stand is seated elsewhere by DCS, now in `known-limitations.yaml`); item 3 passed, the Senaki MiG-29 pair rolling from the runway with its wheels up 25–35 s after the scramble. Not explained: on the first entry into the air slot inside the zone the QRA did not react for about 90 s; on the second it did within 5 s.
 
 4. *(ticket 07)* Fire on the red assault convoy until it falls back, no red player connected.
    - **Verified**: no smoke, no troops-in-contact call; with a red player connected, both come back.
@@ -378,7 +400,7 @@ the pilot's level with every slot change) was copied by hand to all six servers 
 reported scenario needs a multiplayer server and a pilot listed in `veaf-pilots.txt`, which a local
 single-player session cannot give.
 
-**It could not pass before [`FIX-SECURITY-GROUP-LEVEL`](.backlog/FIX-SECURITY-GROUP-LEVEL/PRD.md)**: from 6.14.0 every secured `+` click was refused to every pilot (`Group.getByID` does not exist, found on `private1` on 2026-10-10).
+**It could not pass before [`FIX-SECURITY-GROUP-LEVEL`](.backlog/archive/FIX-SECURITY-GROUP-LEVEL.md)**: from 6.14.0 every secured `+` click was refused to every pilot (`Group.getByID` does not exist, found on `private1` on 2026-10-10).
 Run it on a mission built with that fix, and add what that lot leaves to check: the click passes from a **dynamic** slot and from a **placed** one, an **unlisted** pilot is refused, and `/secu elevate` answers on a mission whose `mission.yaml` does not list `SECURITY`.
 That closes the lot too.
 
@@ -449,7 +471,7 @@ on spawn, and all four kept `life=18` throughout — not investigated.
 The original protocol follows.
 
 Not a shipped fix but a **measurement**, which decides the design of
-[`FEAT-HELICOPTER-SPAWN`](.backlog/FEAT-HELICOPTER-SPAWN/PRD.md) ticket 02
+[`FEAT-HELICOPTER-SPAWN`](.backlog/archive/FEAT-HELICOPTER-SPAWN.md) ticket 02
 ([#164](https://github.com/VEAF/VEAF-Mission-Creation-Tools/issues/164)): a helicopter spawned by
 `_spawn group` should sit where the marker is, and nobody knows which group data DCS keeps on the ground.
 
@@ -554,7 +576,7 @@ was logged: the script matched unit names against group names. Hence R30.
 
 The protocol:
 
-Tickets 05 and 06 of [`FEAT-HELICOPTER-SPAWN`](.backlog/FEAT-HELICOPTER-SPAWN/PRD.md): none of
+Tickets 05 and 06 of [`FEAT-HELICOPTER-SPAWN`](.backlog/archive/FEAT-HELICOPTER-SPAWN.md): none of
 `SwitchWaypoint` loops, `Land` with a duration, `EngageTargetsInZone` or `GroundEscort` is measured on a
 scripted helicopter.
 
@@ -657,7 +679,7 @@ reading wrong: it is the `Land` waypoint itself that sends a helicopter to the n
 
 The original protocol follows.
 
-The checkpoint of [`FEAT-HELICOPTER-SPAWN`](.backlog/FEAT-HELICOPTER-SPAWN/PRD.md) ticket 04, before
+The checkpoint of [`FEAT-HELICOPTER-SPAWN`](.backlog/archive/FEAT-HELICOPTER-SPAWN.md) ticket 04, before
 `patrol`, `attack` and `escort` are written: none of the DCS tasks the roles use is measured on a
 scripted helicopter.
 
@@ -724,7 +746,7 @@ mission had no SAM sites in it at all. **Unverified**, and his to answer.
 The cycling seen inside `verify-mission-c` — the SA-6 locks, slews, elevates, then returns to travel
 state, five times, without firing — is therefore **ours**. A site that behaves correctly with no scripts
 and stands down mid-engagement with Skynet running is being switched off by Skynet. See
-[`FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING`](.backlog/FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING/PRD.md).
+[`FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING`](.backlog/archive/FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING.md).
 
 It also reopens **Tripack's** report of silent zone SAMs on 6.15.2, which had been filed under "DCS is
 broken for everyone". It never was.
@@ -739,7 +761,7 @@ Items **11** and **16** are fully measurable, with no double reading and no cave
 release has yet.
 
 Items 21, 22 and 10 were all run on it on 2026-08-28 and are closed — item 21's counts are recorded in
-[`FIX-PLACEMENT-IGNORES-SCENERY` ticket 04](.backlog/FIX-PLACEMENT-IGNORES-SCENERY/tickets/04-refuse-the-farp-when-the-escort-cannot-be-placed.md),
+[`FIX-PLACEMENT-IGNORES-SCENERY` ticket 04](.backlog/archive/FIX-PLACEMENT-IGNORES-SCENERY.md),
 item 22's answer in the `scenery-death-events-in-dcs` note and in `DROP-MIST` ticket 09. What remains
 here is the mission itself, still the right one to load for anything needing a live VEAF mission on
 Caucasus.
@@ -839,7 +861,7 @@ clearance — the condition cannot hold, because `Disposition.getSimpleZones` sa
 than tessellating. `FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND` is reopened with these numbers, and its
 ticket 03 replaces the method. **Re-run this item once that lands.**
 
-Unblocks [`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](.backlog/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/PRD.md)
+Unblocks [`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](.backlog/archive/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND.md)
 (shipped 2026-09-01) and item 04 of `FIX-PLACEMENT-IGNORES-SCENERY`. **Written up as item 25 at the
 end of this file** — three markers, and the point worth repeating here: *a run where nothing moves in
 any of the three is a failure, not a pass*. It would mean the fix turned tier 1 off.
@@ -1040,7 +1062,7 @@ just its `mission` file). Each shape is then a table entry, not an investigation
 
 `FIX-SKYNET-DYNAMICSPAWN-SCOPE` confirmed: `group added to RED IADS`, and `0 actual reactivations`
 on a spawn into a dark network. The cycling seen alongside it is a **different** defect and now has
-its own lot, [`FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING`](.backlog/FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING/PRD.md).
+its own lot, [`FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING`](.backlog/archive/FIX-SKYNET-SITE-GOES-DARK-BEFORE-FIRING.md).
 
 ---
 
@@ -1256,7 +1278,7 @@ Détail complet, y compris mes deux fausses alertes de méthode, dans
 
 ## 25. The FARP escort on clear ground must not move — unblocks `FIX-PLACEMENT-IGNORES-SCENERY` 04
 
-Opened by [`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](.backlog/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/PRD.md),
+Opened by [`FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND`](.backlog/archive/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND.md),
 whose code fix and tests landed 2026-09-01. Item 21's own non-regression case failed on 2026-08-28: a
 `-farp` on open ground, nothing within a kilometre, logged `FARP escort: bearing 0 requested, 25 used at
 1.054x distance`. Tier 1 of `findClearBearing` selected out of `Disposition`'s cloud before testing the
@@ -1277,7 +1299,7 @@ turned tier 1 off. The last two rows are the half that makes this a real check.
 `no usable point in Disposition's cloud, walking the bearings instead` now logs at **info**, so the
 old instruction to set `veafGrass.LogLevel = "debug"` for this no longer applies.
 
-Full protocol: [ticket 02](.backlog/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND/tickets/02-verify-in-game-that-nothing-moves.md).
+Full protocol: [ticket 02](.backlog/archive/FIX-PLACEMENT-MOVES-ON-CLEAR-GROUND.md).
 
 ---
 

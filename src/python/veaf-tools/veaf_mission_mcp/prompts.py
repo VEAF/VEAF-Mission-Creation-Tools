@@ -1,49 +1,27 @@
-"""MCP prompts a pilot fills in: four ready-made requests (FEAT-MCP-PROMPTS).
+"""MCP prompts a pilot fills in: one per kind of mission (FEAT-MCP-PROMPTS).
 
 A client such as Cherry Studio lists the server's prompts, asks the user for each argument in a dialog,
-then inserts the text returned here in its input box, where the user rereads it and sends it. The model
-receives that text. So each function below only fills a French sentence; it decides nothing a tool would.
+then inserts the text returned here in its input box, where the user rereads and sends it. The model
+receives that text.
 
-The texts come from the blocks of the "Marteau du Golan" tutorial that worked on a local model: positions
-are DCS ``x``/``y`` already converted (``x`` is the northing, ``y`` the easting, as in a mission table;
-``docs/agents/dcs-coordinates.md``), the mission folder is explicit, and the mission is validated and
-built once, at the end. An action is written between backticks and nothing else is: a test reads the
-backticks to check that each action exists, in the catalogue both profiles serve, and that the authoring
-guide teaches it.
+Each prompt answers the first question of the authoring guide, *which kind of mission?*, for the user:
+a one-shot mission with objectives, an Open Training, a persistent campaign. It **does not copy** the
+mission prompt of that kind: it gathers the closed answers the prompt asks first (map, era, aircraft...)
+and tells the model to load the prompt with ``describe_mission_prompt`` and follow it from its first
+section. The guide and the mission prompts stay the single source. What needs a discussion, a table to
+validate or a measure stays with the mission prompt: scenario, objectives, front, zones, escorts, and
+the date, time and weather, which the prompt proposes (a persistent campaign fixes none at all).
+
+An action is written between backticks and nothing else is: a test reads the backticks to check that
+each action exists, in the catalogue both profiles serve, and that the authoring guide teaches it.
 """
 
 from typing import Annotated, Any
 
-from pydantic import BeforeValidator, Field
+from pydantic import Field
 
-#: The folder a new mission goes to when the user names none.
-DEFAULT_MISSIONS_ROOT = "C:\\VEAF-Missions"
-#: What a sentence says of a detail the user left blank: the model decides, and says so.
-_LEFT_TO_THE_MODEL = "à toi de choisir"
-#: The closing instruction of every prompt: one build, at the end.
-_BUILD_ONCE = (
-    "Valide (`validate_mission`) et construis (`build_mission`) une seule fois, quand tout est placé, puis résume."
-)
-
-
-def _blank_to_none(value: Any) -> Any:
-    """Read an empty or blank string as no value, the way a client sends a field the user left empty."""
-    if isinstance(value, str) and not value.strip():
-        return None
-    return value
-
-
-def _decimal_point(value: Any) -> Any:
-    """Accept a decimal comma (``35,55``) in a number typed by a pilot."""
-    return value.strip().replace(",", ".") if isinstance(value, str) else value
-
-
-#: A number the user may leave out.
-OptionalNumber = Annotated[float | None, BeforeValidator(_blank_to_none), BeforeValidator(_decimal_point)]
-#: A whole number the user may leave out.
-OptionalInt = Annotated[int | None, BeforeValidator(_blank_to_none)]
-#: A required number, typed with a decimal comma or not.
-RequiredNumber = Annotated[float, BeforeValidator(_decimal_point)]
+#: The languages a mission prompt is written in (`describe_mission_prompt`'s `lang`).
+LANGUAGES = ("fr", "en")
 
 
 def _text(value: str) -> str:
@@ -51,194 +29,231 @@ def _text(value: str) -> str:
     return value.strip()
 
 
-def _num(value: float) -> str:
-    """Write a number the way the actions read it: ``-185000``, not ``-185000.0``."""
-    return str(int(value)) if float(value).is_integer() else str(value)
-
-
-def _side(camp: str, default: str) -> str:
-    """Return the coalition the user named, or the default one when blank."""
-    return _text(camp) or default
-
-
-def nouvelle_mission(
-    nom: Annotated[str, Field(description="Nom de la mission, sans espace ni accent (ex. Marteau-du-Golan)")],
-    carte: Annotated[str, Field(description="Carte DCS : Caucase, Syrie, Golfe Persique, Allemagne guerre froide…")],
-    date: Annotated[str, Field(description="Date de la mission (ex. 16 avril 2024). Vide : le modèle choisit")] = "",
-    heure: Annotated[str, Field(description="Heure locale de départ (ex. 15h00). Vide : le modèle choisit")] = "",
-    meteo: Annotated[
-        str, Field(description="Météo (ex. nuages à 3 000 m, vent d'ouest 12 nœuds). Vide : le modèle choisit")
-    ] = "",
-    scenario: Annotated[
-        str, Field(description="Scénario en quelques phrases : qui attaque, quoi, combien de pilotes")
-    ] = "",
-    dossier: Annotated[
-        str, Field(description="Dossier de la mission, vide ou à créer. Vide : C:\\VEAF-Missions\\<nom>")
-    ] = "",
-) -> str:
-    """Return the request that creates a new mission from its name, its map and a few details.
+def _language(langue: str) -> str:
+    """Return the language asked for, ``fr`` when blank.
 
     Args:
-        nom: The mission's name.
-        carte: The DCS map.
-        date: The mission's date; blank leaves it to the model.
-        heure: The local start time; blank leaves it to the model.
-        meteo: The weather; blank leaves it to the model.
-        scenario: What the mission is about; blank leaves it to the model.
-        dossier: The mission folder; blank means ``C:\\VEAF-Missions\\<nom>``.
+        langue: ``fr`` or ``en``, any case, or blank.
+
+    Returns:
+        The language code.
+
+    Raises:
+        ValueError: When the value is neither ``fr`` nor ``en``.
+    """
+    value = _text(langue).lower() or LANGUAGES[0]
+    if value not in LANGUAGES:
+        raise ValueError(f"langue must be one of {LANGUAGES}, got {langue!r}")
+    return value
+
+
+def _given(label: str, value: str, default: str | None = None) -> str:
+    """Write one answer the user gave, or the default one, or nothing when there is neither.
+
+    Args:
+        label: What the answer is about, at the start of the line.
+        value: What the user typed; may be blank.
+        default: What the prompt applies when the user typed nothing; ``None`` for no line at all.
+
+    Returns:
+        The line, with its trailing newline, or the empty string.
+    """
+    text = _text(value) or default
+    return f"- {label} : {text}.\n" if text else ""
+
+
+def _request(title: str, kind: str, langue: str, answers: str, dossier: str, left_to_the_prompt: str) -> str:
+    """Build the short message every mission prompt returns.
+
+    Args:
+        title: The kind of mission, in the user's words.
+        kind: The `describe_mission_prompt` kind that holds its prompt.
+        langue: The language of the mission and of that prompt.
+        answers: The lines of answers the user already gave.
+        dossier: The folder the user named, blank for none.
+        left_to_the_prompt: What the mission prompt still asks, in a clause.
 
     Returns:
         The French text the client puts in the user's input box.
     """
-    nom = _text(nom)
-    folder = _text(dossier) or f"{DEFAULT_MISSIONS_ROOT}\\{nom}"
+    lang = _language(langue)
+    folder = _text(dossier)
+    where = f"Dossier de la mission : {folder}." if folder else "Dossier : demande-moi où le créer."
     return (
-        f"Crée une mission sur la carte {_text(carte)} nommée {nom}, modèle standard, en français.\n"
-        f"Dossier de la mission : {folder}.\n"
-        f"Date : {_text(date) or _LEFT_TO_THE_MODEL}. Heure locale : {_text(heure) or _LEFT_TO_THE_MODEL}.\n"
-        f"Météo : {_text(meteo) or _LEFT_TO_THE_MODEL} (visibilité bonne, vent modéré : des hélicoptères peuvent voler).\n"
-        f"Scénario : {_text(scenario) or _LEFT_TO_THE_MODEL}.\n"
-        "Commence par lire le guide (`describe_authoring_guide`) puis les limites connues "
-        "(`describe_known_limitations`), et suis la recette du guide appel par appel.\n"
-        "Les positions que je donne sont des x/y DCS déjà convertis : ne les passe pas au géocodeur.\n"
-        f"{_BUILD_ONCE}"
+        f"Je veux créer une {title}.\n"
+        f'Charge le prompt de ce type avec `describe_mission_prompt` (kind : "{kind}", lang : "{lang}") '
+        "et suis-le dès sa première section, après avoir lu le guide (`describe_authoring_guide`).\n"
+        "Mes réponses aux premières questions du prompt (ne me les repose pas) :\n"
+        f"{answers}"
+        f"- Langue de la mission et de ses textes : {lang}.\n"
+        f"{where}\n"
+        f"Le reste ({left_to_the_prompt}), le prompt me le demande ou le propose : une question à la fois."
     )
 
 
-def ajouter_qra(
-    mission: Annotated[str, Field(description="Dossier de la mission (ex. C:\\VEAF-Missions\\Marteau-du-Golan)")],
-    base: Annotated[str, Field(description="Base aérienne d'où décollent les intercepteurs (ex. Mezzeh)")],
-    x: Annotated[RequiredNumber, Field(description="x DCS du centre de la zone protégée (nord-sud, ex. -185000)")],
-    y: Annotated[RequiredNumber, Field(description="y DCS du centre de la zone protégée (est-ouest, ex. 20000)")],
-    rayon_km: Annotated[OptionalNumber, Field(description="Rayon de la zone en km. Vide : 30")] = None,
+def mission_one_shot(
+    carte: Annotated[
+        str, Field(description="Carte DCS de la mission : Caucase, Syrie, Golfe Persique, Allemagne guerre froide…")
+    ],
     appareils: Annotated[
-        str, Field(description="Appareils (ex. 2 MiG-29S, et 4 s'il y a au moins 4 avions ennemis)")
+        str,
+        Field(description="Appareils joués et nombre de pilotes (ex. 4 F/A-18C et 2 AH-64D). Vide : le modèle demande"),
     ] = "",
-    delai_s: Annotated[
-        OptionalInt, Field(description="Délai en secondes entre la première intrusion et le décollage. Vide : aucun")
-    ] = None,
-    camp: Annotated[str, Field(description="Camp de la QRA : rouge ou bleu. Vide : rouge")] = "",
-) -> str:
-    """Return the request that adds a QRA (interceptors that scramble when an enemy enters an area).
-
-    The delay is counted from the first intrusion into the zone, not from the mission's start: the
-    sentence says so, since that is the sense of ``delay_before_activating``.
-
-    Args:
-        mission: The mission folder.
-        base: The airfield the interceptors take off from.
-        x: DCS ``x`` of the zone's centre.
-        y: DCS ``y`` of the zone's centre.
-        rayon_km: The zone's radius in km; blank means 30.
-        appareils: The aircraft; blank leaves them to the model.
-        delai_s: Seconds from the first intrusion to the scramble; blank means none.
-        camp: The QRA's coalition; blank means red.
-
-    Returns:
-        The French text the client puts in the user's input box.
-    """
-    base = _text(base)
-    radius = _num(rayon_km) if rayon_km else "30"
-    aircraft = (
-        _text(appareils)
-        or f"des intercepteurs de ton choix ({_LEFT_TO_THE_MODEL}, vérifie le type avec `list_unit_types`)"
-    )
-    if delai_s:
-        timing = (
-            f"Elle décolle {delai_s} s après la première intrusion dans sa zone, pas depuis le début de la mission : "
-            "l'attente démarre à l'intrusion (paramètre delay_before_activating)."
-        )
-    else:
-        timing = "Elle décolle dès la première intrusion dans sa zone."
-    return (
-        f"Dans la mission {_text(mission)}, ajoute une QRA {_side(camp, 'rouge')} (`create_qra`) qui ne décolle pas pour des hélicoptères.\n"
-        f"QRA-{base} : base de {base}, zone de {radius} km centrée sur x {_num(x)}, y {_num(y)} (coordonnées DCS), {aircraft}.\n"
-        f"{timing}\n"
-        f"{_BUILD_ONCE}"
-    )
-
-
-def ajouter_zone_de_combat(
-    mission: Annotated[str, Field(description="Dossier de la mission (ex. C:\\VEAF-Missions\\Marteau-du-Golan)")],
-    nom: Annotated[str, Field(description="Nom de la zone, sans espace (ex. SA6Sasa)")],
-    x: Annotated[RequiredNumber, Field(description="x DCS du centre de la zone (nord-sud, ex. -188500)")],
-    y: Annotated[RequiredNumber, Field(description="y DCS du centre de la zone (est-ouest, ex. 12500)")],
-    rayon: Annotated[OptionalInt, Field(description="Rayon de la zone en mètres. Vide : 1000")] = None,
-    contenu: Annotated[
-        str, Field(description="Ce qu'elle contient (ex. une batterie SA-6, 2 groupes de blindés)")
+    duree: Annotated[str, Field(description="Durée de vol de la séance, briefing exclu (ex. 2 h). Vide : 2 h")] = "",
+    genre: Annotated[
+        str,
+        Field(
+            description="Genre de mission : frappe en profondeur, appui feu, SEAD, escorte… Vide : le modèle propose"
+        ),
     ] = "",
-    camp: Annotated[str, Field(description="Camp de la zone : rouge ou bleu. Vide : rouge")] = "",
+    opposition: Annotated[
+        str,
+        Field(
+            description="Niveau de l'opposition : Average, Good, High, Excellent ou Random. Vide : le modèle propose"
+        ),
+    ] = "",
+    langue: Annotated[str, Field(description="Langue de la mission et de son briefing : fr ou en. Vide : fr")] = "",
+    dossier: Annotated[
+        str,
+        Field(description="Dossier vide où créer la mission (ex. C:\\VEAF-Missions\\Golan). Vide : le modèle demande"),
+    ] = "",
 ) -> str:
-    """Return the request that adds a VEAF combat zone.
+    """Return the request that starts a one-shot mission with objectives (prompt kind ``objective``).
 
     Args:
-        mission: The mission folder.
-        nom: The zone's name.
-        x: DCS ``x`` of the zone's centre.
-        y: DCS ``y`` of the zone's centre.
-        rayon: The radius in metres; blank means 1000.
-        contenu: What the zone holds; blank leaves it to the model.
-        camp: The zone's coalition; blank means red.
+        carte: The DCS map (question 1 of the mission prompt).
+        appareils: The aircraft played and how many pilots (question 2); blank leaves it to the prompt.
+        duree: The flight time of the session (question 3); blank means 2 h.
+        genre: The kind of mission (question 4); blank lets the prompt propose.
+        opposition: The opposition's skill level (question 5); blank lets the prompt propose.
+        langue: ``fr`` or ``en``; blank means ``fr``.
+        dossier: The empty folder to build in; blank makes the model ask.
 
     Returns:
         The French text the client puts in the user's input box.
     """
-    content = _text(contenu) or f"du contenu adapté à la carte ({_LEFT_TO_THE_MODEL})"
-    return (
-        f"Dans la mission {_text(mission)}, ajoute une zone de combat VEAF (`create_combat_zone`) nommée {_text(nom)}.\n"
-        f"Position : x {_num(x)}, y {_num(y)} (coordonnées DCS). Rayon : {rayon or 1000} m. Camp : {_side(camp, 'rouge')}.\n"
-        f"Contenu : {content}.\n"
-        "Chaque groupe est un alias VEAF (`list_shortcuts` donne le bon), jamais des unités placées à la main.\n"
-        "Écris un court texte de briefing pour la zone.\n"
-        f"{_BUILD_ONCE}"
+    answers = (
+        _given("Carte", carte)
+        + _given("Appareils joués et nombre de pilotes", appareils)
+        + _given("Durée de la séance", duree, "2 h")
+        + _given("Genre de mission", genre)
+        + _given("Niveau de l'opposition", opposition)
+    )
+    return _request(
+        "mission à objectifs, à jouer en une séance",
+        "objective",
+        langue,
+        answers,
+        dossier,
+        "le mode de slots, le scénario, les objectifs, la menace, la date, l'heure et la météo",
     )
 
 
-def ajouter_jtac(
-    mission: Annotated[str, Field(description="Dossier de la mission (ex. C:\\VEAF-Missions\\Marteau-du-Golan)")],
-    x: Annotated[RequiredNumber, Field(description="x DCS de la position du JTAC (nord-sud, ex. -206900)")],
-    y: Annotated[RequiredNumber, Field(description="y DCS de la position du JTAC (est-ouest, ex. -16700)")],
-    code_laser: Annotated[OptionalInt, Field(description="Code laser à 4 chiffres. Vide : 1688")] = None,
-    frequence: Annotated[OptionalNumber, Field(description="Fréquence radio en MHz (ex. 35,55). Vide : 35,55")] = None,
-    modulation: Annotated[str, Field(description="Modulation : FM, AM ou UHF. Vide : FM")] = "",
-    nom: Annotated[str, Field(description="Nom du groupe du JTAC. Vide : JTAC-1")] = "",
-    lieu: Annotated[str, Field(description="Lieu, pour la description (ex. Tel Abu Nada). Vide : aucun")] = "",
-    camp: Annotated[str, Field(description="Camp du JTAC : bleu ou rouge. Vide : bleu")] = "",
+def open_training(
+    carte: Annotated[
+        str, Field(description="Carte DCS de l'Open Training : Caucase, Syrie, Mariannes, Allemagne guerre froide…")
+    ],
+    epoque: Annotated[
+        str, Field(description="Époque : moderne, Guerre froide (avec l'année) ou WW2. Vide : moderne")
+    ] = "",
+    gabarit: Annotated[str, Field(description="Gabarit de départ : minimal, standard ou full. Vide : standard")] = "",
+    langue: Annotated[str, Field(description="Langue de la mission et de ses textes : fr ou en. Vide : fr")] = "",
+    dossier: Annotated[
+        str,
+        Field(
+            description="Dossier vide où créer la mission (ex. C:\\VEAF-Missions\\OT-Syrie). Vide : le modèle demande"
+        ),
+    ] = "",
 ) -> str:
-    """Return the request that adds a JTAC: a Hummer, and its line in the ASSETS module.
+    """Return the request that starts a VEAF Open Training on a whole map (prompt kind ``open-training``).
 
     Args:
-        mission: The mission folder.
-        x: DCS ``x`` of the JTAC's position.
-        y: DCS ``y`` of the JTAC's position.
-        code_laser: The 4-digit laser code; blank means 1688.
-        frequence: The radio frequency in MHz; blank means 35.55.
-        modulation: ``FM``, ``AM`` or ``UHF``; blank means FM.
-        nom: The group's name; blank means ``JTAC-1``.
-        lieu: The place, for the description; blank leaves it out.
-        camp: The JTAC's coalition; blank means blue.
+        carte: The DCS map (question 1 of the mission prompt).
+        epoque: The era (question 2); blank means modern.
+        gabarit: The scaffold template (question 3); blank means ``standard``.
+        langue: ``fr`` or ``en``; blank means ``fr``.
+        dossier: The empty folder to build in; blank makes the model ask.
 
     Returns:
         The French text the client puts in the user's input box.
     """
-    name = _text(nom) or "JTAC-1"
-    code = code_laser or 1688
-    radio = f"{_text(modulation).upper() or 'FM'} {_num(frequence) if frequence else '35.55'}"
-    where = f" à {_text(lieu)}" if _text(lieu) else ""
-    return (
-        f"Dans la mission {_text(mission)}, ajoute un JTAC{where} : un Hummer {_side(camp, 'bleu')} (`add_group`) "
-        f"à x {_num(x)}, y {_num(y)} (coordonnées DCS), à cette position exacte, nommé {name}, "
-        f"code laser {code}, fréquence {radio}.\n"
-        f"Déclare-le dans le module ASSETS (`set_mission_module`) : le groupe, le code laser, la fréquence et la modulation. "
-        "La valeur remplace tout le bloc ASSETS : garde les assets qu'il liste déjà.\n"
-        f"{_BUILD_ONCE}"
+    answers = (
+        _given("Carte", carte)
+        + _given("Époque", epoque, "moderne")
+        + _given("Gabarit de départ de la mission", gabarit, "standard")
+    )
+    return _request(
+        "mission Open Training sur une carte entière",
+        "open-training",
+        langue,
+        answers,
+        dossier,
+        "une mission existante dont s'inspirer, les escortes, la sécurité, les zones et la date de mission selon l'époque",
     )
 
 
-#: The prompts the server registers, in the order a client lists them, each with the description it shows.
-PROMPTS: tuple[tuple[Any, str], ...] = (
-    (nouvelle_mission, "Nouvelle mission : son nom, sa carte, sa date, sa météo et son scénario."),
-    (ajouter_qra, "Ajouter une QRA : des intercepteurs qui décollent quand un ennemi entre dans une zone."),
-    (ajouter_zone_de_combat, "Ajouter une zone de combat VEAF : sa position, son rayon et son contenu."),
-    (ajouter_jtac, "Ajouter un JTAC : sa position, son code laser et sa fréquence."),
+def campagne_persistante(
+    carte: Annotated[str, Field(description="Théâtre DCS de la campagne : Caucase, Syrie, Golfe Persique…")],
+    nom: Annotated[str, Field(description="Nom de la campagne, sans espace (ex. Bouclier-de-l-Oronte)")],
+    epoque: Annotated[
+        str, Field(description="Époque : moderne, Guerre froide (avec l'année) ou WW2. Vide : moderne")
+    ] = "",
+    camp: Annotated[str, Field(description="Camp des joueurs : bleu ou rouge. Vide : bleu")] = "",
+    fichier: Annotated[
+        str,
+        Field(
+            description="Nom de fichier fixe de la mission sur le serveur (ex. Campagne_Oronte). Vide : le modèle propose"
+        ),
+    ] = "",
+    langue: Annotated[str, Field(description="Langue de la campagne et de ses textes : fr ou en. Vide : fr")] = "",
+    dossier: Annotated[
+        str, Field(description="Dossier de la campagne (ex. C:\\VEAF-Campagnes\\Oronte). Vide : le modèle demande")
+    ] = "",
+) -> str:
+    """Return the request that starts a persistent campaign: zones that change hands, a front that moves.
+
+    Args:
+        carte: The DCS theatre (question 1 of the mission prompt).
+        nom: The campaign's name (question 2).
+        epoque: The era (question 1); blank means modern.
+        camp: The players' side (question 2); blank means blue.
+        fichier: The mission's fixed file name (question 2); blank lets the prompt propose it.
+        langue: ``fr`` or ``en``; blank means ``fr``.
+        dossier: The campaign's folder; blank makes the model ask.
+
+    Returns:
+        The French text the client puts in the user's input box.
+    """
+    answers = (
+        _given("Théâtre", carte)
+        + _given("Époque", epoque, "moderne")
+        + _given("Nom de la campagne", nom)
+        + _given("Camp des joueurs", camp, "bleu")
+        + _given("Nom de fichier fixe de la mission", fichier)
+    )
+    return _request(
+        "campagne persistante : des zones qui changent de camp et un front qui avance tout seul",
+        "persistent-campaign",
+        langue,
+        answers,
+        dossier,
+        "le front et ses zones (un tableau à valider), les usines et dépôts, les SAM longue portée, l'IA ennemie ; "
+        "aucune date ni météo, le serveur les fixe à chaque chargement",
+    )
+
+
+#: The prompts the server registers, in the order a client lists them: the function, the title and the
+#: description a client shows.
+PROMPTS: tuple[tuple[Any, str, str], ...] = (
+    (
+        mission_one_shot,
+        "Mission one-shot",
+        "Une mission à objectifs, à jouer en une séance : carte, appareils, durée, genre, opposition.",
+    ),
+    (open_training, "Open Training", "Une mission d'entraînement VEAF sur une carte entière : carte, époque, gabarit."),
+    (
+        campagne_persistante,
+        "Campagne persistante",
+        "Des missions dynamiques sur un serveur : zones qui changent de camp, front qui avance.",
+    ),
 )

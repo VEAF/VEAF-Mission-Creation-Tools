@@ -45,8 +45,8 @@ mcp = MCPServer(SERVER_NAME, instructions=INSTRUCTIONS)
 
 # Prompts a client shows to the user, who fills their arguments (FEAT-MCP-PROMPTS). The same in both
 # profiles: they cost the model nothing until the user picks one.
-for _prompt, _description in PROMPTS:
-    mcp.prompt(name=_prompt.__name__, description=_description)(_prompt)
+for _prompt, _title, _description in PROMPTS:
+    mcp.prompt(name=_prompt.__name__, title=_title, description=_description)(_prompt)
 
 
 @mcp.tool()

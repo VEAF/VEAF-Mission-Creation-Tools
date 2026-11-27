@@ -117,24 +117,24 @@ En profil compact seulement :
 
 ### Prompts MCP (lot FEAT-MCP-PROMPTS) {#mcp-prompts}
 
-Le serveur publie, en plus de ses outils, **quatre prompts** (`prompts/list`, `prompts/get`) : des demandes toutes prêtes qu'un client comme Cherry Studio propose à l'utilisateur.
-Au choix d'un prompt, le client ouvre une fenêtre qui liste les arguments (nom, description) ; le texte renvoyé par le serveur est inséré dans la zone de saisie, que l'utilisateur relit et envoie.
-Le modèle reçoit ce texte : un prompt ne décide rien qu'un outil déciderait, il remplit une phrase.
+Le serveur publie, en plus de ses outils, **trois prompts** (`prompts/list`, `prompts/get`), un par type de mission : le guide commence par demander « quel genre de mission ? », l'invite répond à la place de l'utilisateur.
+Un client comme Cherry Studio les propose dans son sélecteur ; au choix d'un prompt, il ouvre une fenêtre qui liste les arguments (nom, description), puis insère le texte renvoyé dans la zone de saisie, que l'utilisateur relit et envoie.
 Les prompts sont les mêmes dans les deux profils (`VEAF_MCP_PROFILE`) : ils ne coûtent rien au modèle tant que l'utilisateur n'en choisit pas un.
 
-| Prompt | Arguments obligatoires | Arguments facultatifs |
-|---|---|---|
-| `nouvelle_mission` | `nom`, `carte` | `date`, `heure`, `meteo`, `scenario`, `dossier` (par défaut `C:\VEAF-Missions\<nom>`) |
-| `ajouter_qra` | `mission`, `base`, `x`, `y` | `rayon_km` (30), `appareils`, `delai_s`, `camp` (rouge) |
-| `ajouter_zone_de_combat` | `mission`, `nom`, `x`, `y` | `rayon` (1 000 m), `contenu`, `camp` (rouge) |
-| `ajouter_jtac` | `mission`, `x`, `y` | `code_laser` (1688), `frequence` (35,55), `modulation` (FM), `nom` (JTAC-1), `lieu`, `camp` (bleu) |
+Une invite **ne recopie pas** le prompt de mission : elle renvoie un court message qui donne les réponses déjà connues et dit au modèle de lire le guide, de charger le prompt de son type avec `describe_mission_prompt` (`lang` à `fr` par défaut) et de le suivre dès sa première section. Le guide et les prompts de mission restent la source unique.
 
-- Les descriptions des arguments sont en français : c'est un pilote qui les lit. Les identifiants des actions citées dans le texte, eux, restent en anglais.
-- `x` et `y` sont les coordonnées DCS d'une table de mission (`x` au nord, `y` à l'est), déjà converties : le texte dit au modèle de ne pas les repasser au géocodeur. Une virgule décimale est acceptée (`35,55`).
-- Un champ facultatif laissé vide (chaîne vide ou espaces, ce que certains clients envoient) vaut un champ absent : le texte laisse alors le choix au modèle (`à toi de choisir`) ou applique la valeur par défaut.
-- **Le délai d'une QRA** (`delai_s`) se compte à partir de la **première intrusion** dans la zone, pas du début de la mission ; sans délai, elle décolle dès la première intrusion.
-- Chaque prompt demande de valider et de construire **une seule fois**, quand tout est placé, et ne cite que des actions du catalogue que le guide enseigne (`test_prompts.py` le vérifie, dans les deux profils).
-- Un argument obligatoire absent, ou un `x` qui n'est pas un nombre, est refusé par le serveur (erreur interne côté client).
+| Prompt | Type (`kind`) | Arguments obligatoires | Arguments facultatifs |
+|---|---|---|---|
+| `mission_one_shot` | `objective` | `carte` | `appareils`, `duree` (2 h), `genre`, `opposition`, `langue` (`fr`), `dossier` |
+| `open_training` | `open-training` | `carte` | `epoque` (moderne), `gabarit` (`standard`), `langue`, `dossier` |
+| `campagne_persistante` | `persistent-campaign` | `carte`, `nom` | `epoque` (moderne), `camp` (bleu), `fichier`, `langue`, `dossier` |
+
+- Un argument est une réponse **fermée** que le prompt de mission pose **en premier** (la carte, l'époque, le gabarit, le camp, le nom). Ce qui demande une discussion ou un tableau à valider reste au prompt : le scénario et les objectifs, le front et les zones d'une campagne, les escortes, la mission dont s'inspirer.
+- **Ni date, ni heure, ni météo** : aucun des trois prompts ne les demande (le scénario les propose ; l'Open Training tire la date de l'époque ; une campagne persistante n'en fixe aucune, le serveur la règle à chaque chargement).
+- Les descriptions d'arguments sont en français, un pilote les lit. `langue` vaut `fr` ou `en` (une autre valeur est refusée) et choisit la langue du prompt de mission et de la mission.
+- Un champ facultatif laissé vide (chaîne vide ou espaces, ce que certains clients envoient) vaut un champ absent. Sans `dossier`, le message dit au modèle de demander où créer la mission : rien n'est inventé.
+- Un argument obligatoire absent est refusé par le serveur (erreur interne côté client).
+- Les actions citées par le texte existent dans le catalogue et le guide les enseigne : `test_prompts.py` le vérifie, dans les deux profils.
 
 ### `describe_mission`
 

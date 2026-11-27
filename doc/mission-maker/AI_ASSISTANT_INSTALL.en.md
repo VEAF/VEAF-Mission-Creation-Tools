@@ -170,10 +170,10 @@ An objective mission or an Open Training also reads its prompt, page by page: al
 
 ### The VEAF server's prompts {#mcp-prompts}
 
-The VEAF server also offers four **prompts** (MCP prompts): *Nouvelle mission* (new mission), *Ajouter une QRA* (add a QRA), *Ajouter une zone de combat* (add a combat zone) and *Ajouter un JTAC* (add a JTAC).
+The VEAF server also offers three **prompts** (MCP prompts), one per kind of mission: *Mission one-shot*, *Open Training* and *Campagne persistante* (persistent campaign).
 A client that supports them, such as Cherry Studio, lists them in its prompt picker.
-Pick one: a dialog asks for the fields (name, map, DCS x/y position, delay…), then the text of the request appears in the input box.
-Reread it, fix it if needed, send it.
+Pick one: a dialog asks for a few fields (map, era, aircraft, side…), then a short message appears in the input box.
+Reread it, fix it if needed, send it: the model then loads the prompt for that kind of mission and asks you the remaining questions one by one.
 An optional field left blank leaves the choice to the model.
 The arguments are detailed on the [developer page](../developer/mission-editing-mcp.en.md#mcp-prompts).
 

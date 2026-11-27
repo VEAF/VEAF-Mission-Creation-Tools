@@ -8,7 +8,7 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ### [FEAT-MCP-PROMPTS](FEAT-MCP-PROMPTS/PRD.md) · 🔄
 
-The MCP server publishes four prompts (new mission, add a QRA, add a combat zone, add a JTAC) with typed arguments in French, so a pilot who is not a developer fills a few fields in the client (Cherry Studio) instead of pasting a block of text. Texts taken from the "Marteau du Golan" tutorial; no resources.
+The MCP server publishes three prompts, one per kind of mission (one-shot, Open Training, persistent campaign), with typed arguments in French, so a pilot who is not a developer fills a few fields in the client (Cherry Studio) instead of pasting a block of text; each sends the model to the existing mission prompt, which is not copied. Phase 2, prompts to edit an existing mission, is a list only; no resources.
 
 ## 🧑 Waiting for a human
 

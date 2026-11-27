@@ -170,10 +170,10 @@ Une mission à objectifs ou un Open Training lisent en plus leur prompt, page pa
 
 ### Les invites du serveur VEAF {#mcp-prompts}
 
-Le serveur VEAF propose aussi quatre **invites** (prompts MCP) : *Nouvelle mission*, *Ajouter une QRA*, *Ajouter une zone de combat* et *Ajouter un JTAC*.
+Le serveur VEAF propose aussi trois **invites** (prompts MCP), une par type de mission : *Mission one-shot*, *Open Training* et *Campagne persistante*.
 Un client qui les gère, comme Cherry Studio, les liste dans son sélecteur d'invites.
-Choisissez-en une : une fenêtre demande les champs (nom, carte, position x/y DCS, délai…), puis le texte de la demande apparaît dans la zone de saisie.
-Relisez-le, corrigez-le si besoin, envoyez-le.
+Choisissez-en une : une fenêtre demande quelques champs (carte, époque, appareils, camp…), puis un court message apparaît dans la zone de saisie.
+Relisez-le, corrigez-le si besoin, envoyez-le : le modèle charge alors le prompt de ce type de mission et vous pose le reste des questions une par une.
 Un champ facultatif laissé vide laisse le choix au modèle.
 Le détail des arguments est dans la [page développeur](../developer/mission-editing-mcp.md#mcp-prompts).
 

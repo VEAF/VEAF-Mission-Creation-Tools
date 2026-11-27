@@ -115,24 +115,24 @@ In the compact profile only:
 
 ### MCP prompts (FEAT-MCP-PROMPTS lot) {#mcp-prompts}
 
-Besides its tools, the server publishes **four prompts** (`prompts/list`, `prompts/get`): ready-made requests a client such as Cherry Studio offers the user.
-When the user picks one, the client opens a dialog listing the arguments (name, description); the text the server returns is inserted into the input box, which the user rereads and sends.
-The model receives that text: a prompt decides nothing a tool would, it fills in a sentence.
+Besides its tools, the server publishes **three prompts** (`prompts/list`, `prompts/get`), one per kind of mission: the guide starts by asking "which kind of mission?", and the prompt answers for the user.
+A client such as Cherry Studio offers them in its picker; when the user picks one, it opens a dialog listing the arguments (name, description), then inserts the returned text into the input box, which the user rereads and sends.
 The prompts are the same in both profiles (`VEAF_MCP_PROFILE`): they cost the model nothing until the user picks one.
 
-| Prompt | Required arguments | Optional arguments |
-|---|---|---|
-| `nouvelle_mission` | `nom`, `carte` | `date`, `heure`, `meteo`, `scenario`, `dossier` (default `C:\VEAF-Missions\<nom>`) |
-| `ajouter_qra` | `mission`, `base`, `x`, `y` | `rayon_km` (30), `appareils`, `delai_s`, `camp` (red) |
-| `ajouter_zone_de_combat` | `mission`, `nom`, `x`, `y` | `rayon` (1,000 m), `contenu`, `camp` (red) |
-| `ajouter_jtac` | `mission`, `x`, `y` | `code_laser` (1688), `frequence` (35.55), `modulation` (FM), `nom` (JTAC-1), `lieu`, `camp` (blue) |
+A prompt **does not copy** the mission prompt: it returns a short message that gives the answers already known and tells the model to read the guide, load the prompt of its kind with `describe_mission_prompt` (`lang` defaults to `fr`) and follow it from its first section. The guide and the mission prompts stay the single source.
 
-- The argument descriptions are in French: a pilot reads them. The actions named in the text keep their English identifiers.
-- `x` and `y` are the DCS coordinates of a mission table (`x` north, `y` east), already converted: the text tells the model not to pass them through the geocoder again. A decimal comma is accepted (`35,55`).
-- An optional field left blank (an empty string or spaces, what some clients send) counts as absent: the text then leaves the choice to the model (`à toi de choisir`) or applies the default.
-- **A QRA's delay** (`delai_s`) counts from the **first intrusion** into the zone, not from the mission's start; with no delay, it scrambles at the first intrusion.
-- Each prompt asks to validate and build **once**, when everything is placed, and cites only catalogue actions the guide teaches (`test_prompts.py` checks it, in both profiles).
-- A missing required argument, or an `x` that is not a number, is refused by the server (an internal error on the client side).
+| Prompt | Kind (`kind`) | Required arguments | Optional arguments |
+|---|---|---|---|
+| `mission_one_shot` | `objective` | `carte` | `appareils`, `duree` (2 h), `genre`, `opposition`, `langue` (`fr`), `dossier` |
+| `open_training` | `open-training` | `carte` | `epoque` (modern), `gabarit` (`standard`), `langue`, `dossier` |
+| `campagne_persistante` | `persistent-campaign` | `carte`, `nom` | `epoque` (modern), `camp` (blue), `fichier`, `langue`, `dossier` |
+
+- An argument is a **closed** answer the mission prompt asks **first** (the map, the era, the template, the side, the name). What needs a discussion or a table to validate stays with the prompt: the scenario and objectives, a campaign's front and zones, the escorts, the mission to take inspiration from.
+- **No date, time or weather**: none of the three prompts asks for them (the scenario proposes them; the Open Training derives the date from the era; a persistent campaign fixes none, the server sets it at each load).
+- The argument descriptions are in French, a pilot reads them. `langue` is `fr` or `en` (anything else is refused) and picks the language of the mission prompt and of the mission.
+- An optional field left blank (an empty string or spaces, what some clients send) counts as absent. Without `dossier`, the message tells the model to ask where to create the mission: nothing is invented.
+- A missing required argument is refused by the server (an internal error on the client side).
+- The actions the text cites exist in the catalogue and the guide teaches them: `test_prompts.py` checks it, in both profiles.
 
 ### `describe_mission`
 

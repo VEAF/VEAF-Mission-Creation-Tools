@@ -167,6 +167,7 @@
   "cmd.ai_setup.none_found": "Aucun assistant IA trouvé sur ce PC. Installez Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI, OpenCode ou Cherry Studio, puis relancez cette commande — ou déclarez le serveur à la main : AI_ASSISTANT_INSTALL, https://veaf.github.io/documentation/latest/mission-maker/AI_ASSISTANT_INSTALL/",
   "cmd.ai_setup.not_frozen": "ai-setup déclare l'exécutable qui le lance : lancez-le depuis veaf-tools.exe, pas depuis un environnement Python.",
   "cmd.ai_setup.opt.cherry_assistant": "Assistant Cherry Studio à relier au serveur VEAF (répétable). Par défaut, aucun lien n'est ajouté ni retiré.",
+  "cmd.ai_setup.opt.cherry_data_dir": "Dossier de données de Cherry Studio, pour un profil lancé avec --user-data-dir. Par défaut : le dossier que Cherry Studio utilise lui-même.",
   "cmd.ai_setup.restart": "Quittez complètement l'assistant IA et relancez-le : il lit ses serveurs au démarrage. Ensuite, demandez-lui simplement de créer une mission.",
   "cmd.ai_setup.server": "Serveur MCP VEAF : {exe}",
   "cmd.ai_setup.status.configured": "branché",

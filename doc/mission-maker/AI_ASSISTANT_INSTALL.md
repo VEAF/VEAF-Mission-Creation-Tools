@@ -184,16 +184,24 @@ Ce que `ai-setup` écrit dans le serveur `veaf` :
 3. la variable `VEAF_MCP_PROFILE=compact`, ajoutée aux autres variables du serveur, qui restent ;
 4. le serveur actif, de type `stdio` : un serveur désactivé, par exemple importé par un lien `cherrystudio://`, est réactivé.
 
-`ai-setup` ne relie le serveur à aucun assistant de Cherry et n'en délie aucun.
-La sauvegarde de départ du tutoriel porte déjà ces liens ; vous ne faites que corriger le chemin de l'exécutable.
-Sans cette sauvegarde, nommez les assistants à relier :
+Par défaut, `ai-setup` ne relie le serveur à aucun assistant de Cherry et n'en délie aucun.
+La sauvegarde de départ du tutoriel ne contient pas de serveur MCP : nommez l'assistant à relier.
 
 ```powershell
-.\veaf-tools.exe ai-setup --cherry-assistant "Mon assistant"
+.\veaf-tools.exe ai-setup --cherry-assistant "VEAF - édition de mission"
 ```
 
+Le nom doit être exactement celui de l'assistant dans Cherry : majuscules, accents, espaces et tiret compris.
 Répétez l'option pour relier plusieurs assistants ; un nom inconnu est signalé, sans erreur.
-Avant d'écrire, `ai-setup` copie la base à côté d'elle, sous le nom `cherrystudio.sqlite.veaf-backup-<date>`, dans le dossier `Data` de Cherry (`%APPDATA%\CherryStudio\Data`).
+
+Si vous lancez Cherry avec `--user-data-dir`, donnez le même dossier à `ai-setup` :
+
+```powershell
+.\veaf-tools.exe ai-setup --cherry-data-dir "E:\AI\mon-profil-cherry" --cherry-assistant "VEAF - édition de mission"
+```
+
+Sans cette option, `ai-setup` règle le dossier que Cherry utilise lui-même, `%APPDATA%\CherryStudio` en général.
+Avant d'écrire, `ai-setup` copie la base à côté d'elle, sous le nom `cherrystudio.sqlite.veaf-backup-<date>`, dans le dossier `Data` de ce dossier Cherry (`%APPDATA%\CherryStudio\Data` en général).
 Relancé sans changement à faire, il n'écrit rien.
 
 `ai-setup` refuse aussi, sans rien écrire, quand la base n'existe pas (Cherry 1.x, ou jamais lancé), quand ses tables ne sont pas celles qu'il connaît, ou quand deux serveurs s'appellent `veaf`.

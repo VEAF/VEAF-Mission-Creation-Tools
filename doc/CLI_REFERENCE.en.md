@@ -1267,6 +1267,7 @@ It can be run again safely, for instance after moving the tools folder.
 | Option | Description |
 |---|---|
 | `--cherry-assistant NAME` | Links the Cherry Studio assistant `NAME` to the VEAF server (repeatable). By default no link is added or removed. |
+| `--cherry-data-dir FOLDER` | Cherry Studio data folder, for a profile started with `--user-data-dir`. By default: the folder Cherry Studio uses itself. |
 
 Then quit the AI assistant completely and start it again: it reads its servers only at start-up.
 It exits with an error (code 1) when no assistant is found or a setting could not be written, leaving the file in question untouched.

@@ -184,16 +184,24 @@ What `ai-setup` writes into the `veaf` server:
 3. the variable `VEAF_MCP_PROFILE=compact`, added to the server's other variables, which stay;
 4. the server active, of type `stdio`: a disabled server, for instance imported through a `cherrystudio://` link, is enabled again.
 
-`ai-setup` links the server to no Cherry assistant and unlinks none.
-The tutorial's starting backup already carries those links; you only fix the path of the executable.
-Without that backup, name the assistants to link:
+By default, `ai-setup` links the server to no Cherry assistant and unlinks none.
+The tutorial's starting backup holds no MCP server: name the assistant to link.
 
 ```powershell
-.\veaf-tools.exe ai-setup --cherry-assistant "My assistant"
+.\veaf-tools.exe ai-setup --cherry-assistant "VEAF - édition de mission"
 ```
 
+The name must be exactly the assistant's name in Cherry: capitals, accents, spaces and dash included.
 Repeat the option to link several assistants; an unknown name is reported, without an error.
-Before it writes, `ai-setup` copies the database next to itself, as `cherrystudio.sqlite.veaf-backup-<date>`, in Cherry's `Data` folder (`%APPDATA%\CherryStudio\Data`).
+
+If you start Cherry with `--user-data-dir`, give the same folder to `ai-setup`:
+
+```powershell
+.\veaf-tools.exe ai-setup --cherry-data-dir "E:\AI\my-cherry-profile" --cherry-assistant "VEAF - édition de mission"
+```
+
+Without this option, `ai-setup` sets up the folder Cherry uses itself, usually `%APPDATA%\CherryStudio`.
+Before it writes, `ai-setup` copies the database next to itself, as `cherrystudio.sqlite.veaf-backup-<date>`, in the `Data` folder of that Cherry folder (usually `%APPDATA%\CherryStudio\Data`).
 Run again with nothing to change, it writes nothing.
 
 `ai-setup` also refuses, writing nothing, when the database does not exist (Cherry 1.x, or never started), when its tables are not the ones it knows, or when two servers are named `veaf`.

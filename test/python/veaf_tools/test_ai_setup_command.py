@@ -31,7 +31,13 @@ def test_ai_setup_declares_the_running_exe_and_reports_each_client(
     seen: dict[str, Any] = {}
 
     def setup_all(
-        exe_arg: Path, *, home: Path, appdata: Path, localappdata: Path, cherry_assistants: list[str]
+        exe_arg: Path,
+        *,
+        home: Path,
+        appdata: Path,
+        localappdata: Path,
+        cherry_assistants: list[str],
+        cherry_data_dir: Path | None,
     ) -> list[ClientResult]:
         seen.update(exe=exe_arg, appdata=appdata, localappdata=localappdata, cherry_assistants=cherry_assistants)
         return [
@@ -59,8 +65,10 @@ def test_ai_setup_passes_the_cherry_assistants_on(app: Any, tmp_path: Path, monk
     _frozen(monkeypatch, tmp_path / "veaf-tools.exe")
     seen: list[Any] = []
 
-    def setup_all(*_a: Any, cherry_assistants: list[str], **_k: Any) -> list[ClientResult]:
-        seen.append(cherry_assistants)
+    def setup_all(
+        *_a: Any, cherry_assistants: list[str], cherry_data_dir: Path | None, **_k: Any
+    ) -> list[ClientResult]:
+        seen.append((cherry_assistants, cherry_data_dir))
         return [ClientResult("Cherry Studio", "configured", "cherrystudio.sqlite")]
 
     monkeypatch.setattr("veaf_tools.commands.ai_setup.setup_all", setup_all)
@@ -68,9 +76,11 @@ def test_ai_setup_passes_the_cherry_assistants_on(app: Any, tmp_path: Path, monk
     result = CliRunner().invoke(
         app, ["ai-setup", "--cherry-assistant", "VEAF missions", "--cherry-assistant", "VEAF chatbot"]
     )
+    forced = CliRunner().invoke(app, ["ai-setup", "--cherry-data-dir", str(tmp_path / "E profile")])
 
     assert result.exit_code == 0, result.output
-    assert seen == [["VEAF missions", "VEAF chatbot"]]
+    assert forced.exit_code == 0, forced.output
+    assert seen == [(["VEAF missions", "VEAF chatbot"], None), ([], tmp_path / "E profile")]
 
 
 def test_ai_setup_fails_when_a_client_could_not_be_configured(

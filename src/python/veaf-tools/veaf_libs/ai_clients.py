@@ -492,6 +492,7 @@ def setup_cherry(
     appdata: Path,
     home: Path,
     assistants: Sequence[str] = (),
+    data_dir: Path | None = None,
     is_running: Callable[[Path], bool] = cherry_is_running,
     clock: Callable[[], float] = time.time,
 ) -> ClientResult:
@@ -505,8 +506,7 @@ def setup_cherry(
 
     The server named `veaf` gets `command` = the executable, `args` = `["mcp"]`,
     `VEAF_MCP_PROFILE=compact` merged into its `env`, and is made an active `stdio` server; it is created
-    when missing. No assistant is linked
-    or unlinked unless named in `assistants`: the tutorial's starting backup carries its links.
+    when missing. No assistant is linked or unlinked unless named in `assistants`.
     The database is copied next to itself before any write.
 
     Args:
@@ -514,20 +514,28 @@ def setup_cherry(
         appdata: The user's `%APPDATA%` folder.
         home: The user's home folder.
         assistants: Names of assistants to link to the server; an unknown name is reported, not fatal.
+        data_dir: Cherry's data folder, as given to Cherry's `--user-data-dir` (`--cherry-data-dir`); it
+            replaces both `boot-config.json` and `%APPDATA%\\CherryStudio`.
         is_running: Tells whether Cherry is open (injected for tests).
         clock: The current time in seconds (injected for tests).
 
     Returns:
-        The outcome; `not_found` when Cherry's data folder does not exist, `failed` with the reason when
-        Cherry is open or its database is not the one expected — nothing is then written.
+        The outcome; `not_found` when Cherry's default data folder does not exist, `failed` with the
+        reason when a forced folder does not exist, Cherry is open or its database is not the one
+        expected — nothing is then written.
     """
     client = "Cherry Studio"
-    try:
-        user_data = cherry_user_data(appdata, home)
-    except ValueError as e:
-        return ClientResult(client, "failed", str(e))
-    if not user_data.is_dir():
-        return ClientResult(client, "not_found")
+    if data_dir is not None:
+        user_data = data_dir
+        if not user_data.is_dir():
+            return ClientResult(client, "failed", f"{user_data} not found")
+    else:
+        try:
+            user_data = cherry_user_data(appdata, home)
+        except ValueError as e:
+            return ClientResult(client, "failed", str(e))
+        if not user_data.is_dir():
+            return ClientResult(client, "not_found")
     if is_running(user_data):
         return ClientResult(client, "failed", "Cherry Studio is open: close Cherry Studio, then run again")
     db = user_data / "Data" / "cherrystudio.sqlite"
@@ -645,7 +653,13 @@ def _write_cherry(db: Path, exe: Path, assistants: Sequence[str], now_ms: int, u
 
 
 def setup_all(
-    exe: Path, *, home: Path, appdata: Path, localappdata: Path, cherry_assistants: Sequence[str] = ()
+    exe: Path,
+    *,
+    home: Path,
+    appdata: Path,
+    localappdata: Path,
+    cherry_assistants: Sequence[str] = (),
+    cherry_data_dir: Path | None = None,
 ) -> list[ClientResult]:
     """Declare the server in every supported client.
 
@@ -655,6 +669,7 @@ def setup_all(
         appdata: The user's `%APPDATA%` folder.
         localappdata: The user's `%LOCALAPPDATA%` folder.
         cherry_assistants: Cherry Studio assistants to link to the server (`--cherry-assistant`).
+        cherry_data_dir: Cherry Studio's data folder, when not the default one (`--cherry-data-dir`).
 
     Returns:
         One result per client, in a fixed order.
@@ -666,5 +681,5 @@ def setup_all(
         setup_antigravity(exe, home=home),
         setup_codex(exe, home=home),
         setup_opencode(exe, home=home),
-        setup_cherry(exe, appdata=appdata, home=home, assistants=cherry_assistants),
+        setup_cherry(exe, appdata=appdata, home=home, assistants=cherry_assistants, data_dir=cherry_data_dir),
     ]

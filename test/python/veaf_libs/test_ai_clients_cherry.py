@@ -5,6 +5,7 @@ real installation.
 """
 
 import json
+import shutil
 import sqlite3
 import subprocess
 from pathlib import Path
@@ -331,6 +332,48 @@ def test_a_boot_config_without_relocation_keeps_the_default_folder(tmp_path: Pat
     assert _veaf(db)["command"] == str(EXE)
 
 
+def test_a_forced_data_folder_is_the_only_one_written(tmp_path: Path) -> None:
+    default_db = _make_cherry(tmp_path)
+    forced = tmp_path / "E" / "cherry-profile"
+    shutil.copytree(_user_data(tmp_path), forced)
+    boot = tmp_path / "home" / ".cherrystudio" / "boot-config.json"
+    boot.parent.mkdir(parents=True)
+    boot.write_text(json.dumps({"app.user_data_path": {"a.exe": str(tmp_path / "x"), "b.exe": str(tmp_path / "y")}}))
+
+    result = _setup(tmp_path, data_dir=forced)
+
+    assert result.status == "configured", result.detail
+    assert _veaf(forced / "Data" / "cherrystudio.sqlite")["command"] == str(EXE)
+    assert _veaf(default_db)["command"] == "C:/old/veaf-tools.exe"
+    assert _backups(default_db) == []
+
+
+@pytest.mark.parametrize("with_folder", [True, False])
+def test_a_forced_data_folder_without_database_is_refused(tmp_path: Path, with_folder: bool) -> None:
+    forced = tmp_path / "E" / "cherry-profile"
+    if with_folder:
+        forced.mkdir(parents=True)
+
+    result = _setup(tmp_path, data_dir=forced)
+
+    assert result.status == "failed"
+    assert str(forced) in result.detail
+
+
+def test_an_assistant_name_with_accents_spaces_and_a_dash_is_linked(tmp_path: Path) -> None:
+    db = _make_cherry(tmp_path)
+    con = sqlite3.connect(db)
+    con.execute("UPDATE assistant SET name = 'VEAF - édition de mission' WHERE id = 'a-chatbot'")
+    con.commit()
+    con.close()
+
+    result = _setup(tmp_path, assistants=["VEAF - édition de mission"])
+
+    assert result.status == "configured", result.detail
+    assert "not found" not in result.detail
+    assert ("a-chatbot", "s-veaf-0") in _links(db)
+
+
 def _no_process(*_a: Any, **_k: Any) -> subprocess.CompletedProcess[str]:
     return subprocess.CompletedProcess([], 0, stdout="INFO: No tasks are running.\n", stderr="")
 
@@ -376,8 +419,8 @@ def test_setup_all_passes_the_assistants_to_cherry_studio(tmp_path: Path, monkey
         )
     seen: dict[str, Any] = {}
 
-    def cherry(exe: Path, *, appdata: Path, home: Path, assistants: Any) -> ai_clients.ClientResult:
-        seen.update(exe=exe, appdata=appdata, home=home, assistants=assistants)
+    def cherry(exe: Path, *, appdata: Path, home: Path, assistants: Any, data_dir: Any) -> ai_clients.ClientResult:
+        seen.update(exe=exe, appdata=appdata, home=home, assistants=assistants, data_dir=data_dir)
         return ai_clients.ClientResult("Cherry Studio", "configured")
 
     monkeypatch.setattr(ai_clients, "setup_cherry", cherry)
@@ -388,6 +431,7 @@ def test_setup_all_passes_the_assistants_to_cherry_studio(tmp_path: Path, monkey
         appdata=tmp_path / "Roaming",
         localappdata=tmp_path / "Local",
         cherry_assistants=["VEAF missions"],
+        cherry_data_dir=tmp_path / "E",
     )
 
     assert results[-1].client == "Cherry Studio"
@@ -396,4 +440,5 @@ def test_setup_all_passes_the_assistants_to_cherry_studio(tmp_path: Path, monkey
         "appdata": tmp_path / "Roaming",
         "home": tmp_path / "home",
         "assistants": ["VEAF missions"],
+        "data_dir": tmp_path / "E",
     }

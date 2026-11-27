@@ -1273,6 +1273,7 @@ On peut la relancer sans risque, par exemple après avoir déplacé le dossier d
 | Option | Description |
 |---|---|
 | `--cherry-assistant NOM` | Relie l'assistant Cherry Studio `NOM` au serveur VEAF (répétable). Par défaut, aucun lien n'est ajouté ni retiré. |
+| `--cherry-data-dir DOSSIER` | Dossier de données de Cherry Studio, pour un profil lancé avec `--user-data-dir`. Par défaut : le dossier que Cherry Studio utilise lui-même. |
 
 Quittez ensuite complètement l'assistant IA et relancez-le : il ne lit ses serveurs qu'au démarrage.
 Elle sort en erreur (code 1) quand aucun assistant n'est trouvé ou qu'un réglage n'a pas pu être écrit, sans rien modifier dans le fichier en cause.

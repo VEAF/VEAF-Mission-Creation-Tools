@@ -167,6 +167,7 @@
   "cmd.ai_setup.none_found": "No AI assistant found on this PC. Install Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI, OpenCode or Cherry Studio, then run this command again — or declare the server by hand: AI_ASSISTANT_INSTALL, https://veaf.github.io/documentation/latest/en/mission-maker/AI_ASSISTANT_INSTALL/",
   "cmd.ai_setup.not_frozen": "ai-setup declares the executable that runs it: run it from veaf-tools.exe, not from a Python environment.",
   "cmd.ai_setup.opt.cherry_assistant": "Cherry Studio assistant to link to the VEAF server (repeatable). By default no link is added or removed.",
+  "cmd.ai_setup.opt.cherry_data_dir": "Cherry Studio data folder, for a profile started with --user-data-dir. By default: the folder Cherry Studio uses itself.",
   "cmd.ai_setup.restart": "Quit the AI assistant completely and start it again: it reads its servers at start-up. Then just ask it to create a mission.",
   "cmd.ai_setup.server": "VEAF MCP server: {exe}",
   "cmd.ai_setup.status.configured": "connected",

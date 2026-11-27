@@ -64,7 +64,8 @@ def ai_setup(
 
     configured = [r for r in results if r.status == "configured"]
     if not configured:
-        console.print(t("cmd.ai_setup.none_found"), style="yellow")
+        if not only:  # with --only, the failed line of each named client already says why
+            console.print(t("cmd.ai_setup.none_found"), style="yellow")
     else:
         console.print(t("cmd.ai_setup.restart"), style="bold blue")
     if not configured or any(r.status == "failed" for r in results):

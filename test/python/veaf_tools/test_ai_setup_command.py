@@ -113,6 +113,22 @@ def test_ai_setup_only_cherry_touches_cherry_alone(app: Any, tmp_path: Path, mon
     assert called == ["cherry"]
 
 
+def test_ai_setup_only_with_a_failed_client_does_not_claim_no_assistant_is_installed(
+    app: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _frozen(monkeypatch, tmp_path / "veaf-tools.exe")
+    monkeypatch.setattr(
+        "veaf_tools.commands.ai_setup.setup_all",
+        lambda *_a, **_k: [ClientResult("Cherry Studio", "failed", "not found on this PC")],
+    )
+
+    result = CliRunner().invoke(app, ["ai-setup", "--only", "cherry"])
+
+    assert result.exit_code == 1
+    assert "not found on this PC" in result.output
+    assert "AI_ASSISTANT_INSTALL" not in result.output
+
+
 def test_ai_setup_refuses_an_unknown_client(app: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     _frozen(monkeypatch, tmp_path / "veaf-tools.exe")
     called = _stub_every_client(monkeypatch)

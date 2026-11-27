@@ -163,6 +163,7 @@
   "cmd.about.veaf": "[bold green]The VEAF - Virtual European Air Force[/bold green]",
   "cmd.about.veaf_desc": "The VEAF is a community of virtual pilots dedicated to creating and flying high-quality missions in DCS World.",
   "cmd.about.website": "Website: {url}",
+  "cmd.ai_setup.cherry_option_without_cherry": "The Cherry Studio options need cherry in --only (--only cherry).",
   "cmd.ai_setup.help": "Connect the AI assistants installed on this PC (Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI, OpenCode, Cherry Studio) to the VEAF tools.",
   "cmd.ai_setup.none_found": "No AI assistant found on this PC. Install Claude Desktop, Claude Code, Codex, Antigravity, Gemini CLI, OpenCode or Cherry Studio, then run this command again — or declare the server by hand: AI_ASSISTANT_INSTALL, https://veaf.github.io/documentation/latest/en/mission-maker/AI_ASSISTANT_INSTALL/",
   "cmd.ai_setup.not_frozen": "ai-setup declares the executable that runs it: run it from veaf-tools.exe, not from a Python environment.",

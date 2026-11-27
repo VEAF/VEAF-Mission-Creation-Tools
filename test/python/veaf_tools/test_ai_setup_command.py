@@ -129,6 +129,21 @@ def test_ai_setup_only_with_a_failed_client_does_not_claim_no_assistant_is_insta
     assert "AI_ASSISTANT_INSTALL" not in result.output
 
 
+@pytest.mark.parametrize("cherry_option", [["--cherry-assistant", "VEAF missions"], ["--cherry-data-dir", "E:/x"]])
+def test_ai_setup_refuses_a_cherry_option_when_only_leaves_cherry_out(
+    app: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, cherry_option: list[str]
+) -> None:
+    """`--only codex --cherry-data-dir X` would drop the Cherry option without a word: refused instead."""
+    _frozen(monkeypatch, tmp_path / "veaf-tools.exe")
+    called = _stub_every_client(monkeypatch)
+
+    result = CliRunner().invoke(app, ["ai-setup", "--only", "codex", *cherry_option])
+
+    assert result.exit_code != 0
+    assert cherry_option[0] in result.output
+    assert called == []
+
+
 def test_ai_setup_refuses_an_unknown_client(app: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     _frozen(monkeypatch, tmp_path / "veaf-tools.exe")
     called = _stub_every_client(monkeypatch)

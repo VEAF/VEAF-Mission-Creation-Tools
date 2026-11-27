@@ -46,6 +46,10 @@ def ai_setup(
             t("cmd.ai_setup.unknown_client", names=", ".join(unknown), clients=", ".join(CLIENT_KEYS)),
             param_hint="--only",
         )
+    if only and "cherry" not in only:
+        for option, value in (("--cherry-assistant", cherry_assistant), ("--cherry-data-dir", cherry_data_dir)):
+            if value:
+                raise typer.BadParameter(t("cmd.ai_setup.cherry_option_without_cherry"), param_hint=option)
     results = setup_all(
         exe,
         home=Path.home(),

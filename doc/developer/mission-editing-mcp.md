@@ -115,6 +115,27 @@ En profil compact seulement :
 - `build_mission` retire aussi de son journal les lignes d'étape sans information (fichier lu, écrit, YAML valide), reconnues par leurs clés de traduction ; `inspect_built_mission` compte les types de slots et les jeux de presets au lieu de les lister (`detail: true` les rend). Trois builds et trois inspections d'un essai répétaient ces listes.
 - Dans les deux profils, un paramètre inventé courant est lu comme celui que l'action publie : `type_contains` pour `name_contains`, `which` pour `file`.
 
+### Prompts MCP (lot FEAT-MCP-PROMPTS) {#mcp-prompts}
+
+Le serveur publie, en plus de ses outils, **quatre prompts** (`prompts/list`, `prompts/get`) : des demandes toutes prêtes qu'un client comme Cherry Studio propose à l'utilisateur.
+Au choix d'un prompt, le client ouvre une fenêtre qui liste les arguments (nom, description) ; le texte renvoyé par le serveur est inséré dans la zone de saisie, que l'utilisateur relit et envoie.
+Le modèle reçoit ce texte : un prompt ne décide rien qu'un outil déciderait, il remplit une phrase.
+Les prompts sont les mêmes dans les deux profils (`VEAF_MCP_PROFILE`) : ils ne coûtent rien au modèle tant que l'utilisateur n'en choisit pas un.
+
+| Prompt | Arguments obligatoires | Arguments facultatifs |
+|---|---|---|
+| `nouvelle_mission` | `nom`, `carte` | `date`, `heure`, `meteo`, `scenario`, `dossier` (par défaut `C:\VEAF-Missions\<nom>`) |
+| `ajouter_qra` | `mission`, `base`, `x`, `y` | `rayon_km` (30), `appareils`, `delai_s`, `camp` (rouge) |
+| `ajouter_zone_de_combat` | `mission`, `nom`, `x`, `y` | `rayon` (1 000 m), `contenu`, `camp` (rouge) |
+| `ajouter_jtac` | `mission`, `x`, `y` | `code_laser` (1688), `frequence` (35,55), `modulation` (FM), `nom` (JTAC-1), `lieu`, `camp` (bleu) |
+
+- Les descriptions des arguments sont en français : c'est un pilote qui les lit. Les identifiants des actions citées dans le texte, eux, restent en anglais.
+- `x` et `y` sont les coordonnées DCS d'une table de mission (`x` au nord, `y` à l'est), déjà converties : le texte dit au modèle de ne pas les repasser au géocodeur. Une virgule décimale est acceptée (`35,55`).
+- Un champ facultatif laissé vide (chaîne vide ou espaces, ce que certains clients envoient) vaut un champ absent : le texte laisse alors le choix au modèle (`à toi de choisir`) ou applique la valeur par défaut.
+- **Le délai d'une QRA** (`delai_s`) se compte à partir de la **première intrusion** dans la zone, pas du début de la mission ; sans délai, elle décolle dès la première intrusion.
+- Chaque prompt demande de valider et de construire **une seule fois**, quand tout est placé, et ne cite que des actions du catalogue que le guide enseigne (`test_prompts.py` le vérifie, dans les deux profils).
+- Un argument obligatoire absent, ou un `x` qui n'est pas un nombre, est refusé par le serveur (erreur interne côté client).
+
 ### `describe_mission`
 
 Lecture seule. Liste les groupes (nom, coalition, pays, catégorie) et zones de déclenchement

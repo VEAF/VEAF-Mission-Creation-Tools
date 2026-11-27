@@ -168,6 +168,15 @@ Measured on 25 November 2026 in the compact profile: a simple mission, from the 
 Add what the model writes and thinks: plan for at least 64 000 tokens of context.
 An objective mission or an Open Training also reads its prompt, page by page: allow more.
 
+### The VEAF server's prompts {#mcp-prompts}
+
+The VEAF server also offers four **prompts** (MCP prompts): *Nouvelle mission* (new mission), *Ajouter une QRA* (add a QRA), *Ajouter une zone de combat* (add a combat zone) and *Ajouter un JTAC* (add a JTAC).
+A client that supports them, such as Cherry Studio, lists them in its prompt picker.
+Pick one: a dialog asks for the fields (name, map, DCS x/y position, delay…), then the text of the request appears in the input box.
+Reread it, fix it if needed, send it.
+An optional field left blank leaves the choice to the model.
+The arguments are detailed on the [developer page](../developer/mission-editing-mcp.en.md#mcp-prompts).
+
 ## An AI without MCP {#no-mcp}
 
 A chat AI in the browser cannot run a program on your PC: it does not read your mission, change it or build it.

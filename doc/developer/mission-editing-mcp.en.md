@@ -113,6 +113,27 @@ In the compact profile only:
 - `build_mission` also drops from its log the step lines that carry nothing (a file read, written, a YAML file valid), recognised by their message keys; `inspect_built_mission` counts the slot types and preset layouts instead of listing them (`detail: true` gives them). Three builds and three inspections of one run repeated those lists.
 - In both profiles, a common invented parameter is read as the one the action publishes: `type_contains` for `name_contains`, `which` for `file`.
 
+### MCP prompts (FEAT-MCP-PROMPTS lot) {#mcp-prompts}
+
+Besides its tools, the server publishes **four prompts** (`prompts/list`, `prompts/get`): ready-made requests a client such as Cherry Studio offers the user.
+When the user picks one, the client opens a dialog listing the arguments (name, description); the text the server returns is inserted into the input box, which the user rereads and sends.
+The model receives that text: a prompt decides nothing a tool would, it fills in a sentence.
+The prompts are the same in both profiles (`VEAF_MCP_PROFILE`): they cost the model nothing until the user picks one.
+
+| Prompt | Required arguments | Optional arguments |
+|---|---|---|
+| `nouvelle_mission` | `nom`, `carte` | `date`, `heure`, `meteo`, `scenario`, `dossier` (default `C:\VEAF-Missions\<nom>`) |
+| `ajouter_qra` | `mission`, `base`, `x`, `y` | `rayon_km` (30), `appareils`, `delai_s`, `camp` (red) |
+| `ajouter_zone_de_combat` | `mission`, `nom`, `x`, `y` | `rayon` (1,000 m), `contenu`, `camp` (red) |
+| `ajouter_jtac` | `mission`, `x`, `y` | `code_laser` (1688), `frequence` (35.55), `modulation` (FM), `nom` (JTAC-1), `lieu`, `camp` (blue) |
+
+- The argument descriptions are in French: a pilot reads them. The actions named in the text keep their English identifiers.
+- `x` and `y` are the DCS coordinates of a mission table (`x` north, `y` east), already converted: the text tells the model not to pass them through the geocoder again. A decimal comma is accepted (`35,55`).
+- An optional field left blank (an empty string or spaces, what some clients send) counts as absent: the text then leaves the choice to the model (`à toi de choisir`) or applies the default.
+- **A QRA's delay** (`delai_s`) counts from the **first intrusion** into the zone, not from the mission's start; with no delay, it scrambles at the first intrusion.
+- Each prompt asks to validate and build **once**, when everything is placed, and cites only catalogue actions the guide teaches (`test_prompts.py` checks it, in both profiles).
+- A missing required argument, or an `x` that is not a number, is refused by the server (an internal error on the client side).
+
 ### `describe_mission`
 
 Read-only. Lists the groups (name, coalition, country, category) and trigger zones (name,

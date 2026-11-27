@@ -38,6 +38,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - **Cold War Germany's clear-ground catalogue is swept on DCS 2.9.32** (CHORE-DCS-2932-DATA-REGEN): the 6 km round each combat zone of the GermanyCW Open Training is measured again on the 2.9.32 terrain, and the zone `combatZone_Hunsrueck_SAR`, added to that mission since the first sweep, is covered too (26 zones, 331 770 bytes against 316 758).
 
+- **The MCP server publishes four prompts a pilot fills in** (FEAT-MCP-PROMPTS): *new mission*, *add a QRA*, *add a combat zone* and *add a JTAC*, with typed arguments described in French and texts taken from the "Marteau du Golan" tutorial. A client such as Cherry Studio lists them and asks for each argument, then puts the text in the input box; the same in the standard and the compact profile, no new tool. A QRA's delay counts from the first intrusion. See `doc/developer/mission-editing-mcp.md#mcp-prompts` and `doc/mission-maker/AI_ASSISTANT_INSTALL.md#mcp-prompts`.
+
 ## [6.39.1] — 2026-11-24
 
 - **"Next page" is the last entry of every radio menu page** (FIX-RADIO-NEXT-PAGE-IN-F10): on the Campagne server, several menus showed "Page suivante" in F9 and another entry in F10. DCS lists a menu's entries in the order they were created, so an entry for one pilot's group, created when he joined, or an entry recreated with new parameters, landed below a "Next page" created before. The link is now recreated after the page's entries, with the pages under it, when something was added to that page.

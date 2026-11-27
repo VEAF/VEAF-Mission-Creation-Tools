@@ -23,6 +23,7 @@ from veaf_tools.app import VERSION
 from veaf_mission_mcp.actions import register_default_actions
 from veaf_mission_mcp.catalog import ActionCatalog, summary
 from veaf_mission_mcp.profile import is_compact
+from veaf_mission_mcp.prompts import PROMPTS
 from veaf_mission_mcp.response_budget import MAX_RESPONSE_CHARS, MAX_SCHEMA_CHARS, capped, to_text
 from veaf_mission_mcp.self_update import PINNED_TAG_ENV_VAR, start_update_if_due
 
@@ -41,6 +42,11 @@ INSTRUCTIONS = (
 )
 
 mcp = MCPServer(SERVER_NAME, instructions=INSTRUCTIONS)
+
+# Prompts a client shows to the user, who fills their arguments (FEAT-MCP-PROMPTS). The same in both
+# profiles: they cost the model nothing until the user picks one.
+for _prompt, _title, _description in PROMPTS:
+    mcp.prompt(name=_prompt.__name__, title=_title, description=_description)(_prompt)
 
 
 @mcp.tool()

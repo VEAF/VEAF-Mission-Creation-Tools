@@ -168,6 +168,15 @@ Mesuré le 25 novembre 2026 en profil compact : une mission simple, du dossier v
 Il faut y ajouter ce que le modèle écrit et réfléchit : prévoyez au moins 64 000 tokens de contexte.
 Une mission à objectifs ou un Open Training lisent en plus leur prompt, page par page : comptez plus large.
 
+### Les invites du serveur VEAF {#mcp-prompts}
+
+Le serveur VEAF propose aussi quatre **invites** (prompts MCP), une par type de mission : *Mission one-shot* (une séance), *Open Training* (une carte entière), *Mission dynamique* (une seule mission à la Foothold : zones qui changent de camp, front qui avance) et *Campagne persistante* (plusieurs missions, une par soir).
+Un client qui les gère, comme Cherry Studio, les liste dans son sélecteur d'invites.
+Choisissez-en une : une fenêtre demande quelques champs (carte, époque, appareils, camp…), puis un court message apparaît dans la zone de saisie.
+Relisez-le, corrigez-le si besoin, envoyez-le : le modèle charge alors le prompt de ce type de mission et vous pose le reste des questions une par une.
+Un champ facultatif laissé vide laisse le choix au modèle.
+Le détail des arguments est dans la [page développeur](../developer/mission-editing-mcp.md#mcp-prompts).
+
 ## Une IA sans MCP {#no-mcp}
 
 Une IA de chat dans le navigateur ne peut pas lancer de programme sur votre PC : elle ne lit pas votre mission, ne la modifie pas, ne la construit pas.

@@ -113,6 +113,31 @@ In the compact profile only:
 - `build_mission` also drops from its log the step lines that carry nothing (a file read, written, a YAML file valid), recognised by their message keys; `inspect_built_mission` counts the slot types and preset layouts instead of listing them (`detail: true` gives them). Three builds and three inspections of one run repeated those lists.
 - In both profiles, a common invented parameter is read as the one the action publishes: `type_contains` for `name_contains`, `which` for `file`.
 
+### MCP prompts (FEAT-MCP-PROMPTS lot) {#mcp-prompts}
+
+Besides its tools, the server publishes **four prompts** (`prompts/list`, `prompts/get`), one per kind of mission: the guide starts by asking "which kind of mission?", and the prompt answers for the user.
+A client such as Cherry Studio offers them in its picker; when the user picks one, it opens a dialog listing the arguments (name, description), then inserts the returned text into the input box, which the user rereads and sends.
+The prompts are the same in both profiles (`VEAF_MCP_PROFILE`): they cost the model nothing until the user picks one.
+
+A prompt **does not copy** the mission prompt: it returns a short message that gives the answers already known and tells the model to read the guide, load the prompt of its kind with `describe_mission_prompt` (`lang` defaults to `fr`) and follow it from its first section. The guide and the mission prompts stay the single source.
+
+| Prompt | Kind (`kind`) | Required arguments | Optional arguments |
+|---|---|---|---|
+| `mission_one_shot` | `objective` | `carte` | `appareils`, `duree` (2 h), `genre`, `opposition`, `langue` (`fr`), `dossier` |
+| `open_training` | `open-training` | `carte` | `epoque` (modern), `gabarit` (`standard`), `langue`, `dossier` |
+| `mission_dynamique` | `persistent-campaign` | `carte`, `nom` | `epoque` (modern), `camp` (blue), `fichier`, `langue`, `dossier` |
+| `campagne_persistante` | none | `carte`, `nom` | `epoque` (modern), `camp` (blue), `histoire`, `langue`, `dossier` |
+
+- **`mission_dynamique`** is **one mission** on one map, in the spirit of Foothold: the campaign engine in its `persistent` mode (zones that change hands, a front that moves, a save). It is the `persistent-campaign` prompt.
+- **`campagne_persistante`** is a **real campaign** of several missions, played evening after evening, each a step (`campaign_next`). No mission prompt describes its steps: the message carries the sequence itself (`campaign_init` with the `multi-mission` example, `campaign_validate`, `campaign_next`) and asks for one mission at a time. It is the only one of the four with no mission prompt behind it.
+
+- An argument is a **closed** answer the mission prompt asks **first** (the map, the era, the template, the side, the name). What needs a discussion or a table to validate stays with the prompt: the scenario and objectives, a dynamic mission's front and zones, the escorts, the mission to take inspiration from.
+- **No date, time or weather**: none of the three prompts asks for them (the scenario proposes them; the Open Training derives the date from the era; a dynamic mission fixes none, the server sets it at each load).
+- The argument descriptions are in French, a pilot reads them. `langue` is `fr` or `en` (anything else is refused) and picks the language of the mission prompt and of the mission.
+- An optional field left blank (an empty string or spaces, what some clients send) counts as absent. Without `dossier`, the message tells the model to ask where to create the mission: nothing is invented.
+- A missing required argument is refused by the server (an internal error on the client side).
+- The actions the text cites exist in the catalogue and the guide teaches them: `test_prompts.py` checks it, in both profiles (`campaign_init` and `campaign_validate`, which only the `campagne_persistante` message names, are checked against the catalogue only).
+
 ### `describe_mission`
 
 Read-only. Lists the groups (name, coalition, country, category) and trigger zones (name,

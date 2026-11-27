@@ -115,6 +115,31 @@ En profil compact seulement :
 - `build_mission` retire aussi de son journal les lignes d'étape sans information (fichier lu, écrit, YAML valide), reconnues par leurs clés de traduction ; `inspect_built_mission` compte les types de slots et les jeux de presets au lieu de les lister (`detail: true` les rend). Trois builds et trois inspections d'un essai répétaient ces listes.
 - Dans les deux profils, un paramètre inventé courant est lu comme celui que l'action publie : `type_contains` pour `name_contains`, `which` pour `file`.
 
+### Prompts MCP (lot FEAT-MCP-PROMPTS) {#mcp-prompts}
+
+Le serveur publie, en plus de ses outils, **quatre prompts** (`prompts/list`, `prompts/get`), un par type de mission : le guide commence par demander « quel genre de mission ? », l'invite répond à la place de l'utilisateur.
+Un client comme Cherry Studio les propose dans son sélecteur ; au choix d'un prompt, il ouvre une fenêtre qui liste les arguments (nom, description), puis insère le texte renvoyé dans la zone de saisie, que l'utilisateur relit et envoie.
+Les prompts sont les mêmes dans les deux profils (`VEAF_MCP_PROFILE`) : ils ne coûtent rien au modèle tant que l'utilisateur n'en choisit pas un.
+
+Une invite **ne recopie pas** le prompt de mission : elle renvoie un court message qui donne les réponses déjà connues et dit au modèle de lire le guide, de charger le prompt de son type avec `describe_mission_prompt` (`lang` à `fr` par défaut) et de le suivre dès sa première section. Le guide et les prompts de mission restent la source unique.
+
+| Prompt | Type (`kind`) | Arguments obligatoires | Arguments facultatifs |
+|---|---|---|---|
+| `mission_one_shot` | `objective` | `carte` | `appareils`, `duree` (2 h), `genre`, `opposition`, `langue` (`fr`), `dossier` |
+| `open_training` | `open-training` | `carte` | `epoque` (moderne), `gabarit` (`standard`), `langue`, `dossier` |
+| `mission_dynamique` | `persistent-campaign` | `carte`, `nom` | `epoque` (moderne), `camp` (bleu), `fichier`, `langue`, `dossier` |
+| `campagne_persistante` | aucun | `carte`, `nom` | `epoque` (moderne), `camp` (bleu), `histoire`, `langue`, `dossier` |
+
+- **`mission_dynamique`** est **une seule mission** sur une carte, dans l'esprit de Foothold : le moteur de campagne en mode `persistent` (zones qui changent de camp, front qui avance, sauvegarde). C'est le prompt `persistent-campaign`.
+- **`campagne_persistante`** est une **vraie campagne** de plusieurs missions, jouées soir après soir, chacune une étape (`campaign_next`). Aucun prompt de mission ne décrit ses étapes : le message porte lui-même le déroulé (`campaign_init` avec l'exemple `multi-mission`, `campaign_validate`, `campaign_next`) et demande une mission à la fois. C'est le seul des quatre sans prompt de mission derrière.
+
+- Un argument est une réponse **fermée** que le prompt de mission pose **en premier** (la carte, l'époque, le gabarit, le camp, le nom). Ce qui demande une discussion ou un tableau à valider reste au prompt : le scénario et les objectifs, le front et les zones d'une mission dynamique, les escortes, la mission dont s'inspirer.
+- **Ni date, ni heure, ni météo** : aucun des trois prompts ne les demande (le scénario les propose ; l'Open Training tire la date de l'époque ; une mission dynamique n'en fixe aucune, le serveur la règle à chaque chargement).
+- Les descriptions d'arguments sont en français, un pilote les lit. `langue` vaut `fr` ou `en` (une autre valeur est refusée) et choisit la langue du prompt de mission et de la mission.
+- Un champ facultatif laissé vide (chaîne vide ou espaces, ce que certains clients envoient) vaut un champ absent. Sans `dossier`, le message dit au modèle de demander où créer la mission : rien n'est inventé.
+- Un argument obligatoire absent est refusé par le serveur (erreur interne côté client).
+- Les actions citées par le texte existent dans le catalogue et le guide les enseigne : `test_prompts.py` le vérifie, dans les deux profils (`campaign_init` et `campaign_validate`, que seul le message de `campagne_persistante` nomme, sont vérifiées dans le catalogue seulement).
+
 ### `describe_mission`
 
 Lecture seule. Liste les groupes (nom, coalition, pays, catégorie) et zones de déclenchement

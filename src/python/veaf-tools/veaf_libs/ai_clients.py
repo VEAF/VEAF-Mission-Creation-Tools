@@ -503,8 +503,9 @@ def setup_cherry(
     Cherry closed: its assistant form saves the whole set of links of an assistant, and would undo a
     write made under it.
 
-    The server named `veaf` gets `command` = the executable, `args` = `["mcp"]` and
-    `VEAF_MCP_PROFILE=compact` merged into its `env`; it is created when missing. No assistant is linked
+    The server named `veaf` gets `command` = the executable, `args` = `["mcp"]`,
+    `VEAF_MCP_PROFILE=compact` merged into its `env`, and is made an active `stdio` server; it is created
+    when missing. No assistant is linked
     or unlinked unless named in `assistants`: the tutorial's starting backup carries its links.
     The database is copied next to itself before any write.
 
@@ -573,7 +574,7 @@ def _write_cherry(db: Path, exe: Path, assistants: Sequence[str], now_ms: int, u
                 f"This Cherry Studio ({found}) stores its servers differently from the version "
                 f"ai-setup knows ({CHERRY_TESTED_VERSION}): declare the server by hand",
             )
-        select = "SELECT id, command, args, env FROM mcp_server WHERE name = ?"
+        select = "SELECT id, command, args, env, type, is_active FROM mcp_server WHERE name = ?"
         rows = con.execute(select, (CHERRY_SERVER_NAME,)).fetchall()
         if len(rows) > 1:
             return ClientResult(
@@ -582,7 +583,8 @@ def _write_cherry(db: Path, exe: Path, assistants: Sequence[str], now_ms: int, u
         command, args = str(exe), _compact_json(["mcp"])
         env = _compact_json(_cherry_env(rows[0][3] if rows else None))
         server_id = rows[0][0] if rows else str(uuid.uuid4())
-        up_to_date = bool(rows) and rows[0][1:] == (command, args, env)
+        # An inactive or non-stdio server (one imported through Cherry's link, say) would never start: repaired too.
+        up_to_date = bool(rows) and rows[0][1:] == (command, args, env, "stdio", 1)
 
         links: list[str] = []
         unknown: list[str] = []
@@ -618,7 +620,8 @@ def _write_cherry(db: Path, exe: Path, assistants: Sequence[str], now_ms: int, u
             )
         if rows:
             con.execute(
-                "UPDATE mcp_server SET command = ?, args = ?, env = ?, updated_at = ? WHERE id = ?",
+                "UPDATE mcp_server SET command = ?, args = ?, env = ?, type = 'stdio', is_active = 1, updated_at = ?"
+                " WHERE id = ?",
                 (command, args, env, now_ms, server_id),
             )
         else:

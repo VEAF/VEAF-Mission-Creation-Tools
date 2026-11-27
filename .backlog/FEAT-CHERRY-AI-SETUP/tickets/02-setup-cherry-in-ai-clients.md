@@ -1,6 +1,7 @@
 # 02 — `setup_cherry` in `ai_clients.py`
 
 Status: 🔄 in-progress — code and tests done (2026-11-27); the three measures on David's PC below are pending.
+A `boot-config.json` with a single entry is followed even if it names an old Cherry executable (David, 2026-11-27: too rare to refuse).
 The backup uses SQLite's backup API rather than a copy of the `.sqlite` and `-wal` files: it reads the WAL too and gives one self-contained file.
 Type: feature
 Files: `src/python/veaf-tools/veaf_libs/ai_clients.py`, `test/python/veaf_libs/test_ai_clients.py` (or the file that covers the other clients), the `ai-setup` command if it lists the clients
@@ -20,7 +21,7 @@ Guards, in this order — refuse without writing when one fails:
 Then write in one `BEGIN IMMEDIATE` transaction, `foreign_keys=ON`, with a timeout.
 
 Write: upsert the server by `name = 'veaf'`.
-- It exists: update `command`, `args`, `env`, `updated_at`; keep the `id`, so the links stay.
+- It exists: update `command`, `args`, `env`, `updated_at`, and set `type='stdio'`, `is_active=1` (David, 2026-11-27: a server imported through Cherry's link is inactive and would never start); keep the `id`, so the links stay.
 - It does not: insert it with a `uuid4` id, `type='stdio'`, `is_active=1`, `install_source='manual'`, `is_trusted=1`, and `trusted_at`, `installed_at`, `created_at`, `updated_at` at the current time.
 - `command` = the path of `veaf-tools.exe`, `args` = `["mcp"]`, JSON compact like `JSON.stringify` (`separators=(',',':')`).
 - `env`: **merge** with the existing one (David, 2026-11-26) — force `VEAF_MCP_PROFILE=compact` and keep the other keys.

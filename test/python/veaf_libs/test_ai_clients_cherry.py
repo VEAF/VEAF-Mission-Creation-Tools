@@ -171,6 +171,28 @@ def test_a_veaf_server_without_env_gets_the_profile(tmp_path: Path) -> None:
     assert json.loads(_veaf(db)["env"]) == {"VEAF_MCP_PROFILE": "compact"}
 
 
+def test_an_inactive_or_non_stdio_veaf_server_is_repaired_once(tmp_path: Path) -> None:
+    """A server imported through Cherry's link is inactive; one of another type never runs the command."""
+    db = _make_cherry(tmp_path)
+    con = sqlite3.connect(db)
+    con.execute("UPDATE mcp_server SET is_active = 0, type = 'sse', install_source = 'protocol' WHERE name = 'veaf'")
+    con.commit()
+    con.close()
+
+    first = _setup(tmp_path)
+    after_first = _rows(db, "SELECT * FROM mcp_server ORDER BY id")
+    backups = _backups(db)
+    second = setup_cherry(
+        EXE, appdata=tmp_path / "Roaming", home=tmp_path / "home", is_running=_closed, clock=lambda: NOW + 60
+    )
+
+    assert first.status == second.status == "configured"
+    veaf = _veaf(db)
+    assert (veaf["type"], veaf["is_active"], veaf["command"]) == ("stdio", 1, str(EXE))
+    assert _rows(db, "SELECT * FROM mcp_server ORDER BY id") == after_first
+    assert _backups(db) == backups
+
+
 def test_running_twice_changes_nothing_the_second_time(tmp_path: Path) -> None:
     db = _make_cherry(tmp_path)
     _setup(tmp_path)

@@ -181,7 +181,8 @@ Ce que `ai-setup` écrit dans le serveur `veaf` :
 
 1. la commande : le chemin complet de `veaf-tools.exe`, celui que vous lancez ;
 2. l'argument `mcp` ;
-3. la variable `VEAF_MCP_PROFILE=compact`, ajoutée aux autres variables du serveur, qui restent.
+3. la variable `VEAF_MCP_PROFILE=compact`, ajoutée aux autres variables du serveur, qui restent ;
+4. le serveur actif, de type `stdio` : un serveur désactivé, par exemple importé par un lien `cherrystudio://`, est réactivé.
 
 `ai-setup` ne relie le serveur à aucun assistant de Cherry et n'en délie aucun.
 La sauvegarde de départ du tutoriel porte déjà ces liens ; vous ne faites que corriger le chemin de l'exécutable.

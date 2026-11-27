@@ -181,7 +181,8 @@ What `ai-setup` writes into the `veaf` server:
 
 1. the command: the full path of `veaf-tools.exe`, the one you run;
 2. the argument `mcp`;
-3. the variable `VEAF_MCP_PROFILE=compact`, added to the server's other variables, which stay.
+3. the variable `VEAF_MCP_PROFILE=compact`, added to the server's other variables, which stay;
+4. the server active, of type `stdio`: a disabled server, for instance imported through a `cherrystudio://` link, is enabled again.
 
 `ai-setup` links the server to no Cherry assistant and unlinks none.
 The tutorial's starting backup already carries those links; you only fix the path of the executable.

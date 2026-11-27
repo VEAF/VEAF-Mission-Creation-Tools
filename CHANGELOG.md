@@ -17,6 +17,8 @@ Versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [6.40.0] — 2026-11-27
+
 - **The JTAC laser code and radio limitation is marked fixed** (`ctld-jtac-imposed-code-and-radio`, FIX-OPEN-TRAINING-SYRIA-FINDINGS 18): checked in the vendored CTLD, an imposed code leaves the automatic pool and a supplied ASSETS radio is kept; it shipped with CTLD `2.0.0-rc13` in 6.29.0, so the known-limitations entry now says `fixed_in: "6.29.0"`.
 
 - **Every zone page of a mission briefing says which waypoint it is** (FIX-BRIEFING-ZONE-WAYPOINT-NUMBER): the "Point" line gives the numbers the overview map prints, planes then helicopters (`Point : W4/H4 — TALBISEH du plan de vol`), where it gave the name alone. A zone with no point of the flight plan has no line.

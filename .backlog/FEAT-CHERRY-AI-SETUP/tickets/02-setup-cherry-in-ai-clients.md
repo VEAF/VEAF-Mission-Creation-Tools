@@ -1,6 +1,6 @@
 # 02 — `setup_cherry` in `ai_clients.py`
 
-Status: 🔄 in-progress — code and tests done (2026-11-27); the three measures on David's PC below are pending.
+Status: ✅ done
 A `boot-config.json` with a single entry is followed even if it names an old Cherry executable (David, 2026-11-27: too rare to refuse).
 The backup uses SQLite's backup API rather than a copy of the `.sqlite` and `-wal` files: it reads the WAL too and gives one self-contained file.
 Type: feature

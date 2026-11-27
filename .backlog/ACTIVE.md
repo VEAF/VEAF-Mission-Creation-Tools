@@ -6,18 +6,6 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 ## 🔄 In progress
 
-### [FEAT-MCP-PROMPTS](FEAT-MCP-PROMPTS/PRD.md) · 🔄
-
-The MCP server publishes four prompts, one per kind of mission (one-shot, Open Training, dynamic mission, persistent campaign), with typed arguments in French, so a pilot who is not a developer fills a few fields in the client (Cherry Studio) instead of pasting a block of text; each sends the model to the existing mission prompt, which is not copied. Phase 2, prompts to edit an existing mission, is a list only; no resources.
-
-### [FIX-MCP-REPLAY-FINDINGS](FIX-MCP-REPLAY-FINDINGS/PRD.md) · 🔄
-
-What the local-model replay of Marteau du Golan block 1 found (2026-11-27): the guide's examples replayed as written, no action for the aircraft an airfield offers, and a tanker display name accepted. One PR, three tickets; ticket 04, the wording of `list_airfield_aircraft` found by the review of #1357, in a second PR.
-
-### [FEAT-CHERRY-AI-SETUP](FEAT-CHERRY-AI-SETUP/PRD.md) · 🔄
-
-`ai-setup` declares the VEAF MCP server in Cherry Studio, the chat client of the local-model tutorial, so pilots do not import it by hand. Study done (feasible, Cherry closed); `setup_cherry` and its doc in progress on `feature/FEAT-CHERRY-AI-SETUP` (2026-11-27).
-
 ## 🧑 Waiting for a human
 
 ### [CHORE-DCS-2932-DATA-REGEN](CHORE-DCS-2932-DATA-REGEN/PRD.md) · 🧑

@@ -1,6 +1,6 @@
 # 03 — Document the Cherry Studio setup
 
-Status: 🔄 in-progress — `AI_ASSISTANT_INSTALL` (section `#cherry-studio`), `CLI_REFERENCE`, `mission-editing-mcp` and `README.md` done in FR and EN (2026-11-27). The local-model tutorial page is not on `develop` yet: its line about `ai-setup` goes in with it.
+Status: ✅ done
 Type: doc
 Files: `doc/mission-maker/AI_ASSISTANT_INSTALL.md`, `doc/mission-maker/AI_ASSISTANT_INSTALL.en.md`, the tutorial page for the local model, `CHANGELOG.md`
 

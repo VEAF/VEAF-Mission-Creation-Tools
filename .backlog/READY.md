@@ -31,3 +31,7 @@ What the local-model replay of Marteau du Golan block 1 found (2026-11-27): the 
 ### [FEAT-CHERRY-PORTABLE-KIT](FEAT-CHERRY-PORTABLE-KIT/PRD.md) · ⬜
 
 Study shipping Cherry Studio portable with its data folder prefilled, so the kit's users get the two VEAF assistants without a restore (David, 2026-11-27).
+
+### [FIX-MCP-LIST-CATALOG-COMPACT-CAP](FIX-MCP-LIST-CATALOG-COMPACT-CAP/PRD.md) · ⬜
+
+In the compact profile `list_catalog` answers 7 921 characters with the response cut (77 actions, 8 228 raw, cap 8 000), already true on develop. Its own ticket; not implemented before David's go (2026-11-27).

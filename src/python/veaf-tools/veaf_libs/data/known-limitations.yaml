@@ -1253,6 +1253,17 @@ limitations:
     the F-16C, measured 2026-10-08), and a squadron or mod skin installed on a server is legitimate
     and absent from any stock list.
   workaround: Check the livery in the Mission Editor, or copy it from a unit that already shows it.
+- id: airfield-aircraft-ignores-warehouses-yaml
+  kind: tool
+  area: mcp
+  title: "`list_airfield_aircraft` answers from the template catalogue, not from `src/warehouses.yaml`"
+  symptom: |
+    The action lists the types the build injects for the airfield's side. The build stocks exactly those
+    only when `src/warehouses.yaml` gives no `aircrafts:` list for that base: a list in the side's
+    `defaults:` or under the base in `airports:` replaces them, and a base in `exclude_airports:` gets
+    none. The action does not read that file, so after such an edit its answer is wider than what the
+    build stocks (found by the review of PR #1357, 2026-11-27).
+  workaround: Read the side's block of `src/warehouses.yaml` before telling which aircraft a base offers.
 - id: a-convoy-drives-through-an-ambush
   kind: dcs
   area: ground-ai

@@ -1,5 +1,6 @@
 """`veaf-tools ai-setup` — the command that connects every AI client on the PC (FEAT-AI-ZERO-SETUP)."""
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -140,7 +141,8 @@ def test_ai_setup_refuses_a_cherry_option_when_only_leaves_cherry_out(
     result = CliRunner().invoke(app, ["ai-setup", "--only", "codex", *cherry_option])
 
     assert result.exit_code != 0
-    assert cherry_option[0] in result.output
+    # In CI rich colours the usage error, and the escape codes split an option's name.
+    assert cherry_option[0] in re.sub(r"\x1b\[[0-9;]*m", "", result.output)
     assert called == []
 
 

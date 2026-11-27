@@ -475,7 +475,14 @@ def _cherry_env(text: str | None) -> dict[str, Any]:
 
 
 def _compact_json(value: Any) -> str:
-    """Write JSON the way Cherry's `JSON.stringify` does: no spaces, non-ASCII kept."""
+    """Write JSON the way Cherry's `JSON.stringify` does: no spaces, non-ASCII kept.
+
+    Args:
+        value: The value to write.
+
+    Returns:
+        Its JSON text.
+    """
     return json.dumps(value, separators=(",", ":"), ensure_ascii=False)
 
 
@@ -566,9 +573,8 @@ def _write_cherry(db: Path, exe: Path, assistants: Sequence[str], now_ms: int, u
                 f"This Cherry Studio ({found}) stores its servers differently from the version "
                 f"ai-setup knows ({CHERRY_TESTED_VERSION}): declare the server by hand",
             )
-        rows = con.execute(
-            "SELECT id, command, args, env FROM mcp_server WHERE name = ?", (CHERRY_SERVER_NAME,)
-        ).fetchall()
+        select = "SELECT id, command, args, env FROM mcp_server WHERE name = ?"
+        rows = con.execute(select, (CHERRY_SERVER_NAME,)).fetchall()
         if len(rows) > 1:
             return ClientResult(
                 client, "failed", f"{db}: {len(rows)} servers are named '{CHERRY_SERVER_NAME}': keep one in Cherry"
@@ -595,38 +601,43 @@ def _write_cherry(db: Path, exe: Path, assistants: Sequence[str], now_ms: int, u
         if up_to_date and not links:
             return ClientResult(client, "configured", detail)
 
-        backup = db.with_name(f"{db.name}.veaf-backup-{time.strftime('%Y%m%d-%H%M%S', time.localtime(now_ms / 1000))}")
+        stamp = time.strftime("%Y%m%d-%H%M%S", time.localtime(now_ms / 1000)) + f"-{now_ms % 1000:03d}"
+        backup = db.with_name(f"{db.name}.veaf-backup-{stamp}")
         target = sqlite3.connect(backup)
         try:
             con.backup(target)  # reads the -wal too: one self-contained copy
         finally:
             target.close()
 
+        # sqlite3's backup() never ends from inside a transaction (measured, Python 3.13): the write lock is
+        # taken after it, and what the write relies on is read again under it.
         con.execute("BEGIN IMMEDIATE")
-        try:
-            if rows:
-                con.execute(
-                    "UPDATE mcp_server SET command = ?, args = ?, env = ?, updated_at = ? WHERE id = ?",
-                    (command, args, env, now_ms, server_id),
-                )
-            else:
-                con.execute(
-                    "INSERT INTO mcp_server (id, name, type, command, args, env, is_active, install_source,"
-                    " is_trusted, trusted_at, installed_at, created_at, updated_at)"
-                    " VALUES (?, ?, 'stdio', ?, ?, ?, 1, 'manual', 1, ?, ?, ?, ?)",
-                    (server_id, CHERRY_SERVER_NAME, command, args, env, now_ms, now_ms, now_ms, now_ms),
-                )
-            con.executemany(
-                "INSERT OR IGNORE INTO assistant_mcp_server (assistant_id, mcp_server_id, created_at, updated_at)"
-                " VALUES (?, ?, ?, ?)",
-                [(i, server_id, now_ms, now_ms) for i in links],
+        if con.execute(select, (CHERRY_SERVER_NAME,)).fetchall() != rows:
+            return ClientResult(
+                client, "failed", f"{db} changed while ai-setup ran: close Cherry Studio, then run again"
             )
-            con.execute("COMMIT")
-        except BaseException:
-            con.execute("ROLLBACK")
-            raise
+        if rows:
+            con.execute(
+                "UPDATE mcp_server SET command = ?, args = ?, env = ?, updated_at = ? WHERE id = ?",
+                (command, args, env, now_ms, server_id),
+            )
+        else:
+            con.execute(
+                "INSERT INTO mcp_server (id, name, type, command, args, env, is_active, install_source,"
+                " is_trusted, trusted_at, installed_at, created_at, updated_at)"
+                " VALUES (?, ?, 'stdio', ?, ?, ?, 1, 'manual', 1, ?, ?, ?, ?)",
+                (server_id, CHERRY_SERVER_NAME, command, args, env, now_ms, now_ms, now_ms, now_ms),
+            )
+        con.executemany(
+            "INSERT OR IGNORE INTO assistant_mcp_server (assistant_id, mcp_server_id, created_at, updated_at)"
+            " VALUES (?, ?, ?, ?)",
+            [(i, server_id, now_ms, now_ms) for i in links],
+        )
+        con.execute("COMMIT")
         return ClientResult(client, "configured", f"{detail}, backup {backup.name}")
     finally:
+        if con.in_transaction:
+            con.execute("ROLLBACK")  # a refusal, a no-op run or an error: nothing is written
         con.close()
 
 

@@ -197,6 +197,7 @@ Run again with nothing to change, it writes nothing.
 
 `ai-setup` also refuses, writing nothing, when the database does not exist (Cherry 1.x, or never started), when its tables are not the ones it knows, or when two servers are named `veaf`.
 It was written and tested with Cherry Studio 2.2.3; if a newer version changes its tables, declare the server by hand in Cherry (its MCP settings, JSON import).
+The portable build of Cherry keeps its database next to its executable: `ai-setup` does not find it, so declare the server there by hand.
 Then start Cherry Studio again.
 
 ### The VEAF server's prompts {#mcp-prompts}

@@ -197,6 +197,7 @@ Relancé sans changement à faire, il n'écrit rien.
 
 `ai-setup` refuse aussi, sans rien écrire, quand la base n'existe pas (Cherry 1.x, ou jamais lancé), quand ses tables ne sont pas celles qu'il connaît, ou quand deux serveurs s'appellent `veaf`.
 Il a été écrit et testé avec Cherry Studio 2.2.3 ; si une version plus récente change ses tables, déclarez le serveur à la main dans Cherry (ses réglages MCP, import JSON).
+La version portable de Cherry garde sa base à côté de son exécutable : `ai-setup` ne la trouve pas, déclarez-y le serveur à la main.
 Relancez ensuite Cherry Studio.
 
 ### Les invites du serveur VEAF {#mcp-prompts}

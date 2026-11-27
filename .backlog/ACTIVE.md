@@ -10,6 +10,10 @@ Work started and not finished: in progress, waiting for a human, or deliberately
 
 The MCP server publishes four prompts, one per kind of mission (one-shot, Open Training, dynamic mission, persistent campaign), with typed arguments in French, so a pilot who is not a developer fills a few fields in the client (Cherry Studio) instead of pasting a block of text; each sends the model to the existing mission prompt, which is not copied. Phase 2, prompts to edit an existing mission, is a list only; no resources.
 
+### [FIX-MCP-REPLAY-FINDINGS](FIX-MCP-REPLAY-FINDINGS/PRD.md) · 🔄
+
+What the local-model replay of Marteau du Golan block 1 found (2026-11-27): the guide's examples replayed as written, no action for the aircraft an airfield offers, and a tanker display name accepted. One PR, three tickets.
+
 ## 🧑 Waiting for a human
 
 ### [CHORE-DCS-2932-DATA-REGEN](CHORE-DCS-2932-DATA-REGEN/PRD.md) · 🧑

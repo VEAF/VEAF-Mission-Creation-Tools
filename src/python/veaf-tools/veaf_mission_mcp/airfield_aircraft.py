@@ -15,6 +15,7 @@ import yaml
 from aircrafts_injector.catalogue import CatalogueUnreadable, filter_by_era, iter_groups, load_catalogue
 from veaf_libs.dcs_airdromes import airdrome_id_for_name
 from veaf_libs.dcs_parking import parkable_kinds
+
 from veaf_mission_mcp.mission_folder import load_folder_mission
 
 #: A catalogue category → the kind of stand an airfield needs to offer its aircraft.

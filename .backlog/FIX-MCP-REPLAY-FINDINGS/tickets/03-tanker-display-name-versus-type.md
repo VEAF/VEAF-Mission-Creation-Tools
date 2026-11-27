@@ -1,6 +1,6 @@
 # 03 — `add_air_group` and a unit's display name
 
-Status: ⬜ ready
+Status: ✅ done
 Type: measure, then fix
 Files: `src/python/veaf-tools/veaf_mission_mcp/` (`add_air_group` and its validation), `veaf_libs/data/dcsUnits.yaml` (read), tests
 

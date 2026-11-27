@@ -1,6 +1,6 @@
 # 02 — An action that says which aircraft types an airfield can offer
 
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Files: `src/python/veaf-tools/veaf_mission_mcp/` (new action and its catalogue entry), the guide's recipe, `doc/developer/mission-editing-mcp.md` and `.en.md`, tests
 

@@ -24,10 +24,6 @@ Measure DCS's dynamic weather on our server before using it in persistent campai
 
 `ai-setup` declares the VEAF MCP server in Cherry Studio, the chat client of the local-model tutorial, so pilots do not import it by hand. A study first (where Cherry keeps its MCP servers), then `setup_cherry`, then the doc; after PR #1349 (David, 2026-11-26).
 
-### [FIX-MCP-REPLAY-FINDINGS](FIX-MCP-REPLAY-FINDINGS/PRD.md) · ⬜
-
-What the local-model replay of Marteau du Golan block 1 found (2026-11-27): the guide's examples replayed as written, no action for the aircraft an airfield offers, and a tanker display name accepted. One PR, three tickets.
-
 ### [FEAT-CHERRY-PORTABLE-KIT](FEAT-CHERRY-PORTABLE-KIT/PRD.md) · ⬜
 
 Study shipping Cherry Studio portable with its data folder prefilled, so the kit's users get the two VEAF assistants without a restore (David, 2026-11-27).

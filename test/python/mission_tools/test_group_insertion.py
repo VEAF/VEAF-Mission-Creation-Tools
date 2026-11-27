@@ -289,6 +289,24 @@ class TestAirCategoryForType:
         assert warning is not None
         assert "NoSuchAircraftType" in warning
 
+    def test_a_display_name_is_answered_with_the_type_to_write(self) -> None:
+        # Measured 2026-11-27: `KC-135MPRS` (the display name) was written as is and DCS ignores it;
+        # the type is `KC135MPRS`. The warning must name the type a model can retry with.
+        category, warning = air_category_for_type_verbose("KC-135MPRS")
+        assert category == "plane"
+        assert warning is not None
+        assert "did you mean 'KC135MPRS'" in warning
+
+    def test_a_close_misspelling_is_answered_with_the_closest_types(self) -> None:
+        _, warning = air_category_for_type_verbose("F-16C")
+        assert warning is not None
+        assert "F-16C_50" in warning
+
+    def test_an_unrelated_type_gets_no_suggestion(self) -> None:
+        _, warning = air_category_for_type_verbose("ZzzNothingLikeIt")
+        assert warning is not None
+        assert "did you mean" not in warning
+
     def test_a_known_type_reports_no_warning(self) -> None:
         assert air_category_for_type_verbose("UH-1H") == ("helicopter", None)
 

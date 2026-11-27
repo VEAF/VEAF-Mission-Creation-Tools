@@ -48,9 +48,18 @@ def air_category_for_type_verbose(unit_type: str) -> tuple[str, str | None]:
         return "helicopter", None
     if category == "plane":
         return "plane", None
+    from veaf_libs.dcs_units_data import suggest_aircraft_types
+
+    hint = suggest_aircraft_types(unit_type)
+    if len(hint) == 1:
+        suggestion = f" — did you mean '{hint[0]}'?"
+    elif hint:
+        suggestion = f" — did you mean one of {', '.join(repr(h) for h in hint)}?"
+    else:
+        suggestion = ""
     return "plane", (
         f"aircraft type '{unit_type}' is not in the DCS unit database, "
-        "so it was placed under 'plane' — if it is a helicopter, its slot will not be flyable"
+        f"so it was placed under 'plane' — if it is a helicopter, its slot will not be flyable{suggestion}"
     )
 
 

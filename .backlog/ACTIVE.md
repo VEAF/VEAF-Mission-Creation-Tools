@@ -12,7 +12,7 @@ The MCP server publishes four prompts, one per kind of mission (one-shot, Open T
 
 ### [FIX-MCP-REPLAY-FINDINGS](FIX-MCP-REPLAY-FINDINGS/PRD.md) · 🔄
 
-What the local-model replay of Marteau du Golan block 1 found (2026-11-27): the guide's examples replayed as written, no action for the aircraft an airfield offers, and a tanker display name accepted. One PR, three tickets.
+What the local-model replay of Marteau du Golan block 1 found (2026-11-27): the guide's examples replayed as written, no action for the aircraft an airfield offers, and a tanker display name accepted. One PR, three tickets; ticket 04, the wording of `list_airfield_aircraft` found by the review of #1357, in a second PR.
 
 ### [FEAT-CHERRY-AI-SETUP](FEAT-CHERRY-AI-SETUP/PRD.md) · 🔄
 

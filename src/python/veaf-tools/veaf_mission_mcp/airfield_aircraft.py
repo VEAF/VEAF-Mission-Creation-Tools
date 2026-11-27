@@ -62,7 +62,9 @@ def list_airfield_aircraft(folder_path: Path, airfield: str, coalition: str | No
         ``neutral``; `parks` the kinds of aircraft the airfield has stands for (``None`` when no parking
         data ships for it, and nothing is left out); `era` the mission's era or ``None``; `aircraft`
         ``{side: {unit_type: template_name}}``, the `unit_type` being the key a `warehouses.yaml`
-        ``aircrafts:`` entry takes.
+        ``aircrafts:`` entry takes; `note`, only for an airfield of no side, says it offers no dynamic slot
+        until it has one. An ``aircrafts:`` list in the folder's `src/warehouses.yaml` replaces this
+        catalogue for the bases it covers; it is not read here.
 
     Raises:
         ValueError: The airfield is unknown for the mission's theatre, the coalition is not blue or red,
@@ -112,7 +114,7 @@ def list_airfield_aircraft(folder_path: Path, airfield: str, coalition: str | No
         if kinds is not None and _CATEGORY_TO_KIND.get(ref.category) not in kinds:
             continue
         aircraft[side].setdefault(unit_type, ref.name)  # the build links the first template of a type
-    return {
+    answer: dict[str, Any] = {
         "airfield": airfield,
         "airdrome_id": airdrome_id,
         "owner": owner if owner in _SIDES else "neutral",
@@ -120,3 +122,10 @@ def list_airfield_aircraft(folder_path: Path, airfield: str, coalition: str | No
         "era": era,
         "aircraft": aircraft,
     }
+    if owner not in _SIDES:
+        # The build stocks an airfield for its owner only: the types listed are what each side would get.
+        answer["note"] = (
+            "This airfield has no side, so it offers no dynamic slot: give it one with set_airbase_coalition; "
+            "the types listed are what each side would get."
+        )
+    return answer

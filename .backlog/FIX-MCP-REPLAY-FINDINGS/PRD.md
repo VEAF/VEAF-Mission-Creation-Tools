@@ -10,3 +10,5 @@ Reported by the local-model test session on 2026-11-27, relayed with David's go:
 4. `add_air_group` with `KC-135MPRS` was accepted, then the model deleted the group and recreated it as `KC135MPRS` (3 minutes). → ticket 03, a measurement first: `dcsUnits.yaml` holds the type `KC135MPRS` with the display name `KC-135MPRS`.
 
 Three tickets, one PR. Ticket 02 is the useful one for a small local model: it removes the second build.
+
+Ticket 04, after the merge of PR #1357: its review found that the new action promised every type on every base, a neutral one included; fixed in its own PR.
